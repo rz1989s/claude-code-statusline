@@ -1,0 +1,60 @@
+{
+  "name": "claude-code-statusline",
+  "version": "1.0.0",
+  "description": "Enhanced statusline for Claude Code with comprehensive monitoring and beautiful themes",
+  "main": "statusline.sh",
+  "scripts": {
+    "test": "bats tests/**/*.bats",
+    "test:unit": "bats tests/unit/*.bats",
+    "test:integration": "bats tests/integration/*.bats",
+    "test:watch": "bats tests/**/*.bats --tap",
+    "lint": "shellcheck statusline.sh",
+    "lint:tests": "shellcheck tests/**/*.bash tests/**/*.bats",
+    "lint:all": "npm run lint && npm run lint:tests",
+    "setup": "npm install && npm run setup:bats",
+    "setup:bats": "git submodule update --init --recursive || echo 'Note: Install bats-core manually if needed'",
+    "clean": "rm -f tests/**/*.log /tmp/.claude_* /tmp/statusline_test_*",
+    "dev": "npm run clean && npm run test",
+    "ci": "npm run lint:all && npm run test"
+  },
+  "keywords": [
+    "claude",
+    "statusline",
+    "terminal",
+    "bash",
+    "prompt",
+    "git",
+    "mcp",
+    "cost-tracking"
+  ],
+  "author": "The Rector",
+  "license": "MIT",
+  "devDependencies": {
+    "bats": "^1.10.0"
+  },
+  "optionalDependencies": {
+    "@commander-js/extra-typings": "^11.1.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rz1989s/claude-code-statusline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rz1989s/claude-code-statusline/issues"
+  },
+  "homepage": "https://github.com/rz1989s/claude-code-statusline#readme",
+  "directories": {
+    "test": "tests",
+    "doc": "docs"
+  },
+  "files": [
+    "statusline.sh",
+    "docs/",
+    "examples/",
+    "README.md",
+    "LICENSE"
+  ]
+}

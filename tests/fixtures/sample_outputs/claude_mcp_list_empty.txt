@@ -1,0 +1,3 @@
+Checking MCP servers...
+
+No MCP servers configured.

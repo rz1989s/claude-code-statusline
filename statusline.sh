@@ -322,6 +322,205 @@ if [[ "$CONFIG_THEME" != "custom" ]]; then
   apply_theme
 fi
 
+# ============================================================================
+# DEPENDENCY VALIDATION AND SECURITY FUNCTIONS
+# ============================================================================
+
+# Enhanced path sanitization (addresses security concern from line 617)
+sanitize_path_secure() {
+    local path="$1"
+    
+    # Validate input
+    if [[ -z "$path" ]]; then
+        echo ""
+        return 0
+    fi
+    
+    # Check path length (prevent excessively long paths)
+    if [[ ${#path} -gt 1000 ]]; then
+        echo "ERROR: Path too long (${#path} chars, max 1000)" >&2
+        # Return truncated path instead of failing
+        path="${path:0:1000}"
+    fi
+    
+    # Basic sanitization: replace slashes with hyphens
+    local sanitized=$(echo "$path" | sed 's|/|-|g')
+    
+    # Remove potentially dangerous characters, keep only safe ones
+    sanitized=$(echo "$sanitized" | tr -cd '[:alnum:]-_.')
+    
+    # Ensure result is not empty
+    if [[ -z "$sanitized" ]]; then
+        sanitized="unknown-path"
+    fi
+    
+    echo "$sanitized"
+}
+
+# Dependency validation system
+validate_dependencies() {
+    local missing_critical=()
+    local missing_optional=()
+    local warnings=()
+    
+    # Check critical dependencies (required for basic functionality)
+    command -v jq >/dev/null 2>&1 || missing_critical+=("jq")
+    
+    # Check optional dependencies with graceful degradation
+    command -v bc >/dev/null 2>&1 || missing_optional+=("bc")
+    command -v python3 >/dev/null 2>&1 || missing_optional+=("python3")
+    command -v bunx >/dev/null 2>&1 || missing_optional+=("bunx")
+    
+    # Check timeout commands (platform-specific)
+    if ! command -v gtimeout >/dev/null 2>&1 && ! command -v timeout >/dev/null 2>&1; then
+        missing_optional+=("timeout")
+    fi
+    
+    # Handle critical dependency failures
+    if [[ ${#missing_critical[@]} -gt 0 ]]; then
+        echo "CRITICAL ERROR: Missing required dependencies: ${missing_critical[*]}" >&2
+        echo "Install missing dependencies and try again." >&2
+        echo "On Ubuntu/Debian: sudo apt-get install jq" >&2
+        echo "On macOS: brew install jq" >&2
+        exit 1
+    fi
+    
+    # Handle optional dependency warnings
+    if [[ ${#missing_optional[@]} -gt 0 ]]; then
+        for dep in "${missing_optional[@]}"; do
+            case "$dep" in
+                "bc")
+                    warnings+=("bc: Cost calculations may be less accurate")
+                    ;;
+                "python3")
+                    warnings+=("python3: Date parsing fallbacks will be used")
+                    ;;
+                "bunx")
+                    warnings+=("bunx: Cost tracking with ccusage will be unavailable")
+                    ;;
+                "timeout")
+                    warnings+=("timeout: Network operations may hang longer")
+                    ;;
+            esac
+        done
+        
+        # Only show warnings if explicitly enabled
+        if [[ "${CONFIG_WARN_MISSING_DEPS:-false}" == "true" ]]; then
+            echo "DEPENDENCY WARNINGS:" >&2
+            for warning in "${warnings[@]}"; do
+                echo "  - $warning" >&2
+            done
+            echo "Set CONFIG_WARN_MISSING_DEPS=false to suppress these warnings." >&2
+        fi
+    fi
+    
+    # Export dependency availability for use in other functions
+    export DEP_BC_AVAILABLE=$(command -v bc >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_PYTHON3_AVAILABLE=$(command -v python3 >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_BUNX_AVAILABLE=$(command -v bunx >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_TIMEOUT_AVAILABLE="false"
+    if command -v gtimeout >/dev/null 2>&1; then
+        export DEP_TIMEOUT_CMD="gtimeout"
+        export DEP_TIMEOUT_AVAILABLE="true"
+    elif command -v timeout >/dev/null 2>&1; then
+        export DEP_TIMEOUT_CMD="timeout"
+        export DEP_TIMEOUT_AVAILABLE="true"
+    fi
+}
+
+# Enhanced Python execution with better error handling (addresses line 688 concern)
+execute_python_safely() {
+    local python_code="$1"
+    local fallback_value="$2"
+    
+    # Check if Python is available
+    if [[ "$DEP_PYTHON3_AVAILABLE" != "true" ]]; then
+        echo "$fallback_value"
+        return 0
+    fi
+    
+    # Validate input (basic injection prevention)
+    if [[ "$python_code" == *"rm -rf"* ]] || [[ "$python_code" == *"system("* ]] || [[ "$python_code" == *"exec("* ]]; then
+        echo "ERROR: Potentially dangerous Python code detected" >&2
+        echo "$fallback_value"
+        return 1
+    fi
+    
+    # Execute with timeout if available
+    local result
+    if [[ "$DEP_TIMEOUT_AVAILABLE" == "true" ]]; then
+        result=$($DEP_TIMEOUT_CMD 5s python3 -c "$python_code" 2>/dev/null)
+    else
+        result=$(python3 -c "$python_code" 2>/dev/null)
+    fi
+    
+    # Return result or fallback
+    if [[ $? -eq 0 && -n "$result" ]]; then
+        echo "$result"
+    else
+        echo "$fallback_value"
+    fi
+}
+
+# Enhanced MCP server name parsing (addresses lines 374, 396-398 security concern)
+parse_mcp_server_name_secure() {
+    local line="$1"
+    
+    # Improved regex pattern that's more restrictive and secure
+    # Only allow ASCII alphanumeric, underscore, and hyphen
+    # Must start and end with alphanumeric
+    if [[ "$line" =~ ^([a-zA-Z0-9][a-zA-Z0-9_-]*[a-zA-Z0-9]|[a-zA-Z0-9]): ]]; then
+        local server_name="${BASH_REMATCH[1]}"
+        
+        # Additional validation: check length and character set
+        if [[ ${#server_name} -gt 100 ]]; then
+            echo "ERROR: MCP server name too long: ${server_name:0:20}..." >&2
+            return 1
+        fi
+        
+        # Ensure no dangerous characters slipped through
+        if [[ "$server_name" =~ [^a-zA-Z0-9_-] ]]; then
+            echo "ERROR: Invalid characters in MCP server name: $server_name" >&2
+            return 1
+        fi
+        
+        echo "$server_name"
+        return 0
+    fi
+    
+    return 1
+}
+
+# Helper function to get timeout command with specified duration
+get_timeout_cmd() {
+    local duration="$1"
+    
+    if [[ "$DEP_TIMEOUT_AVAILABLE" == "true" ]]; then
+        echo "$DEP_TIMEOUT_CMD $duration"
+    else
+        echo ""
+    fi
+}
+
+# Helper function to execute commands with optional timeout
+execute_with_timeout() {
+    local timeout_duration="$1"
+    shift
+    local command=("$@")
+    
+    local timeout_cmd
+    timeout_cmd=$(get_timeout_cmd "$timeout_duration")
+    
+    if [[ -n "$timeout_cmd" ]]; then
+        $timeout_cmd "${command[@]}"
+    else
+        "${command[@]}"
+    fi
+}
+
+# Initialize dependency validation
+validate_dependencies
+
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
@@ -357,21 +556,18 @@ get_mcp_status() {
   local mcp_list_output
   local connected_count total_count
 
-  # Use gtimeout on macOS (via brew coreutils) or built-in timeout on Linux, fallback to basic command
-  local timeout_cmd=""
-  if command -v gtimeout >/dev/null 2>&1; then
-    timeout_cmd="gtimeout $CONFIG_MCP_TIMEOUT"
-  elif command -v timeout >/dev/null 2>&1; then
-    timeout_cmd="timeout $CONFIG_MCP_TIMEOUT"
-  fi
-
-  if mcp_list_output=$($timeout_cmd claude mcp list 2>/dev/null); then
+  if mcp_list_output=$(execute_with_timeout "$CONFIG_MCP_TIMEOUT" claude mcp list 2>/dev/null); then
     # Count connected servers (lines with "✓ Connected")
     connected_count=$(echo "$mcp_list_output" | grep "✓ Connected" | wc -l | tr -d ' ')
 
     # Count total servers (lines with server names, excluding the "Checking..." line)
     # Look for lines that have server names followed by ":" and a command/URL
-    total_count=$(echo "$mcp_list_output" | grep -E "^[a-zA-Z0-9_-]+:" | wc -l | tr -d ' ')
+    local total_count=0
+    while IFS= read -r line; do
+      if parse_mcp_server_name_secure "$line" >/dev/null 2>&1; then
+        ((total_count++))
+      fi
+    done <<<"$mcp_list_output"
 
     # Return connected/total format
     echo "${connected_count}/${total_count}"
@@ -382,31 +578,22 @@ get_mcp_status() {
 
 # Get all MCP servers with their status
 get_all_mcp_servers() {
-  local timeout_cmd=""
-  if command -v gtimeout >/dev/null 2>&1; then
-    timeout_cmd="gtimeout $CONFIG_MCP_TIMEOUT"
-  elif command -v timeout >/dev/null 2>&1; then
-    timeout_cmd="timeout $CONFIG_MCP_TIMEOUT"
-  fi
-
   local mcp_list_output
-  if mcp_list_output=$($timeout_cmd claude mcp list 2>/dev/null); then
+  if mcp_list_output=$(execute_with_timeout "$CONFIG_MCP_TIMEOUT" claude mcp list 2>/dev/null); then
     local all_servers=""
     while IFS= read -r line; do
-      # Look for lines with server names (format: "server-name: ...")
-      if echo "$line" | grep -q "^[a-zA-Z0-9_-]*:"; then
-        local server_name=$(echo "$line" | grep -o "^[a-zA-Z0-9_-]*" | head -1)
-        if [ -n "$server_name" ]; then
-          local server_status="disconnected"
-          if echo "$line" | grep -q "✓ Connected"; then
-            server_status="connected"
-          fi
+      # Look for lines with server names using secure parsing
+      local server_name
+      if server_name=$(parse_mcp_server_name_secure "$line" 2>/dev/null); then
+        local server_status="disconnected"
+        if echo "$line" | grep -q "✓ Connected"; then
+          server_status="connected"
+        fi
 
-          if [ -z "$all_servers" ]; then
-            all_servers="$server_name:$server_status"
-          else
-            all_servers="$all_servers,$server_name:$server_status"
-          fi
+        if [ -z "$all_servers" ]; then
+          all_servers="$server_name:$server_status"
+        else
+          all_servers="$all_servers,$server_name:$server_status"
         fi
       fi
     done <<<"$mcp_list_output"
@@ -423,22 +610,15 @@ get_all_mcp_servers() {
 
 # Get active MCP server names (kept for backward compatibility)
 get_active_mcp_servers() {
-  local timeout_cmd=""
-  if command -v gtimeout >/dev/null 2>&1; then
-    timeout_cmd="gtimeout $CONFIG_MCP_TIMEOUT"
-  elif command -v timeout >/dev/null 2>&1; then
-    timeout_cmd="timeout $CONFIG_MCP_TIMEOUT"
-  fi
-
   local mcp_list_output
-  if mcp_list_output=$($timeout_cmd claude mcp list 2>/dev/null); then
+  if mcp_list_output=$(execute_with_timeout "$CONFIG_MCP_TIMEOUT" claude mcp list 2>/dev/null); then
     # Extract server names that are connected (have "✓ Connected" status)
     local active_servers=""
     while IFS= read -r line; do
       if echo "$line" | grep -q "✓ Connected"; then
-        # Extract server name (everything before the first colon)
-        local server_name=$(echo "$line" | grep -o "^[a-zA-Z0-9_-]*" | head -1)
-        if [ -n "$server_name" ]; then
+        # Extract server name using secure parsing
+        local server_name
+        if server_name=$(parse_mcp_server_name_secure "$line" 2>/dev/null); then
           if [ -z "$active_servers" ]; then
             active_servers="$server_name"
           else
@@ -614,19 +794,11 @@ get_claude_usage_info() {
     thirty_days_ago=$(date -d "@$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || date -r "$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || echo "$(date "+$CONFIG_DATE_FORMAT_COMPACT")")
   fi
   local today=$(date "+$CONFIG_DATE_FORMAT")
-  local current_session_id=$(echo "$current_dir" | sed 's|/|-|g')
-
-  # Use timeout to avoid blocking
-  local timeout_cmd=""
-  if command -v gtimeout >/dev/null 2>&1; then
-    timeout_cmd="gtimeout $CONFIG_CCUSAGE_TIMEOUT"
-  elif command -v timeout >/dev/null 2>&1; then
-    timeout_cmd="timeout $CONFIG_CCUSAGE_TIMEOUT"
-  fi
+  local current_session_id=$(sanitize_path_secure "$current_dir")
 
   # Get current session cost
   local session_cost="0.00"
-  if session_data=$($timeout_cmd bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
+  if session_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
     session_cost=$(echo "$session_data" | jq -r --arg session_id "$current_session_id" '.sessions[] | select(.sessionId == $session_id) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$session_cost" ] || [ "$session_cost" = "null" ]; then
       session_cost="0.00"
@@ -636,7 +808,7 @@ get_claude_usage_info() {
   # Get today's cost and weekly cost
   local today_cost="0.00"
   local week_cost="0.00"
-  if daily_data=$($timeout_cmd bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
+  if daily_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
     today_cost=$(echo "$daily_data" | jq -r --arg today "$today" '.daily[] | select(.date == $today) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$today_cost" ] || [ "$today_cost" = "null" ]; then
       today_cost="0.00"
@@ -648,14 +820,19 @@ get_claude_usage_info() {
       total_cost="0.00"
     fi
     # Subtract today's cost to get only the last 7 days without today
-    week_cost=$(echo "$total_cost - $today_cost" | bc -l 2>/dev/null || echo "0.00")
+    if [[ "$DEP_BC_AVAILABLE" == "true" ]]; then
+      week_cost=$(echo "$total_cost - $today_cost" | bc -l 2>/dev/null || echo "0.00")
+    else
+      # Fallback using shell arithmetic (less precise for floating point)
+      week_cost=$(awk "BEGIN {printf \"%.2f\", $total_cost - $today_cost}" 2>/dev/null || echo "0.00")
+    fi
     # Ensure week_cost is formatted properly
     week_cost=$(printf "%.2f" "$week_cost" 2>/dev/null || echo "0.00")
   fi
 
   # Get 30-day cost
   local month_cost="0.00"
-  if monthly_data=$($timeout_cmd bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
+  if monthly_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
     month_cost=$(echo "$monthly_data" | jq -r '.totals.totalCost // 0' 2>/dev/null)
     if [ -z "$month_cost" ] || [ "$month_cost" = "null" ]; then
       month_cost="0.00"
@@ -666,7 +843,7 @@ get_claude_usage_info() {
   local block_cost_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
   local reset_time_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-  if block_data=$($timeout_cmd bunx ccusage blocks --active --json 2>/dev/null); then
+  if block_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage blocks --active --json 2>/dev/null); then
     local block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
     local remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
 
@@ -685,7 +862,7 @@ get_claude_usage_info() {
       local end_time=$(echo "$block_data" | jq -r '.blocks[0].endTime // ""' 2>/dev/null)
       local reset_time=""
       if [ -n "$end_time" ] && [ "$end_time" != "null" ]; then
-        reset_time=$(python3 -c "import datetime; utc_time = datetime.datetime.fromisoformat('$end_time'.replace('Z', '+00:00')); local_time = utc_time.replace(tzinfo=datetime.timezone.utc).astimezone(); print(local_time.strftime('%H.%M'))" 2>/dev/null)
+        reset_time=$(execute_python_safely "import datetime; utc_time = datetime.datetime.fromisoformat('$end_time'.replace('Z', '+00:00')); local_time = utc_time.replace(tzinfo=datetime.timezone.utc).astimezone(); print(local_time.strftime('%H.%M'))" "")
       fi
 
       block_cost_info=$(printf "$CONFIG_LIVE_BLOCK_EMOJI $CONFIG_LIVE_LABEL \$%.2f" "$block_cost")
@@ -722,15 +899,8 @@ get_claude_version() {
   fi
 
   # Get version with timeout and cache it
-  local timeout_cmd=""
-  if command -v gtimeout >/dev/null 2>&1; then
-    timeout_cmd="gtimeout $CONFIG_VERSION_TIMEOUT"
-  elif command -v timeout >/dev/null 2>&1; then
-    timeout_cmd="timeout $CONFIG_VERSION_TIMEOUT"
-  fi
-
   local version
-  if version=$($timeout_cmd claude --version 2>/dev/null | head -1); then
+  if version=$(execute_with_timeout "$CONFIG_VERSION_TIMEOUT" claude --version 2>/dev/null | head -1); then
     # Extract just the version number (e.g., "1.0.81" from "1.0.81 (Claude Code)")
     local clean_version
     clean_version=$(echo "$version" | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
