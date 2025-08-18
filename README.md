@@ -69,7 +69,7 @@ npm install -g bunx ccusage
 
 1. **Download the script:**
 ```bash
-curl -O https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh
+curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh
 chmod +x statusline-enhanced.sh
 ```
 

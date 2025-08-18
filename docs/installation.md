@@ -58,7 +58,7 @@ bunx ccusage --version
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
 
 # Make executable
 chmod +x ~/.claude/statusline-enhanced.sh
@@ -100,7 +100,7 @@ bunx ccusage --version
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
 
 # Make executable
 chmod +x ~/.claude/statusline-enhanced.sh
@@ -130,7 +130,7 @@ npm install -g bunx ccusage
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
 
 # Make executable
 chmod +x ~/.claude/statusline-enhanced.sh
@@ -159,7 +159,7 @@ npm install -g bunx ccusage
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
 
 # Make executable
 chmod +x ~/.claude/statusline-enhanced.sh
@@ -186,7 +186,7 @@ npm install -g bunx ccusage
 ```bash
 # Inside WSL
 mkdir -p ~/.claude/
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
 chmod +x ~/.claude/statusline-enhanced.sh
 ```
 
@@ -201,7 +201,7 @@ mkdir -p claude/.claude/
 cd claude/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/yourusername/claude-code-statusline/main/statusline-enhanced.sh -o statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o statusline-enhanced.sh
 chmod +x statusline-enhanced.sh
 ```
 
@@ -288,7 +288,7 @@ bash -x ~/.claude/statusline-enhanced.sh
 
 1. 📖 Check [configuration.md](configuration.md) for customization options
 2. 🎨 See [themes.md](themes.md) for theme-specific issues  
-3. 🐛 Open an issue on [GitHub](https://github.com/yourusername/claude-code-statusline/issues)
+3. 🐛 Open an issue on [GitHub](https://github.com/rz1989s/claude-code-statusline/issues)
 
 ## 🚀 Next Steps
 
