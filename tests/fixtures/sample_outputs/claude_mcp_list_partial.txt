@@ -1,0 +1,5 @@
+Checking MCP servers...
+
+upstash-context-7-mcp: npx -y @upstash/context-7-mcp ✓ Connected
+filesystem: npx @modelcontextprotocol/server-filesystem /Users/user/Documents ✗ Failed to connect
+brave-search: npx @modelcontextprotocol/server-brave-search ✓ Connected
