@@ -1,0 +1,92 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+
+# Shell script artifacts
+*.log
+*.tmp
+debug.sh
+test.sh
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Cache and temporary files
+cache/
+tmp/
+temp/
+.cache/
+
+# User-specific configuration overrides
+config.local.sh
+local-config.sh
+.env.local
+
+# Runtime files
+pid
+*.pid
+*.lock
+
+# Documentation build artifacts
+docs/build/
+docs/dist/
+
+# Archives
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Node modules (if any npm tools are added)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any Python tools are added)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Testing
+coverage/
+.coverage
+.pytest_cache/
+test-results/
