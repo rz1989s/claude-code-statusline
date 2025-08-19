@@ -58,13 +58,13 @@ bunx ccusage --version
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
 
 # Make executable
-chmod +x ~/.claude/statusline-enhanced.sh
+chmod +x ~/.claude/statusline.sh
 
 # Test the script
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
 ```
 
 ## 🐧 Linux Installation
@@ -100,10 +100,10 @@ bunx ccusage --version
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
 
 # Make executable
-chmod +x ~/.claude/statusline-enhanced.sh
+chmod +x ~/.claude/statusline.sh
 ```
 
 ### RHEL/CentOS/Fedora
@@ -130,10 +130,10 @@ npm install -g bunx ccusage
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
 
 # Make executable
-chmod +x ~/.claude/statusline-enhanced.sh
+chmod +x ~/.claude/statusline.sh
 ```
 
 ### Arch Linux
@@ -159,10 +159,10 @@ npm install -g bunx ccusage
 mkdir -p ~/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
 
 # Make executable
-chmod +x ~/.claude/statusline-enhanced.sh
+chmod +x ~/.claude/statusline.sh
 ```
 
 ## 🪟 Windows WSL Installation
@@ -186,8 +186,8 @@ npm install -g bunx ccusage
 ```bash
 # Inside WSL
 mkdir -p ~/.claude/
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
-chmod +x ~/.claude/statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 ```
 
 ## 🎯 GNU Stow Integration (Recommended)
@@ -201,8 +201,8 @@ mkdir -p claude/.claude/
 cd claude/.claude/
 
 # Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o statusline-enhanced.sh
-chmod +x statusline-enhanced.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o statusline.sh
+chmod +x statusline.sh
 ```
 
 ### Step 2: Stow the Configuration
@@ -210,7 +210,7 @@ chmod +x statusline-enhanced.sh
 # From your dotfiles root directory
 stow claude
 
-# This creates symlink: ~/.claude/statusline-enhanced.sh -> dotfiles/claude/.claude/statusline-enhanced.sh
+# This creates symlink: ~/.claude/statusline.sh -> dotfiles/claude/.claude/statusline.sh
 ```
 
 ## ⚙️ Configure Claude Code
@@ -219,12 +219,12 @@ After installation, configure Claude Code to use the statusline:
 
 ```bash
 # Method 1: Via Claude Code command
-claude config set statusline ~/.claude/statusline-enhanced.sh
+claude config set statusline ~/.claude/statusline.sh
 
 # Method 2: Edit settings manually
 # Add to your Claude Code settings.json:
 {
-  "statusline": "~/.claude/statusline-enhanced.sh"
+  "statusline": "~/.claude/statusline.sh"
 }
 ```
 
@@ -233,14 +233,14 @@ claude config set statusline ~/.claude/statusline-enhanced.sh
 ### Basic Test
 ```bash
 # Test script with minimal input
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
 ```
 
 ### Full Feature Test
 ```bash
 # Test with ccusage (if configured)
 cd ~/some-git-repo
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline.sh
 ```
 
 ### Expected Output
@@ -281,7 +281,7 @@ brew install coreutils
 Add debug output by running:
 ```bash
 # Enable bash debug mode
-bash -x ~/.claude/statusline-enhanced.sh
+bash -x ~/.claude/statusline.sh
 ```
 
 ### Getting Help

@@ -1,6 +1,6 @@
 # Developer Configuration
 # Maximum information display with extended features
-# Copy these values into your statusline-enhanced.sh
+# Copy these values into your statusline.sh
 
 CONFIG_THEME="catppuccin"
 

@@ -10,7 +10,7 @@ The easiest way to customize appearance is using predefined themes:
 
 ```bash
 # Edit the script file
-vi ~/.claude/statusline-enhanced.sh
+vi ~/.claude/statusline.sh
 
 # Find this line (around line 34):
 CONFIG_THEME="catppuccin"
@@ -228,7 +228,7 @@ CONFIG_ORANGE='\033[38;2;255;152;0m'    # Sunset orange
 ### Step 3: Test Your Theme
 ```bash
 # Test with sample input
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline.sh
 ```
 
 ### Step 4: Fine-tune Colors

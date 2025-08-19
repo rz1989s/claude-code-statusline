@@ -1,6 +1,6 @@
 # Ocean Theme Configuration
 # Deep ocean-inspired color palette
-# Copy these values into your statusline-enhanced.sh
+# Copy these values into your statusline.sh
 
 CONFIG_THEME="custom"
 
