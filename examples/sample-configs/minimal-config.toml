@@ -1,0 +1,51 @@
+# Minimal Configuration - TOML Version
+# Performance-optimized setup for fast systems or limited bandwidth
+# Copy this file to Config.toml or use as reference
+
+[theme]
+name = "classic"  # ANSI colors for maximum compatibility
+
+# === REDUCED FEATURES FOR PERFORMANCE ===
+[features]
+show_commits = true          # Keep commit tracking (lightweight)
+show_version = false         # Disable version checks (network call)
+show_submodules = false      # Disable submodule counting
+show_mcp_status = false      # Disable MCP server checks (network call)
+show_cost_tracking = false   # Disable cost tracking (network call)
+show_reset_info = false      # Disable reset timer
+show_session_info = false    # Disable session information
+
+# === REDUCED TIMEOUTS FOR SPEED ===
+[timeouts]
+mcp = "1s"                   # Quick timeout for MCP (not used anyway)
+version = "1s"               # Quick timeout for version (not used anyway)
+ccusage = "1s"               # Quick timeout for ccusage (not used anyway)
+
+# === SIMPLIFIED LABELS ===
+[labels]
+commits = "C:"               # Short commit label
+repo = "R"                   # Short repo label
+monthly = "M"                # Short monthly label
+weekly = "W"                 # Short weekly label
+daily = "D"                  # Short daily label
+
+# === MINIMAL EMOJIS ===
+[emojis]
+clean_status = "✓"           # Simple checkmark
+dirty_status = "!"           # Simple exclamation
+clock = "⏰"                  # Time emoji
+default_model = "AI"         # Simple text instead of emoji
+
+# === PERFORMANCE CACHE SETTINGS ===
+[cache]
+version_duration = 7200      # Cache version for 2 hours (longer caching)
+
+# === SIMPLE DISPLAY FORMAT ===
+[display]
+time_format = "%H:%M"        # Simple 24-hour format
+
+# === BASIC ERROR MESSAGES ===
+[messages]
+no_ccusage = "N/A"
+mcp_unknown = "?"
+no_submodules = "--"

@@ -52,7 +52,19 @@
 
 ## 🆕 Recent Updates
 
-### v1.0 - Enhanced Statusline Release
+### v2.0 - Enterprise TOML Configuration System 🚀
+
+- **📋 TOML Configuration Files** - Modern, structured configuration with `Config.toml`
+- **🔧 Rich CLI Interface** - Generate, test, validate, and manage configurations
+- **📁 Multi-location Discovery** - `./Config.toml` → `~/.config/claude-code-statusline/` → `~/.claude-statusline.toml`
+- **🌐 Environment Overrides** - `ENV_CONFIG_*` variables override all settings
+- **🔄 Live Reload** - Hot configuration reloading with `--watch-config`
+- **🎨 Theme Inheritance** - Advanced theme system with profiles and inheritance
+- **✅ Configuration Validation** - Built-in testing and error checking with auto-fix suggestions
+- **📦 Migration Tools** - Seamless migration from inline configuration
+- **⚡ 100% Backwards Compatible** - Existing inline configuration continues to work
+
+### v1.0 - Enhanced Statusline Foundation
 
 - **🎨 Three Stunning Themes** - Classic, Garden (pastels), and Catppuccin Mocha
 - **💰 Real-time Cost Tracking** - Complete integration with [ccusage](https://ccusage.com)
@@ -60,7 +72,6 @@
 - **⏰ Block Reset Timer** - Track your 5-hour conversation blocks with countdown
 - **📊 Git Integration** - Repository status, commit counting, and branch information
 - **⚡ Performance Optimized** - Smart caching and configurable timeouts
-- **🔧 Highly Configurable** - Feature toggles, timeout controls, and customization options
 
 ---
 
@@ -117,13 +128,18 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **🌍 Cross-Platform** - Works seamlessly on macOS, Linux, and WSL
 - **💾 Memory Efficient** - Minimal resource usage with maximum information
 
-### 🔧 **Comprehensive Customization**
+### 🔧 **Enterprise-Grade Configuration**
 
-- **🎛️ Feature Toggles** - Enable/disable any display section
+- **📋 TOML Configuration System** - Modern structured configuration files
+- **🔧 Rich CLI Tools** - Generate, test, validate, and manage configurations
+- **🎛️ Feature Toggles** - Enable/disable any display section via TOML
+- **🌐 Environment Overrides** - `ENV_CONFIG_*` variables for dynamic settings
+- **🎨 Advanced Theme System** - Theme inheritance, profiles, and custom color schemes
+- **🔄 Live Configuration Reload** - Hot reload with file watching capabilities
 - **⏲️ Timeout Controls** - Fine-tune network timeout settings
-- **🏷️ Label Customization** - Modify all display text and formats
+- **🏷️ Label Customization** - Modify all display text and formats via TOML
 - **😊 Emoji Customization** - Personalize status indicators
-- **🎨 Theme System** - Easy theme switching and custom color schemes
+- **✅ Configuration Validation** - Built-in testing with auto-fix suggestions
 
 ---
 
@@ -137,9 +153,24 @@ Rich, warm colors inspired by the beloved [Catppuccin](https://catppuccin.com/) 
 
 ![Catppuccin Mocha Theme](assets/screenshots/catppuccin-mocha-theme.png)
 
+**TOML Configuration (Recommended):**
+```toml
+# In your Config.toml file
+[theme]
+name = "catppuccin"
+```
+
+**Environment Override:**
 ```bash
-# Set in script configuration
-CONFIG_THEME="catppuccin"
+# Temporary theme change
+ENV_CONFIG_THEME=catppuccin ./statusline.sh
+```
+
+**CLI Generation:**
+```bash
+# Generate Config.toml with catppuccin theme
+./statusline.sh --generate-config
+# Then edit Config.toml to set theme.name = "catppuccin"
 ```
 
 ### 🌿 Garden Theme  
@@ -148,9 +179,17 @@ Soft, pastel colors that create a gentle and soothing terminal environment. Idea
 
 ![Garden Theme](assets/screenshots/garden-theme.png)
 
+**TOML Configuration (Recommended):**
+```toml
+# In your Config.toml file
+[theme]
+name = "garden"
+```
+
+**Environment Override:**
 ```bash
-# Set in script configuration
-CONFIG_THEME="garden"
+# Temporary theme change
+ENV_CONFIG_THEME=garden ./statusline.sh
 ```
 
 ### ⚡ Classic Theme
@@ -159,22 +198,50 @@ Traditional terminal colors with modern polish. ANSI-compatible and universally 
 
 ![Classic Theme](assets/screenshots/classic-theme.png)
 
+**TOML Configuration (Recommended):**
+```toml
+# In your Config.toml file
+[theme]
+name = "classic"
+```
+
+**Environment Override:**
 ```bash
-# Set in script configuration  
-CONFIG_THEME="classic"
+# Temporary theme change
+ENV_CONFIG_THEME=classic ./statusline.sh
 ```
 
 ### 🎨 Custom Theme
 
 Complete creative control with full RGB/256-color/ANSI color customization capabilities.
 
+**TOML Configuration (Recommended):**
+```toml
+# In your Config.toml file
+[theme]
+name = "custom"
+
+# Define your custom color palette
+[colors.basic]
+red = "\\033[38;2;255;182;193m"    # Soft pink
+blue = "\\033[38;2;173;216;230m"   # Light blue
+green = "\\033[38;2;144;238;144m"  # Light green
+yellow = "\\033[38;2;255;165;0m"   # Orange
+magenta = "\\033[38;2;221;160;221m" # Plum
+cyan = "\\033[38;2;175;238;238m"    # Pale turquoise
+
+[colors.extended]
+orange = "\\033[38;2;255;140;0m"
+light_gray = "\\033[38;2;211;211;211m"
+purple = "\\033[38;2;147;112;219m"
+```
+
+**Advanced Custom Configuration:**
 ```bash
-# Set in script configuration
-CONFIG_THEME="custom"
-# Then customize individual CONFIG_* color variables
-CONFIG_COLOR_DIRECTORY="\\033[38;2;255;182;193m"
-CONFIG_COLOR_BRANCH="\\033[38;2;173;216;230m"
-# ... and more
+# Generate base config then customize
+./statusline.sh --generate-config MyTheme.toml
+# Edit MyTheme.toml with your custom colors
+./statusline.sh --test-config MyTheme.toml
 ```
 
 ---
@@ -288,117 +355,308 @@ ls -la ~/.claude/statusline.sh
 
 # Verify Claude Code configuration
 claude config get statusline
+
+# Test the statusline directly
+~/.claude/statusline.sh --help
 ```
 
-> 💡 **Pro Tip**: Start a new Claude Code session to see your enhanced statusline in action!
+### 🎨 **Configuration Setup (TOML System)**
+
+**Skip this step if you want to use defaults** - the statusline works immediately with beautiful built-in themes!
+
+#### Generate Your Configuration File (Recommended)
+
+```bash
+# Navigate to your preferred location
+cd ~/  # or any project directory
+
+# Generate Config.toml with current settings
+~/.claude/statusline.sh --generate-config
+
+# Customize your configuration
+vim Config.toml
+
+# Test your new configuration  
+~/.claude/statusline.sh --test-config
+```
+
+#### Quick Theme Change
+
+```bash
+# Change theme temporarily (no file needed)
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+
+# Or create a simple Config.toml
+cat > Config.toml << 'EOF'
+[theme]
+name = "catppuccin"
+
+[features]
+show_commits = true
+show_cost_tracking = true
+EOF
+
+# Test your theme
+~/.claude/statusline.sh --test-config
+```
+
+#### Configuration Discovery
+
+The statusline automatically finds your config file:
+- **`./Config.toml`** - Project-specific (highest priority)
+- **`~/.config/claude-code-statusline/Config.toml`** - Standard location
+- **`~/.claude-statusline.toml`** - User home directory
+
+> 💡 **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base configuration, then customize from there!
+
+### 🚀 **Ready to Use!**
+
+Start a new Claude Code session to see your enhanced statusline in action! Your configuration will be automatically detected and applied.
 
 ---
 
 ## ⚙️ Configuration
 
-Customize your statusline experience with our comprehensive configuration system. All settings are located at the top of the script for easy modification.
+Transform your statusline with our **enterprise-grade TOML configuration system**. Modern, structured, and powerful - with full backwards compatibility for existing inline configurations.
 
-### 🎨 Theme Configuration
+## 🚀 **Getting Started with TOML Configuration**
 
-Choose from our beautiful pre-built themes or create your own:
-
-```bash
-# Theme Selection - Pick your favorite aesthetic
-CONFIG_THEME="catppuccin"  # Options: classic, garden, catppuccin, custom
-
-# For custom themes, set individual colors:
-CONFIG_THEME="custom"
-CONFIG_COLOR_DIRECTORY="\\033[38;2;255;182;193m"    # Soft pink
-CONFIG_COLOR_BRANCH="\\033[38;2;173;216;230m"       # Light blue  
-CONFIG_COLOR_STATUS="\\033[38;2;144;238;144m"       # Light green
-CONFIG_COLOR_TIME="\\033[38;2;255;165;0m"           # Orange
-```
-
-### 🎛️ Feature Toggles
-
-Enable or disable specific functionality to suit your workflow:
-
-<details>
-<summary><strong>Core Features</strong></summary>
+### Quick Setup (Recommended)
 
 ```bash
-# Repository Information
-CONFIG_SHOW_COMMITS=true        # Show today's commit count
-CONFIG_SHOW_VERSION=true        # Display Claude Code version
-CONFIG_SHOW_SUBMODULES=true     # Show git submodule count
+# 1. Generate your Config.toml file
+./statusline.sh --generate-config
 
-# Monitoring & Status
-CONFIG_SHOW_MCP_STATUS=true     # MCP server health monitoring
-CONFIG_SHOW_COST_TRACKING=true  # Financial cost tracking (ccusage)
-CONFIG_SHOW_RESET_TIMER=true    # Block reset countdown
+# 2. Customize your Config.toml file  
+vim Config.toml
 
-# Visual Elements
-CONFIG_SHOW_EMOJIS=true         # Emoji indicators
-CONFIG_SHOW_TIME=true           # Current time display
+# 3. Test your configuration
+./statusline.sh --test-config
+
+# 4. Start using your enhanced statusline!
+./statusline.sh
 ```
-</details>
 
-### ⏱️ Performance Tuning
+### Configuration Discovery
 
-Fine-tune timeouts to optimize for your network and system performance:
+The statusline automatically discovers your configuration in this order:
+
+1. **`./Config.toml`** - Project-specific configuration (highest priority)
+2. **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
+3. **`~/.claude-statusline.toml`** - User home directory
+4. **Environment variables** (`ENV_CONFIG_*`) - Override any TOML setting
+5. **Inline script configuration** - Legacy fallback (backwards compatible)
+
+## 📋 **TOML Configuration Structure**
+
+### Core Configuration Sections
+
+```toml
+# === THEME CONFIGURATION ===
+[theme]
+name = "catppuccin"  # Options: classic, garden, catppuccin, custom
+
+# === FEATURE TOGGLES ===
+[features]
+show_commits = true
+show_version = true
+show_mcp_status = true
+show_cost_tracking = true
+
+# === TIMEOUTS & PERFORMANCE ===
+[timeouts]
+mcp = "3s"
+version = "2s" 
+ccusage = "3s"
+
+# === CUSTOMIZATION ===
+[emojis]
+opus = "🧠"
+haiku = "⚡"
+sonnet = "🎵"
+clean_status = "✅"
+
+[labels]
+commits = "Commits:"
+repo = "REPO"
+mcp = "MCP"
+```
+
+### Advanced Custom Colors
+
+```toml
+# === CUSTOM THEME COLORS ===
+[theme]
+name = "custom"
+
+[colors.basic]
+red = "\\033[31m"
+blue = "\\033[34m"
+green = "\\033[32m"
+yellow = "\\033[33m"
+
+[colors.extended]
+orange = "\\033[38;5;208m"
+light_gray = "\\033[38;5;248m"
+purple = "\\033[95m"
+teal = "\\033[38;5;73m"
+```
+
+## 🔧 **Rich CLI Interface**
+
+### Configuration Management Commands
 
 ```bash
-# Network Operation Timeouts
-CONFIG_MCP_TIMEOUT="3s"         # MCP server status check timeout
-CONFIG_VERSION_TIMEOUT="2s"     # Claude Code version check timeout
-CONFIG_CCUSAGE_TIMEOUT="3s"     # Cost tracking API timeout
+# === CONFIGURATION GENERATION ===
+./statusline.sh --generate-config              # Create Config.toml from current settings
+./statusline.sh --generate-config MyTheme.toml # Generate custom config file
 
-# Caching Configuration
-CONFIG_VERSION_CACHE_TTL="3600" # Cache version info for 1 hour
-CONFIG_GIT_CACHE_TTL="60"       # Cache git info for 1 minute
+# === TESTING & VALIDATION ===
+./statusline.sh --test-config                  # Test current configuration
+./statusline.sh --test-config MyTheme.toml     # Test specific config file
+./statusline.sh --test-config-verbose          # Detailed testing output
+./statusline.sh --validate-config              # Validate configuration syntax
+
+# === COMPARISON & ANALYSIS ===
+./statusline.sh --compare-config               # Compare inline vs TOML settings
 ```
 
-### 🏷️ Label Customization
-
-Personalize the display text and indicators:
-
-<details>
-<summary><strong>Custom Labels & Emojis</strong></summary>
+### Live Reload & Management
 
 ```bash
-# Status Labels
-CONFIG_LABEL_COMMITS="Commits"
-CONFIG_LABEL_VERSION="ver"
-CONFIG_LABEL_SUBMODULES="SUB"
-CONFIG_LABEL_MCP="MCP"
+# === LIVE CONFIGURATION RELOAD ===
+./statusline.sh --reload-config                # Reload configuration now
+./statusline.sh --reload-interactive           # Interactive config management menu
+./statusline.sh --watch-config 3               # Watch for changes every 3 seconds
 
-# Status Emojis
-CONFIG_EMOJI_CLEAN="✅"         # Clean git status
-CONFIG_EMOJI_DIRTY="⚠️"         # Dirty git status  
-CONFIG_EMOJI_TIME="🕐"          # Time indicator
-CONFIG_EMOJI_LIVE="🔥"          # Live cost indicator
-CONFIG_EMOJI_SONNET="🎵"        # Sonnet model indicator
+# === MIGRATION & BACKUP ===
+./statusline.sh --backup-config backup-dir/    # Backup current configuration
+./statusline.sh --restore-config backup-dir/   # Restore from backup
 ```
-</details>
 
-### 🔧 Advanced Settings
-
-<details>
-<summary><strong>Expert Configuration</strong></summary>
+### Help & Documentation
 
 ```bash
-# Display Formatting
-CONFIG_SEPARATOR=" │ "          # Section separator
-CONFIG_PADDING_LEFT=""          # Left padding
-CONFIG_PADDING_RIGHT=""         # Right padding
-
-# Color Reset
-CONFIG_RESET="\\033[0m"         # Color reset sequence
-
-# Debug Options
-CONFIG_DEBUG=false              # Enable debug output
-CONFIG_VERBOSE=false            # Verbose logging
+# === HELP SYSTEM ===
+./statusline.sh --help                         # Complete help documentation
+./statusline.sh --help config                  # Configuration-specific help
 ```
-</details>
 
-> 📖 **Need Help?** Check out our [Configuration Guide](docs/configuration.md) for detailed setup instructions and advanced customization options.
+## 🌍 **Environment Variable Overrides**
 
-> ⚡ **Pro Tip**: Changes take effect immediately - just start a new Claude Code session to see your modifications!
+Temporarily override any TOML setting with environment variables:
+
+```bash
+# === TEMPORARY THEME CHANGES ===
+ENV_CONFIG_THEME=garden ./statusline.sh        # Use garden theme once
+ENV_CONFIG_THEME=classic ./statusline.sh       # Use classic theme once
+
+# === FEATURE OVERRIDES ===
+ENV_CONFIG_SHOW_MCP_STATUS=false ./statusline.sh     # Disable MCP status
+ENV_CONFIG_MCP_TIMEOUT=10s ./statusline.sh           # Increase MCP timeout
+
+# === PERFECT FOR CI/CD & AUTOMATION ===
+ENV_CONFIG_SHOW_COST_TRACKING=false \
+ENV_CONFIG_SHOW_RESET_INFO=false \
+ENV_CONFIG_THEME=classic \
+./statusline.sh
+```
+
+## 🎛️ **Configuration Examples**
+
+### Minimal Configuration
+
+```toml
+# Minimal Config.toml for performance
+[theme]
+name = "classic"
+
+[features]
+show_commits = true
+show_version = false
+show_mcp_status = false
+show_cost_tracking = false
+
+[timeouts]
+mcp = "1s"
+ccusage = "1s"
+```
+
+### Developer Full-Featured
+
+```toml
+# Developer Config.toml with all features
+[theme]
+name = "catppuccin"
+
+[features]
+show_commits = true
+show_version = true  
+show_mcp_status = true
+show_cost_tracking = true
+show_reset_info = true
+
+[timeouts]
+mcp = "5s"
+version = "3s"
+ccusage = "5s"
+
+[labels]
+commits = "Today's Commits:"
+mcp = "MCP Servers"
+repo = "Repository Cost"
+```
+
+### Work vs Personal Profiles
+
+```toml
+# Work profile with cost tracking
+[profiles.work]
+theme = "classic"
+show_cost_tracking = true
+show_reset_info = true
+
+[profiles.personal]  
+theme = "catppuccin"
+show_cost_tracking = false
+show_reset_info = false
+
+# Profile switching (advanced feature)
+[conditional.work_hours]
+enabled = true
+start_time = "09:00"
+end_time = "17:00"
+work_profile = "work" 
+off_hours_profile = "personal"
+```
+
+## 💡 **Migration from Inline Configuration**
+
+Your existing inline configuration **continues to work unchanged**! When you're ready:
+
+```bash
+# 1. Generate TOML from your current inline settings
+./statusline.sh --generate-config
+
+# 2. Compare to see the differences  
+./statusline.sh --compare-config
+
+# 3. Test the new TOML configuration
+./statusline.sh --test-config
+
+# 4. Your inline config becomes the fallback
+# TOML configuration takes precedence automatically
+```
+
+## 🔗 **Documentation Links**
+
+- 📖 **[Complete Configuration Guide](docs/configuration.md)** - Detailed TOML configuration reference
+- 🎨 **[Themes Guide](docs/themes.md)** - Theme creation and customization with TOML
+- 🚀 **[Migration Guide](docs/migration.md)** - Step-by-step migration from inline configuration  
+- 🔧 **[CLI Reference](docs/cli-reference.md)** - Complete command-line interface documentation
+- 🐛 **[Troubleshooting](docs/troubleshooting.md)** - TOML configuration troubleshooting
+
+> ⚡ **Pro Tip**: Start with `./statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
 
 ## 🔍 What Each Line Shows
 

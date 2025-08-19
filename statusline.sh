@@ -439,12 +439,26 @@ execute_python_safely() {
         return 0
     fi
     
-    # Validate input (basic injection prevention)
-    if [[ "$python_code" == *"rm -rf"* ]] || [[ "$python_code" == *"system("* ]] || [[ "$python_code" == *"exec("* ]]; then
-        echo "ERROR: Potentially dangerous Python code detected" >&2
-        echo "$fallback_value"
-        return 1
-    fi
+    # Validate input (comprehensive injection prevention)
+    local dangerous_patterns=(
+        "rm -rf" "rm -r" "rmdir" "unlink" "delete"           # File deletion
+        "system(" "exec(" "eval(" "compile("                  # Code execution
+        "subprocess." "popen(" "call(" "run("                 # Process execution
+        "os.system" "os.popen" "os.execv" "os.spawn"          # OS command execution
+        "__import__" "importlib" "import subprocess"          # Dangerous imports
+        "urllib" "requests" "http" "socket" "ftp"             # Network operations
+        "open(" "file(" "write(" "writelines("                # File I/O operations
+        "shutil" "glob.glob" "pathlib" "tempfile"             # File system manipulation
+        "; " "&&" "||" "|" ">" ">>" "<"                      # Shell operators
+    )
+    
+    for pattern in "${dangerous_patterns[@]}"; do
+        if [[ "$python_code" == *"$pattern"* ]]; then
+            echo "ERROR: Potentially dangerous Python code detected: $pattern" >&2
+            echo "$fallback_value"
+            return 1
+        fi
+    done
     
     # Execute with timeout if available
     local result
@@ -1362,7 +1376,7 @@ apply_env_overrides() {
     # These override both TOML config and inline defaults
     
     # Theme and colors
-    [[ -n "$CONFIG_THEME" ]] && CONFIG_THEME="$CONFIG_THEME"
+    [[ -n "$ENV_CONFIG_THEME" ]] && CONFIG_THEME="$ENV_CONFIG_THEME"
     [[ -n "$ENV_CONFIG_RED" ]] && CONFIG_RED="$ENV_CONFIG_RED"
     [[ -n "$ENV_CONFIG_BLUE" ]] && CONFIG_BLUE="$ENV_CONFIG_BLUE"
     [[ -n "$ENV_CONFIG_GREEN" ]] && CONFIG_GREEN="$ENV_CONFIG_GREEN"

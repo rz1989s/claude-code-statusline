@@ -1,6 +1,8 @@
 # 📦 Installation Guide
 
-Complete installation instructions for Claude Code Enhanced Statusline across all supported platforms.
+**Complete installation instructions for Claude Code Enhanced Statusline with enterprise-grade TOML configuration system.**
+
+Get up and running with beautiful statuslines and powerful configuration management across all supported platforms.
 
 ## 🎯 Platform Support Matrix
 
@@ -228,23 +230,111 @@ claude config set statusline ~/.claude/statusline.sh
 }
 ```
 
-## 🧪 Testing Installation
+## 🧪 Testing Installation & TOML Configuration
 
-### Basic Test
+### Basic Installation Test
+```bash
+# Check if the statusline script is executable
+ls -la ~/.claude/statusline.sh
+
+# Verify Claude Code configuration
+claude config get statusline
+
+# Test the statusline help system
+~/.claude/statusline.sh --help
+```
+
+### 🎨 **TOML Configuration Setup (Recommended)**
+
+The statusline now features an **enterprise-grade TOML configuration system**. Set it up for the best experience:
+
+#### Quick TOML Configuration Setup
+
+```bash
+# Navigate to your preferred config location
+cd ~/  # For user-wide config
+
+# Generate your Config.toml file
+~/.claude/statusline.sh --generate-config
+
+# Customize your configuration
+vim Config.toml
+
+# Test your configuration
+~/.claude/statusline.sh --test-config
+```
+
+#### Configuration File Locations
+
+The statusline automatically discovers configuration in this order:
+
+1. **`./Config.toml`** - Project-specific (highest priority)
+2. **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location  
+3. **`~/.claude-statusline.toml`** - User home directory
+
+#### Generate Configuration in Specific Locations
+
+```bash
+# User-wide XDG-compliant configuration
+mkdir -p ~/.config/claude-code-statusline
+~/.claude/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+
+# Project-specific configuration
+cd ~/my-project
+~/.claude/statusline.sh --generate-config ./Config.toml
+
+# Home directory configuration
+~/.claude/statusline.sh --generate-config ~/.claude-statusline.toml
+```
+
+#### Quick Theme Setup
+
+```bash
+# Test different themes instantly (no files needed)
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh      # Soft pastels
+ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh  # Dark modern
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh     # Traditional
+
+# Or create a simple Config.toml
+cat > Config.toml << 'EOF'
+[theme]
+name = "catppuccin"
+
+[features]
+show_commits = true
+show_cost_tracking = true
+show_mcp_status = true
+EOF
+
+# Test your theme
+~/.claude/statusline.sh --test-config
+```
+
+### Statusline Functionality Test
+
 ```bash
 # Test script with minimal input
 echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
-```
 
-### Full Feature Test
-```bash
-# Test with ccusage (if configured)
+# Test with git repository
 cd ~/some-git-repo
 echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline.sh
 ```
 
+### TOML Configuration Testing
+
+```bash
+# Comprehensive configuration testing
+~/.claude/statusline.sh --test-config-verbose     # Detailed testing output
+~/.claude/statusline.sh --validate-config         # Validate TOML syntax
+~/.claude/statusline.sh --compare-config          # Compare inline vs TOML settings
+```
+
 ### Expected Output
-You should see 3-4 lines of formatted output with colors and status information.
+- **3-4 lines** of beautifully formatted statusline with colors
+- **TOML configuration loading** messages showing which config file is used
+- **Theme application** with your chosen color scheme
+- **Feature status** showing enabled/disabled components
 
 ## 🔧 Troubleshooting
 
@@ -273,9 +363,49 @@ brew install coreutils
 
 #### Script hangs or is slow
 **Solutions**:
-1. Reduce timeouts in script configuration
-2. Check network connectivity for MCP/ccusage calls
-3. Disable features: Set `CONFIG_SHOW_MCP_STATUS=false`
+1. **TOML Configuration**: Create Config.toml with reduced timeouts:
+   ```toml
+   [timeouts]
+   mcp = "1s"
+   ccusage = "1s"
+   version = "1s"
+   ```
+2. **Environment Override**: `ENV_CONFIG_MCP_TIMEOUT=1s ~/.claude/statusline.sh`
+3. **Disable features**: 
+   ```toml
+   [features]
+   show_mcp_status = false
+   show_cost_tracking = false
+   ```
+
+#### TOML Configuration Issues
+
+**TOML file not found**:
+```bash
+# Check configuration discovery
+~/.claude/statusline.sh --test-config-verbose
+
+# Generate configuration if missing
+~/.claude/statusline.sh --generate-config
+```
+
+**TOML syntax errors**:
+```bash
+# Validate TOML syntax
+~/.claude/statusline.sh --validate-config
+
+# Common syntax issues:
+# ❌ Incorrect: theme = catppuccin
+# ✅ Correct:   theme = "catppuccin"
+```
+
+**Environment overrides not working**:
+```bash
+# Test environment override
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh --test-config
+
+# Should show: Theme: garden (environment override)
+```
 
 ### Debug Mode
 Add debug output by running:
@@ -292,12 +422,64 @@ bash -x ~/.claude/statusline.sh
 
 ## 🚀 Next Steps
 
-After successful installation:
+After successful installation, explore the **powerful TOML configuration system**:
 
-1. 🎨 **Customize your theme** - Edit `CONFIG_THEME` in the script
-2. ⚙️ **Configure features** - Enable/disable sections as needed
-3. 💰 **Set up cost tracking** - Configure ccusage with your API keys
-4. 📝 **Read the docs** - Explore [configuration.md](configuration.md) and [themes.md](themes.md)
+### 🎨 **Configuration & Themes**
+1. **Generate Config.toml** - `~/.claude/statusline.sh --generate-config`
+2. **Choose your theme** - Edit `[theme] name = "catppuccin"` in Config.toml  
+3. **Customize features** - Enable/disable sections in `[features]`
+4. **Test changes** - `~/.claude/statusline.sh --test-config`
+
+### 💰 **Cost Tracking Setup**
+5. **Configure ccusage** - Set up with your Claude API keys
+6. **Enable cost features** - `show_cost_tracking = true` in Config.toml
+
+### 📚 **Documentation & Advanced Features**
+7. **Read comprehensive guides**:
+   - 📖 **[TOML Configuration Guide](configuration.md)** - Complete configuration reference
+   - 🎨 **[Themes Guide](themes.md)** - Theme creation and customization
+   - 🚀 **[Migration Guide](migration.md)** - Migrate from inline configuration
+   - 🔧 **[CLI Reference](cli-reference.md)** - Complete command documentation
+
+### 🎯 **Quick Start Examples**
+
+```bash
+# Minimal setup - just choose a theme
+cat > Config.toml << 'EOF'
+[theme]
+name = "catppuccin"
+EOF
+
+# Developer setup - all features enabled
+cat > Config.toml << 'EOF'
+[theme]
+name = "catppuccin"
+
+[features]
+show_commits = true
+show_version = true
+show_mcp_status = true
+show_cost_tracking = true
+
+[timeouts]
+mcp = "3s"
+ccusage = "3s"
+EOF
+
+# Test your configuration
+~/.claude/statusline.sh --test-config
+```
+
+### 🌍 **Environment Variable Shortcuts**
+
+```bash
+# Try themes instantly without editing files
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh
+
+# Disable features temporarily
+ENV_CONFIG_SHOW_COST_TRACKING=false ~/.claude/statusline.sh
+```
 
 ---
 
