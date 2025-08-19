@@ -109,7 +109,7 @@ RESET at 15.45 (2h 15m left)
 
 #### 1. Enable Custom Theme Mode
 ```bash
-# Edit ~/.claude/statusline-enhanced.sh
+# Edit ~/.claude/statusline.sh
 CONFIG_THEME="custom"
 ```
 
@@ -139,7 +139,7 @@ CONFIG_PURPLE='\033[38;2;128;0;128m'   # Electric purple
 #### 3. Test Your Theme
 ```bash
 # Quick test
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
 ```
 
 ### 🎯 Theme Design Principles
@@ -308,11 +308,11 @@ examples/screenshots/
 ### Quick Test Commands
 ```bash
 # Test basic functionality
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline.sh
 
 # Test with git repository
 cd /path/to/git/repo
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline-enhanced.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline.sh
 
 # Test color output
 echo -e "\033[38;2;255;0;0mThis should be red\033[0m"

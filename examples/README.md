@@ -31,7 +31,7 @@ examples/
 **Usage**:
 ```bash
 # Copy the color definitions from ocean-theme.sh
-# into your statusline-enhanced.sh configuration section
+# into your statusline.sh configuration section
 ```
 
 ### Minimal Config (`sample-configs/minimal-config.sh`)  
@@ -45,7 +45,7 @@ examples/
 
 **Usage**:
 ```bash
-# Replace configuration section in your statusline-enhanced.sh
+# Replace configuration section in your statusline.sh
 # with settings from minimal-config.sh
 ```
 
@@ -60,7 +60,7 @@ examples/
 
 **Usage**:
 ```bash
-# Replace configuration section in your statusline-enhanced.sh  
+# Replace configuration section in your statusline.sh  
 # with settings from developer-config.sh
 ```
 
@@ -81,7 +81,7 @@ examples/
 ### Method 1: Copy Specific Settings
 ```bash
 # 1. Open your statusline script
-vim ~/.claude/statusline-enhanced.sh
+vim ~/.claude/statusline.sh
 
 # 2. Find the configuration section (around line 23)
 # 3. Copy desired settings from sample config files
@@ -91,10 +91,10 @@ vim ~/.claude/statusline-enhanced.sh
 ### Method 2: Replace Entire Configuration Section
 ```bash
 # 1. Backup your current config
-cp ~/.claude/statusline-enhanced.sh ~/.claude/statusline-enhanced.sh.backup
+cp ~/.claude/statusline.sh ~/.claude/statusline.sh.backup
 
 # 2. Open both files
-vim ~/.claude/statusline-enhanced.sh
+vim ~/.claude/statusline.sh
 vim examples/sample-configs/developer-config.sh
 
 # 3. Replace the configuration section (lines 23-231) 
@@ -107,7 +107,7 @@ vim examples/sample-configs/developer-config.sh
 cat > apply-config.sh << 'EOF'
 #!/bin/bash
 CONFIG_FILE="$1"
-STATUSLINE_FILE="$HOME/.claude/statusline-enhanced.sh"
+STATUSLINE_FILE="$HOME/.claude/statusline.sh"
 
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "Usage: $0 <config-file>"
@@ -140,7 +140,7 @@ We welcome contributions of new sample configurations!
 ```bash
 # [Theme/Config Name]
 # [Brief description of purpose and best use cases]
-# Copy these values into your statusline-enhanced.sh
+# Copy these values into your statusline.sh
 
 CONFIG_THEME="custom"  # or predefined theme
 

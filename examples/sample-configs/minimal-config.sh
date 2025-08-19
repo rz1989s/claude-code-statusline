@@ -1,6 +1,6 @@
 # Minimal Configuration
 # Optimized for performance and simplicity
-# Copy these values into your statusline-enhanced.sh
+# Copy these values into your statusline.sh
 
 CONFIG_THEME="classic"
 

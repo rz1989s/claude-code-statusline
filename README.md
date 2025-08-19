@@ -239,11 +239,11 @@ npm install -g bunx ccusage
 
 ```bash
 # Download and install in one step
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.claude/statusline-enhanced.sh
-chmod +x ~/.claude/statusline-enhanced.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 
 # Configure Claude Code to use the statusline
-claude config set statusline ~/.claude/statusline-enhanced.sh
+claude config set statusline ~/.claude/statusline.sh
 ```
 
 #### Method 2: GNU Stow Integration
@@ -253,14 +253,14 @@ Perfect for dotfiles management with [GNU Stow](https://www.gnu.org/software/sto
 ```bash
 # Place in your dotfiles structure
 mkdir -p ~/.dotfiles/claude/.claude/
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh -o ~/.dotfiles/claude/.claude/statusline-enhanced.sh
-chmod +x ~/.dotfiles/claude/.claude/statusline-enhanced.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.dotfiles/claude/.claude/statusline.sh
+chmod +x ~/.dotfiles/claude/.claude/statusline.sh
 
 # Deploy with Stow
 cd ~/.dotfiles && stow claude
 
 # Configure Claude Code
-claude config set statusline ~/.claude/statusline-enhanced.sh
+claude config set statusline ~/.claude/statusline.sh
 ```
 
 #### Method 3: Manual Installation
@@ -270,12 +270,12 @@ claude config set statusline ~/.claude/statusline-enhanced.sh
 mkdir -p ~/.claude/
 
 # Download the script
-curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline-enhanced.sh
-chmod +x statusline-enhanced.sh
-mv statusline-enhanced.sh ~/.claude/
+curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh
+chmod +x statusline.sh
+mv statusline.sh ~/.claude/
 
 # Configure Claude Code
-claude config set statusline ~/.claude/statusline-enhanced.sh
+claude config set statusline ~/.claude/statusline.sh
 ```
 
 ### ✅ Verification
@@ -284,7 +284,7 @@ Test your installation:
 
 ```bash
 # Check if the statusline script is executable
-ls -la ~/.claude/statusline-enhanced.sh
+ls -la ~/.claude/statusline.sh
 
 # Verify Claude Code configuration
 claude config get statusline
