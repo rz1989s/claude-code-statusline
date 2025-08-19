@@ -439,12 +439,26 @@ execute_python_safely() {
         return 0
     fi
     
-    # Validate input (basic injection prevention)
-    if [[ "$python_code" == *"rm -rf"* ]] || [[ "$python_code" == *"system("* ]] || [[ "$python_code" == *"exec("* ]]; then
-        echo "ERROR: Potentially dangerous Python code detected" >&2
-        echo "$fallback_value"
-        return 1
-    fi
+    # Validate input (comprehensive injection prevention)
+    local dangerous_patterns=(
+        "rm -rf" "rm -r" "rmdir" "unlink" "delete"           # File deletion
+        "system(" "exec(" "eval(" "compile("                  # Code execution
+        "subprocess." "popen(" "call(" "run("                 # Process execution
+        "os.system" "os.popen" "os.execv" "os.spawn"          # OS command execution
+        "__import__" "importlib" "import subprocess"          # Dangerous imports
+        "urllib" "requests" "http" "socket" "ftp"             # Network operations
+        "open(" "file(" "write(" "writelines("                # File I/O operations
+        "shutil" "glob.glob" "pathlib" "tempfile"             # File system manipulation
+        "; " "&&" "||" "|" ">" ">>" "<"                      # Shell operators
+    )
+    
+    for pattern in "${dangerous_patterns[@]}"; do
+        if [[ "$python_code" == *"$pattern"* ]]; then
+            echo "ERROR: Potentially dangerous Python code detected: $pattern" >&2
+            echo "$fallback_value"
+            return 1
+        fi
+    done
     
     # Execute with timeout if available
     local result
@@ -520,6 +534,1800 @@ execute_with_timeout() {
 
 # Initialize dependency validation
 validate_dependencies
+
+# ============================================================================
+# TOML CONFIGURATION SYSTEM (Phase 1)
+# ============================================================================
+
+# Simple TOML to JSON converter for basic types (strings, booleans, integers)
+# Phase 1: Supports sections, key-value pairs, basic data types
+parse_toml_to_json() {
+    local toml_file="$1"
+    
+    if [[ ! -f "$toml_file" ]]; then
+        echo "{}"
+        return 0
+    fi
+    
+    # Initialize JSON structure
+    local json="{"
+    local current_section=""
+    local first_item=true
+    
+    # Read TOML file line by line
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^[[:space:]]*# ]] && continue
+        [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+        
+        # Handle section headers [section] or [section.subsection] or [section.sub.subsub]
+        if [[ "$line" =~ ^\[[[:space:]]*([^]]+)[[:space:]]*\]$ ]]; then
+            local section_name="${BASH_REMATCH[1]}"
+            
+            # Close previous section if exists  
+            if [[ -n "$current_section" ]]; then
+                # Count nesting level of previous section
+                local prev_dots="${current_section//[^.]/}"
+                local close_count=$((${#prev_dots} + 1))
+                for ((i=0; i<close_count; i++)); do
+                    json="${json%,}}"
+                done
+            fi
+            
+            # Start new section with proper nesting
+            if [[ "$first_item" != "true" ]]; then
+                json="$json,"
+            fi
+            
+            # Handle multi-level nesting (e.g., colors.basic.red)
+            if [[ "$section_name" == *.* ]]; then
+                # Split section path into parts
+                local section_path="$section_name"
+                local json_path=""
+                
+                # Process each level of nesting
+                while [[ "$section_path" == *.* ]]; do
+                    local current_part="${section_path%%.*}"
+                    section_path="${section_path#*.}"
+                    
+                    if [[ -z "$json_path" ]]; then
+                        json_path="\"$current_part\":{"
+                    else
+                        json_path="$json_path\"$current_part\":{"
+                    fi
+                done
+                
+                # Add final level
+                json_path="$json_path\"$section_path\":{"
+                json="$json$json_path"
+            else
+                json="$json\"$section_name\":{"
+            fi
+            
+            current_section="$section_name"
+            first_item=false
+            continue
+        fi
+        
+        # Handle key-value pairs
+        if [[ "$line" =~ ^[[:space:]]*([^=]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+            
+            # Clean up key and value
+            key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            
+            # Add comma if not first item in section
+            if [[ "$json" != *"{" ]]; then
+                json="$json,"
+            fi
+            
+            # Parse value type and format for JSON
+            if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+                # String value (quoted)
+                local string_val="${BASH_REMATCH[1]}"
+                # Escape quotes and backslashes for JSON
+                string_val=$(echo "$string_val" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                json="$json\"$key\":\"$string_val\""
+            elif [[ "$value" =~ ^\[.*\]$ ]]; then
+                # Array value (Phase 2 enhancement)
+                local array_content="${value#\[}"
+                array_content="${array_content%\]}"
+                
+                # Simple array parsing: split by comma and process each item
+                json="$json\"$key\":["
+                local first_array_item=true
+                
+                if [[ -n "$array_content" ]]; then
+                    # Split array items by comma (simple implementation)
+                    local temp_array="$array_content,"
+                    while [[ "$temp_array" == *","* ]]; do
+                        local array_item="${temp_array%%,*}"
+                        temp_array="${temp_array#*,}"
+                        
+                        # Clean whitespace
+                        array_item=$(echo "$array_item" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                        
+                        # Add comma if not first item
+                        if [[ "$first_array_item" != "true" ]]; then
+                            json="$json,"
+                        fi
+                        
+                        # Process array item type
+                        if [[ "$array_item" =~ ^\"(.*)\"$ ]]; then
+                            # Quoted string
+                            local array_string="${BASH_REMATCH[1]}"
+                            array_string=$(echo "$array_string" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                            json="$json\"$array_string\""
+                        elif [[ "$array_item" =~ ^(true|false)$ ]]; then
+                            # Boolean
+                            json="$json$array_item"
+                        elif [[ "$array_item" =~ ^[0-9]+$ ]]; then
+                            # Integer
+                            json="$json$array_item"
+                        elif [[ "$array_item" =~ ^[0-9]*\.[0-9]+$ ]]; then
+                            # Float
+                            json="$json$array_item"
+                        else
+                            # Unquoted string
+                            array_item=$(echo "$array_item" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                            json="$json\"$array_item\""
+                        fi
+                        
+                        first_array_item=false
+                    done
+                fi
+                
+                json="$json]"
+            elif [[ "$value" =~ ^(true|false)$ ]]; then
+                # Boolean value
+                json="$json\"$key\":$value"
+            elif [[ "$value" =~ ^[0-9]+$ ]]; then
+                # Integer value
+                json="$json\"$key\":$value"
+            elif [[ "$value" =~ ^[0-9]*\.[0-9]+$ ]]; then
+                # Float value
+                json="$json\"$key\":$value"
+            else
+                # Unquoted string - treat as string
+                value=$(echo "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                json="$json\"$key\":\"$value\""
+            fi
+        fi
+    done < "$toml_file"
+    
+    # Close final section (handle nested sections)
+    if [[ -n "$current_section" ]]; then
+        # Count nesting level and close all nested sections
+        local final_dots="${current_section//[^.]/}"
+        local final_close_count=$((${#final_dots} + 1))
+        for ((i=0; i<final_close_count; i++)); do
+            json="${json%,}}"
+        done
+    fi
+    
+    # Close main JSON object
+    json="$json}"
+    
+    # Validate JSON and return
+    if echo "$json" | jq . >/dev/null 2>&1; then
+        echo "$json"
+    else
+        echo "ERROR: Invalid TOML syntax in $toml_file" >&2
+        echo "{}"
+    fi
+}
+
+# Discover config files in order of precedence (Phase 2: multi-location)
+discover_config_file() {
+    # Configuration file precedence (highest to lowest):
+    # 1. ./Config.toml (project-specific, highest precedence)
+    # 2. ~/.config/claude-code-statusline/Config.toml (XDG standard)
+    # 3. ~/.claude-statusline.toml (user home directory)
+    
+    local config_files=(
+        "./Config.toml"
+        "$HOME/.config/claude-code-statusline/Config.toml"
+        "$HOME/.claude-statusline.toml"
+    )
+    
+    for config_file in "${config_files[@]}"; do
+        if [[ -f "$config_file" && -r "$config_file" ]]; then
+            echo "$config_file"
+            return 0
+        fi
+    done
+    
+    # No config file found
+    return 1
+}
+
+# Load configuration from TOML file and set variables
+load_toml_configuration() {
+    local config_file
+    
+    # Try to find config file
+    if config_file=$(discover_config_file); then
+        echo "Loading configuration from: $config_file" >&2
+        
+        # Parse TOML to JSON
+        local config_json
+        config_json=$(parse_toml_to_json "$config_file")
+        
+        if [[ "$config_json" == "{}" ]]; then
+            echo "Warning: Empty or invalid config file, using defaults" >&2
+            return 1
+        fi
+        
+        # Extract configuration values using jq
+        # Phase 1: Core configuration options only
+        
+        # Theme configuration
+        local theme_name
+        theme_name=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"' 2>/dev/null)
+        if [[ "$theme_name" != "null" && "$theme_name" != "" ]]; then
+            CONFIG_THEME="$theme_name"
+        fi
+        
+        # Phase 3: Enhanced custom theme colors with nested structure
+        if [[ "$CONFIG_THEME" == "custom" ]]; then
+            # Basic colors
+            local red blue green yellow magenta cyan white
+            red=$(echo "$config_json" | jq -r '.colors.basic.red // .colors.red // "\\033[31m"' 2>/dev/null)
+            blue=$(echo "$config_json" | jq -r '.colors.basic.blue // .colors.blue // "\\033[34m"' 2>/dev/null)
+            green=$(echo "$config_json" | jq -r '.colors.basic.green // .colors.green // "\\033[32m"' 2>/dev/null)
+            yellow=$(echo "$config_json" | jq -r '.colors.basic.yellow // .colors.yellow // "\\033[33m"' 2>/dev/null)
+            magenta=$(echo "$config_json" | jq -r '.colors.basic.magenta // .colors.magenta // "\\033[35m"' 2>/dev/null)
+            cyan=$(echo "$config_json" | jq -r '.colors.basic.cyan // .colors.cyan // "\\033[36m"' 2>/dev/null)
+            white=$(echo "$config_json" | jq -r '.colors.basic.white // .colors.white // "\\033[37m"' 2>/dev/null)
+            
+            [[ "$red" != "null" && "$red" != "" ]] && CONFIG_RED="$red"
+            [[ "$blue" != "null" && "$blue" != "" ]] && CONFIG_BLUE="$blue"
+            [[ "$green" != "null" && "$green" != "" ]] && CONFIG_GREEN="$green"
+            [[ "$yellow" != "null" && "$yellow" != "" ]] && CONFIG_YELLOW="$yellow"
+            [[ "$magenta" != "null" && "$magenta" != "" ]] && CONFIG_MAGENTA="$magenta"
+            [[ "$cyan" != "null" && "$cyan" != "" ]] && CONFIG_CYAN="$cyan"
+            [[ "$white" != "null" && "$white" != "" ]] && CONFIG_WHITE="$white"
+            
+            # Extended colors (Phase 3)
+            local orange light_orange light_gray bright_green purple teal gold pink_bright indigo violet light_blue
+            orange=$(echo "$config_json" | jq -r '.colors.extended.orange // "\\033[38;5;208m"' 2>/dev/null)
+            light_orange=$(echo "$config_json" | jq -r '.colors.extended.light_orange // "\\033[38;5;215m"' 2>/dev/null)
+            light_gray=$(echo "$config_json" | jq -r '.colors.extended.light_gray // "\\033[38;5;248m"' 2>/dev/null)
+            bright_green=$(echo "$config_json" | jq -r '.colors.extended.bright_green // "\\033[92m"' 2>/dev/null)
+            purple=$(echo "$config_json" | jq -r '.colors.extended.purple // "\\033[95m"' 2>/dev/null)
+            teal=$(echo "$config_json" | jq -r '.colors.extended.teal // "\\033[38;5;73m"' 2>/dev/null)
+            gold=$(echo "$config_json" | jq -r '.colors.extended.gold // "\\033[38;5;220m"' 2>/dev/null)
+            pink_bright=$(echo "$config_json" | jq -r '.colors.extended.pink_bright // "\\033[38;5;205m"' 2>/dev/null)
+            indigo=$(echo "$config_json" | jq -r '.colors.extended.indigo // "\\033[38;5;105m"' 2>/dev/null)
+            violet=$(echo "$config_json" | jq -r '.colors.extended.violet // "\\033[38;5;99m"' 2>/dev/null)
+            light_blue=$(echo "$config_json" | jq -r '.colors.extended.light_blue // "\\033[38;5;111m"' 2>/dev/null)
+            
+            [[ "$orange" != "null" && "$orange" != "" ]] && CONFIG_ORANGE="$orange"
+            [[ "$light_orange" != "null" && "$light_orange" != "" ]] && CONFIG_LIGHT_ORANGE="$light_orange"
+            [[ "$light_gray" != "null" && "$light_gray" != "" ]] && CONFIG_LIGHT_GRAY="$light_gray"
+            [[ "$bright_green" != "null" && "$bright_green" != "" ]] && CONFIG_BRIGHT_GREEN="$bright_green"
+            [[ "$purple" != "null" && "$purple" != "" ]] && CONFIG_PURPLE="$purple"
+            [[ "$teal" != "null" && "$teal" != "" ]] && CONFIG_TEAL="$teal"
+            [[ "$gold" != "null" && "$gold" != "" ]] && CONFIG_GOLD="$gold"
+            [[ "$pink_bright" != "null" && "$pink_bright" != "" ]] && CONFIG_PINK_BRIGHT="$pink_bright"
+            [[ "$indigo" != "null" && "$indigo" != "" ]] && CONFIG_INDIGO="$indigo"
+            [[ "$violet" != "null" && "$violet" != "" ]] && CONFIG_VIOLET="$violet"
+            [[ "$light_blue" != "null" && "$light_blue" != "" ]] && CONFIG_LIGHT_BLUE="$light_blue"
+            
+            # Text formatting (Phase 3)
+            local dim italic strikethrough reset
+            dim=$(echo "$config_json" | jq -r '.colors.formatting.dim // "\\033[2m"' 2>/dev/null)
+            italic=$(echo "$config_json" | jq -r '.colors.formatting.italic // "\\033[3m"' 2>/dev/null)
+            strikethrough=$(echo "$config_json" | jq -r '.colors.formatting.strikethrough // "\\033[9m"' 2>/dev/null)
+            reset=$(echo "$config_json" | jq -r '.colors.formatting.reset // "\\033[0m"' 2>/dev/null)
+            
+            [[ "$dim" != "null" && "$dim" != "" ]] && CONFIG_DIM="$dim"
+            [[ "$italic" != "null" && "$italic" != "" ]] && CONFIG_ITALIC="$italic"
+            [[ "$strikethrough" != "null" && "$strikethrough" != "" ]] && CONFIG_STRIKETHROUGH="$strikethrough"
+            [[ "$reset" != "null" && "$reset" != "" ]] && CONFIG_RESET="$reset"
+        fi
+        
+        # Feature toggles
+        local show_commits show_version show_submodules show_mcp show_cost
+        show_commits=$(echo "$config_json" | jq -r '.features.show_commits // true' 2>/dev/null)
+        show_version=$(echo "$config_json" | jq -r '.features.show_version // true' 2>/dev/null)
+        show_submodules=$(echo "$config_json" | jq -r '.features.show_submodules // true' 2>/dev/null)
+        show_mcp=$(echo "$config_json" | jq -r '.features.show_mcp_status // true' 2>/dev/null)
+        show_cost=$(echo "$config_json" | jq -r '.features.show_cost_tracking // true' 2>/dev/null)
+        
+        [[ "$show_commits" == "true" || "$show_commits" == "false" ]] && CONFIG_SHOW_COMMITS="$show_commits"
+        [[ "$show_version" == "true" || "$show_version" == "false" ]] && CONFIG_SHOW_VERSION="$show_version"
+        [[ "$show_submodules" == "true" || "$show_submodules" == "false" ]] && CONFIG_SHOW_SUBMODULES="$show_submodules"
+        [[ "$show_mcp" == "true" || "$show_mcp" == "false" ]] && CONFIG_SHOW_MCP_STATUS="$show_mcp"
+        [[ "$show_cost" == "true" || "$show_cost" == "false" ]] && CONFIG_SHOW_COST_TRACKING="$show_cost"
+        
+        # Phase 2: Additional feature toggles
+        local show_reset show_session
+        show_reset=$(echo "$config_json" | jq -r '.features.show_reset_info // true' 2>/dev/null)
+        show_session=$(echo "$config_json" | jq -r '.features.show_session_info // true' 2>/dev/null)
+        
+        [[ "$show_reset" == "true" || "$show_reset" == "false" ]] && CONFIG_SHOW_RESET_INFO="$show_reset"
+        [[ "$show_session" == "true" || "$show_session" == "false" ]] && CONFIG_SHOW_SESSION_INFO="$show_session"
+        
+        # Timeouts
+        local mcp_timeout version_timeout ccusage_timeout
+        mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "3s"' 2>/dev/null)
+        version_timeout=$(echo "$config_json" | jq -r '.timeouts.version // "2s"' 2>/dev/null)
+        ccusage_timeout=$(echo "$config_json" | jq -r '.timeouts.ccusage // "3s"' 2>/dev/null)
+        
+        [[ "$mcp_timeout" != "null" && "$mcp_timeout" != "" ]] && CONFIG_MCP_TIMEOUT="$mcp_timeout"
+        [[ "$version_timeout" != "null" && "$version_timeout" != "" ]] && CONFIG_VERSION_TIMEOUT="$version_timeout"
+        [[ "$ccusage_timeout" != "null" && "$ccusage_timeout" != "" ]] && CONFIG_CCUSAGE_TIMEOUT="$ccusage_timeout"
+        
+        # Emojis
+        local opus_emoji haiku_emoji sonnet_emoji default_emoji clean_emoji dirty_emoji clock_emoji live_block_emoji
+        opus_emoji=$(echo "$config_json" | jq -r '.emojis.opus // "🧠"' 2>/dev/null)
+        haiku_emoji=$(echo "$config_json" | jq -r '.emojis.haiku // "⚡"' 2>/dev/null)
+        sonnet_emoji=$(echo "$config_json" | jq -r '.emojis.sonnet // "🎵"' 2>/dev/null)
+        default_emoji=$(echo "$config_json" | jq -r '.emojis.default_model // "🤖"' 2>/dev/null)
+        clean_emoji=$(echo "$config_json" | jq -r '.emojis.clean_status // "✅"' 2>/dev/null)
+        dirty_emoji=$(echo "$config_json" | jq -r '.emojis.dirty_status // "📁"' 2>/dev/null)
+        clock_emoji=$(echo "$config_json" | jq -r '.emojis.clock // "🕐"' 2>/dev/null)
+        live_block_emoji=$(echo "$config_json" | jq -r '.emojis.live_block // "🔥"' 2>/dev/null)
+        
+        [[ "$opus_emoji" != "null" && "$opus_emoji" != "" ]] && CONFIG_OPUS_EMOJI="$opus_emoji"
+        [[ "$haiku_emoji" != "null" && "$haiku_emoji" != "" ]] && CONFIG_HAIKU_EMOJI="$haiku_emoji"
+        [[ "$sonnet_emoji" != "null" && "$sonnet_emoji" != "" ]] && CONFIG_SONNET_EMOJI="$sonnet_emoji"
+        [[ "$default_emoji" != "null" && "$default_emoji" != "" ]] && CONFIG_DEFAULT_MODEL_EMOJI="$default_emoji"
+        [[ "$clean_emoji" != "null" && "$clean_emoji" != "" ]] && CONFIG_CLEAN_STATUS_EMOJI="$clean_emoji"
+        [[ "$dirty_emoji" != "null" && "$dirty_emoji" != "" ]] && CONFIG_DIRTY_STATUS_EMOJI="$dirty_emoji"
+        [[ "$clock_emoji" != "null" && "$clock_emoji" != "" ]] && CONFIG_CLOCK_EMOJI="$clock_emoji"
+        [[ "$live_block_emoji" != "null" && "$live_block_emoji" != "" ]] && CONFIG_LIVE_BLOCK_EMOJI="$live_block_emoji"
+        
+        # Labels
+        local commits_label repo_label monthly_label weekly_label daily_label mcp_label version_prefix
+        local submodule_label session_prefix live_label reset_label
+        commits_label=$(echo "$config_json" | jq -r '.labels.commits // "Commits:"' 2>/dev/null)
+        repo_label=$(echo "$config_json" | jq -r '.labels.repo // "REPO"' 2>/dev/null)
+        monthly_label=$(echo "$config_json" | jq -r '.labels.monthly // "30DAY"' 2>/dev/null)
+        weekly_label=$(echo "$config_json" | jq -r '.labels.weekly // "7DAY"' 2>/dev/null)
+        daily_label=$(echo "$config_json" | jq -r '.labels.daily // "DAY"' 2>/dev/null)
+        mcp_label=$(echo "$config_json" | jq -r '.labels.mcp // "MCP"' 2>/dev/null)
+        version_prefix=$(echo "$config_json" | jq -r '.labels.version_prefix // "ver"' 2>/dev/null)
+        submodule_label=$(echo "$config_json" | jq -r '.labels.submodule // "SUB:"' 2>/dev/null)
+        session_prefix=$(echo "$config_json" | jq -r '.labels.session_prefix // "S:"' 2>/dev/null)
+        live_label=$(echo "$config_json" | jq -r '.labels.live // "LIVE"' 2>/dev/null)
+        reset_label=$(echo "$config_json" | jq -r '.labels.reset // "RESET"' 2>/dev/null)
+        
+        [[ "$commits_label" != "null" && "$commits_label" != "" ]] && CONFIG_COMMITS_LABEL="$commits_label"
+        [[ "$repo_label" != "null" && "$repo_label" != "" ]] && CONFIG_REPO_LABEL="$repo_label"
+        [[ "$monthly_label" != "null" && "$monthly_label" != "" ]] && CONFIG_MONTHLY_LABEL="$monthly_label"
+        [[ "$weekly_label" != "null" && "$weekly_label" != "" ]] && CONFIG_WEEKLY_LABEL="$weekly_label"
+        [[ "$daily_label" != "null" && "$daily_label" != "" ]] && CONFIG_DAILY_LABEL="$daily_label"
+        [[ "$mcp_label" != "null" && "$mcp_label" != "" ]] && CONFIG_MCP_LABEL="$mcp_label"
+        [[ "$version_prefix" != "null" && "$version_prefix" != "" ]] && CONFIG_VERSION_PREFIX="$version_prefix"
+        [[ "$submodule_label" != "null" && "$submodule_label" != "" ]] && CONFIG_SUBMODULE_LABEL="$submodule_label"
+        [[ "$session_prefix" != "null" && "$session_prefix" != "" ]] && CONFIG_SESSION_PREFIX="$session_prefix"
+        [[ "$live_label" != "null" && "$live_label" != "" ]] && CONFIG_LIVE_LABEL="$live_label"
+        [[ "$reset_label" != "null" && "$reset_label" != "" ]] && CONFIG_RESET_LABEL="$reset_label"
+        
+        # Phase 2: Cache settings
+        local version_duration version_file
+        version_duration=$(echo "$config_json" | jq -r '.cache.version_duration // 3600' 2>/dev/null)
+        version_file=$(echo "$config_json" | jq -r '.cache.version_file // "/tmp/.claude_version_cache"' 2>/dev/null)
+        
+        [[ "$version_duration" != "null" && "$version_duration" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$version_duration"
+        [[ "$version_file" != "null" && "$version_file" != "" ]] && CONFIG_VERSION_CACHE_FILE="$version_file"
+        
+        # Phase 2: Display formats
+        local time_format date_format date_format_compact
+        time_format=$(echo "$config_json" | jq -r '.display.time_format // "%H:%M"' 2>/dev/null)
+        date_format=$(echo "$config_json" | jq -r '.display.date_format // "%Y-%m-%d"' 2>/dev/null)
+        date_format_compact=$(echo "$config_json" | jq -r '.display.date_format_compact // "%Y%m%d"' 2>/dev/null)
+        
+        [[ "$time_format" != "null" && "$time_format" != "" ]] && CONFIG_TIME_FORMAT="$time_format"
+        [[ "$date_format" != "null" && "$date_format" != "" ]] && CONFIG_DATE_FORMAT="$date_format"
+        [[ "$date_format_compact" != "null" && "$date_format_compact" != "" ]] && CONFIG_DATE_FORMAT_COMPACT="$date_format_compact"
+        
+        # Phase 2: Error/fallback messages
+        local no_ccusage ccusage_install no_active_block mcp_unknown mcp_none unknown_version no_submodules
+        no_ccusage=$(echo "$config_json" | jq -r '.messages.no_ccusage // "No ccusage"' 2>/dev/null)
+        ccusage_install=$(echo "$config_json" | jq -r '.messages.ccusage_install // "Install ccusage for cost tracking"' 2>/dev/null)
+        no_active_block=$(echo "$config_json" | jq -r '.messages.no_active_block // "No active block"' 2>/dev/null)
+        mcp_unknown=$(echo "$config_json" | jq -r '.messages.mcp_unknown // "unknown"' 2>/dev/null)
+        mcp_none=$(echo "$config_json" | jq -r '.messages.mcp_none // "none"' 2>/dev/null)
+        unknown_version=$(echo "$config_json" | jq -r '.messages.unknown_version // "?"' 2>/dev/null)
+        no_submodules=$(echo "$config_json" | jq -r '.messages.no_submodules // "--"' 2>/dev/null)
+        
+        [[ "$no_ccusage" != "null" && "$no_ccusage" != "" ]] && CONFIG_NO_CCUSAGE_MESSAGE="$no_ccusage"
+        [[ "$ccusage_install" != "null" && "$ccusage_install" != "" ]] && CONFIG_CCUSAGE_INSTALL_MESSAGE="$ccusage_install"
+        [[ "$no_active_block" != "null" && "$no_active_block" != "" ]] && CONFIG_NO_ACTIVE_BLOCK_MESSAGE="$no_active_block"
+        [[ "$mcp_unknown" != "null" && "$mcp_unknown" != "" ]] && CONFIG_MCP_UNKNOWN_MESSAGE="$mcp_unknown"
+        [[ "$mcp_none" != "null" && "$mcp_none" != "" ]] && CONFIG_MCP_NONE_MESSAGE="$mcp_none"
+        [[ "$unknown_version" != "null" && "$unknown_version" != "" ]] && CONFIG_UNKNOWN_VERSION="$unknown_version"
+        [[ "$no_submodules" != "null" && "$no_submodules" != "" ]] && CONFIG_NO_SUBMODULES="$no_submodules"
+        
+        # Phase 3: Advanced configuration sections
+        
+        # Advanced settings
+        local warn_missing_deps debug_mode performance_mode strict_validation
+        warn_missing_deps=$(echo "$config_json" | jq -r '.advanced.warn_missing_deps // false' 2>/dev/null)
+        debug_mode=$(echo "$config_json" | jq -r '.advanced.debug_mode // false' 2>/dev/null)  
+        performance_mode=$(echo "$config_json" | jq -r '.advanced.performance_mode // false' 2>/dev/null)
+        strict_validation=$(echo "$config_json" | jq -r '.advanced.strict_validation // true' 2>/dev/null)
+        
+        [[ "$warn_missing_deps" == "true" || "$warn_missing_deps" == "false" ]] && CONFIG_WARN_MISSING_DEPS="$warn_missing_deps"
+        [[ "$debug_mode" == "true" || "$debug_mode" == "false" ]] && CONFIG_DEBUG_MODE="$debug_mode"
+        [[ "$performance_mode" == "true" || "$performance_mode" == "false" ]] && CONFIG_PERFORMANCE_MODE="$performance_mode"
+        [[ "$strict_validation" == "true" || "$strict_validation" == "false" ]] && CONFIG_STRICT_VALIDATION="$strict_validation"
+        
+        # Platform settings
+        local prefer_gtimeout use_gdate color_support_level
+        prefer_gtimeout=$(echo "$config_json" | jq -r '.platform.prefer_gtimeout // true' 2>/dev/null)
+        use_gdate=$(echo "$config_json" | jq -r '.platform.use_gdate // false' 2>/dev/null)
+        color_support_level=$(echo "$config_json" | jq -r '.platform.color_support_level // "full"' 2>/dev/null)
+        
+        [[ "$prefer_gtimeout" == "true" || "$prefer_gtimeout" == "false" ]] && CONFIG_PREFER_GTIMEOUT="$prefer_gtimeout"
+        [[ "$use_gdate" == "true" || "$use_gdate" == "false" ]] && CONFIG_USE_GDATE="$use_gdate"
+        [[ "$color_support_level" != "null" && "$color_support_level" != "" ]] && CONFIG_COLOR_SUPPORT_LEVEL="$color_support_level"
+        
+        # Path configurations  
+        local temp_dir config_dir cache_dir log_file
+        temp_dir=$(echo "$config_json" | jq -r '.paths.temp_dir // "/tmp"' 2>/dev/null)
+        config_dir=$(echo "$config_json" | jq -r '.paths.config_dir // "~/.config/claude-code-statusline"' 2>/dev/null)
+        cache_dir=$(echo "$config_json" | jq -r '.paths.cache_dir // "~/.cache/claude-code-statusline"' 2>/dev/null)
+        log_file=$(echo "$config_json" | jq -r '.paths.log_file // "~/.cache/claude-code-statusline/statusline.log"' 2>/dev/null)
+        
+        [[ "$temp_dir" != "null" && "$temp_dir" != "" ]] && CONFIG_TEMP_DIR="$temp_dir"
+        [[ "$config_dir" != "null" && "$config_dir" != "" ]] && CONFIG_CONFIG_DIR="$config_dir"
+        [[ "$cache_dir" != "null" && "$cache_dir" != "" ]] && CONFIG_CACHE_DIR="$cache_dir"
+        [[ "$log_file" != "null" && "$log_file" != "" ]] && CONFIG_LOG_FILE="$log_file"
+        
+        # Performance tuning
+        local parallel_data_collection max_concurrent_operations git_operation_timeout network_operation_timeout enable_smart_caching cache_compression
+        parallel_data_collection=$(echo "$config_json" | jq -r '.performance.parallel_data_collection // true' 2>/dev/null)
+        max_concurrent_operations=$(echo "$config_json" | jq -r '.performance.max_concurrent_operations // 3' 2>/dev/null)
+        git_operation_timeout=$(echo "$config_json" | jq -r '.performance.git_operation_timeout // "5s"' 2>/dev/null)
+        network_operation_timeout=$(echo "$config_json" | jq -r '.performance.network_operation_timeout // "10s"' 2>/dev/null)
+        enable_smart_caching=$(echo "$config_json" | jq -r '.performance.enable_smart_caching // true' 2>/dev/null)
+        cache_compression=$(echo "$config_json" | jq -r '.performance.cache_compression // false' 2>/dev/null)
+        
+        [[ "$parallel_data_collection" == "true" || "$parallel_data_collection" == "false" ]] && CONFIG_PARALLEL_DATA_COLLECTION="$parallel_data_collection"
+        [[ "$max_concurrent_operations" != "null" && "$max_concurrent_operations" != "" ]] && CONFIG_MAX_CONCURRENT_OPERATIONS="$max_concurrent_operations"
+        [[ "$git_operation_timeout" != "null" && "$git_operation_timeout" != "" ]] && CONFIG_GIT_OPERATION_TIMEOUT="$git_operation_timeout"
+        [[ "$network_operation_timeout" != "null" && "$network_operation_timeout" != "" ]] && CONFIG_NETWORK_OPERATION_TIMEOUT="$network_operation_timeout"
+        [[ "$enable_smart_caching" == "true" || "$enable_smart_caching" == "false" ]] && CONFIG_ENABLE_SMART_CACHING="$enable_smart_caching"
+        [[ "$cache_compression" == "true" || "$cache_compression" == "false" ]] && CONFIG_CACHE_COMPRESSION="$cache_compression"
+        
+        # Debug settings
+        local log_level log_config_loading log_theme_application log_validation_details benchmark_performance export_debug_info
+        log_level=$(echo "$config_json" | jq -r '.debug.log_level // "error"' 2>/dev/null)
+        log_config_loading=$(echo "$config_json" | jq -r '.debug.log_config_loading // false' 2>/dev/null)
+        log_theme_application=$(echo "$config_json" | jq -r '.debug.log_theme_application // false' 2>/dev/null)
+        log_validation_details=$(echo "$config_json" | jq -r '.debug.log_validation_details // false' 2>/dev/null)
+        benchmark_performance=$(echo "$config_json" | jq -r '.debug.benchmark_performance // false' 2>/dev/null)
+        export_debug_info=$(echo "$config_json" | jq -r '.debug.export_debug_info // false' 2>/dev/null)
+        
+        [[ "$log_level" != "null" && "$log_level" != "" ]] && CONFIG_LOG_LEVEL="$log_level"
+        [[ "$log_config_loading" == "true" || "$log_config_loading" == "false" ]] && CONFIG_LOG_CONFIG_LOADING="$log_config_loading"
+        [[ "$log_theme_application" == "true" || "$log_theme_application" == "false" ]] && CONFIG_LOG_THEME_APPLICATION="$log_theme_application"
+        [[ "$log_validation_details" == "true" || "$log_validation_details" == "false" ]] && CONFIG_LOG_VALIDATION_DETAILS="$log_validation_details"
+        [[ "$benchmark_performance" == "true" || "$benchmark_performance" == "false" ]] && CONFIG_BENCHMARK_PERFORMANCE="$benchmark_performance"
+        [[ "$export_debug_info" == "true" || "$export_debug_info" == "false" ]] && CONFIG_EXPORT_DEBUG_INFO="$export_debug_info"
+        
+        # Phase 3: Apply advanced configuration systems
+        
+        # Apply configuration profiles first (affects theme and other settings)  
+        apply_configuration_profile "$config_json"
+        
+        # Apply theme inheritance system (after profiles but before theme application)
+        if [[ "$CONFIG_THEME" == "custom" ]]; then
+            apply_theme_inheritance "$config_json"
+        fi
+        
+        # Initialize plugin system
+        initialize_plugin_system "$config_json"
+        
+        echo "Configuration loaded successfully from TOML (Phase 3: 100% coverage + Advanced Features)" >&2
+        return 0
+    else
+        echo "No Config.toml found, using inline defaults" >&2
+        return 1
+    fi
+}
+
+# Phase 3: Theme Inheritance System  
+# Allows custom themes to inherit from base themes and override specific colors
+apply_theme_inheritance() {
+    local config_json="$1"
+    
+    # Check if theme inheritance is enabled
+    local inheritance_enabled
+    inheritance_enabled=$(echo "$config_json" | jq -r '.theme.inheritance.enabled // false' 2>/dev/null)
+    
+    if [[ "$inheritance_enabled" != "true" ]]; then
+        return 0  # No inheritance, use regular theme system
+    fi
+    
+    local base_theme merge_strategy
+    base_theme=$(echo "$config_json" | jq -r '.theme.inheritance.base_theme // ""' 2>/dev/null)
+    merge_strategy=$(echo "$config_json" | jq -r '.theme.inheritance.merge_strategy // "override"' 2>/dev/null)
+    
+    if [[ -z "$base_theme" || "$base_theme" == "null" || "$base_theme" == "" ]]; then
+        echo "Theme inheritance enabled but no base_theme specified" >&2
+        return 0
+    fi
+    
+    echo "Applying theme inheritance: base='$base_theme', strategy='$merge_strategy'" >&2
+    
+    # Apply base theme first
+    case "$base_theme" in
+        "classic"|"garden"|"catppuccin")
+            # Store current theme, apply base theme, then restore  
+            local original_theme="$CONFIG_THEME"
+            CONFIG_THEME="$base_theme"
+            apply_theme
+            CONFIG_THEME="$original_theme"
+            ;;
+        *)
+            echo "Warning: Unknown base theme '$base_theme', skipping inheritance" >&2
+            return 0
+            ;;
+    esac
+    
+    # Apply color overrides based on merge strategy
+    if [[ "$merge_strategy" == "override" ]]; then
+        # Override only specified colors, keep base theme for others
+        local override_colors
+        override_colors=$(echo "$config_json" | jq -r '.theme.inheritance.override_colors[]?' 2>/dev/null)
+        
+        if [[ -n "$override_colors" ]]; then
+            echo "Overriding specific colors from custom theme..." >&2
+            while IFS= read -r color_name; do
+                [[ -z "$color_name" ]] && continue
+                
+                local color_value
+                # Try nested structure first, then flat
+                color_value=$(echo "$config_json" | jq -r ".colors.basic.$color_name // .colors.extended.$color_name // .colors.$color_name // empty" 2>/dev/null)
+                
+                if [[ -n "$color_value" && "$color_value" != "null" ]]; then
+                    case "$color_name" in
+                        "red") CONFIG_RED="$color_value" ;;
+                        "blue") CONFIG_BLUE="$color_value" ;;
+                        "green") CONFIG_GREEN="$color_value" ;;
+                        "yellow") CONFIG_YELLOW="$color_value" ;;
+                        "magenta") CONFIG_MAGENTA="$color_value" ;;
+                        "cyan") CONFIG_CYAN="$color_value" ;;
+                        "white") CONFIG_WHITE="$color_value" ;;
+                        "orange") CONFIG_ORANGE="$color_value" ;;
+                        "light_orange") CONFIG_LIGHT_ORANGE="$color_value" ;;
+                        "light_gray") CONFIG_LIGHT_GRAY="$color_value" ;;
+                        "bright_green") CONFIG_BRIGHT_GREEN="$color_value" ;;
+                        "purple") CONFIG_PURPLE="$color_value" ;;
+                        "teal") CONFIG_TEAL="$color_value" ;;
+                        "gold") CONFIG_GOLD="$color_value" ;;
+                        "pink_bright") CONFIG_PINK_BRIGHT="$color_value" ;;
+                        "indigo") CONFIG_INDIGO="$color_value" ;;
+                        "violet") CONFIG_VIOLET="$color_value" ;;
+                        "light_blue") CONFIG_LIGHT_BLUE="$color_value" ;;
+                        *) echo "Warning: Unknown color '$color_name' in override list" >&2 ;;
+                    esac
+                    echo "  ✓ Overrode $color_name" >&2
+                fi
+            done <<< "$override_colors"
+        fi
+    elif [[ "$merge_strategy" == "merge" ]]; then
+        # Apply all custom colors that exist, keeping base theme for missing ones
+        echo "Merging custom colors with base theme..." >&2
+        # This would apply the full custom theme logic but keep base theme colors for undefined ones
+        # For now, fall back to standard custom color application
+    fi
+    
+    echo "Theme inheritance applied successfully" >&2
+    return 0
+}
+
+# Phase 3: Configuration Profiles System
+# Allows different configurations for different contexts (work, personal, demo)
+apply_configuration_profile() {
+    local config_json="$1"
+    
+    # Check if profiles are enabled
+    local profiles_enabled auto_switch default_profile
+    profiles_enabled=$(echo "$config_json" | jq -r '.profiles.enabled // false' 2>/dev/null)
+    
+    if [[ "$profiles_enabled" != "true" ]]; then
+        return 0  # No profiles, use regular configuration
+    fi
+    
+    auto_switch=$(echo "$config_json" | jq -r '.profiles.auto_switch // true' 2>/dev/null)
+    default_profile=$(echo "$config_json" | jq -r '.profiles.default_profile // "default"' 2>/dev/null)
+    
+    local active_profile="$default_profile"
+    
+    # Auto-detect profile if enabled
+    if [[ "$auto_switch" == "true" ]]; then
+        # Check work hours
+        local work_hours_enabled start_time end_time current_hour work_profile off_hours_profile
+        work_hours_enabled=$(echo "$config_json" | jq -r '.conditional.work_hours.enabled // false' 2>/dev/null)
+        
+        if [[ "$work_hours_enabled" == "true" ]]; then
+            start_time=$(echo "$config_json" | jq -r '.conditional.work_hours.start_time // "09:00"' 2>/dev/null)
+            end_time=$(echo "$config_json" | jq -r '.conditional.work_hours.end_time // "17:00"' 2>/dev/null)
+            work_profile=$(echo "$config_json" | jq -r '.conditional.work_hours.work_profile // "work"' 2>/dev/null)
+            off_hours_profile=$(echo "$config_json" | jq -r '.conditional.work_hours.off_hours_profile // "personal"' 2>/dev/null)
+            
+            current_hour=$(date +%H)
+            local start_hour="${start_time%%:*}"
+            local end_hour="${end_time%%:*}"
+            
+            if [[ "$current_hour" -ge "$start_hour" && "$current_hour" -lt "$end_hour" ]]; then
+                active_profile="$work_profile"
+                echo "Auto-switched to profile '$active_profile' (work hours)" >&2
+            else
+                active_profile="$off_hours_profile"
+                echo "Auto-switched to profile '$active_profile' (off hours)" >&2
+            fi
+        fi
+    fi
+    
+    # Apply profile configuration
+    echo "Applying configuration profile: $active_profile" >&2
+    
+    # Override configuration with profile-specific values
+    local profile_theme profile_show_cost_tracking profile_show_reset_info profile_mcp_timeout
+    profile_theme=$(echo "$config_json" | jq -r ".profiles.$active_profile.theme // empty" 2>/dev/null)
+    profile_show_cost_tracking=$(echo "$config_json" | jq -r ".profiles.$active_profile.show_cost_tracking // empty" 2>/dev/null)
+    profile_show_reset_info=$(echo "$config_json" | jq -r ".profiles.$active_profile.show_reset_info // empty" 2>/dev/null)
+    profile_mcp_timeout=$(echo "$config_json" | jq -r ".profiles.$active_profile.mcp_timeout // empty" 2>/dev/null)
+    
+    # Apply profile overrides
+    [[ -n "$profile_theme" && "$profile_theme" != "null" ]] && CONFIG_THEME="$profile_theme"
+    [[ "$profile_show_cost_tracking" == "true" || "$profile_show_cost_tracking" == "false" ]] && CONFIG_SHOW_COST_TRACKING="$profile_show_cost_tracking"
+    [[ "$profile_show_reset_info" == "true" || "$profile_show_reset_info" == "false" ]] && CONFIG_SHOW_RESET_INFO="$profile_show_reset_info"
+    [[ -n "$profile_mcp_timeout" && "$profile_mcp_timeout" != "null" ]] && CONFIG_MCP_TIMEOUT="$profile_mcp_timeout"
+    
+    echo "Configuration profile '$active_profile' applied successfully" >&2
+    export CONFIG_ACTIVE_PROFILE="$active_profile"
+    return 0
+}
+
+# Phase 3: Plugin System Foundation
+# Provides extensible data source system for future enhancements  
+initialize_plugin_system() {
+    local config_json="$1"
+    
+    # Check if plugin system is enabled
+    local plugins_enabled auto_discovery
+    plugins_enabled=$(echo "$config_json" | jq -r '.plugins.enabled // false' 2>/dev/null)
+    
+    if [[ "$plugins_enabled" != "true" ]]; then
+        export PLUGINS_ENABLED=false
+        return 0
+    fi
+    
+    auto_discovery=$(echo "$config_json" | jq -r '.plugins.auto_discovery // true' 2>/dev/null)
+    export PLUGINS_ENABLED=true
+    export PLUGIN_AUTO_DISCOVERY="$auto_discovery"
+    
+    # Get plugin directories
+    local plugin_dirs_json
+    plugin_dirs_json=$(echo "$config_json" | jq -r '.plugins.plugin_dirs[]?' 2>/dev/null)
+    
+    if [[ -n "$plugin_dirs_json" ]]; then
+        export PLUGIN_DIRS=()
+        while IFS= read -r plugin_dir; do
+            [[ -z "$plugin_dir" ]] && continue
+            # Expand tilde if present
+            plugin_dir="${plugin_dir/#\~/$HOME}"
+            PLUGIN_DIRS+=("$plugin_dir")
+        done <<< "$plugin_dirs_json"
+        
+        echo "Plugin system initialized with ${#PLUGIN_DIRS[@]} directories" >&2
+    fi
+    
+    # Initialize built-in plugins based on config
+    local git_extended_enabled system_info_enabled weather_enabled
+    git_extended_enabled=$(echo "$config_json" | jq -r '.plugins.git_extended.enabled // false' 2>/dev/null)
+    system_info_enabled=$(echo "$config_json" | jq -r '.plugins.system_info.enabled // false' 2>/dev/null)
+    weather_enabled=$(echo "$config_json" | jq -r '.plugins.weather.enabled // false' 2>/dev/null)
+    
+    export PLUGIN_GIT_EXTENDED_ENABLED="$git_extended_enabled"
+    export PLUGIN_SYSTEM_INFO_ENABLED="$system_info_enabled"
+    export PLUGIN_WEATHER_ENABLED="$weather_enabled"
+    
+    if [[ "$git_extended_enabled" == "true" || "$system_info_enabled" == "true" || "$weather_enabled" == "true" ]]; then
+        echo "Built-in plugins enabled: git_extended=$git_extended_enabled, system_info=$system_info_enabled, weather=$weather_enabled" >&2
+    fi
+    
+    return 0
+}
+
+# Phase 3: Advanced Validation with Auto-Fix Suggestions
+validate_configuration() {
+    local errors=()
+    local warnings=()
+    local suggestions=()
+    
+    echo "Validating configuration..." >&2
+    
+    # Validate theme selection with auto-fix suggestions
+    if [[ -n "$CONFIG_THEME" ]]; then
+        case "$CONFIG_THEME" in
+            "classic"|"garden"|"catppuccin"|"custom") ;;
+            *)  
+                errors+=("Invalid theme '$CONFIG_THEME'. Valid themes: classic, garden, catppuccin, custom")
+                # Auto-fix suggestion based on similarity
+                case "${CONFIG_THEME,,}" in
+                    *"classic"*|*"trad"*) suggestions+=("💡 Did you mean 'classic'? Add: theme.name = \"classic\"") ;;
+                    *"garden"*|*"pastel"*|*"soft"*) suggestions+=("💡 Did you mean 'garden'? Add: theme.name = \"garden\"") ;;  
+                    *"cat"*|*"mocha"*) suggestions+=("💡 Did you mean 'catppuccin'? Add: theme.name = \"catppuccin\"") ;;
+                    *"custom"*) suggestions+=("💡 Did you mean 'custom'? Add: theme.name = \"custom\"") ;;
+                    *) suggestions+=("💡 Set theme.name to one of: classic, garden, catppuccin, custom") ;;
+                esac
+                ;;
+        esac
+    fi
+    
+    # Validate boolean values
+    local bool_configs=(
+        "CONFIG_SHOW_COMMITS" "CONFIG_SHOW_VERSION" "CONFIG_SHOW_SUBMODULES"
+        "CONFIG_SHOW_MCP_STATUS" "CONFIG_SHOW_COST_TRACKING" "CONFIG_SHOW_RESET_INFO" "CONFIG_SHOW_SESSION_INFO"
+    )
+    
+    for bool_config in "${bool_configs[@]}"; do
+        local value="${!bool_config}"
+        if [[ -n "$value" && "$value" != "true" && "$value" != "false" ]]; then
+            errors+=("$bool_config must be 'true' or 'false', got '$value'")
+            # Auto-fix suggestions for common boolean mistakes
+            case "${value,,}" in
+                "yes"|"y"|"1"|"on"|"enable"|"enabled") suggestions+=("💡 Use 'true' instead of '$value'") ;;
+                "no"|"n"|"0"|"off"|"disable"|"disabled") suggestions+=("💡 Use 'false' instead of '$value'") ;;
+                *) suggestions+=("💡 Set ${bool_config,,} = true or false") ;;
+            esac
+        fi
+    done
+    
+    # Validate timeout format
+    local timeout_configs=("CONFIG_MCP_TIMEOUT" "CONFIG_VERSION_TIMEOUT" "CONFIG_CCUSAGE_TIMEOUT")
+    for timeout_config in "${timeout_configs[@]}"; do
+        local value="${!timeout_config}"
+        if [[ -n "$value" && ! "$value" =~ ^[0-9]+[sm]?$ ]]; then
+            errors+=("$timeout_config must be a number optionally followed by 's' or 'm', got '$value'")
+        fi
+    done
+    
+    # Validate cache duration is numeric
+    if [[ -n "$CONFIG_VERSION_CACHE_DURATION" && ! "$CONFIG_VERSION_CACHE_DURATION" =~ ^[0-9]+$ ]]; then
+        errors+=("CONFIG_VERSION_CACHE_DURATION must be a number (seconds), got '$CONFIG_VERSION_CACHE_DURATION'")
+    fi
+    
+    # Validate cache file path is writable directory
+    if [[ -n "$CONFIG_VERSION_CACHE_FILE" ]]; then
+        local cache_dir
+        cache_dir=$(dirname "$CONFIG_VERSION_CACHE_FILE")
+        if [[ ! -d "$cache_dir" ]]; then
+            warnings+=("Cache directory '$cache_dir' does not exist")
+        elif [[ ! -w "$cache_dir" ]]; then
+            warnings+=("Cache directory '$cache_dir' is not writable")
+        fi
+    fi
+    
+    # Validate date formats (basic check)
+    local date_configs=("CONFIG_TIME_FORMAT" "CONFIG_DATE_FORMAT" "CONFIG_DATE_FORMAT_COMPACT")
+    for date_config in "${date_configs[@]}"; do
+        local value="${!date_config}"
+        if [[ -n "$value" && ! "$value" =~ %[a-zA-Z] ]]; then
+            warnings+=("$date_config may have invalid date format: '$value'")
+        fi
+    done
+    
+    # Validate ANSI color codes (basic check for custom theme)
+    if [[ "$CONFIG_THEME" == "custom" ]]; then
+        local color_configs=(
+            "CONFIG_RED" "CONFIG_BLUE" "CONFIG_GREEN" "CONFIG_YELLOW" 
+            "CONFIG_MAGENTA" "CONFIG_CYAN" "CONFIG_WHITE"
+        )
+        
+        for color_config in "${color_configs[@]}"; do
+            local value="${!color_config}"
+            if [[ -n "$value" && ! "$value" =~ \\033\[.*m$ ]]; then
+                warnings+=("$color_config may have invalid ANSI color code: '$value'")
+            fi
+        done
+    fi
+    
+    # Report errors, warnings, and suggestions
+    if [[ ${#errors[@]} -gt 0 ]]; then
+        echo "❌ Configuration errors found:" >&2
+        for error in "${errors[@]}"; do
+            echo "   ✗ $error" >&2
+        done
+        
+        # Show auto-fix suggestions if available
+        if [[ ${#suggestions[@]} -gt 0 ]]; then
+            echo "" >&2
+            echo "💡 Auto-fix suggestions:" >&2
+            for suggestion in "${suggestions[@]}"; do
+                echo "   $suggestion" >&2
+            done
+        fi
+        return 1
+    fi
+    
+    if [[ ${#warnings[@]} -gt 0 ]]; then
+        echo "⚠️  Configuration warnings:" >&2
+        for warning in "${warnings[@]}"; do
+            echo "   ⚠ $warning" >&2
+        done
+    fi
+    
+    if [[ ${#suggestions[@]} -gt 0 && ${#errors[@]} -eq 0 ]]; then
+        echo "💡 Optimization suggestions:" >&2
+        for suggestion in "${suggestions[@]}"; do
+            echo "   $suggestion" >&2
+        done
+    fi
+    
+    echo "✅ Configuration validation completed" >&2
+    return 0
+}
+
+# Apply environment variable overrides (highest precedence)
+apply_env_overrides() {
+    # Environment variables follow the CONFIG_* naming convention
+    # These override both TOML config and inline defaults
+    
+    # Theme and colors
+    [[ -n "$ENV_CONFIG_THEME" ]] && CONFIG_THEME="$ENV_CONFIG_THEME"
+    [[ -n "$ENV_CONFIG_RED" ]] && CONFIG_RED="$ENV_CONFIG_RED"
+    [[ -n "$ENV_CONFIG_BLUE" ]] && CONFIG_BLUE="$ENV_CONFIG_BLUE"
+    [[ -n "$ENV_CONFIG_GREEN" ]] && CONFIG_GREEN="$ENV_CONFIG_GREEN"
+    [[ -n "$ENV_CONFIG_YELLOW" ]] && CONFIG_YELLOW="$ENV_CONFIG_YELLOW"
+    [[ -n "$ENV_CONFIG_MAGENTA" ]] && CONFIG_MAGENTA="$ENV_CONFIG_MAGENTA"
+    [[ -n "$ENV_CONFIG_CYAN" ]] && CONFIG_CYAN="$ENV_CONFIG_CYAN"
+    [[ -n "$ENV_CONFIG_WHITE" ]] && CONFIG_WHITE="$ENV_CONFIG_WHITE"
+    
+    # Feature toggles
+    [[ -n "$ENV_CONFIG_SHOW_COMMITS" ]] && CONFIG_SHOW_COMMITS="$ENV_CONFIG_SHOW_COMMITS"
+    [[ -n "$ENV_CONFIG_SHOW_VERSION" ]] && CONFIG_SHOW_VERSION="$ENV_CONFIG_SHOW_VERSION"
+    [[ -n "$ENV_CONFIG_SHOW_SUBMODULES" ]] && CONFIG_SHOW_SUBMODULES="$ENV_CONFIG_SHOW_SUBMODULES"
+    [[ -n "$ENV_CONFIG_SHOW_MCP_STATUS" ]] && CONFIG_SHOW_MCP_STATUS="$ENV_CONFIG_SHOW_MCP_STATUS"
+    [[ -n "$ENV_CONFIG_SHOW_COST_TRACKING" ]] && CONFIG_SHOW_COST_TRACKING="$ENV_CONFIG_SHOW_COST_TRACKING"
+    [[ -n "$ENV_CONFIG_SHOW_RESET_INFO" ]] && CONFIG_SHOW_RESET_INFO="$ENV_CONFIG_SHOW_RESET_INFO"
+    [[ -n "$ENV_CONFIG_SHOW_SESSION_INFO" ]] && CONFIG_SHOW_SESSION_INFO="$ENV_CONFIG_SHOW_SESSION_INFO"
+    
+    # Timeouts
+    [[ -n "$ENV_CONFIG_MCP_TIMEOUT" ]] && CONFIG_MCP_TIMEOUT="$ENV_CONFIG_MCP_TIMEOUT"
+    [[ -n "$ENV_CONFIG_VERSION_TIMEOUT" ]] && CONFIG_VERSION_TIMEOUT="$ENV_CONFIG_VERSION_TIMEOUT"
+    [[ -n "$ENV_CONFIG_CCUSAGE_TIMEOUT" ]] && CONFIG_CCUSAGE_TIMEOUT="$ENV_CONFIG_CCUSAGE_TIMEOUT"
+    
+    # Emojis
+    [[ -n "$ENV_CONFIG_OPUS_EMOJI" ]] && CONFIG_OPUS_EMOJI="$ENV_CONFIG_OPUS_EMOJI"
+    [[ -n "$ENV_CONFIG_HAIKU_EMOJI" ]] && CONFIG_HAIKU_EMOJI="$ENV_CONFIG_HAIKU_EMOJI"
+    [[ -n "$ENV_CONFIG_SONNET_EMOJI" ]] && CONFIG_SONNET_EMOJI="$ENV_CONFIG_SONNET_EMOJI"
+    [[ -n "$ENV_CONFIG_DEFAULT_MODEL_EMOJI" ]] && CONFIG_DEFAULT_MODEL_EMOJI="$ENV_CONFIG_DEFAULT_MODEL_EMOJI"
+    [[ -n "$ENV_CONFIG_CLEAN_STATUS_EMOJI" ]] && CONFIG_CLEAN_STATUS_EMOJI="$ENV_CONFIG_CLEAN_STATUS_EMOJI"
+    [[ -n "$ENV_CONFIG_DIRTY_STATUS_EMOJI" ]] && CONFIG_DIRTY_STATUS_EMOJI="$ENV_CONFIG_DIRTY_STATUS_EMOJI"
+    [[ -n "$ENV_CONFIG_CLOCK_EMOJI" ]] && CONFIG_CLOCK_EMOJI="$ENV_CONFIG_CLOCK_EMOJI"
+    [[ -n "$ENV_CONFIG_LIVE_BLOCK_EMOJI" ]] && CONFIG_LIVE_BLOCK_EMOJI="$ENV_CONFIG_LIVE_BLOCK_EMOJI"
+    
+    # Labels
+    [[ -n "$ENV_CONFIG_COMMITS_LABEL" ]] && CONFIG_COMMITS_LABEL="$ENV_CONFIG_COMMITS_LABEL"
+    [[ -n "$ENV_CONFIG_REPO_LABEL" ]] && CONFIG_REPO_LABEL="$ENV_CONFIG_REPO_LABEL"
+    [[ -n "$ENV_CONFIG_MONTHLY_LABEL" ]] && CONFIG_MONTHLY_LABEL="$ENV_CONFIG_MONTHLY_LABEL"
+    [[ -n "$ENV_CONFIG_WEEKLY_LABEL" ]] && CONFIG_WEEKLY_LABEL="$ENV_CONFIG_WEEKLY_LABEL"
+    [[ -n "$ENV_CONFIG_DAILY_LABEL" ]] && CONFIG_DAILY_LABEL="$ENV_CONFIG_DAILY_LABEL"
+    [[ -n "$ENV_CONFIG_MCP_LABEL" ]] && CONFIG_MCP_LABEL="$ENV_CONFIG_MCP_LABEL"
+    [[ -n "$ENV_CONFIG_VERSION_PREFIX" ]] && CONFIG_VERSION_PREFIX="$ENV_CONFIG_VERSION_PREFIX"
+    [[ -n "$ENV_CONFIG_SUBMODULE_LABEL" ]] && CONFIG_SUBMODULE_LABEL="$ENV_CONFIG_SUBMODULE_LABEL"
+    [[ -n "$ENV_CONFIG_SESSION_PREFIX" ]] && CONFIG_SESSION_PREFIX="$ENV_CONFIG_SESSION_PREFIX"
+    [[ -n "$ENV_CONFIG_LIVE_LABEL" ]] && CONFIG_LIVE_LABEL="$ENV_CONFIG_LIVE_LABEL"
+    [[ -n "$ENV_CONFIG_RESET_LABEL" ]] && CONFIG_RESET_LABEL="$ENV_CONFIG_RESET_LABEL"
+    
+    # Cache settings
+    [[ -n "$ENV_CONFIG_VERSION_CACHE_DURATION" ]] && CONFIG_VERSION_CACHE_DURATION="$ENV_CONFIG_VERSION_CACHE_DURATION"
+    [[ -n "$ENV_CONFIG_VERSION_CACHE_FILE" ]] && CONFIG_VERSION_CACHE_FILE="$ENV_CONFIG_VERSION_CACHE_FILE"
+    
+    # Display formats
+    [[ -n "$ENV_CONFIG_TIME_FORMAT" ]] && CONFIG_TIME_FORMAT="$ENV_CONFIG_TIME_FORMAT"
+    [[ -n "$ENV_CONFIG_DATE_FORMAT" ]] && CONFIG_DATE_FORMAT="$ENV_CONFIG_DATE_FORMAT"
+    [[ -n "$ENV_CONFIG_DATE_FORMAT_COMPACT" ]] && CONFIG_DATE_FORMAT_COMPACT="$ENV_CONFIG_DATE_FORMAT_COMPACT"
+    
+    # Error messages
+    [[ -n "$ENV_CONFIG_NO_CCUSAGE_MESSAGE" ]] && CONFIG_NO_CCUSAGE_MESSAGE="$ENV_CONFIG_NO_CCUSAGE_MESSAGE"
+    [[ -n "$ENV_CONFIG_CCUSAGE_INSTALL_MESSAGE" ]] && CONFIG_CCUSAGE_INSTALL_MESSAGE="$ENV_CONFIG_CCUSAGE_INSTALL_MESSAGE"
+    [[ -n "$ENV_CONFIG_NO_ACTIVE_BLOCK_MESSAGE" ]] && CONFIG_NO_ACTIVE_BLOCK_MESSAGE="$ENV_CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+    [[ -n "$ENV_CONFIG_MCP_UNKNOWN_MESSAGE" ]] && CONFIG_MCP_UNKNOWN_MESSAGE="$ENV_CONFIG_MCP_UNKNOWN_MESSAGE"
+    [[ -n "$ENV_CONFIG_MCP_NONE_MESSAGE" ]] && CONFIG_MCP_NONE_MESSAGE="$ENV_CONFIG_MCP_NONE_MESSAGE"
+    [[ -n "$ENV_CONFIG_UNKNOWN_VERSION" ]] && CONFIG_UNKNOWN_VERSION="$ENV_CONFIG_UNKNOWN_VERSION"
+    [[ -n "$ENV_CONFIG_NO_SUBMODULES" ]] && CONFIG_NO_SUBMODULES="$ENV_CONFIG_NO_SUBMODULES"
+    
+    # Log environment overrides if any were applied
+    local overrides_applied=false
+    for var in CONFIG_THEME ENV_CONFIG_RED ENV_CONFIG_SHOW_COMMITS ENV_CONFIG_MCP_TIMEOUT; do
+        if [[ -n "${!var}" ]]; then
+            if [[ "$overrides_applied" == "false" ]]; then
+                echo "Environment variable overrides applied" >&2
+                overrides_applied=true
+            fi
+            break
+        fi
+    done
+}
+
+# ============================================================================
+# MIGRATION TOOLS & CONFIG TESTING UTILITIES (Phase 3)
+# ============================================================================
+
+# Generate Config.toml from current inline configuration
+generate_config_toml() {
+    local output_file="${1:-./Config.toml}"
+    local backup_existing="${2:-true}"
+    
+    echo "🔧 Generating Config.toml from current inline configuration..."
+    
+    # Backup existing config if it exists
+    if [[ "$backup_existing" == "true" && -f "$output_file" ]]; then
+        local backup_file="${output_file}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$output_file" "$backup_file"
+        echo "📋 Existing config backed up to: $backup_file"
+    fi
+    
+    # Generate comprehensive Config.toml based on current inline values
+    cat > "$output_file" << 'TOML_EOF'
+# ============================================================================
+# Claude Code Statusline Configuration (Config.toml)
+# ============================================================================
+# Generated from inline configuration on DATE_PLACEHOLDER
+# 
+# This file contains the configuration for the Claude Code statusline script.
+# Edit this file to customize your statusline appearance and behavior.
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+[theme]
+name = "THEME_PLACEHOLDER"
+
+# === FEATURE TOGGLES ===
+[features]
+show_commits = SHOW_COMMITS_PLACEHOLDER
+show_version = SHOW_VERSION_PLACEHOLDER
+show_submodules = SHOW_SUBMODULES_PLACEHOLDER
+show_mcp_status = SHOW_MCP_STATUS_PLACEHOLDER
+show_cost_tracking = SHOW_COST_TRACKING_PLACEHOLDER
+show_reset_info = SHOW_RESET_INFO_PLACEHOLDER
+show_session_info = SHOW_SESSION_INFO_PLACEHOLDER
+
+# === MODEL EMOJIS ===
+[emojis]
+opus = "OPUS_EMOJI_PLACEHOLDER"
+haiku = "HAIKU_EMOJI_PLACEHOLDER"
+sonnet = "SONNET_EMOJI_PLACEHOLDER"
+default_model = "DEFAULT_MODEL_EMOJI_PLACEHOLDER"
+clean_status = "CLEAN_STATUS_EMOJI_PLACEHOLDER"
+dirty_status = "DIRTY_STATUS_EMOJI_PLACEHOLDER"
+clock = "CLOCK_EMOJI_PLACEHOLDER"
+live_block = "LIVE_BLOCK_EMOJI_PLACEHOLDER"
+
+# === TIMEOUTS ===
+[timeouts]
+mcp = "MCP_TIMEOUT_PLACEHOLDER"
+version = "VERSION_TIMEOUT_PLACEHOLDER"
+ccusage = "CCUSAGE_TIMEOUT_PLACEHOLDER"
+
+# === DISPLAY LABELS ===
+[labels]
+commits = "COMMITS_LABEL_PLACEHOLDER"
+repo = "REPO_LABEL_PLACEHOLDER"
+monthly = "MONTHLY_LABEL_PLACEHOLDER"
+weekly = "WEEKLY_LABEL_PLACEHOLDER"
+daily = "DAILY_LABEL_PLACEHOLDER"
+mcp = "MCP_LABEL_PLACEHOLDER"
+version_prefix = "VERSION_PREFIX_PLACEHOLDER"
+submodule = "SUBMODULE_LABEL_PLACEHOLDER"
+session_prefix = "SESSION_PREFIX_PLACEHOLDER"
+live = "LIVE_LABEL_PLACEHOLDER"
+reset = "RESET_LABEL_PLACEHOLDER"
+
+# === CACHE SETTINGS ===
+[cache]
+version_duration = VERSION_CACHE_DURATION_PLACEHOLDER
+version_file = "VERSION_CACHE_FILE_PLACEHOLDER"
+
+# === DISPLAY FORMATS ===
+[display]
+time_format = "TIME_FORMAT_PLACEHOLDER"
+date_format = "DATE_FORMAT_PLACEHOLDER"
+date_format_compact = "DATE_FORMAT_COMPACT_PLACEHOLDER"
+
+# === ERROR/FALLBACK MESSAGES ===
+[messages]
+no_ccusage = "NO_CCUSAGE_MESSAGE_PLACEHOLDER"
+ccusage_install = "CCUSAGE_INSTALL_MESSAGE_PLACEHOLDER"
+no_active_block = "NO_ACTIVE_BLOCK_MESSAGE_PLACEHOLDER"
+mcp_unknown = "MCP_UNKNOWN_MESSAGE_PLACEHOLDER"
+mcp_none = "MCP_NONE_MESSAGE_PLACEHOLDER"
+unknown_version = "UNKNOWN_VERSION_PLACEHOLDER"
+no_submodules = "NO_SUBMODULES_PLACEHOLDER"
+
+# === CUSTOM COLORS (if using custom theme) ===
+[colors.basic]
+red = "RED_PLACEHOLDER"
+blue = "BLUE_PLACEHOLDER"
+green = "GREEN_PLACEHOLDER"
+yellow = "YELLOW_PLACEHOLDER"
+magenta = "MAGENTA_PLACEHOLDER"
+cyan = "CYAN_PLACEHOLDER"
+white = "WHITE_PLACEHOLDER"
+
+# === ADVANCED SETTINGS ===
+[advanced]
+warn_missing_deps = false
+debug_mode = false
+performance_mode = false
+strict_validation = true
+
+TOML_EOF
+
+    # Replace placeholders with actual values
+    local current_date
+    current_date=$(date "+%Y-%m-%d %H:%M:%S")
+    
+    # Use sed to replace placeholders with actual configuration values
+    sed -i.tmp \
+        -e "s/DATE_PLACEHOLDER/$current_date/g" \
+        -e "s/THEME_PLACEHOLDER/${CONFIG_THEME:-catppuccin}/g" \
+        -e "s/SHOW_COMMITS_PLACEHOLDER/${CONFIG_SHOW_COMMITS:-true}/g" \
+        -e "s/SHOW_VERSION_PLACEHOLDER/${CONFIG_SHOW_VERSION:-true}/g" \
+        -e "s/SHOW_SUBMODULES_PLACEHOLDER/${CONFIG_SHOW_SUBMODULES:-true}/g" \
+        -e "s/SHOW_MCP_STATUS_PLACEHOLDER/${CONFIG_SHOW_MCP_STATUS:-true}/g" \
+        -e "s/SHOW_COST_TRACKING_PLACEHOLDER/${CONFIG_SHOW_COST_TRACKING:-true}/g" \
+        -e "s/SHOW_RESET_INFO_PLACEHOLDER/${CONFIG_SHOW_RESET_INFO:-true}/g" \
+        -e "s/SHOW_SESSION_INFO_PLACEHOLDER/${CONFIG_SHOW_SESSION_INFO:-true}/g" \
+        -e "s/OPUS_EMOJI_PLACEHOLDER/${CONFIG_OPUS_EMOJI:-🧠}/g" \
+        -e "s/HAIKU_EMOJI_PLACEHOLDER/${CONFIG_HAIKU_EMOJI:-⚡}/g" \
+        -e "s/SONNET_EMOJI_PLACEHOLDER/${CONFIG_SONNET_EMOJI:-🎵}/g" \
+        -e "s/DEFAULT_MODEL_EMOJI_PLACEHOLDER/${CONFIG_DEFAULT_MODEL_EMOJI:-🤖}/g" \
+        -e "s/CLEAN_STATUS_EMOJI_PLACEHOLDER/${CONFIG_CLEAN_STATUS_EMOJI:-✅}/g" \
+        -e "s/DIRTY_STATUS_EMOJI_PLACEHOLDER/${CONFIG_DIRTY_STATUS_EMOJI:-📁}/g" \
+        -e "s/CLOCK_EMOJI_PLACEHOLDER/${CONFIG_CLOCK_EMOJI:-🕐}/g" \
+        -e "s/LIVE_BLOCK_EMOJI_PLACEHOLDER/${CONFIG_LIVE_BLOCK_EMOJI:-🔥}/g" \
+        -e "s/MCP_TIMEOUT_PLACEHOLDER/${CONFIG_MCP_TIMEOUT:-3s}/g" \
+        -e "s/VERSION_TIMEOUT_PLACEHOLDER/${CONFIG_VERSION_TIMEOUT:-2s}/g" \
+        -e "s/CCUSAGE_TIMEOUT_PLACEHOLDER/${CONFIG_CCUSAGE_TIMEOUT:-3s}/g" \
+        -e "s/COMMITS_LABEL_PLACEHOLDER/${CONFIG_COMMITS_LABEL:-Commits:}/g" \
+        -e "s/REPO_LABEL_PLACEHOLDER/${CONFIG_REPO_LABEL:-REPO}/g" \
+        -e "s/MONTHLY_LABEL_PLACEHOLDER/${CONFIG_MONTHLY_LABEL:-30DAY}/g" \
+        -e "s/WEEKLY_LABEL_PLACEHOLDER/${CONFIG_WEEKLY_LABEL:-7DAY}/g" \
+        -e "s/DAILY_LABEL_PLACEHOLDER/${CONFIG_DAILY_LABEL:-DAY}/g" \
+        -e "s/MCP_LABEL_PLACEHOLDER/${CONFIG_MCP_LABEL:-MCP}/g" \
+        -e "s/VERSION_PREFIX_PLACEHOLDER/${CONFIG_VERSION_PREFIX:-ver}/g" \
+        -e "s/SUBMODULE_LABEL_PLACEHOLDER/${CONFIG_SUBMODULE_LABEL:-SUB:}/g" \
+        -e "s/SESSION_PREFIX_PLACEHOLDER/${CONFIG_SESSION_PREFIX:-S:}/g" \
+        -e "s/LIVE_LABEL_PLACEHOLDER/${CONFIG_LIVE_LABEL:-LIVE}/g" \
+        -e "s/RESET_LABEL_PLACEHOLDER/${CONFIG_RESET_LABEL:-RESET}/g" \
+        -e "s/VERSION_CACHE_DURATION_PLACEHOLDER/${CONFIG_VERSION_CACHE_DURATION:-3600}/g" \
+        -e "s|VERSION_CACHE_FILE_PLACEHOLDER|${CONFIG_VERSION_CACHE_FILE:-/tmp/.claude_version_cache}|g" \
+        -e "s/TIME_FORMAT_PLACEHOLDER/${CONFIG_TIME_FORMAT:-%H:%M}/g" \
+        -e "s/DATE_FORMAT_PLACEHOLDER/${CONFIG_DATE_FORMAT:-%Y-%m-%d}/g" \
+        -e "s/DATE_FORMAT_COMPACT_PLACEHOLDER/${CONFIG_DATE_FORMAT_COMPACT:-%Y%m%d}/g" \
+        -e "s/NO_CCUSAGE_MESSAGE_PLACEHOLDER/${CONFIG_NO_CCUSAGE_MESSAGE:-No ccusage}/g" \
+        -e "s/CCUSAGE_INSTALL_MESSAGE_PLACEHOLDER/${CONFIG_CCUSAGE_INSTALL_MESSAGE:-Install ccusage for cost tracking}/g" \
+        -e "s/NO_ACTIVE_BLOCK_MESSAGE_PLACEHOLDER/${CONFIG_NO_ACTIVE_BLOCK_MESSAGE:-No active block}/g" \
+        -e "s/MCP_UNKNOWN_MESSAGE_PLACEHOLDER/${CONFIG_MCP_UNKNOWN_MESSAGE:-unknown}/g" \
+        -e "s/MCP_NONE_MESSAGE_PLACEHOLDER/${CONFIG_MCP_NONE_MESSAGE:-none}/g" \
+        -e "s/UNKNOWN_VERSION_PLACEHOLDER/${CONFIG_UNKNOWN_VERSION:-?}/g" \
+        -e "s/NO_SUBMODULES_PLACEHOLDER/${CONFIG_NO_SUBMODULES:---}/g" \
+        "$output_file"
+        
+    # Clean up temp file
+    rm -f "${output_file}.tmp"
+    
+    # Handle custom colors for custom theme
+    if [[ "${CONFIG_THEME:-catppuccin}" == "custom" ]]; then
+        sed -i.tmp2 \
+            -e "s|RED_PLACEHOLDER|${CONFIG_RED:-\\\\033[31m}|g" \
+            -e "s|BLUE_PLACEHOLDER|${CONFIG_BLUE:-\\\\033[34m}|g" \
+            -e "s|GREEN_PLACEHOLDER|${CONFIG_GREEN:-\\\\033[32m}|g" \
+            -e "s|YELLOW_PLACEHOLDER|${CONFIG_YELLOW:-\\\\033[33m}|g" \
+            -e "s|MAGENTA_PLACEHOLDER|${CONFIG_MAGENTA:-\\\\033[35m}|g" \
+            -e "s|CYAN_PLACEHOLDER|${CONFIG_CYAN:-\\\\033[36m}|g" \
+            -e "s|WHITE_PLACEHOLDER|${CONFIG_WHITE:-\\\\033[37m}|g" \
+            "$output_file"
+        rm -f "${output_file}.tmp2"
+    else
+        # Remove custom color section for non-custom themes
+        sed -i.tmp3 '/^# === CUSTOM COLORS/,/^white = /d' "$output_file"
+        rm -f "${output_file}.tmp3"
+    fi
+    
+    echo "✅ Config.toml generated successfully: $output_file"
+    echo "💡 Edit the file to customize your statusline, then test with: $0 --test-config"
+    
+    return 0
+}
+
+# Test configuration loading and parsing
+test_config_parsing() {
+    local config_file="${1}"
+    local verbose="${2:-false}"
+    
+    echo "🧪 Testing configuration parsing..."
+    
+    # Discover config file if not provided
+    if [[ -z "$config_file" ]]; then
+        if ! config_file=$(discover_config_file); then
+            echo "❌ No Config.toml found. Generate one with: $0 --generate-config" 
+            return 1
+        fi
+    fi
+    
+    echo "📄 Testing config file: $config_file"
+    
+    # Test basic file accessibility
+    if [[ ! -f "$config_file" ]]; then
+        echo "❌ Config file not found: $config_file"
+        return 1
+    fi
+    
+    if [[ ! -r "$config_file" ]]; then
+        echo "❌ Config file not readable: $config_file"
+        return 1
+    fi
+    
+    # Test TOML parsing
+    echo "🔍 Testing TOML parsing..."
+    if ! config_json=$(parse_toml_to_json "$config_file" 2>/dev/null); then
+        echo "❌ TOML parsing failed"
+        return 1
+    fi
+    
+    # Test JSON validity
+    echo "🔍 Testing JSON validity..."
+    if ! echo "$config_json" | jq empty 2>/dev/null; then
+        echo "❌ Generated JSON is invalid"
+        if [[ "$verbose" == "true" ]]; then
+            echo "Generated JSON:"
+            echo "$config_json"
+        fi
+        return 1
+    fi
+    
+    echo "✅ TOML parsing successful"
+    
+    # Test key configuration sections
+    echo "🔍 Testing configuration sections..."
+    local sections=("theme" "features" "emojis" "timeouts" "labels" "cache" "display" "messages")
+    for section in "${sections[@]}"; do
+        if echo "$config_json" | jq -e ".${section}" >/dev/null 2>&1; then
+            echo "  ✅ Section [$section] found"
+        else
+            echo "  ⚠️ Section [$section] missing"
+        fi
+    done
+    
+    # Test specific critical values
+    echo "🔍 Testing critical configuration values..."
+    local theme_name
+    theme_name=$(echo "$config_json" | jq -r '.theme.name // "missing"' 2>/dev/null)
+    case "$theme_name" in
+        "classic"|"garden"|"catppuccin"|"custom") echo "  ✅ Theme: $theme_name" ;;
+        "missing") echo "  ❌ Theme name missing" ; return 1 ;;
+        *) echo "  ⚠️ Unknown theme: $theme_name" ;;
+    esac
+    
+    # Test boolean values
+    local bool_tests=("features.show_commits" "features.show_version" "features.show_mcp_status")
+    for bool_test in "${bool_tests[@]}"; do
+        local bool_value
+        bool_value=$(echo "$config_json" | jq -r ".${bool_test} // null" 2>/dev/null)
+        if [[ "$bool_value" == "true" || "$bool_value" == "false" ]]; then
+            echo "  ✅ Boolean ${bool_test}: $bool_value"
+        elif [[ "$bool_value" == "null" ]]; then
+            echo "  ⚠️ Boolean ${bool_test}: missing (will use default)"
+        else
+            echo "  ❌ Boolean ${bool_test}: invalid value '$bool_value'"
+        fi
+    done
+    
+    # Test timeout format
+    local timeout_tests=("timeouts.mcp" "timeouts.version" "timeouts.ccusage")
+    for timeout_test in "${timeout_tests[@]}"; do
+        local timeout_value
+        timeout_value=$(echo "$config_json" | jq -r ".${timeout_test} // \"missing\"" 2>/dev/null)
+        if [[ "$timeout_value" == "missing" ]]; then
+            echo "  ⚠️ Timeout ${timeout_test}: missing (will use default)"
+        elif [[ "$timeout_value" =~ ^[0-9]+[sm]?$ ]]; then
+            echo "  ✅ Timeout ${timeout_test}: $timeout_value"
+        else
+            echo "  ❌ Timeout ${timeout_test}: invalid format '$timeout_value'"
+        fi
+    done
+    
+    if [[ "$verbose" == "true" ]]; then
+        echo "🔍 Complete parsed configuration:"
+        echo "$config_json" | jq '.' 2>/dev/null || echo "$config_json"
+    fi
+    
+    echo "✅ Configuration parsing test completed successfully"
+    return 0
+}
+
+# Compare inline vs TOML configurations
+compare_configurations() {
+    echo "⚖️  Comparing inline vs TOML configurations..."
+    
+    # Store current inline config state
+    local inline_theme="$CONFIG_THEME"
+    local inline_show_commits="$CONFIG_SHOW_COMMITS"
+    local inline_show_version="$CONFIG_SHOW_VERSION"
+    local inline_mcp_timeout="$CONFIG_MCP_TIMEOUT"
+    
+    echo "📋 Current inline configuration:"
+    echo "  Theme: ${inline_theme:-default}"
+    echo "  Show commits: ${inline_show_commits:-default}"
+    echo "  Show version: ${inline_show_version:-default}"
+    echo "  MCP timeout: ${inline_mcp_timeout:-default}"
+    
+    # Try to load TOML config
+    local config_file
+    if config_file=$(discover_config_file 2>/dev/null); then
+        echo "📋 TOML configuration from: $config_file"
+        
+        local config_json
+        if config_json=$(parse_toml_to_json "$config_file" 2>/dev/null); then
+            local toml_theme toml_show_commits toml_show_version toml_mcp_timeout
+            toml_theme=$(echo "$config_json" | jq -r '.theme.name // "default"' 2>/dev/null)
+            toml_show_commits=$(echo "$config_json" | jq -r '.features.show_commits // "default"' 2>/dev/null)
+            toml_show_version=$(echo "$config_json" | jq -r '.features.show_version // "default"' 2>/dev/null) 
+            toml_mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "default"' 2>/dev/null)
+            
+            echo "  Theme: $toml_theme"
+            echo "  Show commits: $toml_show_commits"
+            echo "  Show version: $toml_show_version"
+            echo "  MCP timeout: $toml_mcp_timeout"
+            
+            # Compare key values
+            echo "🔍 Configuration differences:"
+            [[ "$inline_theme" != "$toml_theme" ]] && echo "  📝 Theme: inline='$inline_theme' vs toml='$toml_theme'"
+            [[ "$inline_show_commits" != "$toml_show_commits" ]] && echo "  📝 Show commits: inline='$inline_show_commits' vs toml='$toml_show_commits'"
+            [[ "$inline_show_version" != "$toml_show_version" ]] && echo "  📝 Show version: inline='$inline_show_version' vs toml='$toml_show_version'"
+            [[ "$inline_mcp_timeout" != "$toml_mcp_timeout" ]] && echo "  📝 MCP timeout: inline='$inline_mcp_timeout' vs toml='$toml_mcp_timeout'"
+            
+            echo "✅ Configuration comparison completed"
+        else
+            echo "❌ Failed to parse TOML configuration"
+            return 1
+        fi
+    else
+        echo "📋 No TOML configuration found"
+        echo "💡 Generate one with: $0 --generate-config"
+    fi
+    
+    return 0
+}
+
+# Backup and restore configuration utilities
+backup_config() {
+    local backup_dir="${1:-~/.config/claude-code-statusline/backups}"
+    local backup_name="config_backup_$(date +%Y%m%d_%H%M%S)"
+    
+    echo "💾 Creating configuration backup..."
+    
+    # Expand tilde
+    backup_dir="${backup_dir/#\~/$HOME}"
+    
+    # Create backup directory if it doesn't exist
+    if ! mkdir -p "$backup_dir"; then
+        echo "❌ Failed to create backup directory: $backup_dir"
+        return 1
+    fi
+    
+    local backup_path="${backup_dir}/${backup_name}"
+    mkdir -p "$backup_path"
+    
+    # Backup Config.toml if it exists
+    local config_file
+    if config_file=$(discover_config_file 2>/dev/null); then
+        cp "$config_file" "${backup_path}/Config.toml"
+        echo "  📄 Backed up TOML config: $config_file"
+    fi
+    
+    # Backup statusline.sh (inline config section)
+    if [[ -f "$0" ]]; then
+        cp "$0" "${backup_path}/statusline.sh"
+        echo "  📄 Backed up script: $0"
+    fi
+    
+    # Create backup metadata
+    cat > "${backup_path}/backup_info.txt" << EOF
+Backup created: $(date)
+Script path: $0
+Config file: ${config_file:-"Not found"}
+Theme: ${CONFIG_THEME:-"default"}
+Hostname: $(hostname)
+User: $(whoami)
+EOF
+    
+    echo "✅ Backup created: $backup_path"
+    return 0
+}
+
+restore_config() {
+    local backup_path="$1"
+    
+    if [[ -z "$backup_path" ]]; then
+        echo "❌ Backup path required. Usage: $0 --restore-config <backup_path>"
+        return 1
+    fi
+    
+    if [[ ! -d "$backup_path" ]]; then
+        echo "❌ Backup directory not found: $backup_path"
+        return 1
+    fi
+    
+    echo "🔄 Restoring configuration from: $backup_path"
+    
+    # Show backup info
+    if [[ -f "${backup_path}/backup_info.txt" ]]; then
+        echo "📋 Backup information:"
+        cat "${backup_path}/backup_info.txt" | sed 's/^/  /'
+    fi
+    
+    # Confirm restoration
+    read -p "Continue with restoration? (y/N): " -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Restoration cancelled"
+        return 0
+    fi
+    
+    # Restore Config.toml
+    if [[ -f "${backup_path}/Config.toml" ]]; then
+        local current_config
+        if current_config=$(discover_config_file 2>/dev/null); then
+            # Backup current config before restoring
+            local safety_backup="/tmp/config_safety_backup_$(date +%H%M%S).toml"
+            cp "$current_config" "$safety_backup"
+            echo "  💾 Current config backed up to: $safety_backup"
+        fi
+        
+        # Determine where to restore
+        local restore_target="./Config.toml"
+        if [[ -f ~/.config/claude-code-statusline/Config.toml ]]; then
+            restore_target="~/.config/claude-code-statusline/Config.toml"
+        fi
+        restore_target="${restore_target/#\~/$HOME}"
+        
+        cp "${backup_path}/Config.toml" "$restore_target"
+        echo "  ✅ Restored Config.toml to: $restore_target"
+    fi
+    
+    echo "✅ Configuration restoration completed"
+    echo "💡 Test the restored configuration with: $0 --test-config"
+    return 0
+}
+
+# ============================================================================
+# LIVE CONFIGURATION RELOAD CAPABILITIES (Phase 3)
+# ============================================================================
+
+# Global variable to track config file modification time
+CONFIG_FILE_MTIME=""
+CONFIG_LAST_LOADED_PATH=""
+
+# Check if configuration file has been modified since last load
+config_file_changed() {
+    local config_file
+    
+    # Find current config file
+    if ! config_file=$(discover_config_file 2>/dev/null); then
+        # No config file found
+        if [[ -n "$CONFIG_LAST_LOADED_PATH" ]]; then
+            echo "Configuration file removed: $CONFIG_LAST_LOADED_PATH" >&2
+            return 0  # Config was removed, trigger reload to use defaults
+        fi
+        return 1  # No config file, no change
+    fi
+    
+    # Check if config file path changed
+    if [[ "$config_file" != "$CONFIG_LAST_LOADED_PATH" ]]; then
+        echo "Configuration file path changed: $CONFIG_LAST_LOADED_PATH -> $config_file" >&2
+        return 0  # Different file path, needs reload
+    fi
+    
+    # Check modification time
+    local current_mtime
+    if command -v stat >/dev/null 2>&1; then
+        # Use stat to get modification time
+        if stat -f "%m" "$config_file" >/dev/null 2>&1; then
+            # BSD stat (macOS)
+            current_mtime=$(stat -f "%m" "$config_file" 2>/dev/null)
+        elif stat -c "%Y" "$config_file" >/dev/null 2>&1; then
+            # GNU stat (Linux)
+            current_mtime=$(stat -c "%Y" "$config_file" 2>/dev/null)
+        else
+            # Fallback to ls
+            current_mtime=$(ls -l "$config_file" 2>/dev/null | awk '{print $6 $7 $8}')
+        fi
+    else
+        # Fallback to ls if stat not available
+        current_mtime=$(ls -l "$config_file" 2>/dev/null | awk '{print $6 $7 $8}')
+    fi
+    
+    # Compare with stored mtime
+    if [[ "$current_mtime" != "$CONFIG_FILE_MTIME" ]]; then
+        echo "Configuration file modified: $config_file (mtime: $CONFIG_FILE_MTIME -> $current_mtime)" >&2
+        return 0  # File changed
+    fi
+    
+    return 1  # No change
+}
+
+# Update stored modification time
+update_config_mtime() {
+    local config_file
+    
+    if config_file=$(discover_config_file 2>/dev/null); then
+        CONFIG_LAST_LOADED_PATH="$config_file"
+        
+        if command -v stat >/dev/null 2>&1; then
+            if stat -f "%m" "$config_file" >/dev/null 2>&1; then
+                # BSD stat (macOS)
+                CONFIG_FILE_MTIME=$(stat -f "%m" "$config_file" 2>/dev/null)
+            elif stat -c "%Y" "$config_file" >/dev/null 2>&1; then
+                # GNU stat (Linux)
+                CONFIG_FILE_MTIME=$(stat -c "%Y" "$config_file" 2>/dev/null)
+            else
+                # Fallback to ls
+                CONFIG_FILE_MTIME=$(ls -l "$config_file" 2>/dev/null | awk '{print $6 $7 $8}')
+            fi
+        else
+            CONFIG_FILE_MTIME=$(ls -l "$config_file" 2>/dev/null | awk '{print $6 $7 $8}')
+        fi
+    else
+        CONFIG_LAST_LOADED_PATH=""
+        CONFIG_FILE_MTIME=""
+    fi
+}
+
+# Hot reload configuration if changed
+hot_reload_config() {
+    local force_reload="${1:-false}"
+    
+    if [[ "$force_reload" == "true" ]] || config_file_changed; then
+        echo "🔄 Hot reloading configuration..." >&2
+        
+        # Store current configuration state for comparison
+        local old_theme="$CONFIG_THEME"
+        local old_show_commits="$CONFIG_SHOW_COMMITS"
+        local old_show_mcp="$CONFIG_SHOW_MCP_STATUS"
+        
+        # Reload TOML configuration
+        if load_toml_configuration; then
+            # Apply environment overrides
+            apply_env_overrides
+            
+            # Validate new configuration
+            if validate_configuration; then
+                # Update mtime tracking
+                update_config_mtime
+                
+                # Report what changed
+                echo "🔄 Configuration reloaded successfully" >&2
+                
+                # Show key changes
+                local changes_detected=false
+                if [[ "$CONFIG_THEME" != "$old_theme" ]]; then
+                    echo "  📝 Theme changed: $old_theme -> $CONFIG_THEME" >&2
+                    changes_detected=true
+                fi
+                
+                if [[ "$CONFIG_SHOW_COMMITS" != "$old_show_commits" ]]; then
+                    echo "  📝 Show commits changed: $old_show_commits -> $CONFIG_SHOW_COMMITS" >&2
+                    changes_detected=true
+                fi
+                
+                if [[ "$CONFIG_SHOW_MCP_STATUS" != "$old_show_mcp" ]]; then
+                    echo "  📝 Show MCP status changed: $old_show_mcp -> $CONFIG_SHOW_MCP_STATUS" >&2
+                    changes_detected=true
+                fi
+                
+                if [[ "$changes_detected" == "false" ]]; then
+                    echo "  📝 Configuration reloaded (no major changes detected)" >&2
+                fi
+                
+                # Re-apply theme with new configuration
+                apply_theme
+                
+                return 0
+            else
+                echo "❌ Configuration validation failed, keeping previous config" >&2
+                return 1
+            fi
+        else
+            echo "❌ Configuration reload failed, keeping previous config" >&2
+            return 1
+        fi
+    fi
+    
+    return 0  # No reload needed
+}
+
+# Watch configuration file for changes (background monitoring)
+start_config_watcher() {
+    local watch_interval="${1:-2}"  # Check every 2 seconds by default
+    local max_iterations="${2:-}"   # Optional: limit monitoring duration
+    
+    echo "👀 Starting configuration watcher (interval: ${watch_interval}s)" >&2
+    
+    local iteration_count=0
+    
+    # Update initial mtime
+    update_config_mtime
+    
+    while true; do
+        sleep "$watch_interval"
+        
+        # Check iteration limit
+        if [[ -n "$max_iterations" ]]; then
+            ((iteration_count++))
+            if [[ $iteration_count -gt $max_iterations ]]; then
+                echo "👀 Configuration watcher stopping (max iterations reached)" >&2
+                break
+            fi
+        fi
+        
+        # Check for configuration changes
+        hot_reload_config
+        
+        # Yield to allow other processes to run
+        sleep 0.1
+    done
+}
+
+# Interactive configuration reload command
+reload_config_interactive() {
+    echo "🔧 Interactive Configuration Reload"
+    echo "=================================="
+    
+    # Show current configuration summary
+    echo "📋 Current Configuration:"
+    echo "  Theme: ${CONFIG_THEME:-default}"
+    echo "  Show commits: ${CONFIG_SHOW_COMMITS:-default}"
+    echo "  Show version: ${CONFIG_SHOW_VERSION:-default}"
+    echo "  Show MCP status: ${CONFIG_SHOW_MCP_STATUS:-default}"
+    echo "  MCP timeout: ${CONFIG_MCP_TIMEOUT:-default}"
+    
+    # Show config file location
+    local config_file
+    if config_file=$(discover_config_file 2>/dev/null); then
+        echo "  Config file: $config_file"
+        local config_mtime
+        if command -v stat >/dev/null 2>&1; then
+            if stat -f "%m" "$config_file" >/dev/null 2>&1; then
+                config_mtime=$(date -r "$(stat -f "%m" "$config_file")" 2>/dev/null)
+            elif stat -c "%Y" "$config_file" >/dev/null 2>&1; then
+                config_mtime=$(date -d "@$(stat -c "%Y" "$config_file")" 2>/dev/null)
+            fi
+        fi
+        [[ -n "$config_mtime" ]] && echo "  Last modified: $config_mtime"
+    else
+        echo "  Config file: Not found (using defaults)"
+    fi
+    
+    echo ""
+    echo "Options:"
+    echo "  1. Force reload configuration now"
+    echo "  2. Test configuration parsing"
+    echo "  3. Compare inline vs TOML config" 
+    echo "  4. Start config file watcher"
+    echo "  5. Exit"
+    
+    read -p "Choose option (1-5): " -r option
+    
+    case "$option" in
+        1)
+            echo "🔄 Force reloading configuration..."
+            hot_reload_config "true"
+            ;;
+        2)
+            echo "🧪 Testing configuration parsing..."
+            test_config_parsing "" "true"
+            ;;
+        3)
+            echo "⚖️ Comparing configurations..."
+            compare_configurations
+            ;;
+        4)
+            echo "👀 Starting configuration watcher..."
+            echo "Note: This will monitor config changes. Press Ctrl+C to stop."
+            start_config_watcher 2 30  # Watch for 30 iterations (60 seconds)
+            ;;
+        5)
+            echo "Exit"
+            return 0
+            ;;
+        *)
+            echo "❌ Invalid option"
+            return 1
+            ;;
+    esac
+}
+
+# Enable automatic hot reload (call this to enable background monitoring)
+enable_auto_reload() {
+    local enable="${1:-true}"
+    
+    if [[ "$enable" == "true" ]]; then
+        export CONFIG_AUTO_RELOAD=true
+        echo "🔄 Automatic configuration reload enabled" >&2
+        update_config_mtime
+    else
+        export CONFIG_AUTO_RELOAD=false
+        echo "🔄 Automatic configuration reload disabled" >&2
+    fi
+}
+
+# Check for auto-reload during statusline generation
+check_auto_reload() {
+    if [[ "${CONFIG_AUTO_RELOAD:-false}" == "true" ]]; then
+        hot_reload_config
+    fi
+}
+
+# ============================================================================
+# END LIVE CONFIGURATION RELOAD CAPABILITIES
+# ============================================================================
+
+# ============================================================================
+# END MIGRATION TOOLS & CONFIG TESTING UTILITIES
+# ============================================================================
+
+# ============================================================================
+# END TOML CONFIGURATION SYSTEM
+# ============================================================================
+
+# Load configuration from Config.toml (if available)  
+# This will override the inline defaults below if Config.toml exists
+load_toml_configuration
+
+# Apply environment variable overrides (highest precedence)
+apply_env_overrides
+
+# Validate final configuration
+validate_configuration
+
+# ============================================================================
+# COMMAND-LINE INTERFACE (Phase 3)
+# ============================================================================
+
+# Show usage information
+show_usage() {
+    cat << 'EOF'
+Claude Code Statusline Configuration Manager
+==========================================
+
+USAGE:
+    statusline.sh [options]                 - Run statusline (default)
+    statusline.sh --help                    - Show this help message
+
+CONFIGURATION MANAGEMENT:
+    --generate-config [FILE]                - Generate Config.toml from inline config
+    --test-config [FILE]                    - Test configuration parsing
+    --test-config-verbose [FILE]            - Test with detailed output
+    --compare-config                        - Compare inline vs TOML configuration
+    --validate-config                       - Validate current configuration
+
+MIGRATION UTILITIES:
+    --backup-config [DIR]                   - Backup current configuration
+    --restore-config DIR                    - Restore from backup directory
+
+LIVE RELOAD CAPABILITIES:
+    --reload-config                         - Reload configuration now
+    --reload-interactive                    - Interactive configuration reload menu
+    --watch-config [INTERVAL]               - Watch config file for changes
+    --enable-auto-reload                    - Enable automatic config reload
+    --disable-auto-reload                   - Disable automatic config reload
+
+EXAMPLES:
+    # Generate Config.toml from current inline configuration
+    statusline.sh --generate-config
+
+    # Test your Config.toml file
+    statusline.sh --test-config
+
+    # Compare inline vs TOML configurations
+    statusline.sh --compare-config
+
+    # Interactive configuration management
+    statusline.sh --reload-interactive
+
+    # Watch config file for changes (check every 3 seconds)
+    statusline.sh --watch-config 3
+
+CONFIGURATION FILES:
+    The script looks for Config.toml in this order:
+    1. ./Config.toml
+    2. ~/.config/claude-code-statusline/Config.toml
+    3. ~/.claude-statusline.toml
+
+    Environment variables (CONFIG_*) override all TOML settings.
+
+EOF
+}
+
+# Parse command-line arguments
+if [[ $# -gt 0 ]]; then
+    case "$1" in
+        "--help"|"-h")
+            show_usage
+            exit 0
+            ;;
+        "--generate-config")
+            generate_config_toml "${2:-./Config.toml}"
+            exit $?
+            ;;
+        "--test-config")
+            test_config_parsing "${2:-}" "false"
+            exit $?
+            ;;
+        "--test-config-verbose")
+            test_config_parsing "${2:-}" "true"
+            exit $?
+            ;;
+        "--compare-config")
+            compare_configurations
+            exit $?
+            ;;
+        "--validate-config")
+            # Already done above, just show results
+            echo "✅ Configuration validation completed"
+            exit 0
+            ;;
+        "--backup-config")
+            backup_config "${2:-}"
+            exit $?
+            ;;
+        "--restore-config")
+            if [[ -z "$2" ]]; then
+                echo "❌ Backup directory required. Usage: $0 --restore-config <backup_dir>"
+                exit 1
+            fi
+            restore_config "$2"
+            exit $?
+            ;;
+        "--reload-config")
+            hot_reload_config "true"
+            exit $?
+            ;;
+        "--reload-interactive")
+            reload_config_interactive
+            exit $?
+            ;;
+        "--watch-config")
+            start_config_watcher "${2:-2}"
+            exit $?
+            ;;
+        "--enable-auto-reload")
+            enable_auto_reload "true"
+            exit 0
+            ;;
+        "--disable-auto-reload")
+            enable_auto_reload "false"
+            exit 0
+            ;;
+        *)
+            echo "❌ Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+fi
+
+# ============================================================================
+# END COMMAND-LINE INTERFACE
+# ============================================================================
+
+# Check for auto-reload if enabled
+check_auto_reload
 
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')

@@ -1,0 +1,91 @@
+# Work Profile Configuration - TOML Version
+# Professional configuration optimized for work environments
+# Emphasizes cost tracking, professional appearance, and reliability
+# Copy this file to Config.toml or use as reference
+
+[theme]
+name = "classic"             # Professional ANSI colors for compatibility
+
+# === WORK-FOCUSED FEATURES ===
+[features]
+show_commits = true          # Track daily productivity
+show_version = true          # Important for debugging and support
+show_submodules = true       # Track complex project dependencies
+show_mcp_status = true       # Monitor development tools
+show_cost_tracking = true    # CRITICAL for work billing tracking
+show_reset_info = true       # Important for planning work sessions
+show_session_info = true     # Track work session details
+
+# === PROFESSIONAL TIMEOUTS ===
+[timeouts]
+mcp = "3s"                   # Standard timeout for MCP server checks
+version = "2s"               # Quick version check for efficiency
+ccusage = "3s"               # Important for accurate cost tracking
+
+# === PROFESSIONAL EMOJIS ===
+[emojis]
+opus = "🧠"                  # Professional brain icon
+haiku = "⚡"                 # Quick efficiency icon
+sonnet = "📝"                # Writing/documentation icon
+default_model = "💼"         # Briefcase for professional work
+clean_status = "✅"          # Clear success indicator
+dirty_status = "⚠️"          # Clear warning indicator
+clock = "🕐"                 # Professional time tracking
+live_block = "💰"            # Money icon for billing awareness
+
+# === BUSINESS-ORIENTED LABELS ===
+[labels]
+commits = "Productivity:"    # Frame commits as productivity metric
+repo = "PROJECT"             # Business project terminology
+monthly = "MONTH"            # Clear monthly billing
+weekly = "WEEK"              # Clear weekly billing
+daily = "TODAY"              # Today's work costs
+mcp = "TOOLS"                # Development tools
+version_prefix = "build"     # Build version terminology
+submodule = "DEPS:"          # Dependencies terminology
+session_prefix = "SESSION:"  # Work session terminology
+live = "BILLING"             # Active billing terminology
+reset = "NEXT BLOCK"         # Next billing block
+
+# === WORK DAY DISPLAY FORMATS ===
+[display]
+time_format = "%H:%M"        # 24-hour professional format
+date_format = "%Y-%m-%d"     # ISO business date format
+date_format_compact = "%Y%m%d"
+
+# === WORK-OPTIMIZED CACHING ===
+[cache]
+version_duration = 1800      # 30-minute cache for active development
+version_file = "/tmp/.claude_work_version_cache"
+
+# === PROFESSIONAL ERROR MESSAGES ===
+[messages]
+no_ccusage = "Cost tracking unavailable"
+ccusage_install = "Install ccusage for accurate billing"
+no_active_block = "No active billing period"
+mcp_unknown = "tool status unknown"
+mcp_none = "no development tools active"
+unknown_version = "version unavailable"
+no_submodules = "no dependencies"
+
+# === WORK ENVIRONMENT SETTINGS ===
+[advanced]
+warn_missing_deps = true     # Important in work environment
+debug_mode = false           # Clean output for professional use
+performance_mode = false     # Full information for work decisions
+strict_validation = true     # Ensure reliable configuration
+
+# === WORK-SPECIFIC PATHS ===
+[paths]
+temp_dir = "/tmp"
+config_dir = "~/.config/claude-code-statusline"
+cache_dir = "~/.cache/claude-code-statusline"
+log_file = "~/.cache/claude-code-statusline/work.log"
+
+# === PERFORMANCE TUNING FOR WORK ===
+[performance]
+parallel_data_collection = true    # Efficiency for busy work environment
+max_concurrent_operations = 3      # Balanced performance
+git_operation_timeout = "5s"       # Sufficient for work repos
+network_operation_timeout = "8s"   # Allow time for work network
+enable_smart_caching = true        # Optimize for repeated operations
