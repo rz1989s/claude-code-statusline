@@ -541,6 +541,7 @@ validate_dependencies
 
 # Simple TOML to JSON converter for basic types (strings, booleans, integers)
 # Phase 1: Supports sections, key-value pairs, basic data types
+# Fixed approach: Create flat structure with dotted keys, then restructure
 parse_toml_to_json() {
     local toml_file="$1"
     
@@ -550,8 +551,8 @@ parse_toml_to_json() {
         return 0
     fi
     
-    # Initialize JSON structure
-    local json="{"
+    # Create temporary flat structure
+    local flat_json="{"
     local current_section=""
     local first_item=true
     
@@ -564,49 +565,7 @@ parse_toml_to_json() {
         # Handle section headers [section] or [section.subsection] or [section.sub.subsub]
         if [[ "$line" =~ ^\[[[:space:]]*([^]]+)[[:space:]]*\]$ ]]; then
             local section_name="${BASH_REMATCH[1]}"
-            
-            # Close previous section if exists  
-            if [[ -n "$current_section" ]]; then
-                # Count nesting level of previous section
-                local prev_dots="${current_section//[^.]/}"
-                local close_count=$((${#prev_dots} + 1))
-                for ((i=0; i<close_count; i++)); do
-                    json="${json%,}}"
-                done
-            fi
-            
-            # Start new section with proper nesting
-            if [[ "$first_item" != "true" ]]; then
-                json="$json,"
-            fi
-            
-            # Handle multi-level nesting (e.g., colors.basic.red)
-            if [[ "$section_name" == *.* ]]; then
-                # Split section path into parts
-                local section_path="$section_name"
-                local json_path=""
-                
-                # Process each level of nesting
-                while [[ "$section_path" == *.* ]]; do
-                    local current_part="${section_path%%.*}"
-                    section_path="${section_path#*.}"
-                    
-                    if [[ -z "$json_path" ]]; then
-                        json_path="\"$current_part\":{"
-                    else
-                        json_path="$json_path\"$current_part\":{"
-                    fi
-                done
-                
-                # Add final level
-                json_path="$json_path\"$section_path\":{"
-                json="$json$json_path"
-            else
-                json="$json\"$section_name\":{"
-            fi
-            
             current_section="$section_name"
-            first_item=false
             continue
         fi
         
@@ -619,9 +578,17 @@ parse_toml_to_json() {
             key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             
-            # Add comma if not first item in section
-            if [[ "$json" != *"{" ]]; then
-                json="$json,"
+            # Create flat key with section prefix
+            local flat_key
+            if [[ -n "$current_section" ]]; then
+                flat_key="${current_section}.${key}"
+            else
+                flat_key="$key"
+            fi
+            
+            # Add comma if not first item
+            if [[ "$first_item" != "true" ]]; then
+                flat_json="$flat_json,"
             fi
             
             # Parse value type and format for JSON
@@ -630,93 +597,67 @@ parse_toml_to_json() {
                 local string_val="${BASH_REMATCH[1]}"
                 # Escape quotes and backslashes for JSON
                 string_val=$(echo "$string_val" | sed 's/\\/\\\\/g; s/"/\\"/g')
-                json="$json\"$key\":\"$string_val\""
+                flat_json="$flat_json\"$flat_key\":\"$string_val\""
             elif [[ "$value" =~ ^\[.*\]$ ]]; then
-                # Array value (Phase 2 enhancement)
-                local array_content="${value#\[}"
-                array_content="${array_content%\]}"
-                
-                # Simple array parsing: split by comma and process each item
-                json="$json\"$key\":["
-                local first_array_item=true
-                
-                if [[ -n "$array_content" ]]; then
-                    # Split array items by comma (simple implementation)
-                    local temp_array="$array_content,"
-                    while [[ "$temp_array" == *","* ]]; do
-                        local array_item="${temp_array%%,*}"
-                        temp_array="${temp_array#*,}"
-                        
-                        # Clean whitespace
-                        array_item=$(echo "$array_item" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-                        
-                        # Add comma if not first item
-                        if [[ "$first_array_item" != "true" ]]; then
-                            json="$json,"
-                        fi
-                        
-                        # Process array item type
-                        if [[ "$array_item" =~ ^\"(.*)\"$ ]]; then
-                            # Quoted string
-                            local array_string="${BASH_REMATCH[1]}"
-                            array_string=$(echo "$array_string" | sed 's/\\/\\\\/g; s/"/\\"/g')
-                            json="$json\"$array_string\""
-                        elif [[ "$array_item" =~ ^(true|false)$ ]]; then
-                            # Boolean
-                            json="$json$array_item"
-                        elif [[ "$array_item" =~ ^[0-9]+$ ]]; then
-                            # Integer
-                            json="$json$array_item"
-                        elif [[ "$array_item" =~ ^[0-9]*\.[0-9]+$ ]]; then
-                            # Float
-                            json="$json$array_item"
-                        else
-                            # Unquoted string
-                            array_item=$(echo "$array_item" | sed 's/\\/\\\\/g; s/"/\\"/g')
-                            json="$json\"$array_item\""
-                        fi
-                        
-                        first_array_item=false
-                    done
-                fi
-                
-                json="$json]"
+                # Array value - simplified for now
+                flat_json="$flat_json\"$flat_key\":$value"
             elif [[ "$value" =~ ^(true|false)$ ]]; then
                 # Boolean value
-                json="$json\"$key\":$value"
+                flat_json="$flat_json\"$flat_key\":$value"
             elif [[ "$value" =~ ^[0-9]+$ ]]; then
                 # Integer value
-                json="$json\"$key\":$value"
+                flat_json="$flat_json\"$flat_key\":$value"
             elif [[ "$value" =~ ^[0-9]*\.[0-9]+$ ]]; then
                 # Float value
-                json="$json\"$key\":$value"
+                flat_json="$flat_json\"$flat_key\":$value"
             else
                 # Unquoted string - treat as string
                 value=$(echo "$value" | sed 's/\\/\\\\/g; s/"/\\"/g')
-                json="$json\"$key\":\"$value\""
+                flat_json="$flat_json\"$flat_key\":\"$value\""
             fi
+            
+            first_item=false
         fi
     done < "$toml_file"
     
-    # Close final section (handle nested sections)
-    if [[ -n "$current_section" ]]; then
-        # Count nesting level and close all nested sections
-        local final_dots="${current_section//[^.]/}"
-        local final_close_count=$((${#final_dots} + 1))
-        for ((i=0; i<final_close_count; i++)); do
-            json="${json%,}}"
-        done
-    fi
+    # Close flat JSON
+    flat_json="$flat_json}"
     
-    # Close main JSON object
-    json="$json}"
+    # Convert flat structure to nested using Python (if available) or simple approach
+    if [[ "$DEP_PYTHON3_AVAILABLE" == "true" ]]; then
+        local nested_json
+        nested_json=$(python3 -c "
+import json
+import sys
+
+try:
+    flat = json.loads('$flat_json')
+    nested = {}
     
-    # Validate JSON and return
-    if echo "$json" | jq . >/dev/null 2>&1; then
-        echo "$json"
+    for key, value in flat.items():
+        parts = key.split('.')
+        current = nested
+        
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        
+        current[parts[-1]] = value
+    
+    print(json.dumps(nested))
+except Exception as e:
+    print('{}')
+" 2>/dev/null)
+        
+        if [[ -n "$nested_json" ]] && echo "$nested_json" | jq . >/dev/null 2>&1; then
+            echo "$nested_json"
+        else
+            echo "$flat_json"
+        fi
     else
-        echo "ERROR: Invalid TOML syntax in $toml_file" >&2
-        echo "{}"
+        # Fallback to flat structure
+        echo "$flat_json"
     fi
 }
 
