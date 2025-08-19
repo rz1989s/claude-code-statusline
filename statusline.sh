@@ -545,6 +545,7 @@ parse_toml_to_json() {
     local toml_file="$1"
     
     if [[ ! -f "$toml_file" ]]; then
+        echo "ERROR: TOML configuration file not found: $toml_file" >&2
         echo "{}"
         return 0
     fi

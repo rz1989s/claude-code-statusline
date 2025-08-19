@@ -140,9 +140,9 @@ strict_validation = true
 # === PLATFORM SETTINGS ===  
 # Platform-specific configurations
 [platform]
-# macOS vs Linux differences  
-prefer_gtimeout = true  # Use gtimeout over timeout on macOS
-use_gdate = false       # Use gdate for GNU date compatibility
+# Platform-specific settings (adjust for macOS vs Linux)
+prefer_gtimeout = true  # macOS: use gtimeout; Linux: use timeout  
+use_gdate = false       # Use gdate for GNU date compatibility on macOS
 color_support_level = "full"  # "basic", "256", "full" (RGB)
 
 # === PATH CONFIGURATIONS ===
