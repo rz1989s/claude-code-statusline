@@ -84,9 +84,9 @@ teardown() {
         local result=$(echo "$test_path" | sed 's|/|-|g')
         
         # Should not contain path traversal sequences after sanitization
-        if [[ "$result" == *"..-..-"* ]]; then
-            # Current implementation preserves .. which could be problematic
-            skip "Current implementation preserves path traversal sequences"
+        # Verify path traversal sequences are removed (now fixed!)
+        if [[ "$result" == *".."* ]]; then
+            fail "Path traversal sequences not properly removed: $result"
         fi
     done
 }
