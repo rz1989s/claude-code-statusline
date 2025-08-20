@@ -356,22 +356,22 @@ sanitize_path_secure() {
         prev_sanitized="$sanitized"
         
         # Remove various path traversal patterns
-        sanitized=$(echo "$sanitized" | sed -e 's|\.\./||g' -e 's|\./||g' -e 's|//|/|g')
+        sanitized=$(echo "$sanitized" | /usr/bin/sed -e 's|\.\./||g' -e 's|\./||g' -e 's|//|/|g')
         
         ((iteration_count++))
     done
     
     # Final cleanup: remove any remaining .. sequences completely
-    sanitized=$(echo "$sanitized" | sed 's|\.\.|removed-dotdot|g')
+    sanitized=$(echo "$sanitized" | /usr/bin/sed 's|\.\.|removed-dotdot|g')
     
     # Remove any remaining suspicious patterns
-    sanitized=$(echo "$sanitized" | sed -e 's|\.\.||g' -e 's|\~||g' -e 's|\$||g')
+    sanitized=$(echo "$sanitized" | /usr/bin/sed -e 's|\.\.||g' -e 's|\~||g' -e 's|\$||g')
     
     # Replace slashes with hyphens
-    sanitized=$(echo "$sanitized" | sed 's|/|-|g')
+    sanitized=$(echo "$sanitized" | /usr/bin/sed 's|/|-|g')
     
     # Remove potentially dangerous characters, keep only safe ones
-    sanitized=$(echo "$sanitized" | tr -cd '[:alnum:]-_.')
+    sanitized=$(echo "$sanitized" | /usr/bin/tr -cd '[:alnum:]-_.')
     
     # Ensure result is not empty
     if [[ -z "$sanitized" ]]; then
@@ -400,6 +400,7 @@ create_secure_cache_file() {
     cache_dir=$(dirname "$cache_file")
     if [[ ! -d "$cache_dir" ]]; then
         mkdir -p "$cache_dir" 2>/dev/null
+        chmod 700 "$cache_dir" 2>/dev/null  # Secure permissions to prevent other users from reading cost data
     fi
     
     # Acquire exclusive file lock to prevent race conditions
@@ -874,6 +875,79 @@ execute_with_timeout() {
     else
         "${command[@]}"
     fi
+}
+
+# Execute multiple ccusage commands in parallel for better performance
+execute_ccusage_parallel() {
+    local timeout_duration="$1"
+    local seven_days_ago="$2"
+    local thirty_days_ago="$3"
+    local current_session_id="$4"
+    
+    # Create secure temporary directory for results
+    local temp_dir
+    temp_dir=$(mktemp -d -t "ccusage_parallel.XXXXXX" 2>/dev/null || mktemp -d)
+    if [[ ! -d "$temp_dir" ]]; then
+        echo "ERROR: Could not create temporary directory for parallel execution" >&2
+        return 1
+    fi
+    
+    # Define temporary files for each command result
+    local session_file="$temp_dir/session.json"
+    local daily_7d_file="$temp_dir/daily_7d.json"
+    local daily_30d_file="$temp_dir/daily_30d.json"  
+    local blocks_file="$temp_dir/blocks.json"
+    
+    # Define error files to track command failures
+    local session_err="$temp_dir/session.err"
+    local daily_7d_err="$temp_dir/daily_7d.err"
+    local daily_30d_err="$temp_dir/daily_30d.err"
+    local blocks_err="$temp_dir/blocks.err"
+    
+    # Launch all 4 ccusage commands in parallel
+    local pids=()
+    
+    # Command 1: Session data
+    (execute_with_timeout "$timeout_duration" bunx ccusage session --since "$seven_days_ago" --json > "$session_file" 2> "$session_err") &
+    pids+=($!)
+    
+    # Command 2: Daily data (7 days)
+    (execute_with_timeout "$timeout_duration" bunx ccusage daily --since "$seven_days_ago" --json > "$daily_7d_file" 2> "$daily_7d_err") &
+    pids+=($!)
+    
+    # Command 3: Daily data (30 days)
+    (execute_with_timeout "$timeout_duration" bunx ccusage daily --since "$thirty_days_ago" --json > "$daily_30d_file" 2> "$daily_30d_err") &
+    pids+=($!)
+    
+    # Command 4: Active blocks
+    (execute_with_timeout "$timeout_duration" bunx ccusage blocks --active --json > "$blocks_file" 2> "$blocks_err") &
+    pids+=($!)
+    
+    # Wait for all commands to complete
+    local exit_codes=()
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+        exit_codes+=($?)
+    done
+    
+    # Read results (empty if command failed)
+    local session_data=""
+    local daily_7d_data=""
+    local daily_30d_data=""
+    local blocks_data=""
+    
+    # Read results if files contain data
+    [[ -s "$session_file" ]] && session_data=$(cat "$session_file" 2>/dev/null)
+    [[ -s "$daily_7d_file" ]] && daily_7d_data=$(cat "$daily_7d_file" 2>/dev/null)
+    [[ -s "$daily_30d_file" ]] && daily_30d_data=$(cat "$daily_30d_file" 2>/dev/null)
+    [[ -s "$blocks_file" ]] && blocks_data=$(cat "$blocks_file" 2>/dev/null)
+    
+    # Cleanup temporary directory
+    rm -rf "$temp_dir" 2>/dev/null
+    
+    # Output results in structured format for easy parsing
+    # Format: session_data|daily_7d_data|daily_30d_data|blocks_data
+    echo "${session_data}|${daily_7d_data}|${daily_30d_data}|${blocks_data}"
 }
 
 # Initialize dependency validation
@@ -2890,6 +2964,9 @@ fi
 # Check for auto-reload if enabled
 check_auto_reload
 
+# Capture the ACTUAL current working directory BEFORE any changes
+actual_current_dir=$(pwd)
+
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
@@ -3143,6 +3220,7 @@ get_claude_usage_info() {
     echo "-.--:-.--:-.--:-.--:$CONFIG_NO_CCUSAGE_MESSAGE:$CONFIG_CCUSAGE_INSTALL_MESSAGE"
     return
   fi
+  
 
   # Calculate dates dynamically with proper fallbacks
   local seven_days_ago thirty_days_ago
@@ -3163,21 +3241,262 @@ get_claude_usage_info() {
     thirty_days_ago=$(date -d "@$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || date -r "$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || echo "$(date "+$CONFIG_DATE_FORMAT_COMPACT")")
   fi
   local today=$(date "+$CONFIG_DATE_FORMAT")
+  local current_dir="$actual_current_dir"
   local current_session_id=$(sanitize_path_secure "$current_dir")
 
-  # Get current session cost
+  # Execute ccusage commands sequentially to avoid API rate limits
+  # Parallel execution can trigger Anthropic billing API throttling
+  local session_data=""
+  local daily_data=""
+  local monthly_data=""
+  local block_data=""
+  
+  # Define cache files for ccusage data (30-second cache)
+  local cache_dir="/tmp/.claude_statusline_cache"
+  local blocks_cache="$cache_dir/blocks.json"
+  local session_cache="$cache_dir/session.json" 
+  local daily_cache="$cache_dir/daily_7d.json"
+  local monthly_cache="$cache_dir/monthly_30d.json"
+  local cache_duration=30  # 30 seconds
+  
+  # Create cache directory if needed
+  if [[ ! -d "$cache_dir" ]]; then
+    mkdir -p "$cache_dir" 2>/dev/null
+    chmod 700 "$cache_dir" 2>/dev/null  # Secure permissions to prevent other users from reading cost data
+  fi
+  
+  # Helper function to check if cache is fresh
+  is_cache_fresh() {
+    local cache_file="$1"
+    if [[ -f "$cache_file" ]]; then
+      local cache_age=$(($(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0)))
+      [[ $cache_age -lt $cache_duration ]]
+    else
+      return 1
+    fi
+  }
+  
+  # Get active block info FIRST (prioritize existing cache for instant display)
+  if [[ -f "$blocks_cache" ]]; then
+    block_data=$(cat "$blocks_cache" 2>/dev/null)
+    # Refresh in background if cache is stale (with file locking to prevent race conditions)
+    if ! is_cache_fresh "$blocks_cache"; then
+      local lock_file="${blocks_cache}.lock"
+      
+      # Check for and remove stale locks (from dead processes)
+      if [[ -f "$lock_file" ]]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null)
+        local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        
+        # Remove lock if process is dead OR lock is older than 2 minutes
+        if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+          rm -f "$lock_file" 2>/dev/null
+        fi
+      fi
+      
+      # Try to acquire lock (non-blocking) - only one instance should refresh
+      if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+        if fresh_block_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage blocks --active --json 2>/dev/null); then
+          echo "$fresh_block_data" > "$blocks_cache" 2>/dev/null
+          block_data="$fresh_block_data"
+        fi
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      # If lock acquisition fails, another instance is refreshing - use existing cache
+    fi
+  else
+    # No cache file exists - check for stale locks before creating new cache
+    local lock_file="${blocks_cache}.lock"
+    
+    # Check for and remove stale locks (from dead processes)
+    if [[ -f "$lock_file" ]]; then
+      local lock_pid=$(cat "$lock_file" 2>/dev/null)
+      local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+      
+      # Remove lock if process is dead OR lock is older than 2 minutes
+      if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+        rm -f "$lock_file" 2>/dev/null
+      fi
+    fi
+    
+    # Try to acquire lock for initial cache creation
+    if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+      if block_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage blocks --active --json 2>/dev/null); then
+        echo "$block_data" > "$blocks_cache" 2>/dev/null
+      fi
+      rm -f "$lock_file" 2>/dev/null
+    fi
+  fi
+
+  # Get current session cost (prioritize existing cache for instant display)
+  if [[ -f "$session_cache" ]]; then
+    session_data=$(cat "$session_cache" 2>/dev/null)
+    # Refresh in background if cache is stale (with file locking to prevent race conditions)
+    if ! is_cache_fresh "$session_cache"; then
+      local lock_file="${session_cache}.lock"
+      
+      # Check for and remove stale locks (from dead processes)
+      if [[ -f "$lock_file" ]]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null)
+        local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        
+        # Remove lock if process is dead OR lock is older than 2 minutes
+        if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+          rm -f "$lock_file" 2>/dev/null
+        fi
+      fi
+      
+      # Try to acquire lock (non-blocking) - only one instance should refresh
+      if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+        if fresh_session_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
+          echo "$fresh_session_data" > "$session_cache" 2>/dev/null
+          session_data="$fresh_session_data"
+        fi
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      # If lock acquisition fails, another instance is refreshing - use existing cache
+    fi
+  else
+    # No cache file exists - check for stale locks before creating new cache
+    local lock_file="${session_cache}.lock"
+    
+    # Check for and remove stale locks (from dead processes)
+    if [[ -f "$lock_file" ]]; then
+      local lock_pid=$(cat "$lock_file" 2>/dev/null)
+      local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+      
+      # Remove lock if process is dead OR lock is older than 2 minutes
+      if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+        rm -f "$lock_file" 2>/dev/null
+      fi
+    fi
+    
+    # Try to acquire lock for initial cache creation
+    if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+      if session_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
+        echo "$session_data" > "$session_cache" 2>/dev/null
+      fi
+      rm -f "$lock_file" 2>/dev/null
+    fi
+  fi
+
+  # Get today's cost and weekly cost (prioritize existing cache for instant display)
+  if [[ -f "$daily_cache" ]]; then
+    daily_data=$(cat "$daily_cache" 2>/dev/null)
+    # Refresh in background if cache is stale (with file locking to prevent race conditions)
+    if ! is_cache_fresh "$daily_cache"; then
+      local lock_file="${daily_cache}.lock"
+      
+      # Check for and remove stale locks (from dead processes)
+      if [[ -f "$lock_file" ]]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null)
+        local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        
+        # Remove lock if process is dead OR lock is older than 2 minutes
+        if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+          rm -f "$lock_file" 2>/dev/null
+        fi
+      fi
+      
+      # Try to acquire lock (non-blocking) - only one instance should refresh
+      if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+        if fresh_daily_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
+          echo "$fresh_daily_data" > "$daily_cache" 2>/dev/null
+          daily_data="$fresh_daily_data"
+        fi
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      # If lock acquisition fails, another instance is refreshing - use existing cache
+    fi
+  else
+    # No cache file exists - check for stale locks before creating new cache
+    local lock_file="${daily_cache}.lock"
+    
+    # Check for and remove stale locks (from dead processes)
+    if [[ -f "$lock_file" ]]; then
+      local lock_pid=$(cat "$lock_file" 2>/dev/null)
+      local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+      
+      # Remove lock if process is dead OR lock is older than 2 minutes
+      if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+        rm -f "$lock_file" 2>/dev/null
+      fi
+    fi
+    
+    # Try to acquire lock for initial cache creation
+    if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+      if daily_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
+        echo "$daily_data" > "$daily_cache" 2>/dev/null
+      fi
+      rm -f "$lock_file" 2>/dev/null
+    fi
+  fi
+
+  # Get 30-day cost (prioritize existing cache for instant display, slowest API call)
+  if [[ -f "$monthly_cache" ]]; then
+    monthly_data=$(cat "$monthly_cache" 2>/dev/null)
+    # Refresh in background if cache is stale (with file locking to prevent race conditions)
+    if ! is_cache_fresh "$monthly_cache"; then
+      local lock_file="${monthly_cache}.lock"
+      
+      # Check for and remove stale locks (from dead processes)
+      if [[ -f "$lock_file" ]]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null)
+        local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        
+        # Remove lock if process is dead OR lock is older than 2 minutes
+        if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+          rm -f "$lock_file" 2>/dev/null
+        fi
+      fi
+      
+      # Try to acquire lock (non-blocking) - only one instance should refresh
+      if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+        if fresh_monthly_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
+          echo "$fresh_monthly_data" > "$monthly_cache" 2>/dev/null
+          monthly_data="$fresh_monthly_data"
+        fi
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      # If lock acquisition fails, another instance is refreshing - use existing cache
+    fi
+  else
+    # No cache file exists - check for stale locks before creating new cache
+    local lock_file="${monthly_cache}.lock"
+    
+    # Check for and remove stale locks (from dead processes)
+    if [[ -f "$lock_file" ]]; then
+      local lock_pid=$(cat "$lock_file" 2>/dev/null)
+      local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+      
+      # Remove lock if process is dead OR lock is older than 2 minutes
+      if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt 120 ]]; then
+        rm -f "$lock_file" 2>/dev/null
+      fi
+    fi
+    
+    # Try to acquire lock for initial cache creation
+    if (set -C; echo $$ > "$lock_file" 2>/dev/null); then
+      if monthly_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
+        echo "$monthly_data" > "$monthly_cache" 2>/dev/null
+      fi
+      rm -f "$lock_file" 2>/dev/null
+    fi
+  fi
+  
+  # Process session cost
   local session_cost="0.00"
-  if session_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
+  if [[ -n "$session_data" ]]; then
     session_cost=$(echo "$session_data" | jq -r --arg session_id "$current_session_id" '.sessions[] | select(.sessionId == $session_id) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$session_cost" ] || [ "$session_cost" = "null" ]; then
       session_cost="0.00"
     fi
   fi
 
-  # Get today's cost and weekly cost
+  # Process today's cost and weekly cost
   local today_cost="0.00"
   local week_cost="0.00"
-  if daily_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
+  if [[ -n "$daily_data" ]]; then
     today_cost=$(echo "$daily_data" | jq -r --arg today "$today" '.daily[] | select(.date == $today) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$today_cost" ] || [ "$today_cost" = "null" ]; then
       today_cost="0.00"
@@ -3199,24 +3518,30 @@ get_claude_usage_info() {
     week_cost=$(printf "%.2f" "$week_cost" 2>/dev/null || echo "0.00")
   fi
 
-  # Get 30-day cost
+  # Process 30-day cost
   local month_cost="0.00"
-  if monthly_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
+  if [[ -n "$monthly_data" ]]; then
     month_cost=$(echo "$monthly_data" | jq -r '.totals.totalCost // 0' 2>/dev/null)
     if [ -z "$month_cost" ] || [ "$month_cost" = "null" ]; then
       month_cost="0.00"
     fi
   fi
 
-  # Get active block info
+  # Process active block info
   local block_cost_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
   local reset_time_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-  if block_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage blocks --active --json 2>/dev/null); then
-    local block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
-    local remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
-
-    if [ -n "$block_cost" ] && [ "$block_cost" != "null" ] && [ "$block_cost" != "0" ]; then
+  if [[ -n "$block_data" ]]; then
+    # Validate JSON structure before processing
+    if ! echo "$block_data" | jq empty 2>/dev/null; then
+      echo "WARNING: Invalid JSON in block data, skipping block detection" >&2
+    else
+      local block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
+      local remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
+      local is_active=$(echo "$block_data" | jq -r '.blocks[0].isActive // false' 2>/dev/null)
+      
+      # Simple and reliable block detection: only check isActive flag
+      if [ "$is_active" = "true" ]; then
       # Calculate time remaining
       local hours=$((remaining_minutes / 60))
       local mins=$((remaining_minutes % 60))
@@ -3231,7 +3556,12 @@ get_claude_usage_info() {
       local end_time=$(echo "$block_data" | jq -r '.blocks[0].endTime // ""' 2>/dev/null)
       local reset_time=""
       if [ -n "$end_time" ] && [ "$end_time" != "null" ]; then
-        reset_time=$(execute_python_safely "import datetime; utc_time = datetime.datetime.fromisoformat('$end_time'.replace('Z', '+00:00')); local_time = utc_time.replace(tzinfo=datetime.timezone.utc).astimezone(); print(local_time.strftime('%H.%M'))" "")
+        reset_time=$(execute_python_safely "
+import datetime
+utc_time = datetime.datetime.fromisoformat('$end_time'.replace('Z', '+00:00'))
+local_time = utc_time.replace(tzinfo=datetime.timezone.utc).astimezone()
+print(local_time.strftime('%H.%M'))
+" "")
       fi
 
       block_cost_info=$(printf "$CONFIG_LIVE_BLOCK_EMOJI $CONFIG_LIVE_LABEL \$%.2f" "$block_cost")
@@ -3240,6 +3570,7 @@ get_claude_usage_info() {
       else
         reset_time_info=$(printf "$CONFIG_RESET_LABEL (%s)" "$time_str")
       fi
+    fi
     fi
   fi
 
