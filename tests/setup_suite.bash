@@ -38,14 +38,14 @@ setup_test_env() {
 
 # Cleanup test environment
 teardown_test_env() {
-    # Clean up temporary files
+    # Clean up temporary files and directories
     if [[ -d "$TEST_TMP_DIR" ]]; then
         rm -rf "$TEST_TMP_DIR"
     fi
     
-    # Clear test cache files
+    # Clear test cache files and directories
     rm -f /tmp/.claude_version_cache_test*
-    rm -f /tmp/statusline_test_*
+    rm -rf /tmp/statusline_test_*
 }
 
 # Create mock command

@@ -1,0 +1,92 @@
+# Personal Profile Configuration - TOML Version
+# Relaxed configuration for personal projects and hobby development
+# Emphasizes aesthetics and fun over cost tracking
+# Copy this file to Config.toml or use as reference
+
+[theme]
+name = "garden"              # Gentle pastel colors for relaxed coding
+
+# === PERSONAL PROJECT FEATURES ===
+[features]
+show_commits = true          # Track daily coding progress
+show_version = false         # Less important for personal projects
+show_submodules = false      # Usually simpler personal projects
+show_mcp_status = false      # Fewer development tools needed
+show_cost_tracking = false   # No billing concerns for personal use
+show_reset_info = false      # No billing block tracking needed
+show_session_info = true     # Nice to see session progress
+
+# === RELAXED TIMEOUTS ===
+[timeouts]
+mcp = "2s"                   # Quick timeout (feature disabled anyway)
+version = "1s"               # Quick timeout (feature disabled anyway)
+ccusage = "1s"               # Quick timeout (feature disabled anyway)
+
+# === FUN PERSONAL EMOJIS ===
+[emojis]
+opus = "🎭"                  # Theater mask for creative Opus
+haiku = "🦋"                 # Butterfly for quick, beautiful Haiku
+sonnet = "🎨"                # Art palette for creative Sonnet
+default_model = "✨"         # Sparkles for any AI magic
+clean_status = "🌿"          # Green leaf for clean, growing code
+dirty_status = "🌱"          # Seedling for work in progress
+clock = "🌸"                 # Flower for gentle time awareness
+live_block = "🔥"            # Fire (not used, but if needed)
+
+# === CASUAL LABELS ===
+[labels]
+commits = "Today:"           # Simple, friendly commit label
+repo = "HOBBY"               # Personal hobby project
+monthly = "MONTH"            # Monthly (not really used)
+weekly = "WEEK"              # Weekly (not really used)
+daily = "DAY"                # Daily (not really used)
+mcp = "TOOLS"                # Development tools (if needed)
+version_prefix = "v"         # Simple version prefix
+submodule = "PARTS:"         # Project parts (if needed)
+session_prefix = "✨:"       # Sparkly session prefix
+live = "ACTIVE"              # Active status (not really used)
+reset = "REFRESH"            # Refresh time (not really used)
+
+# === PERSONAL DISPLAY FORMATS ===
+[display]
+time_format = "%I:%M %p"     # 12-hour format with AM/PM
+date_format = "%B %d, %Y"    # Friendly date format (January 15, 2024)
+date_format_compact = "%m%d"
+
+# === PERSONAL CACHING ===
+[cache]
+version_duration = 7200      # 2-hour cache (longer for personal use)
+version_file = "/tmp/.claude_personal_version_cache"
+
+# === FRIENDLY ERROR MESSAGES ===
+[messages]
+no_ccusage = "No cost tracking"
+ccusage_install = "Cost tracking not needed for personal use"
+no_active_block = "No active session"
+mcp_unknown = "tools unavailable"
+mcp_none = "no tools active"
+unknown_version = "unknown"
+no_submodules = "simple project"
+
+# === PERSONAL ENVIRONMENT SETTINGS ===
+[advanced]
+warn_missing_deps = false    # Don't worry about deps in personal projects
+debug_mode = false           # Clean output for enjoyable experience
+performance_mode = true      # Faster execution for responsive feel
+strict_validation = false    # More forgiving for experimentation
+
+# === PERSONAL PROJECT PATHS ===
+[paths]
+temp_dir = "/tmp"
+config_dir = "~/.config/claude-code-statusline"
+cache_dir = "~/.cache/claude-code-statusline"
+log_file = "~/.cache/claude-code-statusline/personal.log"
+
+# === OPTIMIZED FOR PERSONAL USE ===
+[performance]
+parallel_data_collection = false   # Simpler execution
+max_concurrent_operations = 2      # Lower resource usage
+git_operation_timeout = "3s"       # Shorter timeout for personal repos
+network_operation_timeout = "5s"   # Shorter network timeout
+enable_smart_caching = true        # Still want good performance
+cache_compression = false          # Simplicity over optimization

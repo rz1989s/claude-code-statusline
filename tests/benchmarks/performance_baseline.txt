@@ -1,0 +1,5 @@
+jq_calls:40
+config_loading_jq_calls:6
+optimization_date:2025-08-20
+baseline_version:post_optimization
+expected_performance_improvement:90_percent_config_loading_reduction

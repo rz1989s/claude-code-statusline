@@ -1,6 +1,8 @@
 # 🐛 Troubleshooting Guide
 
-Common issues and solutions for Claude Code Enhanced Statusline.
+**Common issues and solutions for Claude Code Enhanced Statusline with TOML Configuration.**
+
+Comprehensive troubleshooting for installation, TOML configuration, themes, performance, and advanced features.
 
 ## 🔧 Installation Issues
 
@@ -75,6 +77,556 @@ gtimeout --version
    ```bash
    sudo npm install -g bunx ccusage
    ```
+
+---
+
+## 📋 **TOML Configuration Issues**
+
+The enterprise-grade TOML configuration system requires proper syntax and structure. Here are common configuration-related issues and solutions.
+
+### TOML File Not Found
+
+**Problem**: Configuration file is not being discovered or loaded.
+
+**Diagnosis**:
+```bash
+# Check configuration discovery
+./statusline.sh --test-config-verbose
+
+# Expected output shows which config file is loaded:
+# Loading configuration from: ./Config.toml
+# Configuration loaded successfully
+```
+
+**Solutions**:
+
+1. **Generate missing configuration**:
+   ```bash
+   # Generate Config.toml in current directory
+   ./statusline.sh --generate-config
+   
+   # Or generate in specific location
+   ./statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+   ```
+
+2. **Check configuration discovery order**:
+   ```bash
+   # Configuration is searched in this order:
+   # 1. ./Config.toml (highest priority)
+   # 2. ~/.config/claude-code-statusline/Config.toml
+   # 3. ~/.claude-statusline.toml
+   # 4. Inline configuration (fallback)
+   ```
+
+3. **Verify file permissions**:
+   ```bash
+   # Check if file is readable
+   ls -la Config.toml
+   
+   # Should show readable permissions:
+   # -rw-r--r-- 1 user group 1234 Config.toml
+   
+   # Fix permissions if needed
+   chmod 644 Config.toml
+   ```
+
+---
+
+### TOML Syntax Errors
+
+**Problem**: Configuration file has invalid TOML syntax.
+
+**Diagnosis**:
+```bash
+# Validate TOML syntax
+./statusline.sh --validate-config
+
+# Common error messages:
+# ERROR: TOML parsing failed at line 15
+# ERROR: Invalid value for key 'theme'
+```
+
+**Common Syntax Issues**:
+
+1. **Unquoted string values**:
+   ```toml
+   # ❌ Incorrect:
+   [theme]
+   name = catppuccin
+   
+   # ✅ Correct:
+   [theme]
+   name = "catppuccin"
+   ```
+
+2. **Boolean value errors**:
+   ```toml
+   # ❌ Incorrect:
+   [features]
+   show_commits = yes
+   show_version = 1
+   
+   # ✅ Correct:
+   [features]
+   show_commits = true
+   show_version = false
+   ```
+
+3. **Section header typos**:
+   ```toml
+   # ❌ Incorrect:
+   [color.basic]  # Missing 's'
+   
+   # ✅ Correct:
+   [colors.basic]
+   ```
+
+4. **Color code escaping**:
+   ```toml
+   # ❌ Incorrect:
+   [colors.basic]
+   red = \033[31m
+   
+   # ✅ Correct:
+   [colors.basic]
+   red = "\\033[31m"  # Escaped backslashes and quoted
+   ```
+
+**Solutions**:
+```bash
+# 1. Use validation command
+./statusline.sh --validate-config
+
+# 2. Regenerate configuration if heavily corrupted
+./statusline.sh --generate-config Config-backup.toml
+# Then copy working sections to your Config.toml
+
+# 3. Test incrementally
+./statusline.sh --test-config
+```
+
+---
+
+### Environment Variable Overrides Not Working
+
+**Problem**: ENV_CONFIG_* variables are not overriding TOML settings.
+
+**Diagnosis**:
+```bash
+# Test environment override
+ENV_CONFIG_THEME=garden ./statusline.sh --test-config
+
+# Should show:
+# Theme: garden (environment override)
+# If not working, shows:
+# Theme: catppuccin (from Config.toml)
+```
+
+**Solutions**:
+
+1. **Check variable naming**:
+   ```bash
+   # ✅ Correct format:
+   ENV_CONFIG_THEME=garden ./statusline.sh
+   ENV_CONFIG_SHOW_MCP_STATUS=false ./statusline.sh
+   
+   # ❌ Incorrect (missing ENV_ prefix):
+   CONFIG_THEME=garden ./statusline.sh
+   ```
+
+2. **Verify variable values**:
+   ```bash
+   # Boolean values must be lowercase
+   ENV_CONFIG_SHOW_COMMITS=true ./statusline.sh   # ✅ Correct
+   ENV_CONFIG_SHOW_COMMITS=TRUE ./statusline.sh   # ❌ Incorrect
+   ENV_CONFIG_SHOW_COMMITS=false ./statusline.sh  # ✅ Correct
+   ENV_CONFIG_SHOW_COMMITS=FALSE ./statusline.sh  # ❌ Incorrect
+   ```
+
+3. **Test override isolation**:
+   ```bash
+   # Test one variable at a time
+   ENV_CONFIG_THEME=classic ./statusline.sh --test-config
+   ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh --test-config
+   ```
+
+---
+
+### Configuration Not Taking Effect
+
+**Problem**: Changes to Config.toml are not reflected in statusline output.
+
+**Diagnosis**:
+```bash
+# Test configuration loading
+./statusline.sh --test-config-verbose
+
+# Compare configurations
+./statusline.sh --compare-config
+
+# Check if correct file is loaded
+ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-statusline.toml
+```
+
+**Solutions**:
+
+1. **Verify correct file location**:
+   ```bash
+   # Check which config file has highest priority in your directory
+   pwd
+   ls -la Config.toml  # This takes highest priority if it exists
+   ```
+
+2. **Test specific configuration file**:
+   ```bash
+   # Test specific config file explicitly
+   ./statusline.sh --test-config ./Config.toml
+   ./statusline.sh --test-config ~/.config/claude-code-statusline/Config.toml
+   ```
+
+3. **Clear cache if applicable**:
+   ```bash
+   # Clear version cache that might be interfering
+   rm -f /tmp/.claude_version_cache
+   ```
+
+---
+
+## 🎨 **Theme and Display Issues**
+
+### Colors Not Displaying Properly
+
+**Problem**: Theme colors are not showing or appearing incorrectly.
+
+**Diagnosis**:
+```bash
+# Check terminal capabilities
+echo $TERM
+echo $COLORTERM
+
+# Test basic ANSI colors
+echo -e "\\033[31mRed\\033[0m \\033[32mGreen\\033[0m \\033[34mBlue\\033[0m"
+
+# Test theme loading
+./statusline.sh --test-config-verbose
+```
+
+**Solutions**:
+
+1. **Terminal compatibility**:
+   ```bash
+   # For terminals with limited color support
+   [theme]
+   name = "classic"  # Uses basic ANSI colors only
+   ```
+
+2. **RGB color issues**:
+   ```bash
+   # If RGB colors don't work, check COLORTERM
+   echo $COLORTERM  # Should show 'truecolor' or '24bit'
+   
+   # Fallback to 256-color palette
+   [colors.extended]
+   red = "\\033[38;5;196m"  # 256-color instead of RGB
+   ```
+
+3. **Color code validation**:
+   ```toml
+   # Ensure proper escaping
+   [colors.basic]
+   red = "\\033[31m"        # ✅ Correct: escaped backslashes
+   blue = "\033[34m"        # ❌ Incorrect: single backslash
+   ```
+
+---
+
+### Custom Theme Not Loading
+
+**Problem**: Custom theme colors are not being applied.
+
+**Diagnosis**:
+```bash
+# Verify theme configuration
+./statusline.sh --test-config-verbose | grep -i theme
+
+# Check custom theme syntax
+./statusline.sh --validate-config
+```
+
+**Solutions**:
+
+1. **Verify custom theme structure**:
+   ```toml
+   # Required for custom themes
+   [theme]
+   name = "custom"  # Must be exactly "custom"
+   
+   # Required color sections
+   [colors.basic]
+   red = "\\033[31m"
+   # ... other basic colors
+   
+   [colors.extended]
+   orange = "\\033[38;5;208m"
+   # ... other extended colors
+   ```
+
+2. **Test theme incrementally**:
+   ```bash
+   # Test with simple custom theme first
+   cat > TestTheme.toml << 'EOF'
+   [theme]
+   name = "custom"
+   
+   [colors.basic]
+   red = "\\033[91m"
+   green = "\\033[92m"
+   blue = "\\033[94m"
+   EOF
+   
+   ./statusline.sh --test-config TestTheme.toml
+   ```
+
+---
+
+### Emoji Display Issues
+
+**Problem**: Emojis are not displaying correctly or appear as question marks.
+
+**Diagnosis**:
+```bash
+# Test emoji support
+echo "🎵 🧠 ⚡ ✅ 📁"
+
+# Check locale settings
+echo $LC_ALL
+echo $LANG
+```
+
+**Solutions**:
+
+1. **Terminal emoji support**:
+   ```bash
+   # For terminals without emoji support
+   [emojis]
+   clean_status = "+"       # Simple ASCII
+   dirty_status = "!"       # Simple ASCII
+   opus = "O"               # Letter indicators
+   sonnet = "S"
+   haiku = "H"
+   ```
+
+2. **Font configuration**:
+   - Ensure terminal uses font with emoji support
+   - Popular choices: SF Mono, Fira Code, JetBrains Mono
+
+---
+
+## ⚡ **Performance Issues**
+
+### Slow Startup or Hanging
+
+**Problem**: Statusline takes too long to load or hangs during execution.
+
+**Diagnosis**:
+```bash
+# Time the execution
+time ./statusline.sh
+
+# Test with verbose output to see where it hangs
+./statusline.sh --test-config-verbose
+```
+
+**Solutions**:
+
+1. **Reduce timeouts via TOML**:
+   ```toml
+   [timeouts]
+   mcp = "1s"           # Reduce from default 3s
+   ccusage = "1s"       # Reduce from default 3s
+   version = "1s"       # Reduce from default 2s
+   ```
+
+2. **Disable network-dependent features**:
+   ```toml
+   [features]
+   show_mcp_status = false      # Disable MCP server checks
+   show_cost_tracking = false   # Disable ccusage calls
+   show_version = false         # Disable version checks
+   ```
+
+3. **Environment variable quick fixes**:
+   ```bash
+   # Temporarily disable features
+   ENV_CONFIG_SHOW_MCP_STATUS=false \
+   ENV_CONFIG_SHOW_COST_TRACKING=false \
+   ENV_CONFIG_MCP_TIMEOUT=1s \
+   ./statusline.sh
+   ```
+
+4. **Use minimal configuration**:
+   ```bash
+   # Copy minimal config for performance
+   cp examples/sample-configs/minimal-config.toml Config.toml
+   ./statusline.sh --test-config
+   ```
+
+---
+
+### Network-Related Timeouts
+
+**Problem**: Network operations (MCP, ccusage, version checks) are timing out.
+
+**Diagnosis**:
+```bash
+# Test network connectivity
+curl -s --max-time 3 https://api.anthropic.com || echo "Network issue"
+
+# Test individual components
+bunx ccusage --version
+```
+
+**Solutions**:
+
+1. **Increase timeouts for slow networks**:
+   ```toml
+   [timeouts]
+   mcp = "10s"          # Increase for slow networks
+   ccusage = "8s"       # Increase for API delays
+   version = "5s"       # Increase for slow connections
+   ```
+
+2. **Configure network-specific settings**:
+   ```toml
+   [performance]
+   network_operation_timeout = "15s"  # Global network timeout
+   max_concurrent_operations = 1      # Reduce concurrency
+   ```
+
+3. **Proxy configuration** (if behind corporate proxy):
+   ```bash
+   # Set proxy environment variables before running
+   export HTTP_PROXY=http://proxy:8080
+   export HTTPS_PROXY=https://proxy:8080
+   ./statusline.sh
+   ```
+
+---
+
+## 🔧 **Advanced Troubleshooting**
+
+### Debug Mode
+
+**Problem**: Need detailed information about statusline execution.
+
+**Solutions**:
+```bash
+# Enable bash debug mode
+bash -x ~/.claude/statusline.sh
+
+# Use verbose configuration testing
+./statusline.sh --test-config-verbose
+
+# Check specific configuration sections
+./statusline.sh --compare-config
+```
+
+---
+
+### Configuration Conflicts
+
+**Problem**: Multiple configuration sources are conflicting.
+
+**Diagnosis**:
+```bash
+# Check configuration priority
+./statusline.sh --test-config-verbose | grep -i "loading\|config\|override"
+
+# List all potential config files
+ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-statusline.toml
+```
+
+**Solutions**:
+
+1. **Clear configuration precedence**:
+   ```bash
+   # Remove lower-priority configs to avoid confusion
+   rm -f ~/.claude-statusline.toml  # Remove if not needed
+   ```
+
+2. **Test configuration isolation**:
+   ```bash
+   # Test with only one config source
+   mv Config.toml Config.toml.backup
+   ./statusline.sh --generate-config Config.toml
+   ./statusline.sh --test-config
+   ```
+
+---
+
+### Cache-Related Issues
+
+**Problem**: Cached data is stale or causing incorrect display.
+
+**Solutions**:
+```bash
+# Clear all caches
+rm -f /tmp/.claude_version_cache
+rm -f /tmp/.claude_*_cache
+
+# Disable caching temporarily
+ENV_CONFIG_VERSION_CACHE_DURATION=0 ./statusline.sh
+
+# Or configure cache duration in TOML
+[cache]
+version_duration = 0    # Disable caching
+```
+
+---
+
+## 💊 **Common Solutions Summary**
+
+### Quick Fixes
+
+```bash
+# 1. Regenerate configuration
+./statusline.sh --generate-config
+
+# 2. Test configuration
+./statusline.sh --test-config
+
+# 3. Validate syntax
+./statusline.sh --validate-config
+
+# 4. Use minimal config for debugging
+cp examples/sample-configs/minimal-config.toml Config.toml
+
+# 5. Clear caches
+rm -f /tmp/.claude_*_cache
+
+# 6. Test with environment overrides
+ENV_CONFIG_THEME=classic ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh
+```
+
+### Systematic Debugging Approach
+
+```bash
+# 1. Check dependencies
+jq --version && echo "jq OK" || echo "jq MISSING"
+gtimeout --version && echo "gtimeout OK" || echo "gtimeout MISSING"
+
+# 2. Test basic functionality
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ./statusline.sh
+
+# 3. Test configuration loading
+./statusline.sh --test-config-verbose
+
+# 4. Isolate issues
+ENV_CONFIG_SHOW_MCP_STATUS=false ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh
+
+# 5. Check logs (if available)
+cat ~/.cache/claude-code-statusline/statusline.log
+```
 
 ---
 

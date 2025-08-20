@@ -18,6 +18,11 @@ tests/
 │   └── test_utilities.bats      # Utility function tests
 ├── integration/                 # End-to-end integration tests
 │   ├── test_full_statusline.bats # Complete statusline output tests
+│   ├── test_toml_integration.bats # Comprehensive TOML configuration tests
+│   ├── test_toml_simple.bats     # Basic TOML parsing and structure tests
+│   └── test_optimized_extraction.bats # Single-pass jq optimization tests
+├── benchmarks/                  # Performance regression prevention
+│   └── test_performance.bats    # Performance benchmarks and monitoring
 │   ├── test_error_handling.bats # Error scenario tests
 │   └── test_performance.bats    # Performance and timeout tests
 └── fixtures/                   # Test data and mock responses
