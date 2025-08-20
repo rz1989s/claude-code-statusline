@@ -90,3 +90,6 @@ coverage/
 .coverage
 .pytest_cache/
 test-results/
+
+# Social media posts (uncommitted)
+social-media-posts/
