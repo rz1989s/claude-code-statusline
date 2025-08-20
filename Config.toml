@@ -88,7 +88,7 @@ live_block = "🔥"
 [timeouts]
 mcp = "3s"
 version = "2s"
-ccusage = "3s"
+ccusage = "8s"
 
 # === DISPLAY LABELS ===
 # Text labels used throughout the statusline

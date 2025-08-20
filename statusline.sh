@@ -876,6 +876,78 @@ execute_with_timeout() {
     fi
 }
 
+# Execute multiple ccusage commands in parallel for better performance
+execute_ccusage_parallel() {
+    local timeout_duration="$1"
+    local seven_days_ago="$2"
+    local thirty_days_ago="$3"
+    local current_session_id="$4"
+    
+    # Create secure temporary directory for results
+    local temp_dir
+    temp_dir=$(mktemp -d -t "ccusage_parallel.XXXXXX" 2>/dev/null || mktemp -d)
+    if [[ ! -d "$temp_dir" ]]; then
+        echo "ERROR: Could not create temporary directory for parallel execution" >&2
+        return 1
+    fi
+    
+    # Define temporary files for each command result
+    local session_file="$temp_dir/session.json"
+    local daily_7d_file="$temp_dir/daily_7d.json"
+    local daily_30d_file="$temp_dir/daily_30d.json"  
+    local blocks_file="$temp_dir/blocks.json"
+    
+    # Define error files to track command failures
+    local session_err="$temp_dir/session.err"
+    local daily_7d_err="$temp_dir/daily_7d.err"
+    local daily_30d_err="$temp_dir/daily_30d.err"
+    local blocks_err="$temp_dir/blocks.err"
+    
+    # Launch all 4 ccusage commands in parallel
+    local pids=()
+    
+    # Command 1: Session data
+    (execute_with_timeout "$timeout_duration" bunx ccusage session --since "$seven_days_ago" --json > "$session_file" 2> "$session_err") &
+    pids+=($!)
+    
+    # Command 2: Daily data (7 days)
+    (execute_with_timeout "$timeout_duration" bunx ccusage daily --since "$seven_days_ago" --json > "$daily_7d_file" 2> "$daily_7d_err") &
+    pids+=($!)
+    
+    # Command 3: Daily data (30 days)
+    (execute_with_timeout "$timeout_duration" bunx ccusage daily --since "$thirty_days_ago" --json > "$daily_30d_file" 2> "$daily_30d_err") &
+    pids+=($!)
+    
+    # Command 4: Active blocks
+    (execute_with_timeout "$timeout_duration" bunx ccusage blocks --active --json > "$blocks_file" 2> "$blocks_err") &
+    pids+=($!)
+    
+    # Wait for all commands to complete
+    local exit_codes=()
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+        exit_codes+=($?)
+    done
+    
+    # Read results (empty if command failed)
+    local session_data=""
+    local daily_7d_data=""
+    local daily_30d_data=""
+    local blocks_data=""
+    
+    [[ -s "$session_file" && ${exit_codes[0]} -eq 0 ]] && session_data=$(cat "$session_file" 2>/dev/null)
+    [[ -s "$daily_7d_file" && ${exit_codes[1]} -eq 0 ]] && daily_7d_data=$(cat "$daily_7d_file" 2>/dev/null)
+    [[ -s "$daily_30d_file" && ${exit_codes[2]} -eq 0 ]] && daily_30d_data=$(cat "$daily_30d_file" 2>/dev/null)
+    [[ -s "$blocks_file" && ${exit_codes[3]} -eq 0 ]] && blocks_data=$(cat "$blocks_file" 2>/dev/null)
+    
+    # Cleanup temporary directory
+    rm -rf "$temp_dir" 2>/dev/null
+    
+    # Output results in structured format for easy parsing
+    # Format: session_data|daily_7d_data|daily_30d_data|blocks_data
+    echo "${session_data}|${daily_7d_data}|${daily_30d_data}|${blocks_data}"
+}
+
 # Initialize dependency validation
 validate_dependencies
 
@@ -3165,19 +3237,31 @@ get_claude_usage_info() {
   local today=$(date "+$CONFIG_DATE_FORMAT")
   local current_session_id=$(sanitize_path_secure "$current_dir")
 
-  # Get current session cost
+  # Execute all ccusage commands in parallel for better performance
+  local parallel_results
+  parallel_results=$(execute_ccusage_parallel "$CONFIG_CCUSAGE_TIMEOUT" "$seven_days_ago" "$thirty_days_ago" "$current_session_id")
+  
+  # Parse parallel results (format: session_data|daily_7d_data|daily_30d_data|blocks_data)
+  local session_data="${parallel_results%%|*}"
+  parallel_results="${parallel_results#*|}"
+  local daily_data="${parallel_results%%|*}"
+  parallel_results="${parallel_results#*|}"
+  local monthly_data="${parallel_results%%|*}"
+  local block_data="${parallel_results#*|}"
+  
+  # Process session cost
   local session_cost="0.00"
-  if session_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage session --since "$seven_days_ago" --json 2>/dev/null); then
+  if [[ -n "$session_data" ]]; then
     session_cost=$(echo "$session_data" | jq -r --arg session_id "$current_session_id" '.sessions[] | select(.sessionId == $session_id) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$session_cost" ] || [ "$session_cost" = "null" ]; then
       session_cost="0.00"
     fi
   fi
 
-  # Get today's cost and weekly cost
+  # Process today's cost and weekly cost
   local today_cost="0.00"
   local week_cost="0.00"
-  if daily_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$seven_days_ago" --json 2>/dev/null); then
+  if [[ -n "$daily_data" ]]; then
     today_cost=$(echo "$daily_data" | jq -r --arg today "$today" '.daily[] | select(.date == $today) | .totalCost // 0' 2>/dev/null | head -1)
     if [ -z "$today_cost" ] || [ "$today_cost" = "null" ]; then
       today_cost="0.00"
@@ -3199,20 +3283,20 @@ get_claude_usage_info() {
     week_cost=$(printf "%.2f" "$week_cost" 2>/dev/null || echo "0.00")
   fi
 
-  # Get 30-day cost
+  # Process 30-day cost
   local month_cost="0.00"
-  if monthly_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage daily --since "$thirty_days_ago" --json 2>/dev/null); then
+  if [[ -n "$monthly_data" ]]; then
     month_cost=$(echo "$monthly_data" | jq -r '.totals.totalCost // 0' 2>/dev/null)
     if [ -z "$month_cost" ] || [ "$month_cost" = "null" ]; then
       month_cost="0.00"
     fi
   fi
 
-  # Get active block info
+  # Process active block info
   local block_cost_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
   local reset_time_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-  if block_data=$(execute_with_timeout "$CONFIG_CCUSAGE_TIMEOUT" bunx ccusage blocks --active --json 2>/dev/null); then
+  if [[ -n "$block_data" ]]; then
     local block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
     local remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
 
