@@ -86,7 +86,7 @@ live_block = "🔥"
 # === TIMEOUTS ===
 # Timeout values for external command execution
 [timeouts]
-mcp = "3s"
+mcp = "8s"
 version = "2s"
 ccusage = "8s"
 
@@ -213,13 +213,13 @@ auto_switch = true
 theme = "classic"
 show_cost_tracking = true
 show_reset_info = true
-mcp_timeout = "5s"
+mcp_timeout = "8s"
 
 [profiles.personal]
 theme = "catppuccin"
 show_cost_tracking = false
 show_reset_info = false
-mcp_timeout = "3s"
+mcp_timeout = "8s"
 
 [profiles.demo] 
 theme = "garden"
