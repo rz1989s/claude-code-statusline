@@ -400,6 +400,7 @@ create_secure_cache_file() {
     cache_dir=$(dirname "$cache_file")
     if [[ ! -d "$cache_dir" ]]; then
         mkdir -p "$cache_dir" 2>/dev/null
+        chmod 700 "$cache_dir" 2>/dev/null  # Secure permissions to prevent other users from reading cost data
     fi
     
     # Acquire exclusive file lock to prevent race conditions
@@ -3259,7 +3260,10 @@ get_claude_usage_info() {
   local cache_duration=30  # 30 seconds
   
   # Create cache directory if needed
-  [[ ! -d "$cache_dir" ]] && mkdir -p "$cache_dir" 2>/dev/null
+  if [[ ! -d "$cache_dir" ]]; then
+    mkdir -p "$cache_dir" 2>/dev/null
+    chmod 700 "$cache_dir" 2>/dev/null  # Secure permissions to prevent other users from reading cost data
+  fi
   
   # Helper function to check if cache is fresh
   is_cache_fresh() {
