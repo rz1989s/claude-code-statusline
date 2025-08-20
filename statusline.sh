@@ -777,7 +777,7 @@ load_toml_configuration() {
         # Extract ALL configuration values using optimized single-pass jq operation
         # Replaces 64 individual jq calls with 1 comprehensive extraction for 95% performance improvement
         
-        # Single jq operation to extract ALL config values with fallbacks
+        # Single jq operation for single-pass jq config extraction with fallbacks
         local config_data
         config_data=$(echo "$config_json" | jq -r '{
             theme_name: (.theme.name // "catppuccin"),
@@ -2244,6 +2244,11 @@ check_auto_reload() {
 # ============================================================================
 # END TOML CONFIGURATION SYSTEM
 # ============================================================================
+
+# Skip main configuration loading if sourced for testing
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]] || [[ "${STATUSLINE_TESTING}" == "true" ]]; then
+    return 0 2>/dev/null || exit 0
+fi
 
 # Load configuration from Config.toml (if available)  
 # This will override the inline defaults below if Config.toml exists

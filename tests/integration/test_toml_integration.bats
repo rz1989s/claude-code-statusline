@@ -12,8 +12,12 @@ setup() {
     export TEST_CONFIG_DIR="/tmp/toml_integration_tests"
     mkdir -p "$TEST_CONFIG_DIR"
     
-    # Source the statusline script for function access
+    # Source the statusline script for function access (save/restore args to avoid CLI parsing)
+    local saved_args=("$@")
+    set --
+    export STATUSLINE_TESTING="true"
     source statusline.sh 2>/dev/null || true
+    set -- "${saved_args[@]}"
 }
 
 teardown() {
