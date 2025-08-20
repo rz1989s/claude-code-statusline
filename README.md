@@ -302,15 +302,16 @@ npm install -g bunx ccusage
 
 ### 📦 Installation Methods
 
-#### Method 1: Quick Install (Recommended)
+#### Method 1: Automated Install Script (Recommended)
 
 ```bash
-# Download and install in one step
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
-chmod +x ~/.claude/statusline.sh
+# Download and run the automated installer
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# Configure Claude Code to use the statusline
-claude config set statusline ~/.claude/statusline.sh
+# Or download and inspect before running
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
 ```
 
 #### Method 2: GNU Stow Integration
@@ -326,8 +327,9 @@ chmod +x ~/.dotfiles/claude/.claude/statusline.sh
 # Deploy with Stow
 cd ~/.dotfiles && stow claude
 
-# Configure Claude Code
-claude config set statusline ~/.claude/statusline.sh
+# Configure Claude Code (manual JSON editing)
+# Add to ~/.claude/settings.json:
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
 ```
 
 #### Method 3: Manual Installation
@@ -341,9 +343,12 @@ curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/st
 chmod +x statusline.sh
 mv statusline.sh ~/.claude/
 
-# Configure Claude Code
-claude config set statusline ~/.claude/statusline.sh
+# Configure Claude Code (manual JSON editing)
+# Add to ~/.claude/settings.json:
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
 ```
+
+> 💡 **Why use the Automated Installer?** The install script automatically handles JSON configuration, dependency checking, and verification - no manual editing of settings.json required!
 
 ### ✅ Verification
 
@@ -353,8 +358,8 @@ Test your installation:
 # Check if the statusline script is executable
 ls -la ~/.claude/statusline.sh
 
-# Verify Claude Code configuration
-claude config get statusline
+# Verify Claude Code configuration (check settings.json)
+cat ~/.claude/settings.json | jq '.statusLine'
 
 # Test the statusline directly
 ~/.claude/statusline.sh --help
