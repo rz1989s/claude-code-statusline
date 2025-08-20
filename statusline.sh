@@ -346,10 +346,26 @@ sanitize_path_secure() {
     # Security-first sanitization: remove path traversal sequences FIRST
     local sanitized="$path"
     
-    # Remove all path traversal patterns
-    sanitized=$(echo "$sanitized" | sed 's|\.\./||g')        # Remove ../
-    sanitized=$(echo "$sanitized" | sed 's|\.\.|dot-dot|g')  # Replace remaining .. with safe text
-    sanitized=$(echo "$sanitized" | sed 's|\./||g')          # Remove ./
+    # Iteratively remove path traversal patterns until none remain
+    # This prevents bypass attempts like ....// -> ../
+    local prev_sanitized=""
+    local iteration_count=0
+    local max_iterations=10  # Prevent infinite loops
+    
+    while [[ "$sanitized" != "$prev_sanitized" ]] && [[ $iteration_count -lt $max_iterations ]]; do
+        prev_sanitized="$sanitized"
+        
+        # Remove various path traversal patterns
+        sanitized=$(echo "$sanitized" | sed -e 's|\.\./||g' -e 's|\./||g' -e 's|//|/|g')
+        
+        ((iteration_count++))
+    done
+    
+    # Final cleanup: remove any remaining .. sequences completely
+    sanitized=$(echo "$sanitized" | sed 's|\.\.|removed-dotdot|g')
+    
+    # Remove any remaining suspicious patterns
+    sanitized=$(echo "$sanitized" | sed -e 's|\.\.||g' -e 's|\~||g' -e 's|\$||g')
     
     # Replace slashes with hyphens
     sanitized=$(echo "$sanitized" | sed 's|/|-|g')
@@ -365,26 +381,314 @@ sanitize_path_secure() {
     echo "$sanitized"
 }
 
-# Secure cache file creation with explicit permissions
+# Secure cache file creation with file locking to prevent race conditions
 create_secure_cache_file() {
     local cache_file="$1"
     local content="$2"
+    local lock_file="${cache_file}.lock"
+    local max_wait_time=5  # Maximum seconds to wait for lock
+    local wait_count=0
     
-    # Create file with content
-    echo "$content" > "$cache_file" 2>/dev/null
+    # Check required parameters
+    if [[ -z "$cache_file" || -z "$content" ]]; then
+        echo "ERROR: create_secure_cache_file requires cache_file and content parameters" >&2
+        return 1
+    fi
     
-    # Set explicit secure permissions (644: owner rw, group/other r)
-    if [[ -f "$cache_file" ]]; then
-        chmod 644 "$cache_file" 2>/dev/null
+    # Create cache directory if it doesn't exist
+    local cache_dir
+    cache_dir=$(dirname "$cache_file")
+    if [[ ! -d "$cache_dir" ]]; then
+        mkdir -p "$cache_dir" 2>/dev/null
+    fi
+    
+    # Acquire exclusive file lock to prevent race conditions
+    while ! (set -C; echo $$ > "$lock_file") 2>/dev/null; do
+        if [[ $wait_count -ge $max_wait_time ]]; then
+            echo "WARNING: Failed to acquire lock for cache file after ${max_wait_time}s, proceeding without lock: $cache_file" >&2
+            break
+        fi
+        sleep 0.1
+        ((wait_count++))
+    done
+    
+    # Create file with content atomically 
+    {
+        # Use temporary file for atomic write
+        local temp_file="${cache_file}.tmp.$$"
         
-        # Verify permissions were set correctly
-        local perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
-        if [[ "$perms" != "644" ]]; then
-            echo "Warning: Cache file has unexpected permissions: $perms (expected: 644)" >&2
+        # Write content to temporary file
+        echo "$content" > "$temp_file" 2>/dev/null
+        local write_status=$?
+        
+        if [[ $write_status -eq 0 && -f "$temp_file" ]]; then
+            # Set secure permissions before moving
+            chmod 644 "$temp_file" 2>/dev/null
+            
+            # Atomic move to final location
+            mv "$temp_file" "$cache_file" 2>/dev/null
+            write_status=$?
+        else
+            echo "ERROR: Failed to write to temporary cache file: $temp_file" >&2
+            rm -f "$temp_file" 2>/dev/null
+        fi
+        
+        # Clean up temporary file if move failed
+        [[ -f "$temp_file" ]] && rm -f "$temp_file" 2>/dev/null
+        
+        # Release lock
+        rm -f "$lock_file" 2>/dev/null
+        
+        # Verify final result
+        if [[ $write_status -eq 0 && -f "$cache_file" ]]; then
+            # Verify permissions were set correctly
+            local perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
+            if [[ "$perms" != "644" ]]; then
+                echo "WARNING: Cache file has unexpected permissions: $perms (expected: 644)" >&2
+                # Try to fix permissions
+                chmod 644 "$cache_file" 2>/dev/null
+            fi
+            return 0
+        else
+            echo "ERROR: Failed to create secure cache file: $cache_file" >&2
+            return 1
+        fi
+    }
+}
+
+# ANSI color code validation for custom themes
+validate_ansi_color() {
+    local color_value="$1"
+    local color_name="$2"
+    
+    # Check if color value is provided
+    if [[ -z "$color_value" ]]; then
+        return 1  # Empty color
+    fi
+    
+    # Valid ANSI color patterns:
+    # 1. Basic ANSI: \033[30-37m, \033[90-97m
+    # 2. 256-color: \033[38;5;0-255m, \033[48;5;0-255m  
+    # 3. RGB: \033[38;2;r;g;bm, \033[48;2;r;g;bm
+    # 4. Reset and formatting: \033[0-9m
+    
+    local valid_patterns=(
+        # Basic ANSI colors (30-37 for foreground, 40-47 for background)
+        '^\\033\[[39][0-7]m$'
+        # Bright ANSI colors (90-97 for bright foreground, 100-107 for bright background) 
+        '^\\033\[1[0-9][0-7]m$'
+        # 256-color format (38;5;n for foreground, 48;5;n for background)
+        '^\\033\[38;5;[0-9]{1,3}m$'
+        '^\\033\[48;5;[0-9]{1,3}m$'
+        # RGB format (38;2;r;g;b for foreground, 48;2;r;g;b for background)
+        '^\\033\[38;2;[0-9]{1,3};[0-9]{1,3};[0-9]{1,3}m$'
+        '^\\033\[48;2;[0-9]{1,3};[0-9]{1,3};[0-9]{1,3}m$'
+        # Text formatting codes (0-9, some multi-digit)
+        '^\\033\[[0-9]{1,2}m$'
+    )
+    
+    # Check against valid patterns
+    local is_valid=false
+    for pattern in "${valid_patterns[@]}"; do
+        if [[ "$color_value" =~ $pattern ]]; then
+            is_valid=true
+            break
+        fi
+    done
+    
+    if [[ "$is_valid" != "true" ]]; then
+        echo "WARNING: Invalid ANSI color code for '$color_name': $color_value" >&2
+        echo "  Valid formats: \\033[31m, \\033[38;5;208m, \\033[38;2;255;100;50m" >&2
+        return 2  # Invalid format
+    fi
+    
+    # Additional validation for 256-color values (0-255 range)  
+    local color_256_pattern='\\033\[(38|48);5;([0-9]+)m'
+    if [[ "$color_value" =~ $color_256_pattern ]]; then
+        local color_num="${BASH_REMATCH[2]}"
+        if [[ "$color_num" -gt 255 ]]; then
+            echo "WARNING: 256-color code out of range for '$color_name': $color_num (max: 255)" >&2
+            return 3  # Out of range
         fi
     fi
     
-    return 0
+    # Additional validation for RGB values (0-255 range for each component)
+    local rgb_pattern='\\033\[(38|48);2;([0-9]+);([0-9]+);([0-9]+)m'
+    if [[ "$color_value" =~ $rgb_pattern ]]; then
+        local r="${BASH_REMATCH[2]}" 
+        local g="${BASH_REMATCH[3]}"
+        local b="${BASH_REMATCH[4]}"
+        
+        if [[ "$r" -gt 255 || "$g" -gt 255 || "$b" -gt 255 ]]; then
+            echo "WARNING: RGB color values out of range for '$color_name': R=$r G=$g B=$b (max: 255)" >&2
+            return 4  # RGB out of range
+        fi
+    fi
+    
+    return 0  # Valid color code
+}
+
+# TOML configuration schema validation
+validate_toml_schema() {
+    local config_json="$1"
+    local validation_errors=()
+    local validation_warnings=()
+    
+    if [[ -z "$config_json" || "$config_json" == "{}" ]]; then
+        echo "ERROR: Empty or invalid JSON configuration for schema validation" >&2
+        return 1
+    fi
+    
+    # Expected TOML sections and their key requirements
+    local expected_sections=(
+        "theme"
+        "colors"
+        "features"
+        "timeouts"
+        "emojis"
+        "labels"
+        "cache"
+        "display"
+        "messages"
+        "advanced"
+        "platform"
+        "paths"
+        "performance"
+        "debug"
+    )
+    
+    # Critical sections that should be present for proper functionality
+    local critical_sections=(
+        "theme"
+        "features"
+        "timeouts"
+    )
+    
+    # Check for critical sections
+    for section in "${critical_sections[@]}"; do
+        if ! echo "$config_json" | jq -e ".${section}" >/dev/null 2>&1; then
+            validation_errors+=("Missing critical section: [$section]")
+        fi
+    done
+    
+    # Validate theme section structure
+    if echo "$config_json" | jq -e '.theme' >/dev/null 2>&1; then
+        # Check theme.name
+        local theme_name
+        theme_name=$(echo "$config_json" | jq -r '.theme.name // ""' 2>/dev/null)
+        if [[ -z "$theme_name" ]]; then
+            validation_errors+=("theme.name is required")
+        elif [[ "$theme_name" != "classic" && "$theme_name" != "garden" && "$theme_name" != "catppuccin" && "$theme_name" != "custom" ]]; then
+            validation_warnings+=("Unknown theme name: $theme_name (expected: classic, garden, catppuccin, custom)")
+        fi
+        
+        # If custom theme, validate colors section
+        if [[ "$theme_name" == "custom" ]]; then
+            if ! echo "$config_json" | jq -e '.colors' >/dev/null 2>&1; then
+                validation_errors+=("Custom theme requires [colors] section")
+            fi
+        fi
+    fi
+    
+    # Validate colors section structure (if present)
+    if echo "$config_json" | jq -e '.colors' >/dev/null 2>&1; then
+        local color_subsections=("basic" "extended" "formatting")
+        local found_color_section=false
+        
+        for subsection in "${color_subsections[@]}"; do
+            if echo "$config_json" | jq -e ".colors.${subsection}" >/dev/null 2>&1; then
+                found_color_section=true
+                break
+            fi
+        done
+        
+        if [[ "$found_color_section" != "true" ]]; then
+            validation_warnings+=("colors section exists but no color subsections found (basic, extended, formatting)")
+        fi
+    fi
+    
+    # Validate features section structure
+    if echo "$config_json" | jq -e '.features' >/dev/null 2>&1; then
+        local feature_keys=(
+            "show_commits"
+            "show_version" 
+            "show_submodules"
+            "show_mcp_status"
+            "show_cost_tracking"
+            "show_reset_info"
+            "show_session_info"
+        )
+        
+        for feature in "${feature_keys[@]}"; do
+            local feature_value
+            feature_value=$(echo "$config_json" | jq -r ".features.${feature}" 2>/dev/null)
+            if [[ -n "$feature_value" && "$feature_value" != "null" && "$feature_value" != "true" && "$feature_value" != "false" ]]; then
+                validation_errors+=("features.${feature} must be boolean (true/false), got: $feature_value")
+            fi
+        done
+    fi
+    
+    # Validate timeouts section structure
+    if echo "$config_json" | jq -e '.timeouts' >/dev/null 2>&1; then
+        local timeout_keys=("mcp" "version" "ccusage")
+        
+        for timeout in "${timeout_keys[@]}"; do
+            local timeout_value
+            timeout_value=$(echo "$config_json" | jq -r ".timeouts.${timeout}" 2>/dev/null)
+            if [[ -n "$timeout_value" && "$timeout_value" != "null" ]]; then
+                # Validate timeout format (should end with 's' for seconds)
+                if [[ ! "$timeout_value" =~ ^[0-9]+s$ ]]; then
+                    validation_warnings+=("timeouts.${timeout} should be in format '3s', got: $timeout_value")
+                fi
+            fi
+        done
+    fi
+    
+    # Check for unknown top-level sections
+    local all_keys
+    all_keys=$(echo "$config_json" | jq -r 'keys[]' 2>/dev/null)
+    while IFS= read -r key; do
+        [[ -z "$key" ]] && continue
+        local is_known=false
+        for known_section in "${expected_sections[@]}"; do
+            if [[ "$key" == "$known_section" ]]; then
+                is_known=true
+                break
+            fi
+        done
+        if [[ "$is_known" != "true" ]]; then
+            validation_warnings+=("Unknown configuration section: [$key]")
+        fi
+    done <<< "$all_keys"
+    
+    # Report validation results
+    local has_errors=false
+    if [[ ${#validation_errors[@]} -gt 0 ]]; then
+        has_errors=true
+        echo "❌ TOML Schema validation errors:" >&2
+        for error in "${validation_errors[@]}"; do
+            echo "  ✗ $error" >&2
+        done
+    fi
+    
+    if [[ ${#validation_warnings[@]} -gt 0 ]]; then
+        echo "⚠️ TOML Schema validation warnings:" >&2
+        for warning in "${validation_warnings[@]}"; do
+            echo "  ⚠ $warning" >&2
+        done
+    fi
+    
+    if [[ "$has_errors" != "true" ]]; then
+        if [[ ${#validation_warnings[@]} -eq 0 ]]; then
+            echo "✅ TOML schema validation passed successfully" >&2
+        else
+            echo "✅ TOML schema validation passed with ${#validation_warnings[@]} warnings" >&2
+        fi
+        return 0
+    else
+        echo "❌ TOML schema validation failed with ${#validation_errors[@]} errors" >&2
+        return 1
+    fi
 }
 
 # Dependency validation system
@@ -393,27 +697,37 @@ validate_dependencies() {
     local missing_optional=()
     local warnings=()
     
-    # Check critical dependencies (required for basic functionality)
-    command -v jq >/dev/null 2>&1 || missing_critical+=("jq")
+    # Check jq availability for TOML configuration support
+    if command -v jq >/dev/null 2>&1; then
+        export DEP_JQ_AVAILABLE=true
+    else
+        export DEP_JQ_AVAILABLE=false
+        warnings+=("jq: TOML configuration disabled, using inline config only")
+    fi
     
     # Check optional dependencies with graceful degradation
     command -v bc >/dev/null 2>&1 || missing_optional+=("bc")
-    command -v python3 >/dev/null 2>&1 || missing_optional+=("python3")
     command -v bunx >/dev/null 2>&1 || missing_optional+=("bunx")
     
+    # Check Python3 for advanced TOML processing
+    if command -v python3 >/dev/null 2>&1; then
+        export DEP_PYTHON3_AVAILABLE=true
+    else
+        export DEP_PYTHON3_AVAILABLE=false
+        missing_optional+=("python3")
+    fi
+    
     # Check timeout commands (platform-specific)
-    if ! command -v gtimeout >/dev/null 2>&1 && ! command -v timeout >/dev/null 2>&1; then
+    if command -v gtimeout >/dev/null 2>&1; then
+        export DEP_TIMEOUT_CMD="gtimeout"
+    elif command -v timeout >/dev/null 2>&1; then
+        export DEP_TIMEOUT_CMD="timeout"
+    else
+        export DEP_TIMEOUT_CMD=""
         missing_optional+=("timeout")
     fi
     
-    # Handle critical dependency failures
-    if [[ ${#missing_critical[@]} -gt 0 ]]; then
-        echo "CRITICAL ERROR: Missing required dependencies: ${missing_critical[*]}" >&2
-        echo "Install missing dependencies and try again." >&2
-        echo "On Ubuntu/Debian: sudo apt-get install jq" >&2
-        echo "On macOS: brew install jq" >&2
-        exit 1
-    fi
+    # No longer treat any dependency as critical - graceful degradation for all
     
     # Handle optional dependency warnings
     if [[ ${#missing_optional[@]} -gt 0 ]]; then
@@ -666,10 +980,25 @@ parse_toml_to_json() {
     # Close flat JSON
     flat_json="$flat_json}"
     
+    # Check if jq is available for JSON validation
+    if [[ "$DEP_JQ_AVAILABLE" == "true" ]]; then
+        # Validate flat JSON before processing
+        if ! echo "$flat_json" | jq . >/dev/null 2>&1; then
+            echo "ERROR: Generated invalid JSON during TOML parsing: $toml_file" >&2
+            echo "DEBUG: Flat JSON: $flat_json" >&2
+            echo "{}"
+            return 4  # Parse error
+        fi
+    else
+        echo "WARNING: jq not available for JSON validation, skipping validation: $toml_file" >&2
+    fi
+    
     # Convert flat structure to nested using Python (if available) or simple approach
     if [[ "$DEP_PYTHON3_AVAILABLE" == "true" ]]; then
-        local nested_json
-        nested_json=$(python3 -c "
+        local nested_json python_error
+        # Capture both stdout and stderr from Python
+        {
+            nested_json=$(python3 -c "
 import json
 import sys
 
@@ -689,18 +1018,80 @@ try:
         current[parts[-1]] = value
     
     print(json.dumps(nested))
-except Exception as e:
+except json.JSONDecodeError as e:
+    print(f'ERROR: JSON decode error in TOML parser: {e}', file=sys.stderr)
     print('{}')
-" 2>/dev/null)
+except Exception as e:
+    print(f'ERROR: Python processing error in TOML parser: {e}', file=sys.stderr)
+    print('{}')
+" 2>&1)
+        } 2>&1
         
-        if [[ -n "$nested_json" ]] && echo "$nested_json" | jq . >/dev/null 2>&1; then
+        # Validate nested JSON output (if jq is available)
+        local is_valid_nested=false
+        if [[ "$DEP_JQ_AVAILABLE" == "true" ]]; then
+            if [[ -n "$nested_json" ]] && echo "$nested_json" | jq . >/dev/null 2>&1; then
+                is_valid_nested=true
+            fi
+        else
+            # Without jq, use basic validation
+            if [[ -n "$nested_json" && "$nested_json" != "{}" ]]; then
+                is_valid_nested=true
+            fi
+        fi
+        
+        if [[ "$is_valid_nested" == "true" ]]; then
             echo "$nested_json"
         else
-            echo "$flat_json"
+            if [[ "$nested_json" == "{}" ]]; then
+                echo "WARNING: Python TOML processing failed, falling back to flat structure: $toml_file" >&2
+            else
+                echo "WARNING: Invalid nested JSON generated, falling back to flat structure: $toml_file" >&2
+                echo "DEBUG: Python output: $nested_json" >&2
+            fi
+            # Validate flat JSON again before returning it (if jq available)
+            local is_valid_flat=false
+            if [[ "$DEP_JQ_AVAILABLE" == "true" ]]; then
+                if echo "$flat_json" | jq . >/dev/null 2>&1; then
+                    is_valid_flat=true
+                fi
+            else
+                # Without jq, assume flat JSON is valid if non-empty
+                if [[ -n "$flat_json" && "$flat_json" != "{}" ]]; then
+                    is_valid_flat=true
+                fi
+            fi
+            
+            if [[ "$is_valid_flat" == "true" ]]; then
+                echo "$flat_json"
+            else
+                echo "ERROR: Both nested and flat JSON structures are invalid: $toml_file" >&2
+                echo "{}"
+                return 5  # Critical parse failure
+            fi
         fi
     else
-        # Fallback to flat structure
-        echo "$flat_json"
+        echo "WARNING: Python3 not available for TOML nesting, using flat structure: $toml_file" >&2
+        # Validate flat JSON before returning (if jq available)
+        local is_valid_flat=false
+        if [[ "$DEP_JQ_AVAILABLE" == "true" ]]; then
+            if echo "$flat_json" | jq . >/dev/null 2>&1; then
+                is_valid_flat=true
+            fi
+        else
+            # Without jq, basic validation - assume valid if non-empty and not just {}
+            if [[ -n "$flat_json" && "$flat_json" != "{}" ]]; then
+                is_valid_flat=true
+            fi
+        fi
+        
+        if [[ "$is_valid_flat" == "true" ]]; then
+            echo "$flat_json"
+        else
+            echo "ERROR: Generated invalid flat JSON without jq validation: $toml_file" >&2
+            echo "{}"
+            return 6  # Flat JSON invalid
+        fi
     fi
 }
 
@@ -730,6 +1121,15 @@ discover_config_file() {
 
 # Load configuration from TOML file and set variables
 load_toml_configuration() {
+    # Check if jq is available for TOML configuration
+    if [[ "$DEP_JQ_AVAILABLE" != "true" ]]; then
+        echo "WARNING: jq not available - TOML configuration disabled, using inline configuration" >&2
+        echo "Install jq to enable TOML configuration support:" >&2
+        echo "  Ubuntu/Debian: sudo apt-get install jq" >&2  
+        echo "  macOS: brew install jq" >&2
+        return 0  # Continue with inline configuration
+    fi
+    
     local config_file
     
     # Try to find config file
@@ -748,6 +1148,16 @@ load_toml_configuration() {
                 if [[ "$config_json" == "{}" ]]; then
                     echo "Warning: Empty config file, using defaults" >&2
                     return 1
+                fi
+                
+                # Validate TOML configuration schema (if jq is available)
+                if [[ "$DEP_JQ_AVAILABLE" == "true" ]]; then
+                    echo "🔍 Validating TOML configuration schema..." >&2
+                    if ! validate_toml_schema "$config_json"; then
+                        echo "⚠️ Configuration schema validation failed, but continuing with available settings" >&2
+                    fi
+                else
+                    echo "🔍 Skipping TOML schema validation (jq not available)" >&2
                 fi
                 ;;
             1)
@@ -885,38 +1295,61 @@ load_toml_configuration() {
         
         # Apply custom theme colors if theme is custom (using pre-extracted values)
         if [[ "$CONFIG_THEME" == "custom" ]]; then
+            echo "🎨 Validating custom theme colors..." >&2
+            local color_validation_errors=0
+            
             while IFS='=' read -r key value; do
                 case "$key" in
                     color_*)
                         if [[ "$value" != "null" && "$value" != "" ]]; then
-                            case "$key" in
-                                color_red) CONFIG_RED="$value" ;;
-                                color_blue) CONFIG_BLUE="$value" ;;
-                                color_green) CONFIG_GREEN="$value" ;;
-                                color_yellow) CONFIG_YELLOW="$value" ;;
-                                color_magenta) CONFIG_MAGENTA="$value" ;;
-                                color_cyan) CONFIG_CYAN="$value" ;;
-                                color_white) CONFIG_WHITE="$value" ;;
-                                color_orange) CONFIG_ORANGE="$value" ;;
-                                color_light_orange) CONFIG_LIGHT_ORANGE="$value" ;;
-                                color_light_gray) CONFIG_LIGHT_GRAY="$value" ;;
-                                color_bright_green) CONFIG_BRIGHT_GREEN="$value" ;;
-                                color_purple) CONFIG_PURPLE="$value" ;;
-                                color_teal) CONFIG_TEAL="$value" ;;
-                                color_gold) CONFIG_GOLD="$value" ;;
-                                color_pink_bright) CONFIG_PINK_BRIGHT="$value" ;;
-                                color_indigo) CONFIG_INDIGO="$value" ;;
-                                color_violet) CONFIG_VIOLET="$value" ;;
-                                color_light_blue) CONFIG_LIGHT_BLUE="$value" ;;
-                                color_dim) CONFIG_DIM="$value" ;;
-                                color_italic) CONFIG_ITALIC="$value" ;;
-                                color_strikethrough) CONFIG_STRIKETHROUGH="$value" ;;
-                                color_reset) CONFIG_RESET="$value" ;;
-                            esac
+                            # Extract color name for validation messages
+                            local color_name="${key#color_}"  # Remove color_ prefix
+                            
+                            # Validate ANSI color code before applying
+                            if validate_ansi_color "$value" "$color_name"; then
+                                # Color is valid, apply it
+                                case "$key" in
+                                    color_red) CONFIG_RED="$value" ;;
+                                    color_blue) CONFIG_BLUE="$value" ;;
+                                    color_green) CONFIG_GREEN="$value" ;;
+                                    color_yellow) CONFIG_YELLOW="$value" ;;
+                                    color_magenta) CONFIG_MAGENTA="$value" ;;
+                                    color_cyan) CONFIG_CYAN="$value" ;;
+                                    color_white) CONFIG_WHITE="$value" ;;
+                                    color_orange) CONFIG_ORANGE="$value" ;;
+                                    color_light_orange) CONFIG_LIGHT_ORANGE="$value" ;;
+                                    color_light_gray) CONFIG_LIGHT_GRAY="$value" ;;
+                                    color_bright_green) CONFIG_BRIGHT_GREEN="$value" ;;
+                                    color_purple) CONFIG_PURPLE="$value" ;;
+                                    color_teal) CONFIG_TEAL="$value" ;;
+                                    color_gold) CONFIG_GOLD="$value" ;;
+                                    color_pink_bright) CONFIG_PINK_BRIGHT="$value" ;;
+                                    color_indigo) CONFIG_INDIGO="$value" ;;
+                                    color_violet) CONFIG_VIOLET="$value" ;;
+                                    color_light_blue) CONFIG_LIGHT_BLUE="$value" ;;
+                                    color_dim) CONFIG_DIM="$value" ;;
+                                    color_italic) CONFIG_ITALIC="$value" ;;
+                                    color_strikethrough) CONFIG_STRIKETHROUGH="$value" ;;
+                                    color_reset) CONFIG_RESET="$value" ;;
+                                    *) echo "WARNING: Unknown color key '$key' ignored" >&2 ;;
+                                esac
+                                echo "  ✅ $color_name: $value" >&2
+                            else
+                                # Color validation failed, keep default and increment error count
+                                ((color_validation_errors++))
+                                echo "  ❌ $color_name: $value (keeping default)" >&2
+                            fi
                         fi
                         ;;
                 esac
             done <<< "$config_data"
+            
+            # Report validation summary
+            if [[ $color_validation_errors -gt 0 ]]; then
+                echo "⚠️ Custom theme validation completed with $color_validation_errors errors - invalid colors use defaults" >&2
+            else
+                echo "✅ Custom theme validation completed successfully - all colors valid" >&2
+            fi
         fi
         
         # Apply all remaining config values using pre-extracted data
@@ -1098,17 +1531,33 @@ load_toml_configuration() {
 apply_theme_inheritance() {
     local config_json="$1"
     
-    # Check if theme inheritance is enabled
-    local inheritance_enabled
-    inheritance_enabled=$(echo "$config_json" | jq -r '.theme.inheritance.enabled // false' 2>/dev/null)
+    # Extract all theme inheritance settings in single jq operation
+    local inheritance_data
+    inheritance_data=$(echo "$config_json" | jq -r '{
+        enabled: (.theme.inheritance.enabled // false),
+        base_theme: (.theme.inheritance.base_theme // ""),
+        merge_strategy: (.theme.inheritance.merge_strategy // "override"),
+        override_colors: [(.theme.inheritance.override_colors[]? // empty)]
+    } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
+    
+    if [[ -z "$inheritance_data" ]]; then
+        return 0  # No inheritance data, use regular theme system
+    fi
+    
+    # Parse extracted inheritance settings
+    local inheritance_enabled base_theme merge_strategy override_colors
+    while IFS='=' read -r key value; do
+        case "$key" in
+            "enabled") inheritance_enabled="$value" ;;
+            "base_theme") base_theme="$value" ;;
+            "merge_strategy") merge_strategy="$value" ;;
+            "override_colors") override_colors="$value" ;;
+        esac
+    done <<< "$inheritance_data"
     
     if [[ "$inheritance_enabled" != "true" ]]; then
         return 0  # No inheritance, use regular theme system
     fi
-    
-    local base_theme merge_strategy
-    base_theme=$(echo "$config_json" | jq -r '.theme.inheritance.base_theme // ""' 2>/dev/null)
-    merge_strategy=$(echo "$config_json" | jq -r '.theme.inheritance.merge_strategy // "override"' 2>/dev/null)
     
     if [[ -z "$base_theme" || "$base_theme" == "null" || "$base_theme" == "" ]]; then
         echo "Theme inheritance enabled but no base_theme specified" >&2
@@ -1134,18 +1583,23 @@ apply_theme_inheritance() {
     
     # Apply color overrides based on merge strategy
     if [[ "$merge_strategy" == "override" ]]; then
-        # Override only specified colors, keep base theme for others
-        local override_colors
-        override_colors=$(echo "$config_json" | jq -r '.theme.inheritance.override_colors[]?' 2>/dev/null)
-        
-        if [[ -n "$override_colors" ]]; then
+        # Extract all color values in a single jq operation for better performance
+        if [[ "$override_colors" != "[]" && -n "$override_colors" ]]; then
             echo "Overriding specific colors from custom theme..." >&2
-            while IFS= read -r color_name; do
-                [[ -z "$color_name" ]] && continue
-                
-                local color_value
-                # Try nested structure first, then flat
-                color_value=$(echo "$config_json" | jq -r ".colors.basic.$color_name // .colors.extended.$color_name // .colors.$color_name // empty" 2>/dev/null)
+            
+            # Get all override color values in one jq call
+            local color_values
+            color_values=$(echo "$config_json" | jq -r '
+                (.theme.inheritance.override_colors[]? // empty) as $color_name |
+                {
+                    color_name: $color_name,
+                    color_value: (.colors.basic[$color_name] // .colors.extended[$color_name] // .colors[$color_name] // empty)
+                } | select(.color_value != null and .color_value != "") | 
+                "\(.color_name)=\(.color_value)"' 2>/dev/null)
+            
+            # Apply the color overrides
+            while IFS='=' read -r color_name color_value; do
+                [[ -z "$color_name" || -z "$color_value" ]] && continue
                 
                 if [[ -n "$color_value" && "$color_value" != "null" ]]; then
                     case "$color_name" in
@@ -1189,30 +1643,49 @@ apply_theme_inheritance() {
 apply_configuration_profile() {
     local config_json="$1"
     
-    # Check if profiles are enabled
-    local profiles_enabled auto_switch default_profile
-    profiles_enabled=$(echo "$config_json" | jq -r '.profiles.enabled // false' 2>/dev/null)
+    # Extract all profile settings in single jq operation for better performance
+    local profile_data
+    profile_data=$(echo "$config_json" | jq -r '{
+        profiles_enabled: (.profiles.enabled // false),
+        auto_switch: (.profiles.auto_switch // true),
+        default_profile: (.profiles.default_profile // "default"),
+        work_hours_enabled: (.conditional.work_hours.enabled // false),
+        start_time: (.conditional.work_hours.start_time // "09:00"),
+        end_time: (.conditional.work_hours.end_time // "17:00"),
+        work_profile: (.conditional.work_hours.work_profile // "work"),
+        off_hours_profile: (.conditional.work_hours.off_hours_profile // "personal")
+    } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
+    
+    if [[ -z "$profile_data" ]]; then
+        return 0  # No profile data, use regular configuration
+    fi
+    
+    # Parse extracted profile settings
+    local profiles_enabled auto_switch default_profile work_hours_enabled
+    local start_time end_time work_profile off_hours_profile
+    while IFS='=' read -r key value; do
+        case "$key" in
+            "profiles_enabled") profiles_enabled="$value" ;;
+            "auto_switch") auto_switch="$value" ;;
+            "default_profile") default_profile="$value" ;;
+            "work_hours_enabled") work_hours_enabled="$value" ;;
+            "start_time") start_time="$value" ;;
+            "end_time") end_time="$value" ;;
+            "work_profile") work_profile="$value" ;;
+            "off_hours_profile") off_hours_profile="$value" ;;
+        esac
+    done <<< "$profile_data"
     
     if [[ "$profiles_enabled" != "true" ]]; then
         return 0  # No profiles, use regular configuration
     fi
-    
-    auto_switch=$(echo "$config_json" | jq -r '.profiles.auto_switch // true' 2>/dev/null)
-    default_profile=$(echo "$config_json" | jq -r '.profiles.default_profile // "default"' 2>/dev/null)
     
     local active_profile="$default_profile"
     
     # Auto-detect profile if enabled
     if [[ "$auto_switch" == "true" ]]; then
         # Check work hours
-        local work_hours_enabled start_time end_time current_hour work_profile off_hours_profile
-        work_hours_enabled=$(echo "$config_json" | jq -r '.conditional.work_hours.enabled // false' 2>/dev/null)
-        
         if [[ "$work_hours_enabled" == "true" ]]; then
-            start_time=$(echo "$config_json" | jq -r '.conditional.work_hours.start_time // "09:00"' 2>/dev/null)
-            end_time=$(echo "$config_json" | jq -r '.conditional.work_hours.end_time // "17:00"' 2>/dev/null)
-            work_profile=$(echo "$config_json" | jq -r '.conditional.work_hours.work_profile // "work"' 2>/dev/null)
-            off_hours_profile=$(echo "$config_json" | jq -r '.conditional.work_hours.off_hours_profile // "personal"' 2>/dev/null)
             
             current_hour=$(date +%H)
             local start_hour="${start_time%%:*}"
@@ -1231,12 +1704,25 @@ apply_configuration_profile() {
     # Apply profile configuration
     echo "Applying configuration profile: $active_profile" >&2
     
-    # Override configuration with profile-specific values
+    # Extract profile-specific values in single jq operation
+    local profile_settings
+    profile_settings=$(echo "$config_json" | jq -r --arg profile "$active_profile" '{
+        theme: (.profiles[$profile].theme // empty),
+        show_cost_tracking: (.profiles[$profile].show_cost_tracking // empty),
+        show_reset_info: (.profiles[$profile].show_reset_info // empty),
+        mcp_timeout: (.profiles[$profile].mcp_timeout // empty)
+    } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
+    
+    # Parse extracted profile settings
     local profile_theme profile_show_cost_tracking profile_show_reset_info profile_mcp_timeout
-    profile_theme=$(echo "$config_json" | jq -r ".profiles.$active_profile.theme // empty" 2>/dev/null)
-    profile_show_cost_tracking=$(echo "$config_json" | jq -r ".profiles.$active_profile.show_cost_tracking // empty" 2>/dev/null)
-    profile_show_reset_info=$(echo "$config_json" | jq -r ".profiles.$active_profile.show_reset_info // empty" 2>/dev/null)
-    profile_mcp_timeout=$(echo "$config_json" | jq -r ".profiles.$active_profile.mcp_timeout // empty" 2>/dev/null)
+    while IFS='=' read -r key value; do
+        case "$key" in
+            "theme") profile_theme="$value" ;;
+            "show_cost_tracking") profile_show_cost_tracking="$value" ;;
+            "show_reset_info") profile_show_reset_info="$value" ;;
+            "mcp_timeout") profile_mcp_timeout="$value" ;;
+        esac
+    done <<< "$profile_settings"
     
     # Apply profile overrides
     [[ -n "$profile_theme" && "$profile_theme" != "null" ]] && CONFIG_THEME="$profile_theme"
@@ -1254,16 +1740,26 @@ apply_configuration_profile() {
 initialize_plugin_system() {
     local config_json="$1"
     
-    # Check if plugin system is enabled
+    # Extract plugin settings in single jq operation for better performance
+    local plugin_data
+    plugin_data=$(echo "$config_json" | jq -r '{
+        enabled: (.plugins.enabled // false),
+        auto_discovery: (.plugins.auto_discovery // true)
+    } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
+    
+    # Parse extracted plugin settings
     local plugins_enabled auto_discovery
-    plugins_enabled=$(echo "$config_json" | jq -r '.plugins.enabled // false' 2>/dev/null)
+    while IFS='=' read -r key value; do
+        case "$key" in
+            "enabled") plugins_enabled="$value" ;;
+            "auto_discovery") auto_discovery="$value" ;;
+        esac
+    done <<< "$plugin_data"
     
     if [[ "$plugins_enabled" != "true" ]]; then
         export PLUGINS_ENABLED=false
         return 0
     fi
-    
-    auto_discovery=$(echo "$config_json" | jq -r '.plugins.auto_discovery // true' 2>/dev/null)
     export PLUGINS_ENABLED=true
     export PLUGIN_AUTO_DISCOVERY="$auto_discovery"
     
@@ -1767,7 +2263,7 @@ test_config_parsing() {
     # Test specific critical values
     echo "🔍 Testing critical configuration values..."
     local theme_name
-    theme_name=$(echo "$config_json" | jq -r '.theme.name // "missing"' 2>/dev/null)
+    theme_name=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"' 2>/dev/null)
     case "$theme_name" in
         "classic"|"garden"|"catppuccin"|"custom") echo "  ✅ Theme: $theme_name" ;;
         "missing") echo "  ❌ Theme name missing" ; return 1 ;;
@@ -1835,10 +2331,10 @@ compare_configurations() {
         local config_json
         if config_json=$(parse_toml_to_json "$config_file" 2>/dev/null); then
             local toml_theme toml_show_commits toml_show_version toml_mcp_timeout
-            toml_theme=$(echo "$config_json" | jq -r '.theme.name // "default"' 2>/dev/null)
-            toml_show_commits=$(echo "$config_json" | jq -r '.features.show_commits // "default"' 2>/dev/null)
-            toml_show_version=$(echo "$config_json" | jq -r '.features.show_version // "default"' 2>/dev/null) 
-            toml_mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "default"' 2>/dev/null)
+            toml_theme=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"' 2>/dev/null)
+            toml_show_commits=$(echo "$config_json" | jq -r '.features.show_commits // true' 2>/dev/null)
+            toml_show_version=$(echo "$config_json" | jq -r '.features.show_version // true' 2>/dev/null) 
+            toml_mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "3s"' 2>/dev/null)
             
             echo "  Theme: $toml_theme"
             echo "  Show commits: $toml_show_commits"
