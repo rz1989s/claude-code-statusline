@@ -443,7 +443,8 @@ create_secure_cache_file() {
         # Verify final result
         if [[ $write_status -eq 0 && -f "$cache_file" ]]; then
             # Verify permissions were set correctly
-            local perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
+            local perms
+            perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
             if [[ "$perms" != "644" ]]; then
                 echo "WARNING: Cache file has unexpected permissions: $perms (expected: 644)" >&2
                 # Try to fix permissions
@@ -760,9 +761,12 @@ validate_dependencies() {
     fi
     
     # Export dependency availability for use in other functions
-    export DEP_BC_AVAILABLE=$(command -v bc >/dev/null 2>&1 && echo "true" || echo "false")
-    export DEP_PYTHON3_AVAILABLE=$(command -v python3 >/dev/null 2>&1 && echo "true" || echo "false")
-    export DEP_BUNX_AVAILABLE=$(command -v bunx >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_BC_AVAILABLE
+    DEP_BC_AVAILABLE=$(command -v bc >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_PYTHON3_AVAILABLE
+    DEP_PYTHON3_AVAILABLE=$(command -v python3 >/dev/null 2>&1 && echo "true" || echo "false")
+    export DEP_BUNX_AVAILABLE
+    DEP_BUNX_AVAILABLE=$(command -v bunx >/dev/null 2>&1 && echo "true" || echo "false")
     export DEP_TIMEOUT_AVAILABLE="false"
     if command -v gtimeout >/dev/null 2>&1; then
         export DEP_TIMEOUT_CMD="gtimeout"
@@ -3108,7 +3112,7 @@ current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 
 # Navigate to the directory
-cd "$current_dir" 2>/dev/null || cd ~
+cd "$current_dir" 2>/dev/null || cd ~ || return 1
 
 # Get basic info - convert full path to use ~ notation
 if [[ "$current_dir" == "$HOME"/* ]]; then
