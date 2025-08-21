@@ -314,16 +314,60 @@ npm install -g bunx ccusage
 
 ### 📦 Installation Methods
 
-#### Method 1: Automated Install Script (Recommended)
+#### Method 1: Enhanced Automated Installer (Recommended)
+
+Our new intelligent installer provides comprehensive dependency management and user choice:
 
 ```bash
-# Download and run the automated installer
+# Standard installation (minimal dependency check)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# Or download and inspect before running
+# Enhanced mode - shows all 6 dependencies with feature impact
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+
+# Interactive mode - gives you installation choices
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+
+# Full analysis with user menu
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+```
+
+<details>
+<summary><strong>🔍 Enhanced Installer Features</strong></summary>
+
+**Smart System Detection:**
+- Automatically detects your OS and package manager (brew, apt, yum, dnf, pacman)
+- Provides platform-specific installation commands
+
+**Comprehensive Dependency Analysis:**
+- `curl` + `jq` → Core installation and configuration
+- `bun/bunx` → Cost tracking with ccusage integration  
+- `bc` → Precise cost calculations
+- `python3` → Advanced TOML features and date parsing
+- `timeout/gtimeout` → Network operation protection
+
+**User-Friendly Options:**
+- **Install now, upgrade later** - Get 67-100% functionality immediately
+- **Show commands only** - Copy-paste exact commands for your system
+- **Exit to install manually** - For users who prefer full control
+
+**No Package Manager? No Problem:**
+- Homebrew installation guidance for macOS users
+- Manual installation instructions for restricted environments
+
+</details>
+
+**Quick Download & Inspect:**
+```bash
+# Download and inspect before running
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
 chmod +x install.sh
-./install.sh
+
+# See all available options
+./install.sh --help
+
+# Run with your preferred mode
+./install.sh --check-all-deps --interactive
 ```
 
 #### Method 2: GNU Stow Integration
@@ -360,7 +404,12 @@ mv statusline.sh ~/.claude/statusline/
 # "statusLine": {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}
 ```
 
-> 💡 **Why use the Automated Installer?** The install script automatically handles JSON configuration, dependency checking, and verification - no manual editing of settings.json required!
+> 💡 **Why use the Enhanced Installer?** 
+> - **Smart dependency analysis** - Know exactly what features you'll get
+> - **Platform-aware guidance** - Tailored commands for your system  
+> - **Zero manual JSON editing** - Automatic settings.json configuration
+> - **User choice** - Install now or install dependencies first
+> - **Backward compatible** - Existing workflow unchanged
 
 ### ✅ Verification
 

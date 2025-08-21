@@ -51,10 +51,37 @@ ENV_CONFIG_THEME=catppuccin ./statusline.sh    # Test catppuccin theme
 ```
 
 ### Installation and Setup
+
+**Enhanced Automated Installer (v1.3.0+)**
 ```bash
-# Automated installation
+# Standard installation (backward compatible)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
+# Enhanced dependency analysis mode
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+
+# Interactive installation with user choices
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+
+# Full experience: comprehensive analysis + user menu
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+
+# Download and inspect installer first
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh --help                           # See all installer options
+./install.sh --check-all-deps --interactive   # Run with preferred settings
+```
+
+**Installation Modes:**
+- `--check-all-deps`: Shows all 6 dependencies with feature impact analysis
+- `--interactive`: Provides user choice menu (install now vs install deps first)
+- `--minimal`: Original behavior (curl + jq dependency check only)
+- `--skip-deps`: Skip all dependency checks (install anyway)
+- `--help`: Complete installer documentation
+
+**Manual Testing & Configuration**
+```bash
 # Manual testing
 ./statusline.sh --help                         # Complete help documentation
 ./statusline.sh --help config                  # Configuration-specific help

@@ -1,33 +1,151 @@
 # 📦 Installation Guide
 
-**Complete installation instructions for Claude Code Enhanced Statusline with enterprise-grade TOML configuration system.**
+**Complete installation instructions for Claude Code Enhanced Statusline with enterprise-grade TOML configuration system and intelligent dependency management.**
 
-Get up and running with beautiful statuslines and powerful configuration management across all supported platforms.
+Get up and running with beautiful statuslines and powerful configuration management across all supported platforms. Our new **Enhanced Automated Installer** provides smart dependency analysis and user-friendly installation choices.
 
 ## 🎯 Platform Support Matrix
 
-| Platform | Status | Package Manager | Dependencies |
-|----------|---------|-----------------|--------------|
-| macOS | ✅ Full Support | Homebrew | `jq` + `coreutils` + `bunx ccusage` |
-| Linux (Ubuntu/Debian) | ✅ Full Support | apt | `jq` + `bunx ccusage` |
-| Linux (RHEL/CentOS/Fedora) | ✅ Full Support | yum/dnf | `jq` + `bunx ccusage` |
-| Linux (Arch) | ✅ Full Support | pacman | `jq` + `bunx ccusage` |
-| Windows WSL | ✅ Full Support | apt/WSL | `jq` + `bunx ccusage` |
+| Platform | Status | Package Manager | Dependencies (Auto-Detected) |
+|----------|---------|-----------------|------------------------------|
+| macOS | ✅ Full Support | Homebrew | `curl` `jq` `bun` `bc` `python3` `coreutils` |
+| Linux (Ubuntu/Debian) | ✅ Full Support | apt | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
+| Linux (RHEL/CentOS/Fedora) | ✅ Full Support | yum/dnf | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
+| Linux (Arch) | ✅ Full Support | pacman | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
+| Alpine Linux | ✅ Full Support | apk | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
+| FreeBSD | ✅ Full Support | pkg | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
+| Windows WSL | ✅ Full Support | apt/WSL | Same as Linux distributions |
 | Windows Native | ❌ Not Supported | N/A | Bash script incompatible |
 
-## 📋 Prerequisites
+**Dependency Impact:**
+- **Critical:** `curl` (installation) + `jq` (configuration) → 100% required
+- **Important:** `bun/bunx` (cost tracking with ccusage) → 83% functionality without
+- **Helpful:** `bc` (precise calculations) + `python3` (advanced TOML) → 67% functionality without  
+- **Optional:** `timeout/gtimeout` (network protection) → 50% functionality without
 
-### Node.js and npm
-All platforms need Node.js for `bunx ccusage`:
+## 🚀 Enhanced Automated Installer (Recommended)
+
+**Our intelligent installer automatically detects your system, analyzes dependencies, and provides tailored installation guidance.**
+
+### Quick Installation
 
 ```bash
-# Check if already installed
-node --version && npm --version
+# Standard installation (backward compatible)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# If not installed, visit: https://nodejs.org/
-# Or use package managers:
+# Enhanced mode - comprehensive dependency analysis
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+
+# Interactive mode - user choice menu
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+
+# Full experience - analysis + choices
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+```
+
+### Download & Inspect First
+
+```bash
+# Download installer for inspection
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+chmod +x install.sh
+
+# See all options
+./install.sh --help
+
+# Run with preferred options
+./install.sh --check-all-deps --interactive
+```
+
+### Enhanced Installer Features
+
+**🔍 Smart System Detection:**
+- Automatically detects OS (macOS, Ubuntu, CentOS, Arch, Alpine, FreeBSD)
+- Identifies package manager (brew, apt, yum, dnf, pacman, apk, pkg)
+- Provides platform-specific installation commands
+
+**📊 Comprehensive Dependency Analysis:**
+```
+  ✅ curl     → Download & installation
+  ✅ jq       → Configuration & JSON parsing  
+  ❌ bunx     → Cost tracking with ccusage
+  ❌ bc       → Precise cost calculations
+  ❌ python3  → Advanced TOML features & date parsing
+  ⚠️ timeout  → Network operation protection
+
+  📊 Available Features: 4/6 (67% functionality)
+```
+
+**🎯 User-Friendly Installation Choices:**
+1. **Install now, upgrade later** - Get 67-100% functionality immediately
+2. **Show install commands only** - Copy-paste exact commands for your system  
+3. **Exit to install manually** - For users who prefer full control
+
+**💻 No Package Manager Handling:**
+- **macOS without Homebrew:** Step-by-step Homebrew installation guidance
+- **Restricted environments:** Manual installation instructions
+- **Corporate networks:** Offline installation bundle guidance
+
+### Example Installation Flows
+
+**New macOS User (no dependencies):**
+```bash
+./install.sh --check-all-deps --interactive
+
+# Output:
+# 🔍 System Analysis:
+#   • OS: macOS (arm64)  
+#   • Package Manager: none
+#
+# ❌ No package manager detected on macOS
+# Step 1: Install Homebrew first
+# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Step 2: Then install dependencies  
+# brew install bun python3 bc jq coreutils
+```
+
+**Ubuntu Developer (some dependencies):**
+```bash
+./install.sh --check-all-deps --interactive
+
+# 🎯 Choose your installation approach:
+# 1) Install statusline now, upgrade dependencies later
+#    └─ 67% functionality, can upgrade anytime
+# 2) Show install commands only (copy-paste)  
+# 3) Exit to install dependencies manually first
+```
+
+---
+
+## 📋 Manual Installation Methods
+
+**Note:** The Enhanced Automated Installer above is recommended for most users. The manual methods below are provided for advanced users, restricted environments, or educational purposes.
+
+### Prerequisites (Manual Installation Only)
+
+The Enhanced Automated Installer handles these automatically, but for manual installation:
+
+#### Node.js and Bun (for cost tracking)
+```bash
+# Check if already installed
+node --version && bun --version
+
+# Install Node.js if not available
 # macOS: brew install node
 # Ubuntu: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs
+
+# Install Bun (for ccusage cost tracking)
+curl -fsSL https://bun.sh/install | bash
+```
+
+#### Core Dependencies
+```bash
+# The Enhanced Installer detects and installs these automatically:
+# - curl (for downloads)
+# - jq (for JSON/TOML processing)  
+# - bc (for precise calculations)
+# - python3 (for advanced TOML features)
+# - timeout/gtimeout (for network protection)
 ```
 
 ## 🍎 macOS Installation
