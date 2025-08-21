@@ -7,6 +7,7 @@ Master the powerful CLI tools that make TOML configuration management effortless
 ## 🚀 **Overview**
 
 The enhanced statusline provides a rich command-line interface for:
+
 - **Configuration Generation** - Create TOML files from current settings
 - **Testing & Validation** - Verify configuration syntax and functionality  
 - **Live Management** - Interactive configuration management and reloading
@@ -40,11 +41,13 @@ The enhanced statusline provides a rich command-line interface for:
 **Purpose**: Generate TOML configuration file from current inline settings.
 
 **Syntax**:
+
 ```bash
 ./statusline.sh --generate-config [filename]
 ```
 
 **Examples**:
+
 ```bash
 # Generate Config.toml in current directory
 ./statusline.sh --generate-config
@@ -60,12 +63,14 @@ The enhanced statusline provides a rich command-line interface for:
 ```
 
 **Output**:
+
 - Creates TOML file with all current configuration settings
 - Preserves inline customizations in structured format
 - Includes comments explaining each section
 - Sets appropriate file permissions (644)
 
 **Error Handling**:
+
 - Creates parent directories if they don't exist
 - Reports permission errors with helpful solutions
 - Validates generated TOML syntax before writing
@@ -79,11 +84,13 @@ The enhanced statusline provides a rich command-line interface for:
 **Purpose**: Test configuration file loading and functionality.
 
 **Syntax**:
+
 ```bash
 ./statusline.sh --test-config [filename]
 ```
 
 **Examples**:
+
 ```bash
 # Test current configuration (auto-discovery)
 ./statusline.sh --test-config
@@ -96,6 +103,7 @@ The enhanced statusline provides a rich command-line interface for:
 ```
 
 **Output**:
+
 ```
 ✅ Configuration loaded successfully
 Theme: catppuccin
@@ -108,6 +116,7 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 **Purpose**: Detailed testing with comprehensive diagnostic information.
 
 **Examples**:
+
 ```bash
 # Verbose testing of current configuration
 ./statusline.sh --test-config-verbose
@@ -117,6 +126,7 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 ```
 
 **Output**:
+
 ```
 🔍 Configuration Discovery:
   Checking ./Config.toml ... ✅ Found
@@ -150,6 +160,7 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 **Purpose**: Validate TOML syntax without running full tests.
 
 **Examples**:
+
 ```bash
 # Validate current configuration
 ./statusline.sh --validate-config
@@ -159,6 +170,7 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 ```
 
 **Output**:
+
 ```
 ✅ Configuration validation passed
 📊 Statistics:
@@ -169,6 +181,7 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 ```
 
 **Error Output**:
+
 ```
 ❌ Configuration validation failed
 🐛 Errors found:
@@ -191,11 +204,13 @@ Timeouts: mcp=3s, version=2s, ccusage=3s
 **Purpose**: Compare inline configuration with TOML configuration.
 
 **Syntax**:
+
 ```bash
 ./statusline.sh --compare-config
 ```
 
 **Output**:
+
 ```
 📋 Configuration Comparison:
 
@@ -218,6 +233,7 @@ TOML Configuration (active):
 ```
 
 **Use Cases**:
+
 - Verify migration from inline to TOML
 - Debug configuration conflicts
 - Understand which settings are active
@@ -231,6 +247,7 @@ TOML Configuration (active):
 **Purpose**: Reload configuration without restarting statusline.
 
 **Examples**:
+
 ```bash
 # Reload current configuration
 ./statusline.sh --reload-config
@@ -245,11 +262,13 @@ vim Config.toml  # Make changes
 **Purpose**: Interactive configuration management menu.
 
 **Example**:
+
 ```bash
 ./statusline.sh --reload-interactive
 ```
 
 **Interactive Menu**:
+
 ```
 🎛️  Claude Code Statusline - Interactive Configuration
 
@@ -274,6 +293,7 @@ Select option (1-8): _
 **Purpose**: Watch configuration file for changes and auto-reload.
 
 **Examples**:
+
 ```bash
 # Watch with default 3-second interval
 ./statusline.sh --watch-config
@@ -286,6 +306,7 @@ Select option (1-8): _
 ```
 
 **Output**:
+
 ```
 👀 Watching configuration file: ./Config.toml
 ⏱️  Check interval: 3 seconds
@@ -307,6 +328,7 @@ Select option (1-8): _
 **Purpose**: Backup current configuration to specified directory.
 
 **Examples**:
+
 ```bash
 # Backup to directory with timestamp
 ./statusline.sh --backup-config backups/
@@ -316,6 +338,7 @@ Select option (1-8): _
 ```
 
 **Output**:
+
 ```
 💾 Backing up configuration...
 
@@ -334,6 +357,7 @@ Select option (1-8): _
 **Purpose**: Restore configuration from backup directory.
 
 **Examples**:
+
 ```bash
 # Restore from backup
 ./statusline.sh --restore-config backups/20240819_143022/
@@ -344,6 +368,7 @@ ls backups/
 ```
 
 **Interactive Restore**:
+
 ```
 🔄 Configuration Restore
 
@@ -370,6 +395,7 @@ Continue with restore? [y/N]: y
 ### Environment Variable Testing
 
 **Test Environment Overrides**:
+
 ```bash
 # Test theme override
 ENV_CONFIG_THEME=garden ./statusline.sh --test-config
@@ -385,6 +411,7 @@ ENV_CONFIG_MCP_TIMEOUT=1s \
 ```
 
 **Environment Override Validation**:
+
 ```bash
 # Show which environment variables would override TOML
 ENV_CONFIG_THEME=garden ./statusline.sh --test-config-verbose
@@ -403,6 +430,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config-verbose
 **Purpose**: Display comprehensive help information.
 
 **Examples**:
+
 ```bash
 # General help
 ./statusline.sh --help
@@ -418,6 +446,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config-verbose
 ```
 
 **Output Structure**:
+
 ```
 🎨 Claude Code Enhanced Statusline - Help
 
@@ -486,12 +515,14 @@ For more detailed help: ./statusline.sh --help <topic>
 **Purpose**: Run statusline without diagnostic messages for clean output.
 
 **Use Cases**:
+
 - **Production environments** - Clean output without debug information
 - **Script integration** - When statusline is part of automation
 - **CI/CD pipelines** - Reduced noise in build outputs
 - **Background processing** - Silent operation
 
 **Examples**:
+
 ```bash
 # Run with quiet mode (full syntax)
 ./statusline.sh --quiet
@@ -509,6 +540,7 @@ For more detailed help: ./statusline.sh --help <topic>
 ```
 
 **What Gets Suppressed**:
+
 - Configuration loading messages
 - TOML validation warnings  
 - Schema validation output
@@ -516,11 +548,13 @@ For more detailed help: ./statusline.sh --help <topic>
 - Debug output from parsing operations
 
 **What Remains Visible**:
+
 - The 4-line statusline output (unchanged)
 - Critical error messages that affect functionality
 - User-requested help or validation output
 
 **Comparison**:
+
 ```bash
 # Normal mode (with diagnostic messages)
 $ ./statusline.sh
@@ -535,6 +569,7 @@ $ ./statusline.sh --quiet
 ```
 
 **Best Practices**:
+
 - Use quiet mode in production Claude Code settings
 - Combine with specific configurations: `ENV_CONFIG_THEME=classic ./statusline.sh --quiet`
 - Test both modes during development to ensure functionality
@@ -544,6 +579,7 @@ $ ./statusline.sh --quiet
 **Purpose**: Display version and system information.
 
 **Output**:
+
 ```
 🎨 Claude Code Enhanced Statusline
 
@@ -585,6 +621,7 @@ Configuration:
 ### Command Chaining
 
 **Chain Multiple Commands**:
+
 ```bash
 # Generate, test, and backup in sequence
 ./statusline.sh --generate-config && \
@@ -600,6 +637,7 @@ Configuration:
 ### Scripting Integration
 
 **Example Integration Script**:
+
 ```bash
 #!/bin/bash
 # statusline-setup.sh - Automated statusline configuration
@@ -642,6 +680,7 @@ echo "🚀 Statusline setup completed successfully!"
 ### Exit Codes
 
 **Standard Exit Codes**:
+
 - `0` - Success
 - `1` - General error  
 - `2` - Configuration syntax error
@@ -651,6 +690,7 @@ echo "🚀 Statusline setup completed successfully!"
 - `6` - Validation failed
 
 **Example Usage**:
+
 ```bash
 # Check exit code in scripts
 if ./statusline.sh --test-config; then
@@ -737,26 +777,32 @@ cp examples/sample-configs/minimal-config.toml Config.toml
 ## 🔍 **Command Reference Quick Index**
 
 ### Configuration Generation
+
 - `--generate-config [filename]` - Generate TOML from inline settings
 
 ### Testing & Validation  
+
 - `--test-config [filename]` - Test configuration loading
 - `--test-config-verbose [filename]` - Detailed configuration testing
 - `--validate-config [filename]` - Validate TOML syntax
 
 ### Comparison & Analysis
+
 - `--compare-config` - Compare inline vs TOML configuration
 
 ### Live Management
+
 - `--reload-config` - Reload configuration  
 - `--reload-interactive` - Interactive management menu
 - `--watch-config [seconds]` - Watch for configuration changes
 
 ### Backup & Restore
+
 - `--backup-config <directory>` - Backup current configuration
 - `--restore-config <directory>` - Restore from backup
 
 ### Information & Help
+
 - `--help [topic]` - Show help information
 - `--version` - Display version and system info
 
