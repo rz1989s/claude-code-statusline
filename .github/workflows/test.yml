@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
+
       - name: Install specific Bash version (Linux)
         if: matrix.os == 'ubuntu-latest' && matrix.bash-version != 'system'
         run: |
@@ -107,6 +110,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
+
       - name: Install bats-core
         run: sudo apt-get update && sudo apt-get install -y bats jq bc
 
@@ -146,6 +152,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
 
       - name: Install bats-core and tools
         run: sudo apt-get update && sudo apt-get install -y bats jq bc time
@@ -241,6 +250,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
+
       - name: Install platform-specific tools
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
@@ -285,6 +297,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
 
       - name: Install analysis tools
         run: |
@@ -341,6 +356,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install ccusage for cost tracking
+        run: npm install -g ccusage
 
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y bats jq bc
