@@ -8,6 +8,31 @@ export BATS_TEST_DIRNAME="$(cd "$(dirname "$BATS_TEST_FILENAME")" && pwd)"
 export STATUSLINE_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
 export STATUSLINE_SCRIPT="$STATUSLINE_ROOT/statusline.sh"
 
+# Fallback path resolution for CI environments
+if [[ ! -f "$STATUSLINE_SCRIPT" ]]; then
+    # Try alternative path resolution methods
+    if [[ -n "${GITHUB_WORKSPACE:-}" ]]; then
+        export STATUSLINE_ROOT="$GITHUB_WORKSPACE"
+        export STATUSLINE_SCRIPT="$STATUSLINE_ROOT/statusline.sh"
+    elif [[ -f "$(pwd)/statusline.sh" ]]; then
+        export STATUSLINE_ROOT="$(pwd)"
+        export STATUSLINE_SCRIPT="$STATUSLINE_ROOT/statusline.sh"
+    elif [[ -f "../statusline.sh" ]]; then
+        export STATUSLINE_ROOT="$(cd .. && pwd)"
+        export STATUSLINE_SCRIPT="$STATUSLINE_ROOT/statusline.sh"
+    fi
+fi
+
+# Debug path resolution in CI
+if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    echo "DEBUG: BATS_TEST_DIRNAME=$BATS_TEST_DIRNAME" >&2
+    echo "DEBUG: STATUSLINE_ROOT=$STATUSLINE_ROOT" >&2  
+    echo "DEBUG: STATUSLINE_SCRIPT=$STATUSLINE_SCRIPT" >&2
+    echo "DEBUG: Script exists: $(test -f "$STATUSLINE_SCRIPT" && echo yes || echo no)" >&2
+    echo "DEBUG: Current directory: $(pwd)" >&2
+    echo "DEBUG: GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-unset}" >&2
+fi
+
 # Test configuration
 export CONFIG_TEST_MODE=true
 export CONFIG_MCP_TIMEOUT="1s"
