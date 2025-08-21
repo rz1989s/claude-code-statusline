@@ -52,7 +52,7 @@
 
 ## 🆕 Recent Updates
 
-### v2.0 - Enterprise TOML Configuration System 🚀
+### v1.1 - Enhanced Directory Structure & TOML Configuration 🚀
 
 - **📋 TOML Configuration Files** - Modern, structured configuration with `Config.toml`
 - **🔧 Rich CLI Interface** - Generate, test, validate, and manage configurations
