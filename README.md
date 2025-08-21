@@ -166,13 +166,13 @@ name = "catppuccin"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh
+ENV_CONFIG_THEME=catppuccin ~/.claude/statusline/statusline.sh
 ```
 
 **CLI Generation:**
 ```bash
 # Generate Config.toml with catppuccin theme
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 # Then edit Config.toml to set theme.name = "catppuccin"
 ```
 
@@ -192,7 +192,7 @@ name = "garden"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
 ```
 
 ### ⚡ Classic Theme
@@ -211,7 +211,7 @@ name = "classic"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=classic ~/.claude/statusline.sh
+ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh
 ```
 
 ### 🎨 Custom Theme
@@ -242,9 +242,9 @@ purple = "\\033[38;2;147;112;219m"
 **Advanced Custom Configuration:**
 ```bash
 # Generate base config then customize
-~/.claude/statusline.sh --generate-config MyTheme.toml
+~/.claude/statusline/statusline.sh --generate-config MyTheme.toml
 # Edit MyTheme.toml with your custom colors
-~/.claude/statusline.sh --test-config MyTheme.toml
+~/.claude/statusline/statusline.sh --test-config MyTheme.toml
 ```
 
 ---
@@ -323,32 +323,32 @@ Perfect for dotfiles management with [GNU Stow](https://www.gnu.org/software/sto
 
 ```bash
 # Place in your dotfiles structure
-mkdir -p ~/.dotfiles/claude/.claude/
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.dotfiles/claude/.claude/statusline.sh
-chmod +x ~/.dotfiles/claude/.claude/statusline.sh
+mkdir -p ~/.dotfiles/claude/.claude/statusline/
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.dotfiles/claude/.claude/statusline/statusline.sh
+chmod +x ~/.dotfiles/claude/.claude/statusline/statusline.sh
 
 # Deploy with Stow
 cd ~/.dotfiles && stow claude
 
 # Configure Claude Code (manual JSON editing)
 # Add to ~/.claude/settings.json:
-# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}
 ```
 
 #### Method 3: Manual Installation
 
 ```bash
 # Create directory if it doesn't exist
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 
 # Download the script
 curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh
 chmod +x statusline.sh
-mv statusline.sh ~/.claude/
+mv statusline.sh ~/.claude/statusline/
 
 # Configure Claude Code (manual JSON editing)
 # Add to ~/.claude/settings.json:
-# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}
 ```
 
 > 💡 **Why use the Automated Installer?** The install script automatically handles JSON configuration, dependency checking, and verification - no manual editing of settings.json required!
@@ -359,13 +359,13 @@ Test your installation:
 
 ```bash
 # Check if the statusline script is executable
-ls -la ~/.claude/statusline.sh
+ls -la ~/.claude/statusline/statusline.sh
 
 # Verify Claude Code configuration (check settings.json)
 cat ~/.claude/settings.json | jq '.statusLine'
 
 # Test the statusline directly
-~/.claude/statusline.sh --help
+~/.claude/statusline/statusline.sh --help
 ```
 
 ### 🎨 **Configuration Setup (TOML System)**
@@ -379,20 +379,20 @@ cat ~/.claude/settings.json | jq '.statusLine'
 cd ~/  # or any project directory
 
 # Generate Config.toml with current settings
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # Customize your configuration
 vim Config.toml
 
 # Test your new configuration  
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 ```
 
 #### Quick Theme Change
 
 ```bash
 # Change theme temporarily (no file needed)
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
 
 # Or create a simple Config.toml
 cat > Config.toml << 'EOF'
@@ -405,17 +405,18 @@ show_cost_tracking = true
 EOF
 
 # Test your theme
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 ```
 
 #### Configuration Discovery
 
 The statusline automatically finds your config file:
 - **`./Config.toml`** - Project-specific (highest priority)
-- **`~/.config/claude-code-statusline/Config.toml`** - Standard location
-- **`~/.claude-statusline.toml`** - User home directory
+- **`~/.claude/statusline/Config.toml`** - Primary user config location
+- **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
+- **`~/.claude-statusline.toml`** - Legacy fallback
 
-> 💡 **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base configuration, then customize from there!
+> 💡 **Pro Tip**: Start with `~/.claude/statusline/statusline.sh --generate-config` to create your base configuration, then customize from there!
 
 ### 🚀 **Ready to Use!**
 
@@ -433,16 +434,16 @@ Transform your statusline with our **enterprise-grade TOML configuration system*
 
 ```bash
 # 1. Generate your Config.toml file
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # 2. Customize your Config.toml file  
 vim Config.toml
 
 # 3. Test your configuration
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # 4. Start using your enhanced statusline!
-~/.claude/statusline.sh
+~/.claude/statusline/statusline.sh
 ```
 
 ### Configuration Discovery
@@ -450,10 +451,11 @@ vim Config.toml
 The statusline automatically discovers your configuration in this order:
 
 1. **`./Config.toml`** - Project-specific configuration (highest priority)
-2. **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
-3. **`~/.claude-statusline.toml`** - User home directory
-4. **Environment variables** (`ENV_CONFIG_*`) - Override any TOML setting
-5. **Inline script configuration** - Legacy fallback (backwards compatible)
+2. **`~/.claude/statusline/Config.toml`** - Primary user config location
+3. **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
+4. **`~/.claude-statusline.toml`** - Legacy fallback
+5. **Environment variables** (`ENV_CONFIG_*`) - Override any TOML setting
+6. **Inline script configuration** - Built-in defaults (backwards compatible)
 
 ## 📋 **TOML Configuration Structure**
 
@@ -516,39 +518,44 @@ teal = "\\033[38;5;73m"
 
 ```bash
 # === CONFIGURATION GENERATION ===
-~/.claude/statusline.sh --generate-config              # Create Config.toml from current settings
-~/.claude/statusline.sh --generate-config MyTheme.toml # Generate custom config file
+~/.claude/statusline/statusline.sh --generate-config              # Create Config.toml from current settings
+~/.claude/statusline/statusline.sh --generate-config MyTheme.toml # Generate custom config file
 
 # === TESTING & VALIDATION ===
-~/.claude/statusline.sh --test-config                  # Test current configuration
-~/.claude/statusline.sh --test-config MyTheme.toml     # Test specific config file
-~/.claude/statusline.sh --test-config-verbose          # Detailed testing output
-~/.claude/statusline.sh --validate-config              # Validate configuration syntax
+~/.claude/statusline/statusline.sh --test-config                  # Test current configuration
+~/.claude/statusline/statusline.sh --test-config MyTheme.toml     # Test specific config file
+~/.claude/statusline/statusline.sh --test-config-verbose          # Detailed testing output
+~/.claude/statusline/statusline.sh --validate-config              # Validate configuration syntax
 
 # === COMPARISON & ANALYSIS ===
-~/.claude/statusline.sh --compare-config               # Compare inline vs TOML settings
+~/.claude/statusline/statusline.sh --compare-config               # Compare inline vs TOML settings
 ```
 
 ### Live Reload & Management
 
 ```bash
 # === LIVE CONFIGURATION RELOAD ===
-~/.claude/statusline.sh --reload-config                # Reload configuration now
-~/.claude/statusline.sh --reload-interactive           # Interactive config management menu
-~/.claude/statusline.sh --watch-config 3               # Watch for changes every 3 seconds
+~/.claude/statusline/statusline.sh --reload-config                # Reload configuration now
+~/.claude/statusline/statusline.sh --reload-interactive           # Interactive config management menu
+~/.claude/statusline/statusline.sh --watch-config 3               # Watch for changes every 3 seconds
 
 # === MIGRATION & BACKUP ===
-~/.claude/statusline.sh --backup-config backup-dir/    # Backup current configuration
-~/.claude/statusline.sh --restore-config backup-dir/   # Restore from backup
+~/.claude/statusline/statusline.sh --backup-config backup-dir/    # Backup current configuration
+~/.claude/statusline/statusline.sh --restore-config backup-dir/   # Restore from backup
 ```
 
 ### Help & Documentation
 
 ```bash
 # === HELP SYSTEM ===
-~/.claude/statusline.sh --help                         # Complete help documentation
-~/.claude/statusline.sh --help config                  # Configuration-specific help
+~/.claude/statusline/statusline.sh --help                         # Complete help documentation
+~/.claude/statusline/statusline.sh --help config                  # Configuration-specific help
+
+# === ADDITIONAL COMMANDS ===
+~/.claude/statusline/statusline.sh                               # Run statusline with current configuration
 ```
+
+> 💡 **Pro Tip**: Use environment overrides for temporary configuration changes without modifying your Config.toml file.
 
 ## 🌍 **Environment Variable Overrides**
 
@@ -556,18 +563,18 @@ Temporarily override any TOML setting with environment variables:
 
 ```bash
 # === TEMPORARY THEME CHANGES ===
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh        # Use garden theme once
-ENV_CONFIG_THEME=classic ~/.claude/statusline.sh       # Use classic theme once
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh        # Use garden theme once
+ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh       # Use classic theme once
 
 # === FEATURE OVERRIDES ===
-ENV_CONFIG_SHOW_MCP_STATUS=false ~/.claude/statusline.sh     # Disable MCP status
-ENV_CONFIG_MCP_TIMEOUT=10s ~/.claude/statusline.sh           # Increase MCP timeout
+ENV_CONFIG_SHOW_MCP_STATUS=false ~/.claude/statusline/statusline.sh     # Disable MCP status
+ENV_CONFIG_MCP_TIMEOUT=10s ~/.claude/statusline/statusline.sh           # Increase MCP timeout
 
 # === PERFECT FOR CI/CD & AUTOMATION ===
 ENV_CONFIG_SHOW_COST_TRACKING=false \
 ENV_CONFIG_SHOW_RESET_INFO=false \
 ENV_CONFIG_THEME=classic \
-~/.claude/statusline.sh
+~/.claude/statusline/statusline.sh
 ```
 
 ## 🎛️ **Configuration Examples**
@@ -644,13 +651,13 @@ Your existing inline configuration **continues to work unchanged**! When you're 
 
 ```bash
 # 1. Generate TOML from your current inline settings
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # 2. Compare to see the differences  
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --compare-config
 
 # 3. Test the new TOML configuration
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # 4. Your inline config becomes the fallback
 # TOML configuration takes precedence automatically
@@ -664,7 +671,7 @@ Your existing inline configuration **continues to work unchanged**! When you're 
 - 🔧 **[CLI Reference](docs/cli-reference.md)** - Complete command-line interface documentation
 - 🐛 **[Troubleshooting](docs/troubleshooting.md)** - TOML configuration troubleshooting
 
-> ⚡ **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
+> ⚡ **Pro Tip**: Start with `~/.claude/statusline/statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
 
 ## 🔍 What Each Line Shows
 

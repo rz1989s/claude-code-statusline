@@ -20,7 +20,7 @@ The enhanced statusline provides a rich command-line interface for:
 
 ```bash
 ./statusline.sh [OPTION] [ARGUMENTS]
-~/.claude/statusline.sh [OPTION] [ARGUMENTS]
+~/.claude/statusline/statusline.sh [OPTION] [ARGUMENTS]
 ```
 
 ### Global Options
@@ -28,6 +28,7 @@ The enhanced statusline provides a rich command-line interface for:
 | Option | Description |
 |--------|-------------|
 | `--help` | Show comprehensive help information |
+| `--quiet`, `-q` | Run without diagnostic messages |
 | `--version` | Display statusline version information |
 
 ---
@@ -427,6 +428,9 @@ DESCRIPTION:
     Enterprise-grade statusline with TOML configuration system.
     Provides beautiful, informative status display for Claude Code.
 
+EXECUTION OPTIONS:
+    --quiet, -q                 Run without diagnostic messages
+    
 CONFIGURATION COMMANDS:
     --generate-config [file]     Generate TOML config from current settings
     --test-config [file]         Test configuration loading and functionality
@@ -472,6 +476,68 @@ DOCUMENTATION:
 
 For more detailed help: ./statusline.sh --help <topic>
 ```
+
+---
+
+## 🔇 **Quiet Mode Commands**
+
+### `--quiet` / `-q`
+
+**Purpose**: Run statusline without diagnostic messages for clean output.
+
+**Use Cases**:
+- **Production environments** - Clean output without debug information
+- **Script integration** - When statusline is part of automation
+- **CI/CD pipelines** - Reduced noise in build outputs
+- **Background processing** - Silent operation
+
+**Examples**:
+```bash
+# Run with quiet mode (full syntax)
+./statusline.sh --quiet
+
+# Run with quiet mode (short syntax)
+./statusline.sh -q
+
+# Perfect for Claude Code integration
+{
+  "statusLine": {
+    "type": "command", 
+    "command": "bash ~/.claude/statusline/statusline.sh --quiet"
+  }
+}
+```
+
+**What Gets Suppressed**:
+- Configuration loading messages
+- TOML validation warnings  
+- Schema validation output
+- Environment override notifications
+- Debug output from parsing operations
+
+**What Remains Visible**:
+- The 4-line statusline output (unchanged)
+- Critical error messages that affect functionality
+- User-requested help or validation output
+
+**Comparison**:
+```bash
+# Normal mode (with diagnostic messages)
+$ ./statusline.sh
+Loading configuration from: ./Config.toml
+🔍 Validating TOML configuration schema...
+✅ Configuration loaded successfully
+[statusline output here]
+
+# Quiet mode (clean output only)
+$ ./statusline.sh --quiet
+[statusline output here]
+```
+
+**Best Practices**:
+- Use quiet mode in production Claude Code settings
+- Combine with specific configurations: `ENV_CONFIG_THEME=classic ./statusline.sh --quiet`
+- Test both modes during development to ensure functionality
 
 ### `--version`
 

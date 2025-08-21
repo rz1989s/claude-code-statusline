@@ -522,7 +522,7 @@ bunx ccusage --version
 **Solutions**:
 ```bash
 # Enable bash debug mode
-bash -x ~/.claude/statusline.sh
+bash -x ~/.claude/statusline/statusline.sh
 
 # Use verbose configuration testing
 ./statusline.sh --test-config-verbose
@@ -636,7 +636,7 @@ cat ~/.cache/claude-code-statusline/statusline.log
 
 **Solution**:
 ```bash
-chmod +x ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline/statusline.sh
 ```
 
 ## 🎨 Display Issues
@@ -919,7 +919,7 @@ chmod +x ~/.claude/statusline.sh
 **Solution**:
 ```bash
 # Run with bash debug mode
-bash -x ~/.claude/statusline.sh
+bash -x ~/.claude/statusline/statusline.sh
 
 # Or add to beginning of script temporarily:
 set -x  # Enable debug output
@@ -965,14 +965,14 @@ When reporting issues, include:
 3. **Script configuration**:
    ```bash
    # Show current theme and key settings
-   grep "CONFIG_THEME=" ~/.claude/statusline.sh
-   grep "CONFIG_.*_TIMEOUT=" ~/.claude/statusline.sh
+   grep "CONFIG_THEME=" ~/.claude/statusline/statusline.sh
+   grep "CONFIG_.*_TIMEOUT=" ~/.claude/statusline/statusline.sh
    ```
 
 4. **Error output**:
    ```bash
    # Run with debug output
-   bash -x ~/.claude/statusline.sh 2>&1 | head -50
+   bash -x ~/.claude/statusline/statusline.sh 2>&1 | head -50
    ```
 
 ## 🆘 Getting Help
@@ -1009,7 +1009,7 @@ When reporting issues, include:
 
 3. **Backup working configurations**:
    ```bash
-   cp ~/.claude/statusline.sh ~/.claude/statusline.sh.backup
+   cp ~/.claude/statusline/statusline.sh ~/.claude/statusline/statusline.sh.backup
    ```
 
 4. **Test after changes**: Always test the statusline after configuration changes
