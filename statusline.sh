@@ -850,6 +850,98 @@ parse_mcp_server_name_secure() {
     return 1
 }
 
+# Parse timeout string to numeric seconds for validation
+# Supports formats: "10s", "2m", "30" (defaults to seconds)
+parse_timeout_to_seconds() {
+    local timeout_str="$1"
+    local numeric_value
+    local unit
+    
+    # Handle empty or null values
+    [[ -z "$timeout_str" || "$timeout_str" == "null" ]] && return 1
+    
+    # Extract numeric value and unit
+    if [[ "$timeout_str" =~ ^([0-9]+)([sm]?)$ ]]; then
+        numeric_value="${BASH_REMATCH[1]}"
+        unit="${BASH_REMATCH[2]}"
+        
+        # Convert to seconds based on unit
+        case "$unit" in
+            "m") echo $((numeric_value * 60)) ;;
+            "s"|"") echo "$numeric_value" ;;  # Default to seconds
+            *) return 1 ;;  # Invalid unit
+        esac
+        return 0
+    else
+        return 1  # Invalid format
+    fi
+}
+
+# Validate timeout bounds with contextual limits and suggestions
+# Returns: 0=valid, 1=error, 2=warning
+validate_timeout_bounds() {
+    local timeout_config="$1"  # Config variable name (e.g., "CONFIG_MCP_TIMEOUT")
+    local timeout_value="$2"   # Timeout value (e.g., "10s")
+    local timeout_type="$3"    # Type: "mcp", "version", "ccusage"
+    # Note: errors, warnings, suggestions arrays are global and modified directly
+    
+    # Parse timeout to seconds
+    local seconds
+    if ! seconds=$(parse_timeout_to_seconds "$timeout_value"); then
+        errors+=("$timeout_config has invalid format '$timeout_value'. Use format like '10s' or '2m'")
+        suggestions+=("💡 Example: ${timeout_config,,} = \"10s\" or \"2m\"")
+        return 1
+    fi
+    
+    # Define bounds based on timeout type
+    local min_seconds max_seconds warn_seconds optimal_range
+    case "$timeout_type" in
+        "mcp")
+            min_seconds=1
+            max_seconds=60
+            warn_seconds=30
+            optimal_range="3s-15s for most setups, 10s-30s for complex MCP configurations"
+            ;;
+        "version")
+            min_seconds=1
+            max_seconds=10  
+            warn_seconds=5
+            optimal_range="1s-3s (usually cached after first run)"
+            ;;
+        "ccusage")
+            min_seconds=1
+            max_seconds=30
+            warn_seconds=15
+            optimal_range="3s-10s for network API calls"
+            ;;
+        *)
+            # Generic validation for unknown timeout types
+            min_seconds=1
+            max_seconds=60
+            warn_seconds=30
+            optimal_range="1s-30s for most operations"
+            ;;
+    esac
+    
+    # Check bounds and provide contextual feedback
+    if [[ $seconds -lt $min_seconds ]]; then
+        errors+=("$timeout_config value ${timeout_value} (${seconds}s) is too short. Minimum: ${min_seconds}s")
+        suggestions+=("💡 ${timeout_type^^} operations need at least ${min_seconds}s. Try: ${timeout_config,,} = \"${min_seconds}s\"")
+        return 1
+    elif [[ $seconds -gt $max_seconds ]]; then
+        errors+=("$timeout_config value ${timeout_value} (${seconds}s) is too long. Maximum: ${max_seconds}s")
+        suggestions+=("💡 ${timeout_type^^} timeouts >${max_seconds}s can freeze statusline. Try: ${timeout_config,,} = \"${max_seconds}s\"")
+        return 1
+    elif [[ $seconds -gt $warn_seconds ]]; then
+        warnings+=("$timeout_config value ${timeout_value} (${seconds}s) may impact responsiveness")
+        suggestions+=("💡 ${timeout_type^^} optimal range: $optimal_range")
+        return 2
+    fi
+    
+    # Value is within optimal range
+    return 0
+}
+
 # Helper function to get timeout command with specified duration
 get_timeout_cmd() {
     local duration="$1"
@@ -1915,12 +2007,20 @@ validate_configuration() {
         fi
     done
     
-    # Validate timeout format
-    local timeout_configs=("CONFIG_MCP_TIMEOUT" "CONFIG_VERSION_TIMEOUT" "CONFIG_CCUSAGE_TIMEOUT")
-    for timeout_config in "${timeout_configs[@]}"; do
+    # Validate timeout bounds with contextual validation
+    local timeout_configs=(
+        "CONFIG_MCP_TIMEOUT:mcp"
+        "CONFIG_VERSION_TIMEOUT:version" 
+        "CONFIG_CCUSAGE_TIMEOUT:ccusage"
+    )
+    
+    for timeout_config_pair in "${timeout_configs[@]}"; do
+        local timeout_config="${timeout_config_pair%:*}"
+        local timeout_type="${timeout_config_pair#*:}"
         local value="${!timeout_config}"
-        if [[ -n "$value" && ! "$value" =~ ^[0-9]+[sm]?$ ]]; then
-            errors+=("$timeout_config must be a number optionally followed by 's' or 'm', got '$value'")
+        
+        if [[ -n "$value" ]]; then
+            validate_timeout_bounds "$timeout_config" "$value" "$timeout_type"
         fi
     done
     
@@ -2138,9 +2238,25 @@ clock = "CLOCK_EMOJI_PLACEHOLDER"
 live_block = "LIVE_BLOCK_EMOJI_PLACEHOLDER"
 
 # === TIMEOUTS ===
+# Timeout values for external command execution
+# Format: Use "Ns" for seconds or "Nm" for minutes (e.g., "10s", "2m")
+# 
+# Performance Guidelines:
+# - Lower timeouts = faster statusline response, higher chance of operation failure
+# - Higher timeouts = slower statusline response, better reliability for slow systems
 [timeouts]
+
+# MCP Server timeout (1s-60s recommended, optimal: 3s-15s for most setups)  
+# Increase for complex MCP server configurations or slow network connections
+# Default: 10s (changed from 3s in v1.1.2 for better multi-server compatibility)
 mcp = "MCP_TIMEOUT_PLACEHOLDER"
+
+# Claude version check timeout (1s-10s recommended, optimal: 1s-3s)
+# Usually fast due to caching after first run
 version = "VERSION_TIMEOUT_PLACEHOLDER"
+
+# Cost tracking (ccusage) timeout (1s-30s recommended, optimal: 3s-10s)
+# Network API calls to retrieve usage information  
 ccusage = "CCUSAGE_TIMEOUT_PLACEHOLDER"
 
 # === DISPLAY LABELS ===
@@ -2885,6 +3001,26 @@ CONFIGURATION FILES:
     3. ~/.claude-statusline.toml
 
     Environment variables (CONFIG_*) override all TOML settings.
+
+TIMEOUT CONFIGURATION:
+    Timeout values control how long to wait for external operations:
+    
+    MCP Timeout (1s-60s recommended, optimal: 3s-15s):
+        CONFIG_MCP_TIMEOUT="10s"    # Default: 10s
+        
+    Version Timeout (1s-10s recommended, optimal: 1s-3s):
+        CONFIG_VERSION_TIMEOUT="2s"    # Default: 2s
+        
+    Cost Tracking Timeout (1s-30s recommended, optimal: 3s-10s):
+        CONFIG_CCUSAGE_TIMEOUT="8s"    # Default: 8s
+    
+    Format: Use "Ns" for seconds or "Nm" for minutes (e.g., "10s", "2m")
+    
+    Performance Guidelines:
+    • Lower timeouts = faster response, higher failure chance
+    • Higher timeouts = slower response, better reliability
+    • Values >30s may impact statusline responsiveness
+    • Values <1s are too aggressive for most operations
 
 EOF
 }
