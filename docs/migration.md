@@ -68,13 +68,13 @@ This means you can migrate **gradually** and **safely** without any risk of brea
 
 ```bash
 # 1. Check your current statusline script location
-ls -la ~/.claude/statusline.sh
+ls -la ~/.claude/statusline/statusline.sh
 
 # 2. Identify your current customizations
-grep -n "CONFIG_" ~/.claude/statusline.sh | head -20
+grep -n "CONFIG_" ~/.claude/statusline/statusline.sh | head -20
 
 # 3. Test your current setup
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
 ```
 
 #### Step 1.2: Backup Your Current Configuration
@@ -84,10 +84,10 @@ echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' 
 mkdir -p ~/.claude/backups/$(date +%Y%m%d_%H%M%S)
 
 # Backup your current script
-cp ~/.claude/statusline.sh ~/.claude/backups/$(date +%Y%m%d_%H%M%S)/statusline.sh
+cp ~/.claude/statusline/statusline.sh ~/.claude/backups/$(date +%Y%m%d_%H%M%S)/statusline.sh
 
 # Document your current settings
-grep "CONFIG_" ~/.claude/statusline.sh > ~/.claude/backups/$(date +%Y%m%d_%H%M%S)/current-config.txt
+grep "CONFIG_" ~/.claude/statusline/statusline.sh > ~/.claude/backups/$(date +%Y%m%d_%H%M%S)/current-config.txt
 ```
 
 ### Phase 2: Generate TOML Configuration
@@ -99,7 +99,7 @@ grep "CONFIG_" ~/.claude/statusline.sh > ~/.claude/backups/$(date +%Y%m%d_%H%M%S
 cd ~/  # For user-wide config, or cd ~/project/ for project-specific
 
 # Generate Config.toml from your current inline configuration
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # This creates Config.toml with all your current settings
 ls -la Config.toml
@@ -109,10 +109,10 @@ ls -la Config.toml
 
 ```bash
 # Test the generated configuration
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # Compare inline vs TOML to ensure accuracy
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --compare-config
 
 # Expected output shows your settings in both formats
 ```
@@ -123,7 +123,7 @@ ls -la Config.toml
 
 ```bash
 # Validate the generated TOML syntax
-~/.claude/statusline.sh --validate-config
+~/.claude/statusline/statusline.sh --validate-config
 
 # Should show: "Configuration validation passed"
 ```
@@ -132,11 +132,11 @@ ls -la Config.toml
 
 ```bash
 # Test basic functionality
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline/statusline.sh
 
 # Test in a git repository
 cd ~/some-git-repo
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline/statusline.sh
 
 # Verify output matches your previous setup
 ```
@@ -149,7 +149,7 @@ echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"
 sed -i.bak 's/name = "catppuccin"/name = "garden"/' Config.toml
 
 # Test the change
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # Should show garden theme, proving TOML takes priority
 # Restore original if you prefer
@@ -189,15 +189,15 @@ clean_status = "✅"
 
 ```bash
 # Test your organized configuration
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # Test environment overrides (new TOML feature)
-ENV_CONFIG_THEME=classic ~/.claude/statusline.sh
+ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh
 
 # Test multiple configuration files (new TOML feature)
 cp Config.toml work-config.toml
 cp examples/sample-configs/personal-profile.toml personal-config.toml
-~/.claude/statusline.sh --test-config work-config.toml
+~/.claude/statusline/statusline.sh --test-config work-config.toml
 ```
 
 ---
@@ -222,10 +222,10 @@ name = "catppuccin"
 #### Migration Commands
 ```bash
 # Generate TOML
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # Verify migration
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --compare-config
 # Should show both configurations match
 ```
 
@@ -255,10 +255,10 @@ green = "\\033[38;2;100;255;100m"
 #### Migration Commands
 ```bash
 # Generate base TOML
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # Test custom theme
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # Should show your custom colors
 ```
@@ -287,11 +287,11 @@ show_cost_tracking = false
 #### Migration Commands
 ```bash
 # Generate and verify
-~/.claude/statusline.sh --generate-config
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --compare-config
 
 # Test feature toggles
-~/.claude/statusline.sh --test-config-verbose
+~/.claude/statusline/statusline.sh --test-config-verbose
 ```
 
 ### Example 4: Performance Settings Migration
@@ -320,10 +320,10 @@ version_duration = 3600
 #### Migration Commands
 ```bash
 # Generate configuration
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # Test performance settings
-time ~/.claude/statusline.sh --test-config
+time ~/.claude/statusline/statusline.sh --test-config
 ```
 
 ---
@@ -337,7 +337,7 @@ time ~/.claude/statusline.sh --test-config
 #### Migration Strategy
 ```bash
 # 1. Generate base configuration
-~/.claude/statusline.sh --generate-config base-config.toml
+~/.claude/statusline/statusline.sh --generate-config base-config.toml
 
 # 2. Create environment-specific configurations
 cp base-config.toml work-config.toml
@@ -347,8 +347,8 @@ cp base-config.toml personal-config.toml
 cp examples/sample-configs/personal-profile.toml personal-config.toml
 
 # 3. Test each environment
-~/.claude/statusline.sh --test-config work-config.toml
-~/.claude/statusline.sh --test-config personal-config.toml
+~/.claude/statusline/statusline.sh --test-config work-config.toml
+~/.claude/statusline/statusline.sh --test-config personal-config.toml
 
 # 4. Deploy based on context
 cp work-config.toml Config.toml  # For work projects
@@ -364,26 +364,26 @@ cp personal-config.toml Config.toml  # For personal projects
 ```bash
 # 1. Generate user-wide default configuration
 cd ~
-~/.claude/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+~/.claude/statusline/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
 
 # 2. Create project-specific configurations
 cd ~/work/important-project
-~/.claude/statusline.sh --generate-config ./Config.toml
+~/.claude/statusline/statusline.sh --generate-config ./Config.toml
 # Edit to enable cost tracking, professional theme
 
 cd ~/personal/hobby-project  
-~/.claude/statusline.sh --generate-config ./Config.toml
+~/.claude/statusline/statusline.sh --generate-config ./Config.toml
 # Edit to disable cost tracking, fun theme
 
 # 3. Test project-specific configs
 cd ~/work/important-project
-~/.claude/statusline.sh --test-config  # Uses ./Config.toml
+~/.claude/statusline/statusline.sh --test-config  # Uses ./Config.toml
 
 cd ~/personal/hobby-project
-~/.claude/statusline.sh --test-config  # Uses ./Config.toml
+~/.claude/statusline/statusline.sh --test-config  # Uses ./Config.toml
 
 cd ~/other-project
-~/.claude/statusline.sh --test-config  # Uses ~/.config/.../Config.toml
+~/.claude/statusline/statusline.sh --test-config  # Uses ~/.config/.../Config.toml
 ```
 
 ### Scenario 3: Team Configuration Migration
@@ -393,7 +393,7 @@ cd ~/other-project
 #### Migration Strategy
 ```bash
 # 1. Create team standard configuration
-~/.claude/statusline.sh --generate-config team-standard.toml
+~/.claude/statusline/statusline.sh --generate-config team-standard.toml
 
 # 2. Customize for team needs (e.g., work profile)
 cp examples/sample-configs/work-profile.toml team-standard.toml
@@ -404,10 +404,10 @@ git commit -m "Add team statusline configuration"
 
 # 4. Team members deploy
 cp team-standard.toml Config.toml
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # 5. Allow personal overrides via environment variables
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh  # Personal preference
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh  # Personal preference
 ```
 
 ---
@@ -418,12 +418,12 @@ ENV_CONFIG_THEME=garden ~/.claude/statusline.sh  # Personal preference
 
 ```bash
 # === BASIC GENERATION ===
-~/.claude/statusline.sh --generate-config              # Current directory
-~/.claude/statusline.sh --generate-config MyConfig.toml # Custom filename
+~/.claude/statusline/statusline.sh --generate-config              # Current directory
+~/.claude/statusline/statusline.sh --generate-config MyConfig.toml # Custom filename
 
 # === LOCATION-SPECIFIC GENERATION ===
-~/.claude/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml  # XDG standard
-~/.claude/statusline.sh --generate-config ~/.claude-statusline.toml                     # Home directory
+~/.claude/statusline/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml  # XDG standard
+~/.claude/statusline/statusline.sh --generate-config ~/.claude-statusline.toml                     # Home directory
 
 # === TEMPLATE GENERATION ===
 cp examples/sample-configs/developer-config.toml Config.toml    # Use example as base
@@ -434,16 +434,16 @@ cp examples/sample-configs/minimal-config.toml Config.toml      # Minimal base
 
 ```bash
 # === VALIDATION TOOLS ===
-~/.claude/statusline.sh --validate-config                      # Validate syntax
-~/.claude/statusline.sh --validate-config MyConfig.toml        # Validate specific file
+~/.claude/statusline/statusline.sh --validate-config                      # Validate syntax
+~/.claude/statusline/statusline.sh --validate-config MyConfig.toml        # Validate specific file
 
 # === TESTING TOOLS ===
-~/.claude/statusline.sh --test-config                          # Test current config
-~/.claude/statusline.sh --test-config MyConfig.toml            # Test specific config
-~/.claude/statusline.sh --test-config-verbose                  # Detailed testing
+~/.claude/statusline/statusline.sh --test-config                          # Test current config
+~/.claude/statusline/statusline.sh --test-config MyConfig.toml            # Test specific config
+~/.claude/statusline/statusline.sh --test-config-verbose                  # Detailed testing
 
 # === COMPARISON TOOLS ===
-~/.claude/statusline.sh --compare-config                       # Compare inline vs TOML
+~/.claude/statusline/statusline.sh --compare-config                       # Compare inline vs TOML
 ```
 
 ### Migration Verification Tools
@@ -451,16 +451,16 @@ cp examples/sample-configs/minimal-config.toml Config.toml      # Minimal base
 ```bash
 # === VERIFICATION COMMANDS ===
 # 1. Check which config file is loaded
-~/.claude/statusline.sh --test-config-verbose | grep -i "loading\|config"
+~/.claude/statusline/statusline.sh --test-config-verbose | grep -i "loading\|config"
 
 # 2. Compare configurations
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --compare-config
 
 # 3. Test environment overrides
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh --test-config
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh --test-config
 
 # 4. Test specific features
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
 ```
 
 ---
@@ -474,23 +474,23 @@ echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' 
 **Diagnosis**:
 ```bash
 # Check for errors
-~/.claude/statusline.sh --generate-config 2>&1
+~/.claude/statusline/statusline.sh --generate-config 2>&1
 
 # Check permissions
-ls -la ~/.claude/statusline.sh
+ls -la ~/.claude/statusline/statusline.sh
 ls -ld $(pwd)
 ```
 
 **Solutions**:
 ```bash
 # 1. Check script permissions
-chmod +x ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline/statusline.sh
 
 # 2. Check directory permissions
 chmod 755 $(pwd)
 
 # 3. Generate with explicit path
-~/.claude/statusline.sh --generate-config ./Config.toml
+~/.claude/statusline/statusline.sh --generate-config ./Config.toml
 ```
 
 ### Issue 2: TOML Not Taking Priority
@@ -500,7 +500,7 @@ chmod 755 $(pwd)
 **Diagnosis**:
 ```bash
 # Check configuration discovery
-~/.claude/statusline.sh --test-config-verbose
+~/.claude/statusline/statusline.sh --test-config-verbose
 
 # Should show: "Loading configuration from: ./Config.toml"
 ```
@@ -513,7 +513,7 @@ ls -la ~/.config/claude-code-statusline/Config.toml
 ls -la ~/.claude-statusline.toml
 
 # 2. Test specific file
-~/.claude/statusline.sh --test-config ./Config.toml
+~/.claude/statusline/statusline.sh --test-config ./Config.toml
 
 # 3. Clear any cached data
 rm -f /tmp/.claude_*_cache
@@ -526,7 +526,7 @@ rm -f /tmp/.claude_*_cache
 **Diagnosis**:
 ```bash
 # Validate generated TOML
-~/.claude/statusline.sh --validate-config
+~/.claude/statusline/statusline.sh --validate-config
 
 # Check for common issues
 cat Config.toml | grep -E '^[^#]*=' | grep -v '".*"$'
@@ -536,11 +536,11 @@ cat Config.toml | grep -E '^[^#]*=' | grep -v '".*"$'
 ```bash
 # 1. Regenerate configuration
 mv Config.toml Config.toml.bad
-~/.claude/statusline.sh --generate-config
+~/.claude/statusline/statusline.sh --generate-config
 
 # 2. Use example as base if generation fails
 cp examples/sample-configs/developer-config.toml Config.toml
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 
 # 3. Fix common syntax issues manually
 # Ensure all string values are quoted: name = "catppuccin"
@@ -554,10 +554,10 @@ cp examples/sample-configs/developer-config.toml Config.toml
 **Diagnosis**:
 ```bash
 # Compare configurations
-~/.claude/statusline.sh --compare-config
+~/.claude/statusline/statusline.sh --compare-config
 
 # Check for differences
-diff <(grep CONFIG_ ~/.claude/statusline.sh) <(~/.claude/statusline.sh --generate-config --stdout 2>/dev/null)
+diff <(grep CONFIG_ ~/.claude/statusline/statusline.sh) <(~/.claude/statusline/statusline.sh --generate-config --stdout 2>/dev/null)
 ```
 
 **Solutions**:
@@ -569,7 +569,7 @@ grep "CONFIG_" ~/.claude/backups/*/current-config.txt
 vim Config.toml
 
 # 3. Test after adding each setting
-~/.claude/statusline.sh --test-config
+~/.claude/statusline/statusline.sh --test-config
 ```
 
 ---
@@ -610,7 +610,7 @@ vim Config.toml
 # Once migration is successful and verified:
 
 # 1. Document your inline configuration (for reference)
-grep "CONFIG_" ~/.claude/statusline.sh > ~/.claude/inline-config-reference.txt
+grep "CONFIG_" ~/.claude/statusline/statusline.sh > ~/.claude/inline-config-reference.txt
 
 # 2. Consider removing inline overrides (optional)
 # This step is OPTIONAL - inline config serves as fallback
@@ -623,15 +623,15 @@ grep "CONFIG_" ~/.claude/statusline.sh > ~/.claude/inline-config-reference.txt
 
 ```bash
 # 1. Use environment overrides for temporary changes
-ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
 
 # 2. Create multiple configurations for different contexts
 cp Config.toml work-config.toml
 cp examples/sample-configs/personal-profile.toml personal-config.toml
 
 # 3. Use configuration management commands
-~/.claude/statusline.sh --reload-interactive
-~/.claude/statusline.sh --backup-config ~/statusline-backups/
+~/.claude/statusline/statusline.sh --reload-interactive
+~/.claude/statusline/statusline.sh --backup-config ~/statusline-backups/
 ```
 
 ### Share Your Configuration

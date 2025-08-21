@@ -15,7 +15,9 @@ NC='\033[0m' # No Color
 # Script configuration
 REPO_URL="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh"
 CLAUDE_DIR="$HOME/.claude"
-STATUSLINE_PATH="$CLAUDE_DIR/statusline.sh"
+STATUSLINE_DIR="$CLAUDE_DIR/statusline"
+STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
+CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
 # Function to print colored output
@@ -106,7 +108,7 @@ configure_settings() {
         print_status "Found existing settings.json, updating configuration..."
         
         # Create new settings with statusLine configuration
-        if jq --arg cmd "bash ~/.claude/statusline.sh" \
+        if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
            '.statusLine = {"type": "command", "command": $cmd}' \
            "$SETTINGS_PATH" > "$temp_settings"; then
             
@@ -132,7 +134,7 @@ configure_settings() {
 {
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline.sh"
+    "command": "bash ~/.claude/statusline/statusline.sh"
   }
 }
 EOF
@@ -168,7 +170,7 @@ verify_installation() {
     if [ -f "$SETTINGS_PATH" ]; then
         if jq -e '.statusLine.command' "$SETTINGS_PATH" >/dev/null 2>&1; then
             local command_value=$(jq -r '.statusLine.command' "$SETTINGS_PATH")
-            if [[ "$command_value" == "bash ~/.claude/statusline.sh" ]]; then
+            if [[ "$command_value" == "bash ~/.claude/statusline.sh" ]] || [[ "$command_value" == "bash ~/.claude/statusline/statusline.sh" ]]; then
                 print_success "settings.json is properly configured"
             else
                 print_warning "settings.json exists but statusLine command is: $command_value"
@@ -191,6 +193,76 @@ verify_installation() {
     fi
 }
 
+# Function to create statusline directory
+create_statusline_directory() {
+    if [ ! -d "$STATUSLINE_DIR" ]; then
+        print_status "Creating statusline directory: $STATUSLINE_DIR"
+        mkdir -p "$STATUSLINE_DIR"
+        print_success "Created directory: $STATUSLINE_DIR"
+    else
+        print_status "Statusline directory already exists: $STATUSLINE_DIR"
+    fi
+}
+
+# Function to migrate existing installation
+migrate_existing_installation() {
+    local old_statusline_path="$CLAUDE_DIR/statusline.sh"
+    
+    if [ -f "$old_statusline_path" ]; then
+        print_status "🔄 Detected existing installation, migrating to new structure..."
+        
+        # Create backup
+        local backup_path="${old_statusline_path}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$old_statusline_path" "$backup_path"
+        print_status "Created backup: $backup_path"
+        
+        # Move to new location
+        mv "$old_statusline_path" "$STATUSLINE_PATH"
+        print_success "✅ Migrated statusline.sh to new location"
+        
+        # Update settings.json if it exists
+        if [ -f "$SETTINGS_PATH" ]; then
+            if jq -e '.statusLine.command' "$SETTINGS_PATH" >/dev/null 2>&1; then
+                local temp_settings=$(mktemp)
+                if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
+                   '.statusLine.command = $cmd' \
+                   "$SETTINGS_PATH" > "$temp_settings"; then
+                    mv "$temp_settings" "$SETTINGS_PATH"
+                    print_success "Updated settings.json command path"
+                else
+                    rm -f "$temp_settings"
+                    print_warning "Could not update settings.json automatically"
+                fi
+            fi
+        fi
+        
+        return 0
+    else
+        print_status "No existing installation found"
+        return 1
+    fi
+}
+
+# Function to generate default Config.toml
+generate_default_config() {
+    print_status "Generating default Config.toml..."
+    
+    # Check if statusline script can generate config
+    if [ -x "$STATUSLINE_PATH" ]; then
+        if "$STATUSLINE_PATH" --generate-config "$CONFIG_PATH" >/dev/null 2>&1; then
+            print_success "✅ Generated Config.toml at: $CONFIG_PATH"
+            print_status "💡 Edit $CONFIG_PATH to customize your statusline"
+            return 0
+        else
+            print_warning "Could not generate Config.toml (statusline will use built-in defaults)"
+            return 1
+        fi
+    else
+        print_warning "Statusline script not executable, skipping Config.toml generation"
+        return 1
+    fi
+}
+
 # Function to show completion message
 show_completion() {
     echo
@@ -201,9 +273,16 @@ show_completion() {
     echo "2. Your statusline will automatically use the default theme"
     echo "3. To customize themes and features, see the Configuration section in README.md"
     echo
-    echo -e "${BLUE}Configuration files:${NC}"
-    echo "  • Statusline script: $STATUSLINE_PATH"
-    echo "  • Claude settings:   $SETTINGS_PATH"
+    echo -e "${BLUE}📁 Statusline files organized in: ~/.claude/statusline/${NC}"
+    echo "  • statusline.sh     ← Enhanced statusline script"
+    echo "  • Config.toml       ← Your configuration file"
+    echo
+    echo -e "${BLUE}📁 Claude Code settings: ~/.claude/${NC}"
+    echo "  • settings.json     ← Claude Code integration"
+    echo
+    echo -e "${BLUE}🎨 Customize your statusline:${NC}"
+    echo "  edit ~/.claude/statusline/Config.toml"
+    echo "  ~/.claude/statusline/statusline.sh --test-config"
     echo
     echo -e "${BLUE}Test your installation:${NC}"
     echo "  $STATUSLINE_PATH --help"
@@ -218,9 +297,12 @@ main() {
     
     check_dependencies
     create_claude_directory
+    create_statusline_directory
+    migrate_existing_installation || true  # Don't fail if no existing installation
     download_statusline
     make_executable
     configure_settings
+    generate_default_config || true  # Don't fail if config generation fails
     
     echo
     if verify_installation; then
