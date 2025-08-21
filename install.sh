@@ -170,7 +170,7 @@ verify_installation() {
     if [ -f "$SETTINGS_PATH" ]; then
         if jq -e '.statusLine.command' "$SETTINGS_PATH" >/dev/null 2>&1; then
             local command_value=$(jq -r '.statusLine.command' "$SETTINGS_PATH")
-            if [[ "$command_value" == "bash ~/.claude/statusline.sh" ]]; then
+            if [[ "$command_value" == "bash ~/.claude/statusline.sh" ]] || [[ "$command_value" == "bash ~/.claude/statusline/statusline.sh" ]]; then
                 print_success "settings.json is properly configured"
             else
                 print_warning "settings.json exists but statusLine command is: $command_value"

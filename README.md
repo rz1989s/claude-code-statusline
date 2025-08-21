@@ -308,7 +308,10 @@ npm install -g bunx ccusage
 #### Method 1: Automated Install Script (Recommended)
 
 ```bash
-# Download and run the automated installer
+# Download and run the automated installer (latest stable)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/v1.1.1/install.sh | bash
+
+# Or install the latest development version
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Or download and inspect before running
