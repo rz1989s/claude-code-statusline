@@ -52,7 +52,16 @@
 
 ## 🆕 Recent Updates
 
-### v1.1 - Enhanced Directory Structure & TOML Configuration 🚀
+### v1.2 - Enhanced Timeout Validation & Configuration Improvements 🚀
+
+- **✅ Comprehensive Timeout Validation** - Enhanced bounds checking with contextual suggestions
+- **🔧 Smart Configuration Validation** - Prevents dangerous timeout values (0s, >60s)
+- **📖 Enhanced CLI Documentation** - Detailed timeout configuration guidance
+- **🛠️ New Helper Functions** - `parse_timeout_to_seconds()` and `validate_timeout_bounds()`
+- **💡 Contextual Error Messages** - Specific suggestions for optimal timeout ranges
+- **🔄 Backward Compatible** - All existing configurations continue to work
+
+### v1.1 - Enhanced Directory Structure & TOML Configuration
 
 - **📋 TOML Configuration Files** - Modern, structured configuration with `Config.toml`
 - **🔧 Rich CLI Interface** - Generate, test, validate, and manage configurations
@@ -139,7 +148,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **🌐 Environment Overrides** - `ENV_CONFIG_*` variables for dynamic settings
 - **🎨 Advanced Theme System** - Theme inheritance, profiles, and custom color schemes
 - **🔄 Live Configuration Reload** - Hot reload with file watching capabilities
-- **⏲️ Timeout Controls** - Fine-tune network timeout settings
+- **⏲️ Enhanced Timeout Controls** - Comprehensive validation with contextual bounds checking
 - **🏷️ Label Customization** - Modify all display text and formats via TOML
 - **😊 Emoji Customization** - Personalize status indicators
 - **✅ Configuration Validation** - Built-in testing with auto-fix suggestions
@@ -309,7 +318,7 @@ npm install -g bunx ccusage
 
 ```bash
 # Download and run the automated installer (latest stable)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/v1.1.1/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/v1.2.0/install.sh | bash
 
 # Or install the latest development version
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
@@ -477,10 +486,11 @@ show_mcp_status = true
 show_cost_tracking = true
 
 # === TIMEOUTS & PERFORMANCE ===
+# Enhanced validation with contextual bounds checking (v1.2+)
 [timeouts]
-mcp = "8s"
-version = "2s" 
-ccusage = "8s"
+mcp = "10s"      # 1s-60s recommended, optimal: 3s-15s
+version = "2s"   # 1s-10s recommended, optimal: 1s-3s
+ccusage = "8s"   # 1s-30s recommended, optimal: 3s-10s
 
 # === CUSTOMIZATION ===
 [emojis]
@@ -528,7 +538,7 @@ teal = "\\033[38;5;73m"
 ~/.claude/statusline/statusline.sh --test-config                  # Test current configuration
 ~/.claude/statusline/statusline.sh --test-config MyTheme.toml     # Test specific config file
 ~/.claude/statusline/statusline.sh --test-config-verbose          # Detailed testing output
-~/.claude/statusline/statusline.sh --validate-config              # Validate configuration syntax
+~/.claude/statusline/statusline.sh --validate-config              # Validate configuration with enhanced timeout bounds checking
 
 # === COMPARISON & ANALYSIS ===
 ~/.claude/statusline/statusline.sh --compare-config               # Compare inline vs TOML settings
@@ -551,7 +561,7 @@ teal = "\\033[38;5;73m"
 
 ```bash
 # === HELP SYSTEM ===
-~/.claude/statusline/statusline.sh --help                         # Complete help documentation
+~/.claude/statusline/statusline.sh --help                         # Complete help documentation with timeout guidance
 ~/.claude/statusline/statusline.sh --help config                  # Configuration-specific help
 
 # === ADDITIONAL COMMANDS ===
@@ -571,7 +581,7 @@ ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh       # Use classic 
 
 # === FEATURE OVERRIDES ===
 ENV_CONFIG_SHOW_MCP_STATUS=false ~/.claude/statusline/statusline.sh     # Disable MCP status
-ENV_CONFIG_MCP_TIMEOUT=10s ~/.claude/statusline/statusline.sh           # Increase MCP timeout
+ENV_CONFIG_MCP_TIMEOUT=15s ~/.claude/statusline/statusline.sh           # Increase MCP timeout (validated: 1s-60s)
 
 # === PERFECT FOR CI/CD & AUTOMATION ===
 ENV_CONFIG_SHOW_COST_TRACKING=false \
@@ -615,9 +625,9 @@ show_cost_tracking = true
 show_reset_info = true
 
 [timeouts]
-mcp = "8s"
-version = "3s"
-ccusage = "8s"
+mcp = "10s"      # Enhanced validation: 1s-60s range
+version = "2s"   # Enhanced validation: 1s-10s range  
+ccusage = "8s"   # Enhanced validation: 1s-30s range
 
 [labels]
 commits = "Today's Commits:"
