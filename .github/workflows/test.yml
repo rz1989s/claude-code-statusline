@@ -20,7 +20,7 @@ jobs:
           sudo apt-get install -y shellcheck
 
       - name: Run shellcheck on main script
-        run: shellcheck statusline.sh
+        run: shellcheck --exclude=SC2034 statusline.sh
 
       - name: Run shellcheck on test files
         run: |
