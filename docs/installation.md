@@ -175,7 +175,7 @@ bunx ccusage --version
 ### Step 3: Download and Install Script
 ```bash
 # Create directory
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 
 # Download script
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
@@ -217,7 +217,7 @@ bunx ccusage --version
 #### Step 3: Download and Install Script
 ```bash
 # Create directory
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 
 # Download script
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
@@ -247,7 +247,7 @@ npm install -g bunx ccusage
 #### Step 2: Download and Install Script
 ```bash
 # Create directory
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 
 # Download script
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
@@ -276,7 +276,7 @@ npm install -g bunx ccusage
 #### Step 2: Download and Install Script
 ```bash
 # Create directory
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 
 # Download script
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
@@ -305,7 +305,7 @@ npm install -g bunx ccusage
 ### Step 3: Install Script in WSL
 ```bash
 # Inside WSL
-mkdir -p ~/.claude/
+mkdir -p ~/.claude/statusline/
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
 chmod +x ~/.claude/statusline/statusline.sh
 ```

@@ -222,13 +222,19 @@ check_dependencies() {
 generate_install_commands() {
     local all_missing=()
     
-    # Combine all missing dependencies
-    for dep in "${MISSING_CRITICAL[@]}" "${MISSING_IMPORTANT[@]}" "${MISSING_HELPFUL[@]}"; do
+    # Combine all missing dependencies (check array existence first)
+    [[ ${#MISSING_CRITICAL[@]} -gt 0 ]] && for dep in "${MISSING_CRITICAL[@]}"; do
+        all_missing+=("$dep")
+    done
+    [[ ${#MISSING_IMPORTANT[@]} -gt 0 ]] && for dep in "${MISSING_IMPORTANT[@]}"; do
+        all_missing+=("$dep")
+    done
+    [[ ${#MISSING_HELPFUL[@]} -gt 0 ]] && for dep in "${MISSING_HELPFUL[@]}"; do
         all_missing+=("$dep")
     done
     
     # Handle timeout specially (platform-specific)
-    for dep in "${MISSING_OPTIONAL[@]}"; do
+    [[ ${#MISSING_OPTIONAL[@]} -gt 0 ]] && for dep in "${MISSING_OPTIONAL[@]}"; do
         if [[ "$dep" == "timeout" && "$OS_PLATFORM" == "macOS" ]]; then
             all_missing+=("coreutils")  # Contains gtimeout on macOS
         elif [[ "$dep" == "timeout" ]]; then
@@ -573,12 +579,21 @@ generate_default_config() {
     
     # Check if statusline script can generate config
     if [ -x "$STATUSLINE_PATH" ]; then
-        if "$STATUSLINE_PATH" --generate-config "$CONFIG_PATH" >/dev/null 2>&1; then
+        local error_output
+        if error_output=$("$STATUSLINE_PATH" --generate-config "$CONFIG_PATH" 2>&1); then
             print_success "✅ Generated Config.toml at: $CONFIG_PATH"
             print_status "💡 Edit $CONFIG_PATH to customize your statusline"
             return 0
         else
             print_warning "Could not generate Config.toml (statusline will use built-in defaults)"
+            if [[ -n "$error_output" ]]; then
+                print_warning "Error details: $error_output"
+                case "$error_output" in
+                    *"Permission denied"*) print_status "💡 Try: chmod +x $STATUSLINE_PATH" ;;
+                    *"No such file"*) print_status "💡 Check that $CONFIG_PATH directory exists" ;;
+                    *"Invalid"*) print_status "💡 Verify statusline script is not corrupted" ;;
+                esac
+            fi
             return 1
         fi
     else
