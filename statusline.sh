@@ -157,7 +157,7 @@ fi
 
 # === TIMEOUTS (in seconds) ===
 # Timeout for MCP server status checks
-CONFIG_MCP_TIMEOUT="3s"
+CONFIG_MCP_TIMEOUT="10s"
 # Timeout for Claude version checks
 CONFIG_VERSION_TIMEOUT="2s"
 # Timeout for ccusage cost tracking
@@ -1294,7 +1294,7 @@ load_toml_configuration() {
             feature_show_cost: (.features.show_cost_tracking // true),
             feature_show_reset: (.features.show_reset_info // true),
             feature_show_session: (.features.show_session_info // true),
-            timeout_mcp: (.timeouts.mcp // "3s"),
+            timeout_mcp: (.timeouts.mcp // "10s"),
             timeout_version: (.timeouts.version // "2s"),
             timeout_ccusage: (.timeouts.ccusage // "3s"),
             emoji_opus: (.emojis.opus // "🧠"),
@@ -2220,7 +2220,7 @@ TOML_EOF
         -e "s/DIRTY_STATUS_EMOJI_PLACEHOLDER/${CONFIG_DIRTY_STATUS_EMOJI:-📁}/g" \
         -e "s/CLOCK_EMOJI_PLACEHOLDER/${CONFIG_CLOCK_EMOJI:-🕐}/g" \
         -e "s/LIVE_BLOCK_EMOJI_PLACEHOLDER/${CONFIG_LIVE_BLOCK_EMOJI:-🔥}/g" \
-        -e "s/MCP_TIMEOUT_PLACEHOLDER/${CONFIG_MCP_TIMEOUT:-3s}/g" \
+        -e "s/MCP_TIMEOUT_PLACEHOLDER/${CONFIG_MCP_TIMEOUT:-10s}/g" \
         -e "s/VERSION_TIMEOUT_PLACEHOLDER/${CONFIG_VERSION_TIMEOUT:-2s}/g" \
         -e "s/CCUSAGE_TIMEOUT_PLACEHOLDER/${CONFIG_CCUSAGE_TIMEOUT:-3s}/g" \
         -e "s/COMMITS_LABEL_PLACEHOLDER/${CONFIG_COMMITS_LABEL:-Commits:}/g" \
@@ -2408,7 +2408,7 @@ compare_configurations() {
             toml_theme=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"' 2>/dev/null)
             toml_show_commits=$(echo "$config_json" | jq -r '.features.show_commits // true' 2>/dev/null)
             toml_show_version=$(echo "$config_json" | jq -r '.features.show_version // true' 2>/dev/null) 
-            toml_mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "3s"' 2>/dev/null)
+            toml_mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "10s"' 2>/dev/null)
             
             echo "  Theme: $toml_theme"
             echo "  Show commits: $toml_show_commits"
