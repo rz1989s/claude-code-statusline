@@ -4,10 +4,13 @@
 
 Create stunning visual experiences with structured theme configuration - from pre-built themes to custom color palettes, all managed through elegant TOML files.
 
+> 🏗️ **Modular Architecture**: The theme system is now powered by `lib/themes.sh` which provides enhanced theme loading, validation, and color management within our modular architecture.
+
 ## 🚀 **Quick Start with TOML Themes**
 
 ### Instant Theme Setup
 
+**From project directory:**
 ```bash
 # 1. Generate your base Config.toml
 ./statusline.sh --generate-config
@@ -23,13 +26,29 @@ vim Config.toml
 ./statusline.sh
 ```
 
+**Using installed statusline:**
+```bash
+# 1. Generate your base Config.toml
+~/.claude/statusline.sh --generate-config
+
+# 2. Choose your theme in Config.toml
+vim Config.toml
+# Change: name = "catppuccin"  # or "classic", "garden", "custom"
+
+# 3. Test your theme
+~/.claude/statusline.sh --test-config
+
+# 4. Use your themed statusline!
+~/.claude/statusline.sh
+```
+
 ### Quick Theme Testing
 
 ```bash
 # Try themes instantly without editing files
-ENV_CONFIG_THEME=garden ./statusline.sh      # Test garden theme
-ENV_CONFIG_THEME=classic ./statusline.sh     # Test classic theme
-ENV_CONFIG_THEME=catppuccin ./statusline.sh  # Test catppuccin theme
+ENV_CONFIG_THEME=garden ./statusline.sh      # Test garden theme (local)
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh     # Test classic theme (installed)
+ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh  # Test catppuccin theme (installed)
 ```
 
 ---

@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the Claude Code Enhanced Statusline project - a sophisticated 4-line statusline script that provides rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+This is the Claude Code Enhanced Statusline project - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 8 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+
+**Architecture**: 
+- **Main Script**: `statusline.sh` (338 lines) - orchestrates modules and handles input/output
+- **8 Modules**: `lib/core.sh`, `lib/security.sh`, `lib/config.sh`, `lib/themes.sh`, `lib/git.sh`, `lib/mcp.sh`, `lib/cost.sh`, `lib/display.sh`
+- **91.4% Code Reduction**: Refactored from 3930-line monolithic script to clean modular system
 
 ## Build, Test & Development Commands
 

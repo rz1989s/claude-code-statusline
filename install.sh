@@ -15,9 +15,9 @@ NC='\033[0m' # No Color
 # Script configuration
 REPO_URL="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh"
 CLAUDE_DIR="$HOME/.claude"
-STATUSLINE_DIR="$CLAUDE_DIR/statusline"
-STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
-CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
+STATUSLINE_PATH="$CLAUDE_DIR/statusline.sh"
+LIB_DIR="$CLAUDE_DIR/lib"
+CONFIG_PATH="$CLAUDE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
 # Function to print colored output
@@ -447,26 +447,56 @@ create_claude_directory() {
     fi
 }
 
-# Function to create statusline directory
-create_statusline_directory() {
-    if [ ! -d "$STATUSLINE_DIR" ]; then
-        print_status "Creating statusline directory: $STATUSLINE_DIR"
-        mkdir -p "$STATUSLINE_DIR"
-        print_success "Created directory: $STATUSLINE_DIR"
+# Function to create lib directory for modules
+create_lib_directory() {
+    if [ ! -d "$LIB_DIR" ]; then
+        print_status "Creating lib directory for modules: $LIB_DIR"
+        mkdir -p "$LIB_DIR"
+        print_success "Created directory: $LIB_DIR"
     else
-        print_status "Statusline directory already exists: $STATUSLINE_DIR"
+        print_status "Lib directory already exists: $LIB_DIR"
     fi
 }
 
-# Function to download statusline script
+# Function to download statusline script and modules
 download_statusline() {
-    print_status "Downloading statusline.sh from repository..."
+    print_status "Downloading modular statusline from repository..."
     
+    # Download main orchestrator script
     if curl -fsSL "$REPO_URL" -o "$STATUSLINE_PATH"; then
-        print_success "Downloaded statusline.sh to $STATUSLINE_PATH"
+        print_success "Downloaded main statusline.sh to $STATUSLINE_PATH"
     else
         print_error "Failed to download statusline.sh"
         exit 1
+    fi
+    
+    # Create lib directory
+    print_status "Creating lib directory for modules..."
+    mkdir -p "$LIB_DIR"
+    
+    # Download all modules
+    print_status "Downloading statusline modules..."
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "display.sh")
+    local failed_modules=()
+    
+    for module in "${modules[@]}"; do
+        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/$module"
+        local module_path="$LIB_DIR/$module"
+        
+        if curl -fsSL "$module_url" -o "$module_path"; then
+            print_status "✓ Downloaded $module"
+        else
+            print_error "✗ Failed to download $module"
+            failed_modules+=("$module")
+        fi
+    done
+    
+    if [[ ${#failed_modules[@]} -gt 0 ]]; then
+        print_error "Failed to download modules: ${failed_modules[*]}"
+        print_error "Statusline may not function properly without all modules"
+        exit 1
+    else
+        print_success "All modules downloaded successfully"
     fi
 }
 
@@ -604,7 +634,7 @@ generate_default_config() {
 
 # Function to verify installation
 verify_installation() {
-    print_status "Verifying installation..."
+    print_status "Verifying modular statusline installation..."
     
     # Check if statusline.sh exists and is executable
     if [ -x "$STATUSLINE_PATH" ]; then
@@ -612,6 +642,34 @@ verify_installation() {
     else
         print_error "statusline.sh is not properly installed or not executable"
         return 1
+    fi
+    
+    # Check if lib directory exists
+    if [ -d "$LIB_DIR" ]; then
+        print_success "lib directory exists"
+    else
+        print_error "lib directory is missing"
+        return 1
+    fi
+    
+    # Check if all modules exist
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "display.sh")
+    local missing_modules=()
+    
+    for module in "${modules[@]}"; do
+        if [ -f "$LIB_DIR/$module" ]; then
+            print_status "✓ Module $module found"
+        else
+            print_error "✗ Module $module missing"
+            missing_modules+=("$module")
+        fi
+    done
+    
+    if [[ ${#missing_modules[@]} -gt 0 ]]; then
+        print_error "Missing modules: ${missing_modules[*]}"
+        return 1
+    else
+        print_success "All modules installed successfully"
     fi
     
     # Check if settings.json exists and contains statusLine configuration
@@ -771,7 +829,6 @@ main() {
     fi
     
     create_claude_directory
-    create_statusline_directory
     migrate_existing_installation || true  # Don't fail if no existing installation
     download_statusline
     make_executable

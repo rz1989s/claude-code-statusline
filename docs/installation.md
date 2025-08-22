@@ -172,19 +172,28 @@ npm install -g bunx ccusage
 bunx ccusage --version
 ```
 
-### Step 3: Download and Install Script
+### Step 3: Download and Install Modular Statusline
 ```bash
-# Create directory
-mkdir -p ~/.claude/statusline/
+# Create Claude directory
+mkdir -p ~/.claude/
 
-# Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+# Download main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 
-# Make executable
-chmod +x ~/.claude/statusline/statusline.sh
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 
-# Test the script
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline/statusline.sh
+# Test the modular statusline
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
 ```
 
 ## 🐧 Linux Installation
@@ -214,16 +223,25 @@ timeout --version
 bunx ccusage --version
 ```
 
-#### Step 3: Download and Install Script
+#### Step 3: Download and Install Modular Statusline
 ```bash
-# Create directory
-mkdir -p ~/.claude/statusline/
+# Create Claude directory
+mkdir -p ~/.claude/
 
-# Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+# Download main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 
-# Make executable
-chmod +x ~/.claude/statusline/statusline.sh
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 ```
 
 ### RHEL/CentOS/Fedora
@@ -244,16 +262,25 @@ sudo yum install -y nodejs  # or sudo dnf install -y nodejs
 npm install -g bunx ccusage
 ```
 
-#### Step 2: Download and Install Script
+#### Step 2: Download and Install Modular Statusline
 ```bash
-# Create directory
-mkdir -p ~/.claude/statusline/
+# Create Claude directory
+mkdir -p ~/.claude/
 
-# Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+# Download main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 
-# Make executable
-chmod +x ~/.claude/statusline/statusline.sh
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 ```
 
 ### Arch Linux
@@ -273,16 +300,25 @@ sudo pacman -S nodejs npm
 npm install -g bunx ccusage
 ```
 
-#### Step 2: Download and Install Script
+#### Step 2: Download and Install Modular Statusline
 ```bash
-# Create directory
-mkdir -p ~/.claude/statusline/
+# Create Claude directory
+mkdir -p ~/.claude/
 
-# Download script
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+# Download main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
 
-# Make executable
-chmod +x ~/.claude/statusline/statusline.sh
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 ```
 
 ## 🪟 Windows WSL Installation
@@ -302,12 +338,25 @@ sudo apt install -y jq nodejs npm
 npm install -g bunx ccusage
 ```
 
-### Step 3: Install Script in WSL
+### Step 3: Install Modular Statusline in WSL
 ```bash
-# Inside WSL
-mkdir -p ~/.claude/statusline/
-curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
-chmod +x ~/.claude/statusline/statusline.sh
+# Inside WSL - Create Claude directory
+mkdir -p ~/.claude/
+
+# Download main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
+
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 ```
 
 ## 🎯 GNU Stow Integration (Recommended)
@@ -318,11 +367,22 @@ If you use [GNU Stow](https://www.gnu.org/software/stow/) for dotfiles managemen
 ```bash
 # In your dotfiles repository
 mkdir -p claude/.claude/
+mkdir -p claude/.claude/lib/
 cd claude/.claude/
 
-# Download script
+# Download main orchestrator script
 curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o statusline.sh
 chmod +x statusline.sh
+
+# Download all modules
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o lib/display.sh
 ```
 
 ### Step 2: Stow the Configuration
@@ -330,7 +390,7 @@ chmod +x statusline.sh
 # From your dotfiles root directory
 stow claude
 
-# This creates symlink: ~/.claude/statusline/statusline.sh -> dotfiles/claude/.claude/statusline.sh
+# This creates symlinks: ~/.claude/statusline.sh and ~/.claude/lib/ -> dotfiles/claude/.claude/
 ```
 
 ## ⚙️ Configure Claude Code
@@ -339,12 +399,12 @@ After installation, configure Claude Code to use the statusline:
 
 ```bash
 # Method 1: Via Claude Code command
-claude config set statusline ~/.claude/statusline/statusline.sh
+claude config set statusline ~/.claude/statusline.sh
 
 # Method 2: Edit settings manually
 # Add to your Claude Code settings.json:
 {
-  "statusline": "~/.claude/statusline/statusline.sh"
+  "statusline": "~/.claude/statusline.sh"
 }
 ```
 
@@ -352,14 +412,14 @@ claude config set statusline ~/.claude/statusline/statusline.sh
 
 ### Basic Installation Test
 ```bash
-# Check if the statusline script is executable
-ls -la ~/.claude/statusline/statusline.sh
+# Check if the statusline script and modules are present
+ls -la ~/.claude/statusline.sh ~/.claude/lib/
 
 # Verify Claude Code configuration
 claude config get statusline
 
-# Test the statusline help system
-~/.claude/statusline/statusline.sh --help
+# Test the modular statusline help system
+~/.claude/statusline.sh --help
 ```
 
 ### 🎨 **TOML Configuration Setup (Recommended)**
@@ -373,13 +433,13 @@ The statusline now features an **enterprise-grade TOML configuration system**. S
 cd ~/  # For user-wide config
 
 # Generate your Config.toml file
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 
 # Customize your configuration
 vim Config.toml
 
 # Test your configuration
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 ```
 
 #### Configuration File Locations
@@ -395,23 +455,23 @@ The statusline automatically discovers configuration in this order:
 ```bash
 # User-wide XDG-compliant configuration
 mkdir -p ~/.config/claude-code-statusline
-~/.claude/statusline/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+~/.claude/statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
 
 # Project-specific configuration
 cd ~/my-project
-~/.claude/statusline/statusline.sh --generate-config ./Config.toml
+~/.claude/statusline.sh --generate-config ./Config.toml
 
 # Home directory configuration
-~/.claude/statusline/statusline.sh --generate-config ~/.claude-statusline.toml
+~/.claude/statusline.sh --generate-config ~/.claude-statusline.toml
 ```
 
 #### Quick Theme Setup
 
 ```bash
 # Test different themes instantly (no files needed)
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh      # Soft pastels
-ENV_CONFIG_THEME=catppuccin ~/.claude/statusline/statusline.sh  # Dark modern
-ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh     # Traditional
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh      # Soft pastels
+ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh  # Dark modern
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh     # Traditional
 
 # Or create a simple Config.toml
 cat > Config.toml << 'EOF'
@@ -425,27 +485,27 @@ show_mcp_status = true
 EOF
 
 # Test your theme
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 ```
 
 ### Statusline Functionality Test
 
 ```bash
 # Test script with minimal input
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test Model"}}' | ~/.claude/statusline.sh
 
 # Test with git repository
 cd ~/some-git-repo
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline/statusline.sh
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"}}' | ~/.claude/statusline.sh
 ```
 
 ### TOML Configuration Testing
 
 ```bash
 # Comprehensive configuration testing
-~/.claude/statusline/statusline.sh --test-config-verbose     # Detailed testing output
-~/.claude/statusline/statusline.sh --validate-config         # Validate TOML syntax
-~/.claude/statusline/statusline.sh --compare-config          # Compare inline vs TOML settings
+~/.claude/statusline.sh --test-config-verbose     # Detailed testing output
+~/.claude/statusline.sh --validate-config         # Validate TOML syntax
+~/.claude/statusline.sh --compare-config          # Compare inline vs TOML settings
 ```
 
 ### Expected Output
@@ -488,7 +548,7 @@ brew install coreutils
    ccusage = "1s"
    version = "1s"
    ```
-2. **Environment Override**: `ENV_CONFIG_MCP_TIMEOUT=1s ~/.claude/statusline/statusline.sh`
+2. **Environment Override**: `ENV_CONFIG_MCP_TIMEOUT=1s ~/.claude/statusline.sh`
 3. **Disable features**: 
    ```toml
    [features]
@@ -501,16 +561,16 @@ brew install coreutils
 **TOML file not found**:
 ```bash
 # Check configuration discovery
-~/.claude/statusline/statusline.sh --test-config-verbose
+~/.claude/statusline.sh --test-config-verbose
 
 # Generate configuration if missing
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 ```
 
 **TOML syntax errors**:
 ```bash
 # Validate TOML syntax
-~/.claude/statusline/statusline.sh --validate-config
+~/.claude/statusline.sh --validate-config
 
 # Common syntax issues:
 # ❌ Incorrect: theme = catppuccin
@@ -520,7 +580,7 @@ brew install coreutils
 **Environment overrides not working**:
 ```bash
 # Test environment override
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh --test-config
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh --test-config
 
 # Should show: Theme: garden (environment override)
 ```
@@ -529,7 +589,7 @@ ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh --test-config
 Add debug output by running:
 ```bash
 # Enable bash debug mode
-bash -x ~/.claude/statusline/statusline.sh
+bash -x ~/.claude/statusline.sh
 ```
 
 ### Getting Help
@@ -543,10 +603,10 @@ bash -x ~/.claude/statusline/statusline.sh
 After successful installation, explore the **powerful TOML configuration system**:
 
 ### 🎨 **Configuration & Themes**
-1. **Generate Config.toml** - `~/.claude/statusline/statusline.sh --generate-config`
+1. **Generate Config.toml** - `~/.claude/statusline.sh --generate-config`
 2. **Choose your theme** - Edit `[theme] name = "catppuccin"` in Config.toml  
 3. **Customize features** - Enable/disable sections in `[features]`
-4. **Test changes** - `~/.claude/statusline/statusline.sh --test-config`
+4. **Test changes** - `~/.claude/statusline.sh --test-config`
 
 ### 💰 **Cost Tracking Setup**
 5. **Configure ccusage** - Set up with your Claude API keys
@@ -585,18 +645,18 @@ ccusage = "3s"
 EOF
 
 # Test your configuration
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 ```
 
 ### 🌍 **Environment Variable Shortcuts**
 
 ```bash
 # Try themes instantly without editing files
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
-ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh
 
 # Disable features temporarily
-ENV_CONFIG_SHOW_COST_TRACKING=false ~/.claude/statusline/statusline.sh
+ENV_CONFIG_SHOW_COST_TRACKING=false ~/.claude/statusline.sh
 ```
 
 ---
