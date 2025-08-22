@@ -182,7 +182,7 @@ get_session_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since \"$COST_SEVEN_DAYS_AGO\""
+    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since $COST_SEVEN_DAYS_AGO"
 }
 
 # Get daily cost data (7 days)
@@ -192,7 +192,7 @@ get_daily_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since \"$COST_SEVEN_DAYS_AGO\""
+    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since $COST_SEVEN_DAYS_AGO"
 }
 
 # Get monthly cost data (30 days)
@@ -202,7 +202,7 @@ get_monthly_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$MONTHLY_CACHE_FILE" "daily --since \"$COST_THIRTY_DAYS_AGO\""
+    execute_ccusage_with_cache "$MONTHLY_CACHE_FILE" "daily --since $COST_THIRTY_DAYS_AGO"
 }
 
 # ============================================================================
