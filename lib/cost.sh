@@ -345,7 +345,7 @@ print(local_time.strftime('%H.%M'))
         fi
         
         local block_info reset_info
-        block_info=$(printf "$CONFIG_LIVE_BLOCK_EMOJI $CONFIG_LIVE_LABEL \$%.2f" "$block_cost")
+        block_info=$(printf "%s%s \$%.2f" "$CONFIG_LIVE_BLOCK_EMOJI" "$CONFIG_LIVE_LABEL" "$block_cost")
         
         if [[ -n "$reset_time" ]]; then
             reset_info=$(printf "$CONFIG_RESET_LABEL at %s (%s)" "$reset_time" "$time_str")

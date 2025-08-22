@@ -22,84 +22,84 @@ export STATUSLINE_THEMES_LOADED=true
 
 # Classic theme (traditional ANSI colors)
 apply_classic_theme() {
-    CONFIG_RED='\033[31m'
-    CONFIG_BLUE='\033[34m'
-    CONFIG_GREEN='\033[32m'
-    CONFIG_YELLOW='\033[33m'
-    CONFIG_MAGENTA='\033[35m'
-    CONFIG_CYAN='\033[36m'
-    CONFIG_WHITE='\033[37m'
-    CONFIG_ORANGE='\033[38;5;208m'
-    CONFIG_LIGHT_ORANGE='\033[38;5;215m'
-    CONFIG_LIGHT_GRAY='\033[38;5;248m'
-    CONFIG_BRIGHT_GREEN='\033[92m'
-    CONFIG_PURPLE='\033[95m'
-    CONFIG_TEAL='\033[38;5;73m'
-    CONFIG_GOLD='\033[38;5;220m'
-    CONFIG_PINK_BRIGHT='\033[38;5;205m'
-    CONFIG_INDIGO='\033[38;5;105m'
-    CONFIG_VIOLET='\033[38;5;99m'
-    CONFIG_LIGHT_BLUE='\033[38;5;111m'
-    CONFIG_DIM='\033[2m'
-    CONFIG_ITALIC='\033[3m'
-    CONFIG_STRIKETHROUGH='\033[9m'
-    CONFIG_RESET='\033[0m'
+    CONFIG_RED=$(printf '\033[31m')
+    CONFIG_BLUE=$(printf '\033[34m')
+    CONFIG_GREEN=$(printf '\033[32m')
+    CONFIG_YELLOW=$(printf '\033[33m')
+    CONFIG_MAGENTA=$(printf '\033[35m')
+    CONFIG_CYAN=$(printf '\033[36m')
+    CONFIG_WHITE=$(printf '\033[37m')
+    CONFIG_ORANGE=$(printf '\033[38;5;208m')
+    CONFIG_LIGHT_ORANGE=$(printf '\033[38;5;215m')
+    CONFIG_LIGHT_GRAY=$(printf '\033[38;5;248m')
+    CONFIG_BRIGHT_GREEN=$(printf '\033[92m')
+    CONFIG_PURPLE=$(printf '\033[95m')
+    CONFIG_TEAL=$(printf '\033[38;5;73m')
+    CONFIG_GOLD=$(printf '\033[38;5;220m')
+    CONFIG_PINK_BRIGHT=$(printf '\033[38;5;205m')
+    CONFIG_INDIGO=$(printf '\033[38;5;105m')
+    CONFIG_VIOLET=$(printf '\033[38;5;99m')
+    CONFIG_LIGHT_BLUE=$(printf '\033[38;5;111m')
+    CONFIG_DIM=$(printf '\033[2m')
+    CONFIG_ITALIC=$(printf '\033[3m')
+    CONFIG_STRIKETHROUGH=$(printf '\033[9m')
+    CONFIG_RESET=$(printf '\033[0m')
     
     debug_log "Applied classic theme" "INFO"
 }
 
 # Garden theme (soft pastel colors)
 apply_garden_theme() {
-    CONFIG_RED='\033[38;2;255;182;193m'          # Light Pink
-    CONFIG_BLUE='\033[38;2;173;216;230m'         # Powder Blue
-    CONFIG_GREEN='\033[38;2;176;196;145m'        # Sage Green
-    CONFIG_YELLOW='\033[38;2;255;218;185m'       # Peach
-    CONFIG_MAGENTA='\033[38;2;230;230;250m'      # Lavender
-    CONFIG_CYAN='\033[38;2;175;238;238m'         # Pale Turquoise
-    CONFIG_WHITE='\033[38;2;245;245;245m'        # Soft White
-    CONFIG_ORANGE='\033[38;2;255;200;173m'       # Pale Orange
-    CONFIG_LIGHT_ORANGE='\033[38;2;255;200;173m' # Pale Orange
-    CONFIG_LIGHT_GRAY='\033[38;2;169;169;169m'   # Light Gray
-    CONFIG_BRIGHT_GREEN='\033[38;2;189;252;201m' # Mint Green
-    CONFIG_PURPLE='\033[38;2;230;230;250m'       # Lavender
-    CONFIG_TEAL='\033[38;2;189;252;201m'         # Mint Green
-    CONFIG_GOLD='\033[38;2;255;218;185m'         # Peach
-    CONFIG_PINK_BRIGHT='\033[38;2;255;182;193m'  # Light Pink
-    CONFIG_INDIGO='\033[38;2;221;160;221m'       # Plum
-    CONFIG_VIOLET='\033[38;2;230;230;250m'       # Lavender
-    CONFIG_LIGHT_BLUE='\033[38;2;173;216;230m'   # Powder Blue
-    CONFIG_DIM='\033[2m'
-    CONFIG_ITALIC='\033[3m'
-    CONFIG_STRIKETHROUGH='\033[9m'
-    CONFIG_RESET='\033[0m'
+    CONFIG_RED=$(printf '\033[38;2;255;182;193m')          # Light Pink
+    CONFIG_BLUE=$(printf '\033[38;2;173;216;230m')         # Powder Blue
+    CONFIG_GREEN=$(printf '\033[38;2;176;196;145m')        # Sage Green
+    CONFIG_YELLOW=$(printf '\033[38;2;255;218;185m')       # Peach
+    CONFIG_MAGENTA=$(printf '\033[38;2;230;230;250m')      # Lavender
+    CONFIG_CYAN=$(printf '\033[38;2;175;238;238m')         # Pale Turquoise
+    CONFIG_WHITE=$(printf '\033[38;2;245;245;245m')        # Soft White
+    CONFIG_ORANGE=$(printf '\033[38;2;255;200;173m')       # Pale Orange
+    CONFIG_LIGHT_ORANGE=$(printf '\033[38;2;255;200;173m') # Pale Orange
+    CONFIG_LIGHT_GRAY=$(printf '\033[38;2;169;169;169m')   # Light Gray
+    CONFIG_BRIGHT_GREEN=$(printf '\033[38;2;189;252;201m') # Mint Green
+    CONFIG_PURPLE=$(printf '\033[38;2;230;230;250m')       # Lavender
+    CONFIG_TEAL=$(printf '\033[38;2;189;252;201m')         # Mint Green
+    CONFIG_GOLD=$(printf '\033[38;2;255;218;185m')         # Peach
+    CONFIG_PINK_BRIGHT=$(printf '\033[38;2;255;182;193m')  # Light Pink
+    CONFIG_INDIGO=$(printf '\033[38;2;221;160;221m')       # Plum
+    CONFIG_VIOLET=$(printf '\033[38;2;230;230;250m')       # Lavender
+    CONFIG_LIGHT_BLUE=$(printf '\033[38;2;173;216;230m')   # Powder Blue
+    CONFIG_DIM=$(printf '\033[2m')
+    CONFIG_ITALIC=$(printf '\033[3m')
+    CONFIG_STRIKETHROUGH=$(printf '\033[9m')
+    CONFIG_RESET=$(printf '\033[0m')
     
     debug_log "Applied garden theme" "INFO"
 }
 
 # Catppuccin theme (official Catppuccin Mocha colors)
 apply_catppuccin_theme() {
-    CONFIG_RED='\033[38;2;243;139;168m'          # #f38ba8
-    CONFIG_BLUE='\033[38;2;137;180;250m'         # #89b4fa
-    CONFIG_GREEN='\033[38;2;166;227;161m'        # #a6e3a1
-    CONFIG_YELLOW='\033[38;2;249;226;175m'       # #f9e2af
-    CONFIG_MAGENTA='\033[38;2;203;166;247m'      # #cba6f7
-    CONFIG_CYAN='\033[38;2;137;220;235m'         # #89dceb
-    CONFIG_WHITE='\033[38;2;205;214;244m'        # #cdd6f4
-    CONFIG_ORANGE='\033[38;2;250;179;135m'       # #fab387
-    CONFIG_LIGHT_ORANGE='\033[38;2;250;179;135m' # #fab387
-    CONFIG_LIGHT_GRAY='\033[38;2;166;173;200m'   # #a6adc8
-    CONFIG_BRIGHT_GREEN='\033[38;2;166;227;161m' # #a6e3a1
-    CONFIG_PURPLE='\033[38;2;203;166;247m'       # #cba6f7
-    CONFIG_TEAL='\033[38;2;148;226;213m'         # #94e2d5
-    CONFIG_GOLD='\033[38;2;249;226;175m'         # #f9e2af
-    CONFIG_PINK_BRIGHT='\033[38;2;245;194;231m'  # #f5c2e7
-    CONFIG_INDIGO='\033[38;2;116;199;236m'       # #74c7ec
-    CONFIG_VIOLET='\033[38;2;203;166;247m'       # #cba6f7
-    CONFIG_LIGHT_BLUE='\033[38;2;137;220;235m'   # #89dceb
-    CONFIG_DIM='\033[2m'
-    CONFIG_ITALIC='\033[3m'
-    CONFIG_STRIKETHROUGH='\033[9m'
-    CONFIG_RESET='\033[0m'
+    CONFIG_RED=$(printf '\033[38;2;243;139;168m')          # #f38ba8
+    CONFIG_BLUE=$(printf '\033[38;2;137;180;250m')         # #89b4fa
+    CONFIG_GREEN=$(printf '\033[38;2;166;227;161m')        # #a6e3a1
+    CONFIG_YELLOW=$(printf '\033[38;2;249;226;175m')       # #f9e2af
+    CONFIG_MAGENTA=$(printf '\033[38;2;203;166;247m')      # #cba6f7
+    CONFIG_CYAN=$(printf '\033[38;2;137;220;235m')         # #89dceb
+    CONFIG_WHITE=$(printf '\033[38;2;205;214;244m')        # #cdd6f4
+    CONFIG_ORANGE=$(printf '\033[38;2;250;179;135m')       # #fab387
+    CONFIG_LIGHT_ORANGE=$(printf '\033[38;2;250;179;135m') # #fab387
+    CONFIG_LIGHT_GRAY=$(printf '\033[38;2;166;173;200m')   # #a6adc8
+    CONFIG_BRIGHT_GREEN=$(printf '\033[38;2;166;227;161m') # #a6e3a1
+    CONFIG_PURPLE=$(printf '\033[38;2;203;166;247m')       # #cba6f7
+    CONFIG_TEAL=$(printf '\033[38;2;148;226;213m')         # #94e2d5
+    CONFIG_GOLD=$(printf '\033[38;2;249;226;175m')         # #f9e2af
+    CONFIG_PINK_BRIGHT=$(printf '\033[38;2;245;194;231m')  # #f5c2e7
+    CONFIG_INDIGO=$(printf '\033[38;2;116;199;236m')       # #74c7ec
+    CONFIG_VIOLET=$(printf '\033[38;2;203;166;247m')       # #cba6f7
+    CONFIG_LIGHT_BLUE=$(printf '\033[38;2;137;220;235m')   # #89dceb
+    CONFIG_DIM=$(printf '\033[2m')
+    CONFIG_ITALIC=$(printf '\033[3m')
+    CONFIG_STRIKETHROUGH=$(printf '\033[9m')
+    CONFIG_RESET=$(printf '\033[0m')
     
     debug_log "Applied catppuccin theme" "INFO"
 }

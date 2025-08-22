@@ -149,7 +149,7 @@ format_cost_value() {
     if [[ "$cost" == "-.--" ]] || [[ -z "$cost" ]]; then
         echo "${color}${label} \$-.--${CONFIG_RESET}"
     else
-        printf "${color}%s \$%.2f${CONFIG_RESET}" "$label" "$cost"
+        printf "${color}%s \$%.2f${CONFIG_RESET}\n" "$label" "$cost"
     fi
 }
 
