@@ -52,6 +52,33 @@
 
 ## 🆕 Recent Updates
 
+### v1.4.0 - Centralized Version Management System 🎯
+
+- **📍 Single Source of Truth** - Introduced `version.txt` as master version file for entire codebase
+- **🛠️ Version Management Scripts** - Automated tools for version synchronization and consistency checks
+- **🔄 Dynamic Version Reading** - All components now read version from centralized source
+- **📦 Automated Package Sync** - Scripts maintain package.json synchronization with version.txt
+- **✅ System Verification** - Comprehensive testing tools for version consistency
+- **📚 Complete Documentation** - Full guide for centralized version management workflow
+
+### v1.3.1 - Enhanced Error Messages & Documentation 🔧
+
+- **📝 Improved Error Messages** - Enhanced module loading error messages with specific troubleshooting guidance  
+- **📚 Function Documentation** - Added comprehensive documentation to core.sh functions
+- **🧪 Enhanced Testing** - New test coverage for module loading functionality
+- **🔍 Better Diagnostics** - Clearer error messages help users resolve issues faster
+
+### v1.3.0 - Modular Architecture Implementation 🏗️ 
+
+*Contains internal v2.0.0-refactored architecture while maintaining v1.3.x compatibility*
+
+- **🏗️ Modular Architecture** - Complete refactor from 3930-line monolithic script to clean modular system
+- **📦 8 Specialized Modules** - Core, security, config, themes, git, MCP, cost, and display modules  
+- **🎯 91.4% Code Reduction** - Main orchestrator reduced to 338 lines with preserved functionality
+- **🔧 Enhanced Maintainability** - Clear separation of concerns and dependency management
+- **⚡ Improved Performance** - Optimized module loading and reduced complexity
+- **🔄 100% Backward Compatible** - All existing functionality and configuration preserved
+
 ### v1.2 - Enhanced Timeout Validation & Configuration Improvements 🚀
 
 - **✅ Comprehensive Timeout Validation** - Enhanced bounds checking with contextual suggestions
@@ -99,7 +126,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 
 ![Repository Information](assets/screenshots/basic-repo-info.png)
 
-**Line 1: Repository Overview**
+**Line 1: Repository Overview** *(lib/display.sh, lib/git.sh)*
 - Working directory with elegant `~` notation
 - Git branch with clean/dirty status indicators
 - Today's commit count tracking
@@ -109,7 +136,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 
 ![Cost Tracking Integration](assets/screenshots/ccusage-info.png)
 
-**Line 2: Cost Tracking & Model Info**
+**Line 2: Cost Tracking & Model Info** *(lib/display.sh, lib/cost.sh)*
 - Current Claude model with emoji indicators
 - Repository session costs
 - 30-day, 7-day, and daily spending totals
@@ -118,16 +145,31 @@ Experience three beautifully crafted themes that transform your terminal into a 
 
 ![MCP Server Monitoring](assets/screenshots/mcp-info.png)
 
-**Line 3: MCP Server Health**
+**Line 3: MCP Server Health** *(lib/display.sh, lib/mcp.sh)*
 - Connected vs total server count
 - Server names with connection status
 - Color-coded indicators (🟢 connected, 🔴 disconnected)
 - Real-time health monitoring
 
-**Line 4: Block Reset Timer** *(when billing block is active)*
+**Line 4: Block Reset Timer** *(lib/display.sh, lib/cost.sh)*
 - Next reset time display
 - Countdown to block expiration
 - Smart detection and tracking
+
+### 🏗️ **Modular Architecture**
+
+- **📦 8 Specialized Modules** - Clean separation of concerns with dedicated modules for each feature
+  - `core.sh` - Base utilities, module loading, and performance timing
+  - `security.sh` - Input sanitization and secure file operations  
+  - `config.sh` - TOML configuration parsing and management
+  - `themes.sh` - Color theme system with inheritance support
+  - `git.sh` - Repository status, branch detection, and commit tracking
+  - `mcp.sh` - MCP server monitoring and health checking
+  - `cost.sh` - Cost tracking integration with ccusage
+  - `display.sh` - Output formatting and 4-line statusline generation
+- **🎯 91.4% Code Reduction** - Main orchestrator script reduced from 3930 to 338 lines
+- **🔧 Enhanced Maintainability** - Modular design enables easier testing, debugging, and feature development
+- **⚡ Improved Performance** - Optimized module loading and reduced script complexity
 
 ### ⚡ **Smart Performance & Monitoring**
 
@@ -175,13 +217,13 @@ name = "catppuccin"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=catppuccin ~/.claude/statusline/statusline.sh
+ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh
 ```
 
 **CLI Generation:**
 ```bash
 # Generate Config.toml with catppuccin theme
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 # Then edit Config.toml to set theme.name = "catppuccin"
 ```
 
@@ -201,7 +243,7 @@ name = "garden"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
 ```
 
 ### ⚡ Classic Theme
@@ -220,7 +262,7 @@ name = "classic"
 **Environment Override:**
 ```bash
 # Temporary theme change
-ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh
 ```
 
 ### 🎨 Custom Theme
@@ -251,9 +293,9 @@ purple = "\\033[38;2;147;112;219m"
 **Advanced Custom Configuration:**
 ```bash
 # Generate base config then customize
-~/.claude/statusline/statusline.sh --generate-config MyTheme.toml
+~/.claude/statusline.sh --generate-config MyTheme.toml
 # Edit MyTheme.toml with your custom colors
-~/.claude/statusline/statusline.sh --test-config MyTheme.toml
+~/.claude/statusline.sh --test-config MyTheme.toml
 ```
 
 ---
@@ -376,32 +418,54 @@ Perfect for dotfiles management with [GNU Stow](https://www.gnu.org/software/sto
 
 ```bash
 # Place in your dotfiles structure
-mkdir -p ~/.dotfiles/claude/.claude/statusline/
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.dotfiles/claude/.claude/statusline/statusline.sh
-chmod +x ~/.dotfiles/claude/.claude/statusline/statusline.sh
+mkdir -p ~/.dotfiles/claude/.claude/
+mkdir -p ~/.dotfiles/claude/.claude/lib/
+
+# Download main script and all modules
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.dotfiles/claude/.claude/statusline.sh
+chmod +x ~/.dotfiles/claude/.claude/statusline.sh
+
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.dotfiles/claude/.claude/lib/core.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.dotfiles/claude/.claude/lib/security.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.dotfiles/claude/.claude/lib/config.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.dotfiles/claude/.claude/lib/themes.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.dotfiles/claude/.claude/lib/git.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.dotfiles/claude/.claude/lib/mcp.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.dotfiles/claude/.claude/lib/cost.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.dotfiles/claude/.claude/lib/display.sh
 
 # Deploy with Stow
 cd ~/.dotfiles && stow claude
 
 # Configure Claude Code (manual JSON editing)
 # Add to ~/.claude/settings.json:
-# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
 ```
 
 #### Method 3: Manual Installation
 
 ```bash
-# Create directory if it doesn't exist
-mkdir -p ~/.claude/statusline/
+# Create Claude directory if it doesn't exist
+mkdir -p ~/.claude/
 
-# Download the script
-curl -O https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh
-chmod +x statusline.sh
-mv statusline.sh ~/.claude/statusline/
+# Download the main orchestrator script
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
+
+# Create lib directory and download all modules
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
 
 # Configure Claude Code (manual JSON editing)
 # Add to ~/.claude/settings.json:
-# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}
+# "statusLine": {"type": "command", "command": "bash ~/.claude/statusline.sh"}
 ```
 
 > 💡 **Why use the Enhanced Installer?** 
@@ -416,14 +480,14 @@ mv statusline.sh ~/.claude/statusline/
 Test your installation:
 
 ```bash
-# Check if the statusline script is executable
-ls -la ~/.claude/statusline/statusline.sh
+# Check if the statusline script and lib directory are present
+ls -la ~/.claude/statusline.sh ~/.claude/lib/
 
 # Verify Claude Code configuration (check settings.json)
 cat ~/.claude/settings.json | jq '.statusLine'
 
 # Test the statusline directly
-~/.claude/statusline/statusline.sh --help
+~/.claude/statusline.sh --help
 ```
 
 ### 🎨 **Configuration Setup (TOML System)**
@@ -437,20 +501,20 @@ cat ~/.claude/settings.json | jq '.statusLine'
 cd ~/  # or any project directory
 
 # Generate Config.toml with current settings
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 
 # Customize your configuration
 vim Config.toml
 
 # Test your new configuration  
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 ```
 
 #### Quick Theme Change
 
 ```bash
 # Change theme temporarily (no file needed)
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
 
 # Or create a simple Config.toml
 cat > Config.toml << 'EOF'
@@ -463,7 +527,7 @@ show_cost_tracking = true
 EOF
 
 # Test your theme
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 ```
 
 #### Configuration Discovery
@@ -474,7 +538,7 @@ The statusline automatically finds your config file:
 - **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
 - **`~/.claude-statusline.toml`** - Legacy fallback
 
-> 💡 **Pro Tip**: Start with `~/.claude/statusline/statusline.sh --generate-config` to create your base configuration, then customize from there!
+> 💡 **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base configuration, then customize from there!
 
 ### 🚀 **Ready to Use!**
 
@@ -492,16 +556,16 @@ Transform your statusline with our **enterprise-grade TOML configuration system*
 
 ```bash
 # 1. Generate your Config.toml file
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 
 # 2. Customize your Config.toml file  
 vim Config.toml
 
 # 3. Test your configuration
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 
 # 4. Start using your enhanced statusline!
-~/.claude/statusline/statusline.sh
+~/.claude/statusline.sh
 ```
 
 ### Configuration Discovery
@@ -577,41 +641,41 @@ teal = "\\033[38;5;73m"
 
 ```bash
 # === CONFIGURATION GENERATION ===
-~/.claude/statusline/statusline.sh --generate-config              # Create Config.toml from current settings
-~/.claude/statusline/statusline.sh --generate-config MyTheme.toml # Generate custom config file
+~/.claude/statusline.sh --generate-config              # Create Config.toml from current settings
+~/.claude/statusline.sh --generate-config MyTheme.toml # Generate custom config file
 
 # === TESTING & VALIDATION ===
-~/.claude/statusline/statusline.sh --test-config                  # Test current configuration
-~/.claude/statusline/statusline.sh --test-config MyTheme.toml     # Test specific config file
-~/.claude/statusline/statusline.sh --test-config-verbose          # Detailed testing output
-~/.claude/statusline/statusline.sh --validate-config              # Validate configuration with enhanced timeout bounds checking
+~/.claude/statusline.sh --test-config                  # Test current configuration
+~/.claude/statusline.sh --test-config MyTheme.toml     # Test specific config file
+~/.claude/statusline.sh --test-config-verbose          # Detailed testing output
+~/.claude/statusline.sh --validate-config              # Validate configuration with enhanced timeout bounds checking
 
 # === COMPARISON & ANALYSIS ===
-~/.claude/statusline/statusline.sh --compare-config               # Compare inline vs TOML settings
+~/.claude/statusline.sh --compare-config               # Compare inline vs TOML settings
 ```
 
 ### Live Reload & Management
 
 ```bash
 # === LIVE CONFIGURATION RELOAD ===
-~/.claude/statusline/statusline.sh --reload-config                # Reload configuration now
-~/.claude/statusline/statusline.sh --reload-interactive           # Interactive config management menu
-~/.claude/statusline/statusline.sh --watch-config 3               # Watch for changes every 3 seconds
+~/.claude/statusline.sh --reload-config                # Reload configuration now
+~/.claude/statusline.sh --reload-interactive           # Interactive config management menu
+~/.claude/statusline.sh --watch-config 3               # Watch for changes every 3 seconds
 
 # === MIGRATION & BACKUP ===
-~/.claude/statusline/statusline.sh --backup-config backup-dir/    # Backup current configuration
-~/.claude/statusline/statusline.sh --restore-config backup-dir/   # Restore from backup
+~/.claude/statusline.sh --backup-config backup-dir/    # Backup current configuration
+~/.claude/statusline.sh --restore-config backup-dir/   # Restore from backup
 ```
 
 ### Help & Documentation
 
 ```bash
 # === HELP SYSTEM ===
-~/.claude/statusline/statusline.sh --help                         # Complete help documentation with timeout guidance
-~/.claude/statusline/statusline.sh --help config                  # Configuration-specific help
+~/.claude/statusline.sh --help                         # Complete help documentation with timeout guidance
+~/.claude/statusline.sh --help config                  # Configuration-specific help
 
 # === ADDITIONAL COMMANDS ===
-~/.claude/statusline/statusline.sh                               # Run statusline with current configuration
+~/.claude/statusline.sh                               # Run statusline with current configuration
 ```
 
 > 💡 **Pro Tip**: Use environment overrides for temporary configuration changes without modifying your Config.toml file.
@@ -622,18 +686,18 @@ Temporarily override any TOML setting with environment variables:
 
 ```bash
 # === TEMPORARY THEME CHANGES ===
-ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh        # Use garden theme once
-ENV_CONFIG_THEME=classic ~/.claude/statusline/statusline.sh       # Use classic theme once
+ENV_CONFIG_THEME=garden ~/.claude/statusline.sh        # Use garden theme once
+ENV_CONFIG_THEME=classic ~/.claude/statusline.sh       # Use classic theme once
 
 # === FEATURE OVERRIDES ===
-ENV_CONFIG_SHOW_MCP_STATUS=false ~/.claude/statusline/statusline.sh     # Disable MCP status
-ENV_CONFIG_MCP_TIMEOUT=15s ~/.claude/statusline/statusline.sh           # Increase MCP timeout (validated: 1s-60s)
+ENV_CONFIG_SHOW_MCP_STATUS=false ~/.claude/statusline.sh     # Disable MCP status
+ENV_CONFIG_MCP_TIMEOUT=15s ~/.claude/statusline.sh           # Increase MCP timeout (validated: 1s-60s)
 
 # === PERFECT FOR CI/CD & AUTOMATION ===
 ENV_CONFIG_SHOW_COST_TRACKING=false \
 ENV_CONFIG_SHOW_RESET_INFO=false \
 ENV_CONFIG_THEME=classic \
-~/.claude/statusline/statusline.sh
+~/.claude/statusline.sh
 ```
 
 ## 🎛️ **Configuration Examples**
@@ -710,13 +774,13 @@ Your existing inline configuration **continues to work unchanged**! When you're 
 
 ```bash
 # 1. Generate TOML from your current inline settings
-~/.claude/statusline/statusline.sh --generate-config
+~/.claude/statusline.sh --generate-config
 
 # 2. Compare to see the differences  
-~/.claude/statusline/statusline.sh --compare-config
+~/.claude/statusline.sh --compare-config
 
 # 3. Test the new TOML configuration
-~/.claude/statusline/statusline.sh --test-config
+~/.claude/statusline.sh --test-config
 
 # 4. Your inline config becomes the fallback
 # TOML configuration takes precedence automatically
@@ -730,7 +794,7 @@ Your existing inline configuration **continues to work unchanged**! When you're 
 - 🔧 **[CLI Reference](docs/cli-reference.md)** - Complete command-line interface documentation
 - 🐛 **[Troubleshooting](docs/troubleshooting.md)** - TOML configuration troubleshooting
 
-> ⚡ **Pro Tip**: Start with `~/.claude/statusline/statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
+> ⚡ **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
 
 ## 🔍 What Each Line Shows
 

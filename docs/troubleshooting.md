@@ -4,6 +4,8 @@
 
 Comprehensive troubleshooting for installation, TOML configuration, themes, performance, and advanced features.
 
+> 🏗️ **Modular Architecture**: The statusline now uses a modular architecture with the main script at `~/.claude/statusline.sh` and 8 modules in `~/.claude/lib/`. This section includes troubleshooting for both the main script and module-related issues.
+
 ## 🔧 Installation Issues
 
 ### `jq: command not found`
@@ -45,7 +47,96 @@ brew install coreutils
 gtimeout --version
 ```
 
-**Alternative**: Edit the script to use `timeout` instead of `gtimeout`.
+**Alternative**: The modular architecture automatically handles timeout command detection.
+
+---
+
+## 🏗️ Modular Architecture Issues
+
+### `FATAL ERROR: Core module not found`
+
+**Problem**: The main script cannot find the required modules in `~/.claude/lib/`.
+
+**Symptoms**:
+```bash
+$ ~/.claude/statusline.sh
+FATAL ERROR: Core module not found at ~/.claude/lib/core.sh
+Please ensure the lib/ directory is present with all required modules.
+```
+
+**Solutions**:
+```bash
+# Check if lib directory and modules exist
+ls -la ~/.claude/lib/
+
+# If missing, reinstall the modular statusline
+mkdir -p ~/.claude/lib/
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/core.sh -o ~/.claude/lib/core.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/security.sh -o ~/.claude/lib/security.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/themes.sh -o ~/.claude/lib/themes.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/git.sh -o ~/.claude/lib/git.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/mcp.sh -o ~/.claude/lib/mcp.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/cost.sh -o ~/.claude/lib/cost.sh
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/display.sh -o ~/.claude/lib/display.sh
+```
+
+### Module Loading Failures
+
+**Problem**: Individual modules fail to load properly.
+
+**Symptoms**:
+```bash
+$ ~/.claude/statusline.sh --modules
+Loaded modules:
+  ✓ core
+  ✓ security
+  ✗ config
+Failed modules:
+  config
+```
+
+**Diagnosis**:
+```bash
+# Check specific module file
+ls -la ~/.claude/lib/config.sh
+
+# Test module syntax
+bash -n ~/.claude/lib/config.sh
+
+# Enable debug mode to see detailed loading errors
+STATUSLINE_DEBUG_MODE=true ~/.claude/statusline.sh --modules
+```
+
+**Solutions**:
+```bash
+# Re-download the specific failing module
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/config.sh -o ~/.claude/lib/config.sh
+
+# Verify module permissions
+chmod 644 ~/.claude/lib/*.sh
+```
+
+### Version Mismatch Between Main Script and Modules
+
+**Problem**: Main script and modules are from different versions.
+
+**Symptoms**:
+- Unexpected errors or behavior
+- Functions not found
+- Module loading warnings
+
+**Solution**:
+```bash
+# Check versions
+~/.claude/statusline.sh --version
+
+# Reinstall both main script and all modules
+curl -L https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline.sh
+chmod +x ~/.claude/statusline.sh
+
+# Download all modules (see above module reinstallation commands)
+```
 
 ---
 
@@ -81,6 +172,8 @@ gtimeout --version
 ---
 
 ## 📋 **TOML Configuration Issues**
+
+> **Note**: The examples below use `./statusline.sh` for project directory usage. If you're using the installed statusline, replace with `~/.claude/statusline.sh`.
 
 The enterprise-grade TOML configuration system requires proper syntax and structure. Here are common configuration-related issues and solutions.
 

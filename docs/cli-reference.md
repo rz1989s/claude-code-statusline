@@ -4,6 +4,8 @@
 
 Master the powerful CLI tools that make TOML configuration management effortless and professional.
 
+> 🏗️ **Modular Architecture**: The CLI is now powered by the refactored modular system with the main script at `~/.claude/statusline.sh` orchestrating 8 specialized modules in `~/.claude/lib/`.
+
 ## 🚀 **Overview**
 
 The enhanced statusline provides a rich command-line interface for:
@@ -20,8 +22,11 @@ The enhanced statusline provides a rich command-line interface for:
 ## 📋 **Command Syntax**
 
 ```bash
+# From project directory
 ./statusline.sh [OPTION] [ARGUMENTS]
-~/.claude/statusline/statusline.sh [OPTION] [ARGUMENTS]
+
+# Using installed modular statusline
+~/.claude/statusline.sh [OPTION] [ARGUMENTS]
 ```
 
 ### Global Options
@@ -583,8 +588,8 @@ $ ./statusline.sh --quiet
 ```
 🎨 Claude Code Enhanced Statusline
 
-Version: 2.0.0-TOML
-Build: 2024-08-19 14:30:22
+Version: 1.3.1 (modular architecture)
+Build: 2024-08-23 14:30:22
 Configuration System: TOML v1.0
 
 Features:

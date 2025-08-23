@@ -4,10 +4,13 @@
 
 Transform your terminal with enterprise-grade configuration management - structured, validated, and powerful, with full backwards compatibility.
 
+> 🏗️ **Modular Architecture Note**: The statusline now uses a modular architecture with 8 specialized modules. All configuration works the same way, but the system is now more maintainable and efficient with the main script (`~/.claude/statusline.sh`) orchestrating modules in `~/.claude/lib/`.
+
 ## 🚀 **Getting Started**
 
 ### Quick Start with TOML
 
+**From project directory:**
 ```bash
 # 1. Generate your Config.toml
 ./statusline.sh --generate-config
@@ -22,7 +25,22 @@ vim Config.toml
 ./statusline.sh
 ```
 
-The statusline automatically discovers and loads your TOML configuration - no additional setup required!
+**From anywhere (using installed statusline):**
+```bash
+# 1. Generate your Config.toml
+~/.claude/statusline.sh --generate-config
+
+# 2. Customize it
+vim Config.toml
+
+# 3. Test it
+~/.claude/statusline.sh --test-config
+
+# 4. Use it!
+~/.claude/statusline.sh
+```
+
+The modular statusline automatically discovers and loads your TOML configuration - no additional setup required!
 
 ---
 

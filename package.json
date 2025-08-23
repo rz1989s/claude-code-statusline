@@ -1,6 +1,6 @@
 {
   "name": "claude-code-statusline",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Enhanced statusline for Claude Code with comprehensive monitoring and beautiful themes",
   "main": "statusline.sh",
   "scripts": {

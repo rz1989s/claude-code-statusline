@@ -70,7 +70,10 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# Python lib directories (not our statusline modules)
+**/python/lib/
+**/venv/lib/
+**/env/lib/
 lib64/
 parts/
 sdist/
