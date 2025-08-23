@@ -910,7 +910,7 @@ This project is built with Islamic values and community spirit:
 If you experience or witness unacceptable behavior:
 - Contact maintainers directly
 - Use GitHub's reporting features
-- Email: [Contact information would go here]
+- GitHub: [https://github.com/rz1989s](https://github.com/rz1989s)
 
 ---
 
@@ -960,5 +960,4 @@ Whether you're fixing a typo, implementing a major feature, or helping other con
 
 ---
 
-**Made with ❤️ for the Claude Code community**  
-**Last Updated**: $(date '+%Y-%m-%d')
+**Made with ❤️ for the Claude Code community**
