@@ -149,7 +149,8 @@ if [[ $# -gt 0 ]]; then
         exit 0
         ;;
     "--version"|"-v")
-        echo "Claude Code Statusline v$STATUSLINE_VERSION (refactored)"
+        echo "Claude Code Statusline v$STATUSLINE_VERSION"
+        echo "Architecture: $STATUSLINE_ARCHITECTURE_VERSION (modular refactor)"
         echo "Compatible with original v$STATUSLINE_COMPATIBILITY_VERSION"
         echo "Modules loaded: ${#STATUSLINE_MODULES_LOADED[@]}"
         echo "Current theme: $(get_current_theme)"

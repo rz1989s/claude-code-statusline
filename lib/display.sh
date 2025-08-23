@@ -513,7 +513,7 @@ test_display_formatting() {
     echo "Directory: $(format_directory_path "/Users/test/projects/my-app")"
     echo "Model: $(format_model_name "Claude 3.5 Sonnet")"
     echo "Git: $(format_git_info "main" "clean")"
-    echo "Version: $(format_claude_version "1.3.0")"
+    echo "Version: $(format_claude_version "$STATUSLINE_VERSION")"
     echo "Session Cost: $(format_session_cost "2.50")"
     echo "Time: $(format_current_time)"
     echo ""
@@ -521,7 +521,7 @@ test_display_formatting() {
     # Test complete statusline
     echo "Complete statusline test:"
     echo "========================"
-    build_complete_statusline "" "" "~/projects/test" "main" "clean" "5" "1.3.0" "SUB:2" "Claude 3.5 Sonnet" "2.50" "45.30" "12.75" "3.20" "🔥 LIVE \$1.25" "2/3" "server1:connected,server2:disconnected,server3:connected" "RESET at 14.30 (2h 15m left)"
+    build_complete_statusline "" "" "~/projects/test" "main" "clean" "5" "$STATUSLINE_VERSION" "SUB:2" "Claude 3.5 Sonnet" "2.50" "45.30" "12.75" "3.20" "🔥 LIVE \$1.25" "2/3" "server1:connected,server2:disconnected,server3:connected" "RESET at 14.30 (2h 15m left)"
 }
 
 # ============================================================================

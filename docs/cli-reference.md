@@ -588,8 +588,8 @@ $ ./statusline.sh --quiet
 ```
 🎨 Claude Code Enhanced Statusline
 
-Version: 2.0.0-TOML
-Build: 2024-08-19 14:30:22
+Version: 1.3.1 (modular architecture)
+Build: 2024-08-23 14:30:22
 Configuration System: TOML v1.0
 
 Features:

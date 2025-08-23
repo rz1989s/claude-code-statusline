@@ -52,10 +52,28 @@
 
 ## 🆕 Recent Updates
 
-### v2.0 - Modular Architecture Refactor 🏗️
+### v1.4.0 - Centralized Version Management System 🎯
+
+- **📍 Single Source of Truth** - Introduced `version.txt` as master version file for entire codebase
+- **🛠️ Version Management Scripts** - Automated tools for version synchronization and consistency checks
+- **🔄 Dynamic Version Reading** - All components now read version from centralized source
+- **📦 Automated Package Sync** - Scripts maintain package.json synchronization with version.txt
+- **✅ System Verification** - Comprehensive testing tools for version consistency
+- **📚 Complete Documentation** - Full guide for centralized version management workflow
+
+### v1.3.1 - Enhanced Error Messages & Documentation 🔧
+
+- **📝 Improved Error Messages** - Enhanced module loading error messages with specific troubleshooting guidance  
+- **📚 Function Documentation** - Added comprehensive documentation to core.sh functions
+- **🧪 Enhanced Testing** - New test coverage for module loading functionality
+- **🔍 Better Diagnostics** - Clearer error messages help users resolve issues faster
+
+### v1.3.0 - Modular Architecture Implementation 🏗️ 
+
+*Contains internal v2.0.0-refactored architecture while maintaining v1.3.x compatibility*
 
 - **🏗️ Modular Architecture** - Complete refactor from 3930-line monolithic script to clean modular system
-- **📦 8 Specialized Modules** - Core, security, config, themes, git, MCP, cost, and display modules
+- **📦 8 Specialized Modules** - Core, security, config, themes, git, MCP, cost, and display modules  
 - **🎯 91.4% Code Reduction** - Main orchestrator reduced to 338 lines with preserved functionality
 - **🔧 Enhanced Maintainability** - Clear separation of concerns and dependency management
 - **⚡ Improved Performance** - Optimized module loading and reduced complexity

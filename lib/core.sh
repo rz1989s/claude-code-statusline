@@ -18,8 +18,32 @@ export STATUSLINE_CORE_LOADED=true
 # CORE CONSTANTS
 # ============================================================================
 
-# Version information
-export STATUSLINE_VERSION="2.0.0-refactored"
+# Version reading function - Single Source of Truth
+get_statusline_version() {
+    # Try multiple possible locations for version.txt
+    local version_file
+    local script_dir="${BASH_SOURCE[0]%/*}"  # Get directory of current script
+    
+    # Try version.txt relative to lib directory (most likely location)
+    version_file="${script_dir}/../version.txt"
+    if [[ -f "$version_file" ]]; then
+        cat "$version_file" 2>/dev/null | tr -d '[:space:]' || echo "1.3.1"
+        return
+    fi
+    
+    # Try current working directory
+    if [[ -f "version.txt" ]]; then
+        cat "version.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.3.1"
+        return
+    fi
+    
+    # Fallback
+    echo "1.3.1"
+}
+
+# Version information - Single Source of Truth
+export STATUSLINE_VERSION=$(get_statusline_version)
+export STATUSLINE_ARCHITECTURE_VERSION="2.0.0-refactored" 
 export STATUSLINE_COMPATIBILITY_VERSION="1.3.0"
 
 # Module loading status
