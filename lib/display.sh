@@ -25,12 +25,6 @@ export DISPLAY_SEPARATOR="│"
 export DISPLAY_SPACE=" "
 export DISPLAY_NEWLINE=$'\n'
 
-# Model emoji mapping
-export MODEL_EMOJI_OPUS="$CONFIG_OPUS_EMOJI"
-export MODEL_EMOJI_HAIKU="$CONFIG_HAIKU_EMOJI" 
-export MODEL_EMOJI_SONNET="$CONFIG_SONNET_EMOJI"
-export MODEL_EMOJI_DEFAULT="$CONFIG_DEFAULT_MODEL_EMOJI"
-
 # ============================================================================
 # PATH FORMATTING
 # ============================================================================
@@ -57,16 +51,16 @@ get_model_emoji() {
     
     case "$model_name" in
         *"Opus"*|*"opus"*)
-            echo "$MODEL_EMOJI_OPUS"
+            echo "$CONFIG_OPUS_EMOJI"
             ;;
         *"Haiku"*|*"haiku"*)
-            echo "$MODEL_EMOJI_HAIKU"
+            echo "$CONFIG_HAIKU_EMOJI"
             ;;
         *"Sonnet"*|*"sonnet"*)
-            echo "$MODEL_EMOJI_SONNET"
+            echo "$CONFIG_SONNET_EMOJI"
             ;;
         *)
-            echo "$MODEL_EMOJI_DEFAULT"
+            echo "$CONFIG_DEFAULT_MODEL_EMOJI"
             ;;
     esac
 }
