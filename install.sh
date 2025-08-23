@@ -15,9 +15,10 @@ NC='\033[0m' # No Color
 # Script configuration
 REPO_URL="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh"
 CLAUDE_DIR="$HOME/.claude"
-STATUSLINE_PATH="$CLAUDE_DIR/statusline.sh"
-LIB_DIR="$CLAUDE_DIR/lib"
-CONFIG_PATH="$CLAUDE_DIR/Config.toml"
+STATUSLINE_DIR="$CLAUDE_DIR/statusline"
+STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
+LIB_DIR="$STATUSLINE_DIR/lib"
+CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
 # Function to print colored output
@@ -474,12 +475,11 @@ download_statusline() {
     print_status "Managing statusline version..."
     
     # Create statusline directory if it doesn't exist
-    local statusline_dir="$HOME/.claude/statusline"
-    mkdir -p "$statusline_dir"
+    mkdir -p "$STATUSLINE_DIR"
     
     # Version file paths
     local version_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/version.txt"
-    local local_version_path="$statusline_dir/version.txt"
+    local local_version_path="$STATUSLINE_DIR/version.txt"
     local current_version=""
     local new_version=""
     
