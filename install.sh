@@ -463,6 +463,10 @@ create_lib_directory() {
 download_statusline() {
     print_status "Downloading modular statusline from repository..."
     
+    # Create statusline directory first
+    print_status "Creating statusline directory: $STATUSLINE_DIR"
+    mkdir -p "$STATUSLINE_DIR"
+    
     # Download main orchestrator script
     if curl -fsSL "$REPO_URL" -o "$STATUSLINE_PATH"; then
         print_success "Downloaded main statusline.sh to $STATUSLINE_PATH"
@@ -473,9 +477,6 @@ download_statusline() {
     
     # Smart version management - user local with update checking
     print_status "Managing statusline version..."
-    
-    # Create statusline directory if it doesn't exist
-    mkdir -p "$STATUSLINE_DIR"
     
     # Version file paths
     local version_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/version.txt"
