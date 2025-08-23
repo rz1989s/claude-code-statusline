@@ -470,6 +470,47 @@ download_statusline() {
         exit 1
     fi
     
+    # Smart version management - user local with update checking
+    print_status "Managing statusline version..."
+    
+    # Create statusline directory if it doesn't exist
+    local statusline_dir="$HOME/.claude/statusline"
+    mkdir -p "$statusline_dir"
+    
+    # Version file paths
+    local version_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/version.txt"
+    local local_version_path="$statusline_dir/version.txt"
+    local current_version=""
+    local new_version=""
+    
+    # Check if user already has a version file
+    if [[ -f "$local_version_path" ]]; then
+        current_version=$(cat "$local_version_path" 2>/dev/null | tr -d '[:space:]')
+    fi
+    
+    # Download latest version to temp location first
+    local temp_version="/tmp/statusline_version_check.txt"
+    if curl -fsSL "$version_url" -o "$temp_version"; then
+        new_version=$(cat "$temp_version" 2>/dev/null | tr -d '[:space:]')
+        
+        # Compare versions and update if needed
+        if [[ "$current_version" != "$new_version" ]] || [[ ! -f "$local_version_path" ]]; then
+            mv "$temp_version" "$local_version_path"
+            if [[ -n "$current_version" ]]; then
+                print_success "Updated statusline version: $current_version → $new_version"
+            else
+                print_success "Installed statusline version: $new_version"
+            fi
+            print_status "Version file: $local_version_path"
+        else
+            print_success "Version already up to date: $current_version"
+            rm -f "$temp_version"
+        fi
+    else
+        print_warning "Failed to check for version updates - using existing version"
+        rm -f "$temp_version" 2>/dev/null
+    fi
+    
     # Create lib directory
     print_status "Creating lib directory for modules..."
     mkdir -p "$LIB_DIR"

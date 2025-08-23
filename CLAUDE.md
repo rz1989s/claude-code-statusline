@@ -57,7 +57,7 @@ ENV_CONFIG_THEME=catppuccin ./statusline.sh    # Test catppuccin theme
 
 ### Installation and Setup
 
-**Enhanced Automated Installer (v1.3.0+)**
+**Enhanced Automated Installer (v1.4.0+)**
 ```bash
 # Standard installation (backward compatible)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash

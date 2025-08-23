@@ -358,7 +358,7 @@ npm install -g bunx ccusage
 
 #### Method 1: Enhanced Automated Installer (Recommended)
 
-Our new intelligent installer provides comprehensive dependency management and user choice:
+Our intelligent installer provides comprehensive dependency management, downloads all necessary files including `version.txt` for centralized version management, and offers user choice:
 
 ```bash
 # Standard installation (minimal dependency check)
