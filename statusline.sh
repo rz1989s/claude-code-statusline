@@ -45,40 +45,40 @@ start_timer "module_loading"
 
 # Load security module (required by most other modules)
 load_module "security" || {
-    handle_error "Failed to load security module" 1 "main"
+    handle_error "Failed to load security module - statusline disabled. Check lib/security.sh exists and is readable." 1 "main"
     exit 1
 }
 
 # Load configuration module
 load_module "config" || {
-    handle_error "Failed to load config module" 1 "main"
+    handle_error "Failed to load config module - configuration parsing disabled. Check lib/config.sh and TOML dependencies." 1 "main"
     exit 1
 }
 
 # Load theme module
 load_module "themes" || {
-    handle_error "Failed to load themes module" 1 "main"
+    handle_error "Failed to load themes module - theme system disabled. Check lib/themes.sh for color support." 1 "main"
     exit 1
 }
 
 # Load git integration module
 load_module "git" || {
-    handle_warning "Git module failed to load - git features disabled" "main"
+    handle_warning "Git module failed to load - git features disabled. Repository status unavailable." "main"
 }
 
 # Load MCP monitoring module
 load_module "mcp" || {
-    handle_warning "MCP module failed to load - MCP monitoring disabled" "main"
+    handle_warning "MCP module failed to load - MCP monitoring disabled. Server status unavailable." "main"
 }
 
 # Load cost tracking module
 load_module "cost" || {
-    handle_warning "Cost module failed to load - cost tracking disabled" "main"
+    handle_warning "Cost module failed to load - cost tracking disabled. ccusage integration unavailable." "main"
 }
 
 # Load display/formatting module
 load_module "display" || {
-    handle_error "Failed to load display module" 1 "main"
+    handle_error "Failed to load display module - output formatting disabled. Check lib/display.sh." 1 "main"
     exit 1
 }
 

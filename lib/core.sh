@@ -82,12 +82,17 @@ load_module() {
 }
 
 # Check if a module is loaded
+# Usage: is_module_loaded "module_name"
+# Returns: 0 if module is loaded, 1 if not loaded
 is_module_loaded() {
     local module_name="$1"
     [[ " ${STATUSLINE_MODULES_LOADED[@]} " =~ " ${module_name} " ]]
 }
 
 # Get the directory containing the statusline script
+# Resolves symlinks and returns the actual directory path
+# Usage: script_dir=$(get_script_dir)
+# Returns: String path to script directory
 get_script_dir() {
     local script_path="${BASH_SOURCE[0]}"
     # Follow symlinks to find the real script location
