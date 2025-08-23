@@ -18,27 +18,32 @@ export STATUSLINE_CORE_LOADED=true
 # CORE CONSTANTS
 # ============================================================================
 
-# Version reading function - Single Source of Truth
+# Ultra-simple version reading - No hardcoded versions!
 get_statusline_version() {
-    # Try multiple possible locations for version.txt
-    local version_file
-    local script_dir="${BASH_SOURCE[0]%/*}"  # Get directory of current script
-    
-    # Try version.txt relative to lib directory (most likely location)
-    version_file="${script_dir}/../version.txt"
-    if [[ -f "$version_file" ]]; then
-        cat "$version_file" 2>/dev/null | tr -d '[:space:]' || echo "1.3.1"
-        return
+    # Primary: User's local version file (installed by install.sh)
+    local user_version_file="$HOME/.claude/statusline/version.txt"
+    if [[ -f "$user_version_file" ]]; then
+        local version=$(cat "$user_version_file" 2>/dev/null | tr -d '[:space:]')
+        if [[ -n "$version" ]]; then
+            echo "$version"
+            return 0
+        fi
     fi
     
-    # Try current working directory
-    if [[ -f "version.txt" ]]; then
-        cat "version.txt" 2>/dev/null | tr -d '[:space:]' || echo "1.3.1"
-        return
+    # Fallback: Repository version.txt (for developers)
+    local script_dir="${BASH_SOURCE[0]%/*}"
+    local repo_version_file="${script_dir}/../version.txt"
+    if [[ -f "$repo_version_file" ]]; then
+        local version=$(cat "$repo_version_file" 2>/dev/null | tr -d '[:space:]')
+        if [[ -n "$version" ]]; then
+            echo "$version"
+            return 0
+        fi
     fi
     
-    # Fallback
-    echo "1.3.1"
+    # No hardcoded fallback - clear error message
+    echo "VERSION_ERROR"
+    return 1
 }
 
 # Version information - Single Source of Truth
