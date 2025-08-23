@@ -929,77 +929,36 @@ ccusage --version && echo "✅ ccusage OK" || echo "⚠️ ccusage missing (inst
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Help make this statusline even better:
+**We welcome contributions from the community!** 🌟
 
-### 🌟 Ways to Contribute
+Whether you're interested in:
+- 🐛 **Bug fixes** and issue reports
+- 💡 **New features** and enhancements  
+- 🎨 **Theme creation** and design
+- 📖 **Documentation** improvements
+- 🧪 **Testing** and quality assurance
 
-- **🐛 Bug Reports** - Found an issue? [Open an issue](https://github.com/rz1989s/claude-code-statusline/issues/new?template=bug_report.md)
-- **💡 Feature Requests** - Have an idea? [Suggest a feature](https://github.com/rz1989s/claude-code-statusline/issues/new?template=feature_request.md)
-- **🎨 Theme Creation** - Design new themes and share them with the community
-- **📖 Documentation** - Improve guides, add examples, or fix typos
-- **🔧 Code Improvements** - Optimize performance, add features, or fix bugs
+**Please see our comprehensive [CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines on:
+- Development environment setup
+- Code standards and testing requirements  
+- Pull request process and review workflow
+- Community guidelines and project structure
 
-### 🔧 Development Setup
-
-#### Prerequisites for Contributors
-
-1. **Install Testing Framework** (required for running tests):
-   ```bash
-   # macOS with Homebrew
-   brew install bats-core shellcheck
-   
-   # Ubuntu/Debian
-   apt-get install bats shellcheck
-   
-   # Alternative: Install via npm
-   npm install -g bats
-   ```
-
-2. **Install Project Dependencies**:
-   ```bash
-   npm install
-   ```
-
-#### Development Workflow
-
+### 🚀 Quick Start for Contributors
 ```bash
-# Run the complete test suite
+# Fork and clone the repository
+git clone https://github.com/YOUR-USERNAME/claude-code-statusline.git
+cd claude-code-statusline
+
+# Install dependencies and verify setup
+npm install
 npm test
 
-# Check code quality with shellcheck  
-npm run lint
-
-# Clean up test artifacts
-npm run clean
-
-# Development cycle (clean + test)
-npm run dev
-
-# Run tests in specific categories
-npm run test:unit        # Unit tests only
-npm run test:integration # Integration tests only
+# Check our development roadmap
+cat TODOS.md
 ```
 
-#### Testing Information
-
-- **77 comprehensive tests** covering security, functionality, and integration
-- **Automated CI/CD** with GitHub Actions
-- **Cross-platform testing** on macOS and Linux
-- **Detailed test documentation** in [`tests/README.md`](tests/README.md)
-
-### 📝 Contribution Process
-
-1. **Fork** the repository
-2. **Set up development environment** (see above)
-3. **Create** your feature branch (`git checkout -b feature/amazing-feature`)
-4. **Run tests** to ensure everything works (`npm test`)
-5. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-6. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
-
-### 🏆 Contributors
-
-Thanks to all our contributors who help make this project better!
+**Jazakallahu khairan** for helping make this project better for the Claude Code community! 🙏
 
 ---
 

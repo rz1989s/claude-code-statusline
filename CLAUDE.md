@@ -4,12 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the Claude Code Enhanced Statusline project - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 8 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+This is the Claude Code Enhanced Statusline project (v1.5.2) - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 8 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+
+**📋 Key Resources for Development:**
+- **TODOS.md** - Comprehensive development roadmap with 50+ actionable items, complexity estimates, and implementation hints
+- **CONTRIBUTING.md** - Professional contribution guidelines covering development setup, testing requirements, and code standards  
+- **Ocean Theme Ready** - Complete theme in `examples/sample-configs/ocean-theme.toml` ready for integration (High Priority)
 
 **Architecture**: 
-- **Main Script**: `statusline.sh` (338 lines) - orchestrates modules and handles input/output
+- **Main Script**: `statusline.sh` (332 lines) - orchestrates modules and handles input/output
 - **8 Modules**: `lib/core.sh`, `lib/security.sh`, `lib/config.sh`, `lib/themes.sh`, `lib/git.sh`, `lib/mcp.sh`, `lib/cost.sh`, `lib/display.sh`
-- **91.4% Code Reduction**: Refactored from 3930-line monolithic script to clean modular system
+- **91.5% Code Reduction**: Refactored from 3930-line monolithic script to clean modular system
 
 ## Build, Test & Development Commands
 
@@ -97,7 +102,7 @@ chmod +x install.sh
 ### Core Components
 
 **statusline.sh (Main Script)**
-- Single bash script (~3000+ lines) providing 4-line statusline output
+- Single bash script (332 lines) providing 4-line statusline output
 - Modular function-based architecture with clear separation of concerns
 - TOML configuration system with fallback to inline configuration
 - Theme system with inheritance and custom color support
@@ -105,7 +110,7 @@ chmod +x install.sh
 
 **Configuration System**
 - **Config.toml**: Modern TOML-based configuration with ~100 settings
-- **Theme System**: 3 built-in themes (classic, garden, catppuccin) + custom theme support
+- **Theme System**: 3 built-in themes (classic, garden, catppuccin) + custom theme support + Ocean theme ready to implement
 - **Configuration Discovery**: `./Config.toml` → `~/.config/claude-code-statusline/Config.toml` → `~/.claude-statusline.toml`
 - **Environment Overrides**: Any TOML setting can be overridden with `ENV_CONFIG_*` variables
 - **Profile System**: Conditional configuration for work/personal/demo contexts
@@ -206,6 +211,7 @@ The Config.toml file supports extensive customization across these main sections
 ### Theme Development
 When working with themes:
 - Built-in themes: `classic`, `garden`, `catppuccin`
+- **Ocean Theme**: Complete implementation ready in `examples/sample-configs/ocean-theme.toml` - just needs integration into `lib/themes.sh`
 - Custom theme: Set `theme.name = "custom"` and define colors in `[colors.basic]` and `[colors.extended]`
 - Theme inheritance: Custom themes can inherit from base themes and override specific colors
 - Color systems: Supports ANSI, 256-color, and RGB color specifications
@@ -241,3 +247,15 @@ ENV_CONFIG_MCP_TIMEOUT=10s ./statusline.sh
 - **timeout/gtimeout**: Platform-specific timeout commands, auto-detection included
 
 The codebase includes comprehensive dependency validation and graceful degradation when optional tools are not available.
+
+## High-Priority Development Opportunities
+
+### Immediate Implementation Ready:
+1. **Ocean Theme Integration** - Complete theme exists in `examples/sample-configs/ocean-theme.toml`, needs integration to `lib/themes.sh`
+2. **Profile System** - Explicitly planned feature mentioned in README.md, medium complexity
+3. **CI/CD Pipeline** - Critical infrastructure gap, no `.github/workflows/` exists yet
+
+### Development Resources:
+- **TODOS.md** - 50+ categorized development items with complexity ratings and implementation hints
+- **CONTRIBUTING.md** - Complete contributor onboarding with development environment setup
+- **Comprehensive Documentation** - Extensive `docs/` directory with guides for installation, configuration, themes, troubleshooting, security, and migration
