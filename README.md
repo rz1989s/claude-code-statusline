@@ -52,7 +52,27 @@
 
 ## 🆕 Recent Updates
 
-### v1.4.0 - Centralized Version Management System 🎯
+### v1.6.0 - Intelligent Multi-Tier Caching System 🧠
+
+- **🧠 Multi-Tier Caching** - Differentiated cache durations by data type for optimal performance
+- **🚀 Startup Detection** - Forces fresh data on first Claude Code launch, then uses smart caching
+- **⚡ 98% API Call Reduction** - 7DAY data cached for 1 hour, 30DAY for 2 hours (vs 30 seconds)
+- **🔒 Multi-Instance Safety** - Race condition protection for multiple Claude Code sessions
+- **🔐 Enhanced Locking** - Atomic writes, retry logic, and corrupted cache recovery
+- **📊 Instance-Specific Sessions** - Each Claude Code instance gets its own caching behavior
+- **🧹 Automatic Cleanup** - Orphaned locks and old session markers automatically removed
+- **📈 Real-Time Feel Maintained** - Live billing data still updates every 30 seconds
+
+### v1.5.2 - Enhanced Installation & Bug Fixes 🔧
+
+- **🛠️ Enhanced Installer** - Fixed curl failure by ensuring directory creation before download
+- **📁 Improved Path Management** - Enhanced installation path handling for better compatibility
+- **🎯 Streamlined Architecture** - Simplified version management for easier maintenance
+- **🐛 Bug Fixes** - Resolved missing model emojis in statusline display
+- **📋 Updated Documentation** - Comprehensive documentation enhancements and project organization
+- **✅ Contributor Ready** - Finalized CONTRIBUTING.md with complete development guidelines
+
+### v1.5.0 - Simplified Version Management Architecture 🎯
 
 - **📍 Single Source of Truth** - Introduced `version.txt` as master version file for entire codebase
 - **🛠️ Version Management Scripts** - Automated tools for version synchronization and consistency checks
@@ -171,14 +191,16 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **🔧 Enhanced Maintainability** - Modular design enables easier testing, debugging, and feature development
 - **⚡ Improved Performance** - Optimized module loading and reduced script complexity
 
-### ⚡ **Smart Performance & Monitoring**
+### ⚡ **Smart Performance & Advanced Caching System**
 
-- **🚀 Intelligent Caching** - Reduces API calls and improves responsiveness
-- **🔄 Sequential API Execution** - Prevents rate limiting with intelligent request sequencing
-- **📦 30-Second Smart Caching** - Reduces API calls with file locking mechanism
-- **🔒 Stale Lock Detection** - Automatic cleanup of dead processes and locks
+- **🧠 Intelligent Multi-Tier Caching** - Differentiated cache durations by data type for optimal performance
+- **🚀 Startup Detection** - Forces fresh data on first Claude Code launch, then uses smart caching
+- **⚡ 98% API Call Reduction** - 7DAY data cached for 1 hour, 30DAY for 2 hours (vs 30 seconds)
+- **🔄 Multi-Instance Safe** - Race condition protection for multiple Claude Code sessions
+- **🔒 Enhanced Locking** - Atomic writes, retry logic, and stale lock cleanup
+- **📦 Cache Validation** - JSON integrity checking and corrupted cache recovery
 - **⏱️ Configurable Timeouts** - Prevents hanging on slow networks  
-- **📊 Real-time Updates** - Live cost and status monitoring
+- **📊 Real-time Live Data** - Active blocks still update every 30 seconds
 - **🌍 Cross-Platform** - Works seamlessly on macOS, Linux, and WSL
 - **💾 Memory Efficient** - Minimal resource usage with maximum information
 
@@ -194,6 +216,94 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **🏷️ Label Customization** - Modify all display text and formats via TOML
 - **😊 Emoji Customization** - Personalize status indicators
 - **✅ Configuration Validation** - Built-in testing with auto-fix suggestions
+
+---
+
+## 🧠 **Intelligent Caching System**
+
+The statusline features an advanced **multi-tier caching system** that dramatically reduces API calls while maintaining real-time feel for important data. This system is designed to handle multiple Claude Code instances safely and efficiently.
+
+### 📊 **Cache Duration Strategy**
+
+| Data Type | Cache Duration | Use Case | API Reduction |
+|-----------|---------------|----------|---------------|
+| **🔥 LIVE Blocks** | 30 seconds | Real-time billing | ⚡ Responsive |
+| **💼 REPO Session** | 2 minutes | Active development | 🚀 Balanced |
+| **📅 DAY Cost** | 10 minutes | Daily totals | 📦 Efficient |
+| **📆 7DAY Cost** | **1 hour** | Weekly totals | 🏆 **98% reduction** |
+| **📅 30DAY Cost** | **2 hours** | Monthly totals | 🏆 **99% reduction** |
+
+### 🚀 **Startup Detection**
+
+The system intelligently detects when Claude Code starts for the first time and forces a complete refresh of all cached data. Subsequent statusline calls use the optimized cache durations above.
+
+```bash
+# First startup: Forces refresh of ALL data
+[INFO] First startup for Claude Code instance 1001 - forcing refresh of all ccusage data
+
+# Subsequent calls: Smart caching
+[INFO] Subsequent call for instance 1001 - using intelligent cache durations
+[INFO] Using cached ccusage data: daily_7d.json    # 1 hour cache
+[INFO] Using cached ccusage data: monthly_30d.json # 2 hour cache
+```
+
+### 🔒 **Multi-Instance Race Protection**
+
+When running multiple Claude Code instances simultaneously, the system prevents race conditions with:
+
+- **🏷️ Instance-Specific Markers**: Each Claude Code instance gets its own session marker
+  - `CLAUDE_INSTANCE_ID=DEV_001` → `/tmp/.claude_statusline_session_DEV_001`
+  - `CLAUDE_INSTANCE_ID=PROD_002` → `/tmp/.claude_statusline_session_PROD_002`
+
+- **🔐 Enhanced Locking**: Cache files protected with:
+  - Atomic writes (temp file → rename)
+  - Retry logic with random backoff
+  - JSON integrity validation
+  - Orphaned lock cleanup
+
+### 🛠️ **Cache Management**
+
+All cache files are stored in `/tmp/.claude_statusline_cache/` with automatic cleanup:
+
+```bash
+# Cache directory structure
+/tmp/.claude_statusline_cache/
+├── blocks.json          # Active blocks (30s cache)
+├── session.json         # Repository costs (2m cache)  
+├── daily_7d.json        # 7-day data (1h cache)
+└── monthly_30d.json     # 30-day data (2h cache)
+```
+
+- **🧹 Automatic Cleanup**: Old cache files and dead process locks removed
+- **🔍 Integrity Validation**: Corrupted cache files automatically regenerated
+- **♾️ Graceful Degradation**: Falls back to existing cache during high contention
+
+### 🏆 **Performance Impact**
+
+**Before Optimization:**
+- 7DAY and 30DAY data refreshed every 30 seconds
+- High API call frequency causes rate limiting
+- Multiple instances compete for same resources
+
+**After Optimization:**
+- **98% reduction** in 7DAY API calls (30s → 1 hour)
+- **99% reduction** in 30DAY API calls (30s → 2 hours)
+- **Zero race conditions** between multiple instances
+- **Real-time feel maintained** for live billing data
+
+### 🔧 **Environment Variable Control**
+
+You can control caching behavior via environment variables:
+
+```bash
+# Force specific instance ID (useful for testing)
+CLAUDE_INSTANCE_ID=MY_DEV_SESSION ./statusline.sh
+
+# Debug caching behavior
+STATUSLINE_DEBUG_MODE=true ./statusline.sh
+```
+
+The caching system automatically adapts to your usage patterns while maintaining the responsiveness you expect from a real-time statusline.
 
 ---
 
