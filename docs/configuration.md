@@ -4,7 +4,7 @@
 
 Transform your terminal with enterprise-grade configuration management - structured, validated, and powerful, with full backwards compatibility.
 
-> 🏗️ **Modular Architecture Note**: The statusline now uses a modular architecture with 8 specialized modules. All configuration works the same way, but the system is now more maintainable and efficient with the main script (`~/.claude/statusline.sh`) orchestrating modules in `~/.claude/lib/`.
+> 🏗️ **Modular Architecture Note**: The statusline now uses a modular architecture with 9 specialized modules. All configuration works the same way, but the system is now more maintainable and efficient with the main script (`~/.claude/statusline.sh`) orchestrating modules in `~/.claude/lib/`.
 
 ## 🚀 **Getting Started**
 

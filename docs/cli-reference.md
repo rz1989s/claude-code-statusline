@@ -4,7 +4,7 @@
 
 Master the powerful CLI tools that make TOML configuration management effortless and professional.
 
-> 🏗️ **Modular Architecture**: The CLI is now powered by the refactored modular system with the main script at `~/.claude/statusline.sh` orchestrating 8 specialized modules in `~/.claude/lib/`.
+> 🏗️ **Modular Architecture**: The CLI is now powered by the refactored modular system with the main script at `~/.claude/statusline.sh` orchestrating 9 specialized modules in `~/.claude/lib/`.
 
 ## 🚀 **Overview**
 

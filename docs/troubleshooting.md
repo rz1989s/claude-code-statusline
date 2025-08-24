@@ -4,7 +4,7 @@
 
 Comprehensive troubleshooting for installation, TOML configuration, themes, performance, and advanced features.
 
-> 🏗️ **Modular Architecture**: The statusline now uses a modular architecture with the main script at `~/.claude/statusline.sh` and 8 modules in `~/.claude/lib/`. This section includes troubleshooting for both the main script and module-related issues.
+> 🏗️ **Modular Architecture**: The statusline now uses a modular architecture with the main script at `~/.claude/statusline.sh` and 9 modules in `~/.claude/lib/`. This section includes troubleshooting for both the main script and module-related issues.
 
 ## 🔧 Installation Issues
 
