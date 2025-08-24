@@ -49,6 +49,11 @@ load_module "security" || {
     exit 1
 }
 
+# Load universal caching module (provides performance optimization for all external commands)
+load_module "cache" || {
+    handle_warning "Cache module failed to load - performance optimizations disabled. All commands will run directly." "main"
+}
+
 # Load configuration module
 load_module "config" || {
     handle_error "Failed to load config module - configuration parsing disabled. Check lib/config.sh and TOML dependencies." 1 "main"
@@ -238,17 +243,21 @@ if is_module_loaded "git" && is_git_repository; then
     debug_log "Git data: branch=$branch, status=$git_status, commits=$commits_count" "INFO"
 fi
 
-# 3. Get Claude version (with caching)
+# 3. Get Claude version (with intelligent caching)
 claude_version="$CONFIG_UNKNOWN_VERSION"
 if command_exists claude; then
-    # Simple version check with caching logic (simplified from original)
-    cache_file="${CONFIG_VERSION_CACHE_FILE:-/tmp/.claude_version_cache}"
-    if [[ -f "$cache_file" ]] && is_cache_fresh "$cache_file" "${CONFIG_VERSION_CACHE_DURATION:-3600}"; then
-        claude_version=$(cat "$cache_file" 2>/dev/null || echo "$CONFIG_UNKNOWN_VERSION")
+    # Use universal caching system (6-hour cache - versions change very rarely)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        claude_raw=$(cache_external_command "claude_version" "$CACHE_DURATION_VERY_LONG" "validate_command_output" claude --version)
+        if [[ -n "$claude_raw" ]]; then
+            # Extract version number from output
+            claude_version=$(echo "$claude_raw" | head -1 | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
+            [[ -z "$claude_version" ]] && claude_version="$CONFIG_UNKNOWN_VERSION"
+        fi
     else
+        # Fallback to direct execution
         if claude_version_raw=$(claude --version 2>/dev/null | head -1); then
             claude_version=$(echo "$claude_version_raw" | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
-            [[ -n "$claude_version" ]] && echo "$claude_version" > "$cache_file" 2>/dev/null
         else
             claude_version="$CONFIG_UNKNOWN_VERSION"
         fi

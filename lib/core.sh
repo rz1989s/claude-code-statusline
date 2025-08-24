@@ -146,10 +146,25 @@ safe_echo() {
     esac
 }
 
-# Check if a command exists and is executable
+# Check if a command exists and is executable (with intelligent caching)
 command_exists() {
     local cmd="$1"
-    command -v "$cmd" >/dev/null 2>&1
+    
+    # Validate input
+    if [[ -z "$cmd" ]]; then
+        debug_log "Empty command name provided to command_exists" "WARN"
+        return 1
+    fi
+    
+    # Use cached result if cache module is available
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local result
+        result=$(cache_command_exists "$cmd")
+        [[ "$result" == "true" ]]
+    else
+        # Fallback to direct check if cache not available
+        command -v "$cmd" >/dev/null 2>&1
+    fi
 }
 
 # Get current timestamp in seconds

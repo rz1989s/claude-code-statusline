@@ -99,12 +99,26 @@ is_ccusage_available() {
         return 1
     fi
     
-    if bunx ccusage --version >/dev/null 2>&1; then
-        debug_log "ccusage available via bunx" "INFO"
-        return 0
+    # Use universal caching for ccusage availability check (6-hour cache)
+    local ccusage_check_result
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        ccusage_check_result=$(cache_external_command "ccusage_availability" "$CACHE_DURATION_VERY_LONG" "validate_command_output" bash -c 'bunx ccusage --version >/dev/null 2>&1 && echo "available" || echo "unavailable"')
+        if [[ "$ccusage_check_result" == "available" ]]; then
+            debug_log "ccusage available via bunx (cached)" "INFO"
+            return 0
+        else
+            debug_log "ccusage not available via bunx (cached)" "INFO"
+            return 1
+        fi
     else
-        debug_log "ccusage not available via bunx" "INFO"
-        return 1
+        # Fallback to direct execution
+        if bunx ccusage --version >/dev/null 2>&1; then
+            debug_log "ccusage available via bunx" "INFO"
+            return 0
+        else
+            debug_log "ccusage not available via bunx" "INFO"
+            return 1
+        fi
     fi
 }
 
@@ -582,10 +596,15 @@ init_cost_module() {
     # Initialize cache
     init_cost_cache
     
-    # Log ccusage version for debugging
+    # Log ccusage version for debugging (using universal caching)
     local ccusage_version
-    ccusage_version=$(bunx ccusage --version 2>/dev/null)
-    debug_log "ccusage version: $ccusage_version" "INFO"
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        ccusage_version=$(cache_external_command "ccusage_version" "$CACHE_DURATION_VERY_LONG" "validate_command_output" bunx ccusage --version)
+        debug_log "ccusage version: $ccusage_version (cached)" "INFO"
+    else
+        ccusage_version=$(bunx ccusage --version 2>/dev/null)
+        debug_log "ccusage version: $ccusage_version" "INFO"
+    fi
     
     return 0
 }

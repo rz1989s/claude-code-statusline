@@ -107,9 +107,58 @@ reset = "RESET"
 
 # === CACHE SETTINGS ===
 # Control caching behavior for performance optimization
+# === UNIVERSAL CACHING SYSTEM ===
+# Comprehensive caching configuration for optimal performance
 [cache]
-version_duration = 3600
-version_file = "/tmp/.claude_version_cache"
+
+# Cache directory management (XDG-compliant)
+# Options: "auto" (XDG-compliant), "legacy" (/tmp), or custom path
+# Environment variable CLAUDE_CACHE_DIR overrides this setting
+base_directory = "auto"
+
+# Core cache system toggles
+enable_universal_caching = true      # Master switch for all caching
+enable_statistics = true             # Cache hit/miss statistics collection
+enable_corruption_detection = true   # SHA-256 integrity validation
+cleanup_stale_files = true          # Automatic cleanup of old cache files
+migrate_legacy_cache = true         # Migrate from /tmp to XDG location
+
+# Cache duration settings (in seconds, or "session" for session-wide)
+# Optimized for different data volatility patterns
+[cache.durations]
+command_exists = "session"           # Commands don't appear/disappear during session
+system_info = 86400                 # System info (24 hours)
+claude_version = 21600              # Claude CLI version (6 hours)
+git_config = 3600                   # Git configuration (1 hour)
+git_submodules = 300                # Git submodule info (5 minutes)
+git_branches = 30                   # Git branch listings (30 seconds)
+git_status = 10                     # Git working directory status (10 seconds)
+git_current_branch = 10             # Current git branch (10 seconds)
+mcp_server_list = 120               # MCP server connections (2 minutes)
+directory_info = 5                  # Current directory info (5 seconds)
+file_operations = 2                 # High-frequency file operations (2 seconds)
+
+# Performance and reliability settings
+[cache.performance]
+max_lock_retries = 10               # Maximum lock acquisition attempts
+lock_retry_delay_ms = "100-500"     # Random delay range for lock retries (ms)
+atomic_write_timeout = 5            # Timeout for atomic write operations (seconds)
+cache_cleanup_interval = 300        # Cleanup stale files every 5 minutes
+max_cache_age_hours = 168           # Maximum cache file age before cleanup (7 days)
+
+# Security and integrity settings
+[cache.security]
+directory_permissions = "700"        # Cache directory permissions (owner only)
+file_permissions = "600"            # Cache file permissions (owner read/write)
+enable_checksums = true             # Enable SHA-256 integrity validation
+validate_on_read = true             # Validate cache integrity on every read
+secure_temp_files = true            # Use secure temporary file creation
+instance_isolation = true          # Isolate cache operations by instance
+
+# Legacy compatibility settings
+[cache.legacy]
+version_duration = 3600             # Backward compatibility for old version cache
+version_file = "/tmp/.claude_version_cache"  # Legacy version cache location
 
 # === DISPLAY FORMATS ===
 # Date and time formatting options
