@@ -21,9 +21,63 @@ export STATUSLINE_COST_LOADED=true
 # COST TRACKING CONSTANTS
 # ============================================================================
 
-# Cache settings for cost data
-export COST_CACHE_DURATION=30 # 30 seconds
+# Cache settings for cost data - differentiated by data type
+export COST_CACHE_DURATION_LIVE=30        # 30 seconds - active blocks (real-time)
+export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
+export COST_CACHE_DURATION_DAILY=600      # 10 minutes - today's cost
+export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
+export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
 export COST_CACHE_DIR="/tmp/.claude_statusline_cache"
+
+# Instance-specific session marker (prevents race conditions between multiple Claude Code instances)
+# Function to get current instance ID dynamically (checks env var each time)
+get_instance_id() {
+    # Priority: CLAUDE_INSTANCE_ID env var > PPID > current PID  
+    echo "${CLAUDE_INSTANCE_ID:-${PPID:-$$}}"
+}
+
+# Function to get the current session marker (allows dynamic instance ID)
+get_session_marker() {
+    local instance_id
+    instance_id=$(get_instance_id)
+    echo "/tmp/.claude_statusline_session_${instance_id}"
+}
+
+# Cleanup old session markers (older than 24 hours) and orphaned markers
+cleanup_old_session_markers() {
+    # Remove old markers (older than 24 hours)
+    find /tmp -name ".claude_statusline_session_*" -mtime +1 -delete 2>/dev/null || true
+    
+    # Remove orphaned markers (where the parent process no longer exists)
+    local marker
+    for marker in /tmp/.claude_statusline_session_*; do
+        # Skip if glob didn't match any files
+        [[ -f "$marker" ]] || continue
+        
+        local marker_pid="${marker##*_}"
+        if [[ "$marker_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$marker_pid" 2>/dev/null; then
+            rm -f "$marker" 2>/dev/null
+            debug_log "Removed orphaned session marker for dead process: $marker_pid" "INFO"
+        fi
+    done
+}
+
+# Validate cache file integrity (check if it contains valid JSON)
+validate_cache_file() {
+    local cache_file="$1"
+    
+    if [[ ! -f "$cache_file" ]]; then
+        return 1
+    fi
+    
+    # Check if file is not empty and contains valid JSON
+    if [[ -s "$cache_file" ]] && jq empty "$cache_file" 2>/dev/null; then
+        return 0
+    else
+        debug_log "Invalid cache file detected: $(basename "$cache_file")" "WARN"
+        return 1
+    fi
+}
 
 # Cache file names
 export BLOCKS_CACHE_FILE="$COST_CACHE_DIR/blocks.json"
@@ -67,17 +121,41 @@ init_cost_cache() {
     fi
 }
 
-# Execute ccusage command with caching and locking
+# Enhanced ccusage execution with intelligent caching and startup detection
 execute_ccusage_with_cache() {
     local cache_file="$1"
     local ccusage_command="$2"
-    local timeout_duration="${3:-$CONFIG_CCUSAGE_TIMEOUT}"
+    local cache_duration="$3"  # Now accepts custom cache duration!
+    local timeout_duration="${4:-$CONFIG_CCUSAGE_TIMEOUT}"
     
-    # Check if cache is fresh
-    if [[ -f "$cache_file" ]] && is_cache_fresh "$cache_file" "$COST_CACHE_DURATION"; then
-        cat "$cache_file" 2>/dev/null
-        debug_log "Using cached ccusage data: $(basename "$cache_file")" "INFO"
-        return 0
+    # Startup detection: Force refresh all data on first Claude Code startup
+    cleanup_old_session_markers  # Clean up old markers first
+    
+    local force_refresh=false
+    local session_marker instance_id
+    session_marker=$(get_session_marker)
+    instance_id=$(get_instance_id)
+    
+    if [[ ! -f "$session_marker" ]]; then
+        force_refresh=true
+        # Create persistent session marker for this Claude Code instance
+        echo "$(date '+%Y-%m-%d %H:%M:%S') Instance: $instance_id PID: $PPID" > "$session_marker" 2>/dev/null
+        debug_log "First startup for Claude Code instance $instance_id - forcing refresh of all ccusage data" "INFO"
+    else
+        debug_log "Subsequent call for instance $instance_id - using intelligent cache durations" "INFO"
+    fi
+    
+    # Check if cache is fresh and valid (skip if force refresh)
+    if [[ "$force_refresh" != "true" ]] && [[ -f "$cache_file" ]] && is_cache_fresh "$cache_file" "$cache_duration"; then
+        # Validate cache file integrity before using
+        if validate_cache_file "$cache_file"; then
+            cat "$cache_file" 2>/dev/null
+            debug_log "Using cached ccusage data: $(basename "$cache_file")" "INFO"
+            return 0
+        else
+            debug_log "Cache file corrupted, forcing refresh: $(basename "$cache_file")" "WARN"
+            rm -f "$cache_file" 2>/dev/null  # Remove corrupted cache
+        fi
     fi
     
     local lock_file="${cache_file}.lock"
@@ -85,11 +163,29 @@ execute_ccusage_with_cache() {
     # Clean up stale locks
     cleanup_stale_locks "$lock_file"
     
-    # Try to acquire lock (non-blocking)
-    if (
-        set -C
-        echo $$ >"$lock_file" 2>/dev/null
-    ); then
+    # Enhanced lock acquisition with retry logic (prevents race conditions)
+    local max_retries=3
+    local retry_count=0
+    local lock_acquired=false
+    
+    while [[ $retry_count -lt $max_retries ]]; do
+        # Try to acquire lock atomically
+        if (
+            set -C  # noclobber mode prevents overwriting existing files
+            echo "$$:$(date +%s):$CLAUDE_INSTANCE_ID" >"$lock_file" 2>/dev/null
+        ); then
+            lock_acquired=true
+            break
+        else
+            retry_count=$((retry_count + 1))
+            debug_log "Lock acquisition attempt $retry_count/$max_retries failed: $(basename "$cache_file")" "INFO"
+            
+            # Brief backoff to avoid thundering herd
+            sleep "0.$(( (RANDOM % 5) + 1 ))"  # Random 0.1-0.5 second delay
+        fi
+    done
+    
+    if [[ "$lock_acquired" == "true" ]]; then
         debug_log "Acquired lock for ccusage: $(basename "$cache_file")" "INFO"
         
         # Execute ccusage command
@@ -102,11 +198,18 @@ execute_ccusage_with_cache() {
             fresh_data=$(bunx ccusage $ccusage_command --json 2>/dev/null)
         fi
         
-        # Cache the result if successful
+        # Cache the result if successful using atomic write
         if [[ $? -eq 0 && -n "$fresh_data" ]]; then
-            echo "$fresh_data" > "$cache_file" 2>/dev/null
-            debug_log "Cached fresh ccusage data: $(basename "$cache_file")" "INFO"
-            echo "$fresh_data"
+            # Atomic write: write to temp file, then rename
+            local temp_file="${cache_file}.tmp.$$"
+            if echo "$fresh_data" > "$temp_file" 2>/dev/null && mv "$temp_file" "$cache_file" 2>/dev/null; then
+                debug_log "Cached fresh ccusage data: $(basename "$cache_file")" "INFO"
+                echo "$fresh_data"
+            else
+                debug_log "Failed to write cache file: $(basename "$cache_file")" "WARN"
+                rm -f "$temp_file" 2>/dev/null  # Cleanup failed temp file
+                echo "$fresh_data"  # Still return the data even if caching failed
+            fi
         else
             debug_log "Failed to get fresh ccusage data: $(basename "$cache_file")" "WARN"
             # Return cached data if available, even if stale
@@ -118,9 +221,10 @@ execute_ccusage_with_cache() {
         # Release lock
         rm -f "$lock_file" 2>/dev/null
     else
-        debug_log "Lock acquisition failed for ccusage: $(basename "$cache_file")" "INFO"
-        # Another instance is refreshing, use existing cache
-        if [[ -f "$cache_file" ]]; then
+        debug_log "Lock acquisition failed after $max_retries attempts: $(basename "$cache_file")" "WARN"
+        # Another instance is likely refreshing, use existing cache if valid
+        if [[ -f "$cache_file" ]] && validate_cache_file "$cache_file"; then
+            debug_log "Using existing cache while other instance refreshes: $(basename "$cache_file")" "INFO"
             cat "$cache_file" 2>/dev/null
         fi
     fi
@@ -172,7 +276,7 @@ get_active_blocks_data() {
         return 1
     fi
     
-    execute_ccusage_with_cache "$BLOCKS_CACHE_FILE" "blocks --active"
+    execute_ccusage_with_cache "$BLOCKS_CACHE_FILE" "blocks --active" "$COST_CACHE_DURATION_LIVE"
 }
 
 # Get session cost data
@@ -182,7 +286,7 @@ get_session_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since $COST_SEVEN_DAYS_AGO"
+    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
 }
 
 # Get daily cost data (7 days)
@@ -192,7 +296,7 @@ get_daily_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since $COST_SEVEN_DAYS_AGO"
+    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_WEEKLY"
 }
 
 # Get monthly cost data (30 days)
@@ -202,7 +306,7 @@ get_monthly_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$MONTHLY_CACHE_FILE" "daily --since $COST_THIRTY_DAYS_AGO"
+    execute_ccusage_with_cache "$MONTHLY_CACHE_FILE" "daily --since $COST_THIRTY_DAYS_AGO" "$COST_CACHE_DURATION_MONTHLY"
 }
 
 # ============================================================================
@@ -491,6 +595,7 @@ init_cost_module
 
 # Export cost tracking functions
 export -f is_ccusage_available init_cost_cache execute_ccusage_with_cache
+export -f cleanup_old_session_markers validate_cache_file get_instance_id get_session_marker
 export -f calculate_cost_dates get_active_blocks_data get_session_cost_data
 export -f get_daily_cost_data get_monthly_cost_data
 export -f extract_session_cost extract_today_cost extract_weekly_cost extract_monthly_cost

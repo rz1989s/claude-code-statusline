@@ -11,7 +11,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🎯 **Planned Features** *(Already Mentioned in Codebase)*
 
-- **Profile System** `[PLANNED]`
+1. **Profile System** `[PLANNED]`
   - **Status**: Mentioned in README.md as "planned for a future release"
   - **Description**: Automatic configuration switching based on context (work/personal/demo)
   - **Implementation**: 
@@ -22,7 +22,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Medium
   - **Dependencies**: Current TOML system
 
-- **Theme Inheritance System** `[PLANNED]`
+2. **Theme Inheritance System** `[PLANNED]`
   - **Status**: Mentioned in docs/themes.md as "Future Feature"
   - **Description**: Allow themes to inherit from base themes and override specific colors
   - **Implementation**: Extend `apply_theme()` in `lib/themes.sh` with inheritance logic
@@ -30,7 +30,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Low-Medium
   - **Dependencies**: Current theme system
 
-- **Ocean Theme Full Integration** `[READY]`
+3. **Ocean Theme Full Integration** `[READY]`
   - **Status**: Complete theme exists in `examples/sample-configs/ocean-theme.toml`
   - **Description**: Make Ocean theme available as built-in option alongside classic/garden/catppuccin
   - **Implementation**: 
@@ -43,7 +43,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🚨 **Critical Infrastructure Gaps**
 
-- **CI/CD Pipeline Setup** `[MISSING]`
+4. **CI/CD Pipeline Setup** `[MISSING]`
   - **Status**: No `.github/workflows/` directory exists
   - **Description**: Automated testing, linting, and release process
   - **Implementation**:
@@ -55,7 +55,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Medium
   - **Dependencies**: Current npm test scripts
 
-- **Release Automation** `[MISSING]`
+5. **Release Automation** `[MISSING]`
   - **Status**: Manual release process currently
   - **Description**: Automated version bumping, changelog generation, and GitHub releases
   - **Implementation**:
@@ -73,7 +73,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🎨 **User Experience Enhancements**
 
-- **Interactive Setup Wizard** `[NEW]`
+6. **Interactive Setup Wizard** `[NEW]`
   - **Description**: Guided setup process for new users with dependency checking and configuration
   - **Implementation**: 
     - Extend `install.sh` with interactive mode enhancements
@@ -83,7 +83,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Medium
   - **Files to modify**: `install.sh`, `statusline.sh`, new setup module
 
-- **Configuration GUI Tool** `[NEW]`
+7. **Configuration GUI Tool** `[NEW]`
   - **Description**: Web-based or terminal-based GUI for configuration management
   - **Implementation**: 
     - Simple HTML interface that generates TOML configs
@@ -93,7 +93,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: High
   - **Dependencies**: Web server (simple) or TUI libraries
 
-- **Theme Preview Mode** `[NEW]`
+8. **Theme Preview Mode** `[NEW]`
   - **Description**: Preview themes without changing configuration
   - **Implementation**: `./statusline.sh --preview-theme <theme-name>` command
   - **Impact**: Medium - Better theme selection experience
@@ -102,7 +102,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🔌 **Integration & Extensibility**
 
-- **Plugin System** `[NEW]`
+9. **Plugin System** `[NEW]`
   - **Description**: Allow custom modules to extend statusline functionality
   - **Implementation**:
     - Plugin directory structure: `~/.claude/statusline/plugins/`
@@ -112,7 +112,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: High
   - **Files to modify**: `lib/core.sh`, new plugin loader
 
-- **Shell Completion** `[NEW]`
+10. **Shell Completion** `[NEW]`
   - **Description**: Bash/Zsh completion for statusline commands and options
   - **Implementation**: 
     - Generate completion scripts for `--help`, config options, themes
@@ -121,7 +121,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Low-Medium
   - **Files to create**: `completions/bash_completion`, `completions/zsh_completion`
 
-- **GitHub Actions Integration** `[NEW]`
+11. **GitHub Actions Integration** `[NEW]`
   - **Description**: Display CI/CD status, PR information, workflow status in statusline
   - **Implementation**:
     - New `lib/github.sh` module
@@ -133,7 +133,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🚀 **Performance & Monitoring**
 
-- **Performance Analytics** `[NEW]`
+12. **Performance Analytics** `[NEW]`
   - **Description**: Optional analytics collection for performance optimization
   - **Implementation**:
     - Timing data collection (opt-in)
@@ -143,7 +143,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Medium
   - **Privacy**: Must be opt-in and transparent
 
-- **Auto-Update System** `[NEW]`
+13. **Auto-Update System** `[NEW]`
   - **Description**: Check for updates and offer automated upgrade path
   - **Implementation**:
     - `./statusline.sh --check-updates` command
@@ -160,7 +160,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🎯 **Advanced Features**
 
-- **Cost Threshold Notifications** `[NEW]`
+14. **Cost Threshold Notifications** `[NEW]`
   - **Description**: Alert users when costs exceed configured thresholds
   - **Implementation**:
     - Configurable thresholds in TOML
@@ -170,7 +170,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Medium
   - **Dependencies**: Notification systems
 
-- **Usage History & Analytics** `[NEW]`
+15. **Usage History & Analytics** `[NEW]`
   - **Description**: Track and visualize statusline usage patterns over time
   - **Implementation**:
     - Local SQLite database for history
@@ -180,7 +180,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: High
   - **Dependencies**: SQLite, charting library
 
-- **Multi-Workspace Support** `[NEW]`
+16. **Multi-Workspace Support** `[NEW]`
   - **Description**: Manage multiple Claude Code workspaces with different configurations
   - **Implementation**:
     - Workspace detection and switching
@@ -192,7 +192,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🌐 **Ecosystem Integration**
 
-- **Docker Integration** `[NEW]`
+17. **Docker Integration** `[NEW]`
   - **Description**: Docker container with statusline for consistent environments
   - **Implementation**:
     - Dockerfile with all dependencies
@@ -202,7 +202,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Complexity**: Low-Medium
   - **Files to create**: `Dockerfile`, `docker-compose.yml`
 
-- **IDE Plugins** `[NEW]`
+18. **IDE Plugins** `[NEW]`
   - **Description**: VS Code, Vim, Emacs plugins showing statusline info
   - **Implementation**:
     - Plugin development for major IDEs
@@ -232,13 +232,13 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🏗️ **Project Infrastructure**
 
-- **Community Guidelines** `[MISSING]`
-  - **Files to create**: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, issue/PR templates
-  - **Description**: Standardize community contributions and interactions
+19. **Community Guidelines** `[PARTIAL]`
+  - **Files to create**: `CODE_OF_CONDUCT.md`, issue/PR templates (CONTRIBUTING.md ✓ exists)
+  - **Description**: Complete community contribution standardization
   - **Impact**: Medium - Enables community growth
   - **Complexity**: Low
 
-- **Package Manager Integration** `[NEW]`
+20. **Package Manager Integration** `[NEW]`
   - **Description**: Publish to Homebrew, apt repositories, npm
   - **Implementation**:
     - Homebrew formula creation
@@ -254,30 +254,30 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 📖 **New Documentation**
 
-- **Video Tutorial Series** `[NEW]`
+21. **Video Tutorial Series** `[NEW]`
   - Installation and setup walkthrough
   - Configuration customization guide
   - Theme creation tutorial
   - Advanced features demonstration
 
-- **Interactive Examples** `[NEW]`
+22. **Interactive Examples** `[NEW]`
   - Web-based configuration playground
   - Real-time statusline preview
   - Copy-paste ready configs
 
-- **API Documentation** `[NEW]`
+23. **API Documentation** `[NEW]`
   - Module API reference for contributors
   - Plugin development guide
   - Integration examples
 
 ### 📝 **Documentation Enhancements**
 
-- **Performance Tuning Guide** `[NEW]`
+24. **Performance Tuning Guide** `[NEW]`
   - Optimization recommendations
   - Troubleshooting slow performance
   - Network timeout configuration
 
-- **Best Practices Guide** `[NEW]`
+25. **Best Practices Guide** `[NEW]`
   - Configuration recommendations
   - Security considerations
   - Maintenance tips
@@ -313,19 +313,19 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🛡️ **Advanced Security**
 
-- **Configuration Encryption** `[NEW]`
+26. **Configuration Encryption** `[NEW]`
   - **Description**: Optional encryption for sensitive configuration data
   - **Implementation**: GPG-based config encryption
   - **Impact**: Low - Security-conscious users
   - **Complexity**: Medium
 
-- **Audit Logging** `[NEW]`
+27. **Audit Logging** `[NEW]`
   - **Description**: Optional logging of statusline operations for security monitoring
   - **Implementation**: Configurable audit trail
   - **Impact**: Low - Enterprise/security-focused environments
   - **Complexity**: Low-Medium
 
-- **Sandboxing** `[NEW]`
+28. **Sandboxing** `[NEW]`
   - **Description**: Run statusline operations in restricted environment
   - **Implementation**: Use of restricted shells or containers
   - **Impact**: Low - High-security environments
@@ -358,12 +358,12 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🎨 **Extended Theme System**
 
-- **Dynamic Themes** `[NEW]`
+29. **Dynamic Themes** `[NEW]`
   - Time-based theme switching (day/night)
   - Weather-based color adaptation
   - Context-aware theme selection
 
-- **Theme Marketplace** `[NEW]`
+30. **Theme Marketplace** `[NEW]`
   - Community theme sharing
   - Theme rating and discovery
   - Easy theme installation
@@ -379,12 +379,12 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 📈 **Usage Insights**
 
-- **Usage Pattern Analysis**
+31. **Usage Pattern Analysis**
   - Most used features identification
   - Performance bottleneck detection
   - User behavior insights (opt-in)
 
-- **Error Reporting**
+32. **Error Reporting**
   - Anonymous error collection (opt-in)
   - Crash reporting and recovery
   - Performance issue reporting
