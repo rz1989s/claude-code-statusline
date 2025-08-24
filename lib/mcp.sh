@@ -40,7 +40,7 @@ is_claude_cli_available() {
     command_exists claude
 }
 
-# Execute claude mcp list command with timeout
+# Execute claude mcp list command with intelligent caching
 execute_mcp_list() {
     local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
     
@@ -48,6 +48,18 @@ execute_mcp_list() {
         debug_log "Claude CLI not available for MCP monitoring" "WARN"
         return 1
     fi
+    
+    # Use universal caching system (2-minute cache - MCP servers don't disconnect frequently)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        cache_external_command "claude_mcp_list" "120" "validate_command_output" bash -c '_execute_mcp_list_direct "'$timeout_duration'"'
+    else
+        _execute_mcp_list_direct "$timeout_duration"
+    fi
+}
+
+# Internal function for direct MCP list execution (used by caching)
+_execute_mcp_list_direct() {
+    local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
     
     # Execute with timeout protection
     if command_exists timeout; then
@@ -378,26 +390,14 @@ get_mcp_server_details() {
 
 # Cache MCP status for performance (optional)
 get_cached_mcp_status() {
-    local cache_duration="${1:-30}" # 30 seconds default
-    local cache_file="/tmp/.mcp_status_cache"
+    local cache_duration="${1:-120}" # 2 minutes default - MCP disconnections are not that frequent
     
-    # Check if cache is fresh
-    if is_cache_fresh "$cache_file" "$cache_duration"; then
-        cat "$cache_file" 2>/dev/null
-        debug_log "Using cached MCP status" "INFO"
-        return 0
-    fi
-    
-    # Get fresh status and cache it
-    local fresh_status
-    fresh_status=$(get_mcp_status)
-    
-    if [[ -n "$fresh_status" ]]; then
-        echo "$fresh_status" > "$cache_file" 2>/dev/null
-        echo "$fresh_status"
-        debug_log "Cached fresh MCP status: $fresh_status" "INFO"
+    # Use universal caching system if available
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        cache_external_command "mcp_status" "$cache_duration" "validate_command_output" bash -c 'get_mcp_status'
     else
-        echo "?/?"
+        # Fallback to direct execution
+        get_mcp_status
     fi
 }
 

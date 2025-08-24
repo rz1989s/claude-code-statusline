@@ -20,15 +20,30 @@ export STATUSLINE_GIT_LOADED=true
 # GIT REPOSITORY DETECTION
 # ============================================================================
 
-# Check if current directory is inside a git repository
+# Check if current directory is inside a git repository (with intelligent caching)
 is_git_repository() {
-    git rev-parse --is-inside-work-tree >/dev/null 2>&1
+    # Use cached result if available (30 second cache - directories rarely change repo status)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local current_dir=$(pwd)
+        local result
+        result=$(cache_git_operation "is_repo_${current_dir//\//_}" "$CACHE_DURATION_SHORT" git rev-parse --is-inside-work-tree)
+        [[ -n "$result" ]] && [[ "$result" == "true" ]]
+    else
+        # Fallback to direct check
+        git rev-parse --is-inside-work-tree >/dev/null 2>&1
+    fi
 }
 
-# Get the root directory of the git repository
+# Get the root directory of the git repository (with intelligent caching)
 get_git_root() {
     if is_git_repository; then
-        git rev-parse --show-toplevel 2>/dev/null
+        # Cache git root per directory (medium duration - rarely changes)
+        if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+            local current_dir=$(pwd)
+            cache_git_operation "root_${current_dir//\//_}" "$CACHE_DURATION_MEDIUM" git rev-parse --show-toplevel
+        else
+            git rev-parse --show-toplevel 2>/dev/null
+        fi
     else
         return 1
     fi
@@ -49,12 +64,24 @@ is_git_root() {
 # BRANCH INFORMATION
 # ============================================================================
 
-# Get current git branch name
+# Get current git branch name (with intelligent caching)
 get_git_branch() {
     if ! is_git_repository; then
         return 1
     fi
     
+    # Use cached result if available (10 second cache - branches change during development)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local git_root
+        git_root=$(get_git_root)
+        cache_git_operation "branch_${git_root//\//_}" "$CACHE_DURATION_VERY_SHORT" bash -c '_get_git_branch_direct'
+    else
+        _get_git_branch_direct
+    fi
+}
+
+# Internal function for direct branch detection (used by caching)
+_get_git_branch_direct() {
     # Try multiple methods to get branch name
     local branch=""
     
@@ -111,6 +138,18 @@ get_git_status() {
         return 1
     fi
     
+    # Use cached result if available (5 second cache - status changes frequently during development)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local git_root
+        git_root=$(get_git_root)
+        cache_git_operation "status_${git_root//\//_}" "$CACHE_DURATION_REALTIME" bash -c '_get_git_status_direct'
+    else
+        _get_git_status_direct
+    fi
+}
+
+# Internal function for direct status detection (used by caching)
+_get_git_status_direct() {
     # Check if repository has any changes
     if git diff --quiet && git diff --cached --quiet; then
         echo "clean"
