@@ -12,8 +12,19 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Script configuration
-REPO_URL="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh"
+# Script configuration - Branch aware architecture
+# Detect installation branch from script source or allow override
+INSTALL_BRANCH="${CLAUDE_INSTALL_BRANCH:-main}"
+
+# Auto-detect branch if installer was downloaded from specific branch
+if [[ "${BASH_SOURCE[0]}" =~ githubusercontent\.com/.*/(.*)/install\.sh ]]; then
+    DETECTED_BRANCH="${BASH_REMATCH[1]}"
+    if [[ "$DETECTED_BRANCH" != "main" ]]; then
+        INSTALL_BRANCH="$DETECTED_BRANCH"
+    fi
+fi
+
+# REPO_URL will be set dynamically after branch detection
 CLAUDE_DIR="$HOME/.claude"
 STATUSLINE_DIR="$CLAUDE_DIR/statusline"
 STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
@@ -313,7 +324,7 @@ generate_install_commands() {
                 echo "brew install bun python3 bc jq coreutils"
                 echo
                 echo "Step 3: Re-run statusline installer"
-                echo "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
+                echo "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
             else
                 echo "⚠️ Manual installation required"
                 echo
@@ -357,7 +368,7 @@ show_user_choice_menu() {
                 generate_install_commands
                 echo
                 print_status "Copy the commands above, then re-run this installer:"
-                print_status "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
+                print_status "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
                 exit 0
                 ;;
             3)
@@ -398,6 +409,14 @@ parse_arguments() {
                 ;;
             --skip-deps)
                 SKIP_DEPS=true
+                shift
+                ;;
+            --branch)
+                INSTALL_BRANCH="$2"
+                shift 2
+                ;;
+            --branch=*)
+                INSTALL_BRANCH="${1#*=}"
                 shift
                 ;;
             --help|-h)
@@ -479,7 +498,7 @@ download_statusline() {
     print_status "Managing statusline version..."
     
     # Version file paths
-    local version_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/version.txt"
+    local version_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/version.txt"
     local local_version_path="$STATUSLINE_DIR/version.txt"
     local current_version=""
     local new_version=""
@@ -522,7 +541,7 @@ download_statusline() {
     local failed_modules=()
     
     for module in "${modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/lib/$module"
+        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
         local module_path="$LIB_DIR/$module"
         
         if curl -fsSL "$module_url" -o "$module_path"; then
@@ -857,6 +876,9 @@ main() {
     # Parse command line arguments first
     parse_arguments "$@"
     
+    # Set dynamic URLs based on final branch selection
+    REPO_URL="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/statusline.sh"
+    
     if [ "$SHOW_HELP" = true ]; then
         show_help
         exit 0
@@ -865,6 +887,12 @@ main() {
     echo -e "${BLUE}Claude Code Enhanced Statusline - Automated Installer${NC}"
     echo "=================================================="
     echo
+    
+    # Show branch information for transparency
+    if [[ "$INSTALL_BRANCH" != "main" ]]; then
+        print_status "🔧 Installing from branch: $INSTALL_BRANCH"
+        echo
+    fi
     
     # Choose dependency checking approach based on flags
     if [ "$SKIP_DEPS" = true ]; then
