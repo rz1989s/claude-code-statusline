@@ -1,0 +1,15 @@
+{
+  "blocks": [
+    {
+      "id": "block_345678",
+      "costUSD": 19.95,
+      "startTime": "2024-08-18T12:00:00Z",
+      "endTime": "2024-08-18T17:00:00Z",
+      "isActive": true,
+      "projection": {
+        "remainingMinutes": 0,
+        "estimatedFinalCost": 20.00
+      }
+    }
+  ]
+}

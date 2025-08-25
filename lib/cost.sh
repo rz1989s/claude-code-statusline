@@ -432,32 +432,69 @@ process_active_blocks() {
         return 1
     fi
     
-    local block_cost remaining_minutes is_active
+    local block_cost remaining_minutes is_active actual_end_time block_actually_ended
     block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
     remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
     is_active=$(echo "$block_data" | jq -r '.blocks[0].isActive // false' 2>/dev/null)
+    actual_end_time=$(echo "$block_data" | jq -r '.blocks[0].actualEndTime // ""' 2>/dev/null)
+    
+    # Check if block has actually ended using actualEndTime
+    block_actually_ended=false
+    if [[ -n "$actual_end_time" && "$actual_end_time" != "null" ]]; then
+        # Check if actualEndTime is in the past
+        local current_epoch=$(date +%s)
+        local actual_end_epoch=$(execute_python_safely "
+import datetime
+try:
+    utc_time = datetime.datetime.fromisoformat('$actual_end_time'.replace('Z', '+00:00'))
+    print(int(utc_time.timestamp()))
+except:
+    print('0')
+" "0")
+        
+        if [[ "$actual_end_epoch" != "0" && "$current_epoch" -gt "$actual_end_epoch" ]]; then
+            block_actually_ended=true
+            debug_log "Block actually ended at $actual_end_time (epoch: $actual_end_epoch vs current: $current_epoch)" "INFO"
+        fi
+    fi
     
     # Simple and reliable block detection: only check isActive flag
     if [[ "$is_active" == "true" ]]; then
-        # Calculate time remaining
-        local hours=$((remaining_minutes / 60))
-        local mins=$((remaining_minutes % 60))
-        local time_str=""
+        # Calculate time remaining - handle actual vs projected time
+        local hours mins time_str
         
-        if [[ "$hours" -gt 0 ]]; then
-            time_str="${hours}h ${mins}m left"
+        # If block has actually ended, show "ENDED" instead of remaining time
+        if [[ "$block_actually_ended" == "true" ]]; then
+            time_str="ENDED"
         else
-            time_str="${mins}m left"
+            # Use projection for remaining time
+            hours=$((remaining_minutes / 60))
+            mins=$((remaining_minutes % 60))
+            
+            if [[ "$hours" -gt 0 ]]; then
+                time_str="${hours}h ${mins}m left"
+            elif [[ "$mins" -gt 0 ]]; then
+                time_str="${mins}m left"
+            else
+                time_str="ENDING"
+            fi
         fi
         
-        # Get reset time from endTime and convert to local time
-        local end_time reset_time
+        # Get reset time - prioritize actualEndTime over scheduled endTime
+        local end_time reset_time time_to_use
         end_time=$(echo "$block_data" | jq -r '.blocks[0].endTime // ""' 2>/dev/null)
         
-        if [[ -n "$end_time" && "$end_time" != "null" ]]; then
+        # Use actualEndTime if block has ended, otherwise use scheduled endTime
+        if [[ "$block_actually_ended" == "true" ]]; then
+            time_to_use="$actual_end_time"
+        else
+            time_to_use="$end_time"
+        fi
+        
+        if [[ -n "$time_to_use" && "$time_to_use" != "null" ]]; then
             reset_time=$(execute_python_safely "
 import datetime
-utc_time = datetime.datetime.fromisoformat('$end_time'.replace('Z', '+00:00'))
+utc_time = datetime.datetime.fromisoformat('$time_to_use'.replace('Z', '+00:00'))
 local_time = utc_time.replace(tzinfo=datetime.timezone.utc).astimezone()
 print(local_time.strftime('%H.%M'))
 " "")

@@ -5,6 +5,7 @@
       "costUSD": 15.75,
       "startTime": "2024-08-18T10:00:00Z",
       "endTime": "2024-08-18T22:00:00Z",
+      "isActive": true,
       "projection": {
         "remainingMinutes": 180,
         "estimatedFinalCost": 20.00

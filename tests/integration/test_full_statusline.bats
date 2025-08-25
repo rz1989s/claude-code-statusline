@@ -196,6 +196,71 @@ EOF
     assert_success
     assert_output_contains "🔥 LIVE"         # Active block indicator
     assert_output_contains "RESET at"        # Reset time info
+    assert_output_contains "3h 0m left"      # Should show remaining time
+}
+
+@test "should display ENDED for expired blocks with actualEndTime" {
+    # Mock ccusage to return expired block
+    cat > "$MOCK_BIN_DIR/bunx" << EOF
+#!/bin/bash
+if [[ "\$1" == "ccusage" ]]; then
+    case "\$2" in
+        "--version")
+            echo "ccusage 1.0.0"
+            ;;
+        "session"|"daily")
+            echo '{"sessions":[],"daily":[],"totals":{"totalCost":0.00}}'
+            ;;
+        "blocks")
+            if [[ "\$3" == "--active" ]]; then
+                cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_blocks_expired.json"
+            fi
+            ;;
+    esac
+fi
+EOF
+    chmod +x "$MOCK_BIN_DIR/bunx"
+    
+    local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
+    
+    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    
+    assert_success
+    assert_output_contains "🔥 LIVE"         # Still shows as active block
+    assert_output_contains "RESET at"        # Reset time info  
+    assert_output_contains "(ENDED)"         # Should show ENDED for expired block
+}
+
+@test "should display ENDING for blocks with 0 remaining minutes" {
+    # Mock ccusage to return block ending soon
+    cat > "$MOCK_BIN_DIR/bunx" << EOF
+#!/bin/bash
+if [[ "\$1" == "ccusage" ]]; then
+    case "\$2" in
+        "--version")
+            echo "ccusage 1.0.0"
+            ;;
+        "session"|"daily")
+            echo '{"sessions":[],"daily":[],"totals":{"totalCost":0.00}}'
+            ;;
+        "blocks")
+            if [[ "\$3" == "--active" ]]; then
+                cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_blocks_ending.json"
+            fi
+            ;;
+    esac
+fi
+EOF
+    chmod +x "$MOCK_BIN_DIR/bunx"
+    
+    local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
+    
+    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    
+    assert_success
+    assert_output_contains "🔥 LIVE"         # Still shows as active block
+    assert_output_contains "RESET at"        # Reset time info
+    assert_output_contains "(ENDING)"        # Should show ENDING for 0 remaining minutes
 }
 
 # Test performance under normal conditions
