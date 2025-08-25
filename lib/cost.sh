@@ -8,6 +8,10 @@
 # ccusage integration, including session costs, daily/weekly/monthly totals,
 # and active billing block management.
 #
+
+# CRITICAL EMERGENCY FIX: Set date format defaults immediately to fix DAY $0.00 bug
+[[ -z "$CONFIG_DATE_FORMAT" ]] && export CONFIG_DATE_FORMAT="%Y-%m-%d"
+[[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]] && export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
 # Dependencies: core.sh, security.sh
 # ============================================================================
 
@@ -252,6 +256,15 @@ execute_ccusage_with_cache() {
 # Calculate dates for cost queries
 calculate_cost_dates() {
     local seven_days_ago thirty_days_ago today
+    
+    # CRITICAL FIX: Ensure date format variables are never empty (fallback to hardcoded defaults)
+    # This fixes the DAY $0.00 issue when TOML configuration fails to load
+    if [[ -z "$CONFIG_DATE_FORMAT" ]]; then
+        export CONFIG_DATE_FORMAT="%Y-%m-%d"
+    fi
+    if [[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]]; then
+        export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
+    fi
     
     # Calculate dates with proper fallbacks
     if date -d '7 days ago' "+$CONFIG_DATE_FORMAT_COMPACT" >/dev/null 2>&1; then
