@@ -1,6 +1,11 @@
 # Developer Configuration
 # Maximum information display with extended features
 # Copy these values into your statusline.sh
+#
+# BASH COMPATIBILITY (v1.8.2+):
+# - Universal compatibility: Works with bash 3.2+ (auto-detects modern bash)
+# - Advanced caching: Requires bash 4.0+ (falls back gracefully on older versions)
+# - Optimal performance: bash 5.0+ recommended for development
 
 CONFIG_THEME="catppuccin"
 

@@ -102,10 +102,12 @@ We welcome contributions in many forms! Choose what resonates with your skills a
 1. **Core Requirements**:
    ```bash
    # Essential tools
-   bash --version    # 4.0+ required, 5.0+ recommended
+   bash --version    # 3.2+ minimum (auto-upgrades to modern bash), 5.0+ recommended for development
    jq --version      # 1.5+ required, 1.6+ recommended  
    git --version     # 2.0+ required, 2.30+ recommended
    ```
+   
+   **🎯 Universal Bash Compatibility**: The statusline includes runtime bash detection that automatically finds and uses modern bash when available, with graceful fallback for older versions.
 
 2. **Testing Framework** (required for development):
    ```bash

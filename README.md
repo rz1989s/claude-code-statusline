@@ -1149,10 +1149,15 @@ We support all major Unix-like systems with comprehensive testing and optimizati
   - Purpose: Parse Claude Code JSON data and MCP server responses
 
 #### System Tools *(Usually Pre-installed)*
-- **`bash`** - Shell execution environment (v4.0+)
+- **`bash`** - Shell execution environment (v3.2+ with automatic upgrade to modern bash)
 - **`git`** - Version control integration
 - **`grep`**, **`sed`**, **`date`** - Text processing and utilities
 - **`timeout`** / **`gtimeout`** - Command timeout management
+
+**🚀 Revolutionary Bash Compatibility:**
+- **Runtime Detection**: Automatically finds and uses modern bash (4.0+) if available
+- **Compatibility Mode**: Falls back gracefully for old bash versions
+- **Universal Support**: Works across all system configurations without manual intervention
 
 ### 🚀 **Recommended Enhancements**
 
@@ -1172,10 +1177,16 @@ We support all major Unix-like systems with comprehensive testing and optimizati
 
 | Tool | Minimum Version | Recommended | Notes |
 |------|----------------|-------------|-------|
-| Bash | 4.0+ | 5.0+ | Pre-installed on most systems |
+| Bash | 3.2+ | 5.0+ | **Universal compatibility** - auto-detects modern bash |
 | jq | 1.5+ | 1.6+ | JSON processing performance |
 | Git | 2.0+ | 2.30+ | Modern git features |
 | Node.js | 16+ | 18+ | For ccusage integration |
+
+**🎯 Bash Compatibility Revolution:**
+- **Automatic Detection**: Runtime bash detection finds the best available bash version
+- **Universal Compatibility**: Works on all Mac configurations (Apple Silicon, Intel, any package manager)
+- **Graceful Fallback**: Compatibility mode for old bash versions (3.2+) with reduced functionality
+- **Zero Configuration**: No manual shebang fixes needed - everything handled automatically
 
 ### 🔧 **Quick Dependency Check**
 

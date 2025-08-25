@@ -562,8 +562,8 @@ download_statusline() {
     fi
 }
 
-# Function to fix bash shebang for compatibility
-fix_bash_shebang() {
+# Function to check bash compatibility (informational only)
+check_bash_compatibility() {
     print_status "Checking bash compatibility..."
     
     # Check if we're using modern bash that supports associative arrays
@@ -572,25 +572,22 @@ fix_bash_shebang() {
         return 0
     fi
     
-    # Find modern bash location
-    local modern_bash=""
-    for bash_path in "/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/bin/bash"; do
+    # Check for modern bash installations  
+    local modern_bash_found=false
+    for bash_path in "/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash"; do
         if [[ -x "$bash_path" ]] && "$bash_path" -c 'declare -A test_array' 2>/dev/null; then
-            modern_bash="$bash_path"
+            print_success "Modern bash found: $bash_path"
+            modern_bash_found=true
             break
         fi
     done
     
-    if [[ -n "$modern_bash" ]]; then
-        print_status "Updating shebang to use modern bash: $modern_bash"
-        if sed -i '' "1s|#!/bin/bash|#!$modern_bash|" "$STATUSLINE_PATH"; then
-            print_success "Updated bash shebang for compatibility"
-        else
-            print_warning "Could not update bash shebang, but statusline should still work"
-        fi
+    if [[ "$modern_bash_found" == "false" ]]; then
+        print_warning "Modern bash not found - some advanced features may not work"
+        print_status "For full functionality, consider: brew install bash"
+        print_status "Statusline includes automatic compatibility detection"
     else
-        print_warning "Modern bash not found - some features may not work properly"
-        print_status "Consider installing bash 4+ via: brew install bash"
+        print_success "Statusline will automatically use modern bash features"
     fi
 }
 
@@ -934,7 +931,7 @@ main() {
     create_claude_directory
     migrate_existing_installation || true  # Don't fail if no existing installation
     download_statusline
-    fix_bash_shebang
+    check_bash_compatibility
     make_executable
     configure_settings
     generate_default_config || true  # Don't fail if config generation fails

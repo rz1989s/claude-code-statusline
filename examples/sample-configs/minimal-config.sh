@@ -1,6 +1,8 @@
 # Minimal Configuration
-# Optimized for performance and simplicity
+# Optimized for performance and simplicity  
 # Copy these values into your statusline.sh
+#
+# BASH COMPATIBILITY: Universal support (bash 3.2+ with auto-upgrade to modern versions)
 
 CONFIG_THEME="classic"
 

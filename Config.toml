@@ -186,6 +186,22 @@ debug_mode = false
 performance_mode = false
 strict_validation = true
 
+# === BASH COMPATIBILITY ===
+# Universal bash compatibility settings (automatically managed)
+[compatibility]
+# Automatic bash version detection and upgrade (v1.8.2+)
+auto_detect_bash = true           # Automatically find and use modern bash
+enable_compatibility_mode = true # Enable graceful fallback for old bash versions
+compatibility_warnings = true    # Show warnings about reduced functionality
+
+# Feature availability by bash version (informational)
+# bash 3.2+: Basic functionality, reduced caching
+# bash 4.0+: Full functionality including associative arrays and advanced caching
+# bash 5.0+: Optimal performance and all features
+
+# Manual bash path override (leave empty for auto-detection)
+bash_path = ""  # Override: "/opt/homebrew/bin/bash" or custom path
+
 # === PLATFORM SETTINGS ===  
 # Platform-specific configurations
 [platform]

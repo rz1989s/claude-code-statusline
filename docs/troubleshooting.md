@@ -47,7 +47,7 @@ brew install coreutils
 gtimeout --version
 ```
 
-**Alternative**: The modular architecture automatically handles timeout command detection.
+**Note**: Modern statusline automatically handles timeout command detection and works without coreutils using runtime bash compatibility features.
 
 ---
 
@@ -382,6 +382,35 @@ ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-status
    # Clear version cache that might be interfering
    rm -f /tmp/.claude_version_cache
    ```
+
+---
+
+## 🔧 **Bash Compatibility Issues (Auto-Resolved)**
+
+### Bash Version Compatibility 
+
+**Previous Issue**: Statusline required modern bash (4.0+) but many systems have older bash.
+
+**✅ Now Auto-Resolved**: The statusline now includes **universal bash compatibility**:
+
+**Automatic Features:**
+- **Runtime Detection**: Automatically finds and uses modern bash if available
+- **Graceful Fallback**: Works with old bash (3.2+) in compatibility mode
+- **Universal macOS Support**: Works across all Mac configurations without manual intervention
+
+**What Happens Automatically:**
+```bash
+# Old bash detected -> automatic upgrade attempt
+[INFO] Bash 3.2.57 detected, searching for modern bash...
+[INFO] Found modern bash: /opt/homebrew/bin/bash
+[INFO] Re-executing with modern bash for full functionality
+
+# Or graceful fallback if no modern bash available
+[WARN] Bash 3.2.57 detected. Advanced caching features disabled.
+[INFO] For full functionality, install bash 4+: brew install bash
+```
+
+**No Action Required**: This happens automatically - no configuration needed!
 
 ---
 
@@ -963,6 +992,24 @@ chmod +x ~/.claude/statusline/statusline.sh
 3. **Check Claude CLI permissions**
 
 ## 📁 Git Repository Issues
+
+### Git Branch/Status Not Displaying (Recently Fixed)
+
+**Previous Issue**: Git branch and status information missing from statusline first line.
+
+**✅ Now Auto-Fixed**: Recent update resolved cache function compatibility:
+- **Root Cause**: Cache calls using `bash -c` wrappers where functions weren't available in subshells
+- **Solution Applied**: Direct function calls in cache operations 
+- **Result**: Git branch `(dev)` and status `✅` now display correctly
+
+**If still experiencing issues**:
+```bash
+# Check git functionality directly
+git branch && git status --porcelain
+
+# Verify statusline git detection
+echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
+```
 
 ### Commit count always shows "0"
 
