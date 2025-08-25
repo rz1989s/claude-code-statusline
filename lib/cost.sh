@@ -434,23 +434,12 @@ process_active_blocks() {
     
     local block_cost remaining_minutes is_active
     block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
-    remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
+    remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // null' 2>/dev/null)
     is_active=$(echo "$block_data" | jq -r '.blocks[0].isActive // false' 2>/dev/null)
     
-    # Simple and reliable block detection: only check isActive flag
+    # Enhanced block detection with three states
     if [[ "$is_active" == "true" ]]; then
-        # Calculate time remaining
-        local hours=$((remaining_minutes / 60))
-        local mins=$((remaining_minutes % 60))
-        local time_str=""
-        
-        if [[ "$hours" -gt 0 ]]; then
-            time_str="${hours}h ${mins}m left"
-        else
-            time_str="${mins}m left"
-        fi
-        
-        # Get reset time from endTime and convert to local time
+        # Get reset time from endTime and convert to local time (always needed)
         local end_time reset_time
         end_time=$(echo "$block_data" | jq -r '.blocks[0].endTime // ""' 2>/dev/null)
         
@@ -463,9 +452,26 @@ print(local_time.strftime('%H.%M'))
 " "")
         fi
         
-        local block_info reset_info
+        local block_info reset_info time_str
         block_info=$(printf "%s%s \$%.2f" "$CONFIG_LIVE_BLOCK_EMOJI" "$CONFIG_LIVE_LABEL" "$block_cost")
         
+        # Check if we have valid projection data
+        if [[ "$remaining_minutes" != "null" && "$remaining_minutes" -gt 0 ]]; then
+            # Valid projection: show normal countdown
+            local hours=$((remaining_minutes / 60))
+            local mins=$((remaining_minutes % 60))
+            
+            if [[ "$hours" -gt 0 ]]; then
+                time_str="${hours}h ${mins}m left"
+            else
+                time_str="${mins}m left"
+            fi
+        else
+            # Active block but no projection: API still calculating
+            time_str="waiting API response..."
+        fi
+        
+        # Format reset info
         if [[ -n "$reset_time" ]]; then
             reset_info=$(printf "$CONFIG_RESET_LABEL at %s (%s)" "$reset_time" "$time_str")
         else
