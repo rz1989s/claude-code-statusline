@@ -74,7 +74,7 @@ get_git_branch() {
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local git_root
         git_root=$(get_git_root)
-        cache_git_operation "branch_${git_root//\//_}" "$CACHE_DURATION_VERY_SHORT" bash -c '_get_git_branch_direct'
+        cache_git_operation "branch_${git_root//\//_}" "$CACHE_DURATION_VERY_SHORT" _get_git_branch_direct
     else
         _get_git_branch_direct
     fi
@@ -142,7 +142,7 @@ get_git_status() {
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local git_root
         git_root=$(get_git_root)
-        cache_git_operation "status_${git_root//\//_}" "$CACHE_DURATION_REALTIME" bash -c '_get_git_status_direct'
+        cache_git_operation "status_${git_root//\//_}" "$CACHE_DURATION_REALTIME" _get_git_status_direct
     else
         _get_git_status_direct
     fi

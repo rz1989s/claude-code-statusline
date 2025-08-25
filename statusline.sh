@@ -1,4 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# ============================================================================
+# Bash Compatibility Check and Auto-Upgrade
+# ============================================================================
+
+# Check if we need modern bash for associative arrays (bash 4.0+)
+if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
+    # Try to find and use modern bash automatically
+    for bash_candidate in $(command -v bash 2>/dev/null | head -5) /opt/homebrew/bin/bash /usr/local/bin/bash /opt/local/bin/bash; do
+        if [[ -x "$bash_candidate" ]] && [[ "$("$bash_candidate" -c 'echo ${BASH_VERSION%%.*}' 2>/dev/null)" -ge 4 ]]; then
+            # Re-execute script with modern bash
+            exec "$bash_candidate" "$0" "$@"
+        fi
+    done
+    
+    # If no modern bash found, warn but continue with degraded functionality
+    echo "WARNING: Bash ${BASH_VERSION} detected. Advanced caching features disabled." >&2
+    echo "For full functionality, install bash 4+: brew install bash" >&2
+    export STATUSLINE_COMPATIBILITY_MODE=true
+fi
 
 # ============================================================================
 # Claude Code Enhanced Statusline - Main Orchestrator (v2.0.0-refactored)

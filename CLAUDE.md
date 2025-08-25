@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the Claude Code Enhanced Statusline project (v1.5.2) - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 8 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+This is the Claude Code Enhanced Statusline project (v1.8.1) - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 9 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
 
 **📋 Key Resources for Development:**
 - **TODOS.md** - Comprehensive development roadmap with 50+ actionable items, complexity estimates, and implementation hints
@@ -13,7 +13,7 @@ This is the Claude Code Enhanced Statusline project (v1.5.2) - a sophisticated 4
 
 **Architecture**: 
 - **Main Script**: `statusline.sh` (332 lines) - orchestrates modules and handles input/output
-- **8 Modules**: `lib/core.sh`, `lib/security.sh`, `lib/config.sh`, `lib/themes.sh`, `lib/git.sh`, `lib/mcp.sh`, `lib/cost.sh`, `lib/display.sh`
+- **9 Modules**: `lib/core.sh`, `lib/security.sh`, `lib/config.sh`, `lib/themes.sh`, `lib/git.sh`, `lib/mcp.sh`, `lib/cost.sh`, `lib/display.sh`, `lib/cache.sh`
 - **91.5% Code Reduction**: Refactored from 3930-line monolithic script to clean modular system
 
 ## Build, Test & Development Commands
@@ -62,9 +62,11 @@ ENV_CONFIG_THEME=catppuccin ./statusline.sh    # Test catppuccin theme
 
 ### Installation and Setup
 
-**Enhanced Automated Installer (v1.4.0+)**
+**Branch-Aware Installer (v1.8.1+)**
+
+**Production Installation (Main Branch):**
 ```bash
-# Standard installation (backward compatible)
+# Standard installation (stable, production-ready)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Enhanced dependency analysis mode
@@ -75,20 +77,45 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 
 # Full experience: comprehensive analysis + user menu
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+```
 
-# Download and inspect installer first
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+**Development Testing (Dev Branch):**
+```bash
+# Test dev branch changes before PR (RECOMMENDED WORKFLOW)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+
+# Dev branch with enhanced dependency analysis
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --check-all-deps
+
+# Dev branch with interactive mode
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --interactive
+
+# Alternative: Environment variable approach
+CLAUDE_INSTALL_BRANCH=dev curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
+```
+
+**Manual Installation & Inspection:**
+```bash
+# Download and inspect installer first (enables auto-detection)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh -o install.sh
 chmod +x install.sh
 ./install.sh --help                           # See all installer options
-./install.sh --check-all-deps --interactive   # Run with preferred settings
+./install.sh --check-all-deps --interactive   # Auto-detects dev branch when downloaded from dev
 ```
 
 **Installation Modes:**
+- `--branch=BRANCH`: Install from specific branch (dev, main, feature/*)
 - `--check-all-deps`: Shows all 6 dependencies with feature impact analysis
 - `--interactive`: Provides user choice menu (install now vs install deps first)
 - `--minimal`: Original behavior (curl + jq dependency check only)
 - `--skip-deps`: Skip all dependency checks (install anyway)
 - `--help`: Complete installer documentation
+
+**Branch-Aware Features:**
+- **Auto-detection**: Installer detects source branch when downloaded locally
+- **Environment Override**: `CLAUDE_INSTALL_BRANCH=dev` sets branch globally
+- **Explicit Selection**: `--branch=dev` parameter for precise control
+- **Transparency**: Shows "🔧 Installing from branch: dev" when using non-main branches
 
 **Manual Testing & Configuration**
 ```bash
@@ -225,6 +252,40 @@ ENV_CONFIG_MCP_TIMEOUT=10s ./statusline.sh
 ```
 
 ## Development Workflow
+
+### **🚀 Recommended Dev-to-Production Workflow**
+
+**1. Development & Testing:**
+```bash
+# Make your changes in dev branch
+git checkout dev
+# ... make code changes ...
+git add . && git commit -m "feat: your changes"
+git push origin dev
+
+# Test your changes with dev branch installer
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+
+# Validate everything works (cost tracking, MCP, themes, etc.)
+```
+
+**2. Create Pull Request:**
+```bash
+# Only after dev branch testing succeeds
+gh pr create --title "Your changes" --body "Description" --base main --head dev
+```
+
+**3. Production Deployment:**
+```bash
+# After PR is merged to main
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+```
+
+**Key Benefits:**
+- ✅ **Complete Integration Testing**: Dev installer + dev modules ensures no mixing
+- ✅ **Safe Workflow**: Never merge untested changes to main
+- ✅ **Version Consistency**: Proper version tracking per branch
+- ✅ **Production Safety**: Main branch always contains tested, validated code
 
 ### Making Changes
 1. **Edit Configuration**: Modify Config.toml for settings, statusline.sh for functionality

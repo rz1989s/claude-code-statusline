@@ -8,7 +8,7 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 | Platform | Status | Package Manager | Dependencies (Auto-Detected) |
 |----------|---------|-----------------|------------------------------|
-| macOS | ✅ Full Support | Homebrew | `curl` `jq` `bun` `bc` `python3` `coreutils` |
+| macOS (All Configurations) | ✅ **Universal Support** | Any (Homebrew/MacPorts/Custom) | `curl` `jq` `bun` `bc` `python3` |
 | Linux (Ubuntu/Debian) | ✅ Full Support | apt | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
 | Linux (RHEL/CentOS/Fedora) | ✅ Full Support | yum/dnf | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
 | Linux (Arch) | ✅ Full Support | pacman | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
@@ -16,6 +16,8 @@ Get up and running with beautiful statuslines and powerful configuration managem
 | FreeBSD | ✅ Full Support | pkg | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
 | Windows WSL | ✅ Full Support | apt/WSL | Same as Linux distributions |
 | Windows Native | ❌ Not Supported | N/A | Bash script incompatible |
+
+**🚀 Universal macOS Compatibility**: Runtime bash detection works across all Mac configurations (Apple Silicon + Homebrew, Intel + Homebrew, MacPorts, custom installations) with zero manual configuration required.
 
 **Dependency Impact:**
 - **Critical:** `curl` (installation) + `jq` (configuration) → 100% required
@@ -62,6 +64,7 @@ chmod +x install.sh
 **🔍 Smart System Detection:**
 - Automatically detects OS (macOS, Ubuntu, CentOS, Arch, Alpine, FreeBSD)
 - Identifies package manager (brew, apt, yum, dnf, pacman, apk, pkg)
+- **Runtime bash compatibility detection** for universal macOS support
 - Provides platform-specific installation commands
 
 **📊 Comprehensive Dependency Analysis:**

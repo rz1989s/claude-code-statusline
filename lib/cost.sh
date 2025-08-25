@@ -27,7 +27,8 @@ export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
 export COST_CACHE_DURATION_DAILY=600      # 10 minutes - today's cost
 export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
 export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
-export COST_CACHE_DIR="/tmp/.claude_statusline_cache"
+# Use the proper XDG-compliant cache directory from cache.sh module
+export COST_CACHE_DIR="${CACHE_BASE_DIR:-/tmp/.claude_statusline_cache}"
 
 # Instance-specific session marker (prevents race conditions between multiple Claude Code instances)
 # Function to get current instance ID dynamically (checks env var each time)

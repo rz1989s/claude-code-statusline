@@ -601,12 +601,19 @@ recover_stale_locks() {
 # CACHE PERFORMANCE MONITORING & ANALYTICS SYSTEM
 # ============================================================================
 
-# Performance statistics tracking
-declare -A CACHE_STATS_HITS=()
-declare -A CACHE_STATS_MISSES=()
-declare -A CACHE_STATS_ERRORS=()
-declare -A CACHE_STATS_RESPONSE_TIMES=()
-declare -A CACHE_STATS_TOTAL_CALLS=()
+# Bash compatibility check - disable advanced features for old bash
+if [[ "${STATUSLINE_COMPATIBILITY_MODE:-}" == "true" ]] || [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
+    # Disable associative arrays for bash < 4.0
+    export STATUSLINE_CACHE_COMPATIBLE_MODE=true
+    debug_log "Cache module running in compatibility mode (bash ${BASH_VERSION})" "INFO"
+else
+    # Performance statistics tracking (requires bash 4.0+ for associative arrays)
+    declare -A CACHE_STATS_HITS=()
+    declare -A CACHE_STATS_MISSES=()
+    declare -A CACHE_STATS_ERRORS=()
+    declare -A CACHE_STATS_RESPONSE_TIMES=()
+    declare -A CACHE_STATS_TOTAL_CALLS=()
+fi
 
 # Initialize cache statistics for a key
 init_cache_stats() {

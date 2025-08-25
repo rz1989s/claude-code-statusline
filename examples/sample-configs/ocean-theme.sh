@@ -1,6 +1,9 @@
 # Ocean Theme Configuration
 # Deep ocean-inspired color palette
 # Copy these values into your statusline.sh
+#
+# COMPATIBILITY NOTE: RGB colors work best with modern terminals and bash 4.0+
+# Automatic fallback to ANSI colors on older systems
 
 CONFIG_THEME="custom"
 

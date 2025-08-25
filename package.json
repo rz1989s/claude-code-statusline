@@ -1,6 +1,6 @@
 {
   "name": "claude-code-statusline",
-  "description": "Enhanced statusline for Claude Code with comprehensive monitoring and beautiful themes",
+  "description": "Enhanced statusline for Claude Code with universal bash compatibility, comprehensive monitoring and beautiful themes",
   "main": "statusline.sh",
   "scripts": {
     "test": "bats tests/**/*.bats",
@@ -21,10 +21,15 @@
     "statusline",
     "terminal",
     "bash",
+    "bash-compatibility",
+    "universal-compatibility",
     "prompt",
     "git",
     "mcp",
-    "cost-tracking"
+    "cost-tracking",
+    "cross-platform",
+    "macos",
+    "linux"
   ],
   "author": "The Rector",
   "license": "MIT",
@@ -35,7 +40,8 @@
     "@commander-js/extra-typings": "^11.1.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=16.0.0",
+    "bash": ">=3.2.0"
   },
   "repository": {
     "type": "git",
