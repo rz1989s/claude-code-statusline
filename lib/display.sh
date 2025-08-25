@@ -442,7 +442,9 @@ build_line3() {
 }
 
 # Build Line 4: RESET Info (conditional)
-# Format: RESET at HH.MM (Xh Ym left) - only shown when active block exists
+# Format: RESET at HH.MM (Xh Ym left) - normal countdown when projection available
+#         RESET at HH.MM (waiting API response...) - API calculating projections
+#         Hidden when no active block exists
 build_line4() {
     local reset_info="$1"
     
@@ -516,6 +518,11 @@ test_display_formatting() {
     echo "Complete statusline test:"
     echo "========================"
     build_complete_statusline "" "" "~/projects/test" "main" "clean" "5" "$STATUSLINE_VERSION" "SUB:2" "Claude 3.5 Sonnet" "2.50" "45.30" "12.75" "3.20" "🔥 LIVE \$1.25" "2/3" "server1:connected,server2:disconnected,server3:connected" "RESET at 14.30 (2h 15m left)"
+    
+    # Reset timer states examples:
+    # "RESET at 14.30 (2h 15m left)"           - Normal countdown
+    # "RESET at 06.00 (waiting API response...)" - API calculating projections
+    # ""                                        - No active block (Line 4 hidden)
 }
 
 # ============================================================================

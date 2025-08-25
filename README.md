@@ -1117,13 +1117,18 @@ MCP (3/4): upstash-context-7-mcp, supabase-mcp-server, firecrawl-mcp, sqlscan-mc
 ### ⏰ **Line 4: Block Reset Timer** *(Context-Aware Display)*
 
 ```
-RESET at 11.00 (2h 37m left)
+RESET at 11.00 (2h 37m left)           # Normal countdown
+RESET at 06.00 (waiting API response...)  # API calculating projection
+(Hidden when no active block)              # No active billing block
 ```
 
 - **🕒 Reset Time**: When current 5-hour conversation block expires
-- **⏳ Countdown**: Time remaining in human-readable format
-- **🎯 Smart Detection**: Only appears when billing block is active
-- **📅 Context Aware**: Automatically tracks block boundaries from conversation history
+- **⏳ Smart States**: Three intelligent display modes:
+  - **📊 Active Countdown**: `(4h 15m left)` when projection data available
+  - **⏳ API Processing**: `(waiting API response...)` during calculation delays  
+  - **🔇 Hidden Display**: Automatically hidden when no active block
+- **🎯 Enhanced Detection**: Validates both block status and projection data
+- **📅 Context Aware**: Handles API timing issues gracefully
 
 ---
 

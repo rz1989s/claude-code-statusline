@@ -943,6 +943,45 @@ chmod +x ~/.claude/statusline/statusline.sh
    bunx ccusage daily --since "7 days ago"
    ```
 
+---
+
+### Reset Timer Shows "waiting API response..."
+
+**Problem**: The reset timer displays "waiting API response..." instead of countdown.
+
+**Expected Behavior**: This is **normal behavior** when ccusage API is calculating billing projections.
+
+**When This Happens**:
+- Fresh Claude Code session startup (API still calculating projections)
+- Network delays in API responses
+- ccusage service temporarily processing billing data
+
+**Display States**:
+```bash
+RESET at 06.00 (4h 15m left)           # ✅ Normal: API has projection data
+RESET at 06.00 (waiting API response...) # ⏳ Normal: API calculating projections
+(No Line 4 displayed)                    # ✅ Normal: No active billing block
+```
+
+**Solutions** (Only if persistently stuck):
+
+1. **Wait a moment**: Usually resolves within 10-30 seconds
+2. **Test ccusage directly**:
+   ```bash
+   ccusage blocks --json | jq '.blocks[] | select(.isActive == true) | .projection.remainingMinutes'
+   ```
+3. **Check network connectivity**:
+   ```bash
+   curl -s --max-time 5 https://api.anthropic.com
+   ```
+4. **Increase timeout if slow network**:
+   ```toml
+   [timeouts]
+   ccusage = "10s"  # Increase from default 8s
+   ```
+
+**Note**: This enhancement replaced the confusing "0m left" message that previously appeared during API delays.
+
 ## 🔗 MCP Server Issues
 
 ### "MCP (?/?)" shows unknown status
