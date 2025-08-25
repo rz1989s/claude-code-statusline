@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/opt/homebrew/bin/bash
 
 # ============================================================================
 # Claude Code Enhanced Statusline - Main Orchestrator (v2.0.0-refactored)
