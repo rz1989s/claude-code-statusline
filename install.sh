@@ -17,7 +17,8 @@ NC='\033[0m' # No Color
 INSTALL_BRANCH="${CLAUDE_INSTALL_BRANCH:-main}"
 
 # Auto-detect branch if installer was downloaded from specific branch
-if [[ "${BASH_SOURCE[0]}" =~ githubusercontent\.com/.*/(.*)/install\.sh ]]; then
+# Note: BASH_SOURCE may not be available when piped from curl, so this is optional
+if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" =~ githubusercontent\.com/.*/(.*)/install\.sh ]]; then
     DETECTED_BRANCH="${BASH_REMATCH[1]}"
     if [[ "$DETECTED_BRANCH" != "main" ]]; then
         INSTALL_BRANCH="$DETECTED_BRANCH"
