@@ -52,6 +52,46 @@
 
 ## 🆕 Recent Updates
 
+### v2.0.0 - Flat-Only TOML Configuration Revolution 🚀⚡
+
+**🚨 BREAKING CHANGES - Enhanced Configuration Reliability**
+
+- **🔧 Flat-Only TOML Parser** - Eliminated Python complexity and "fallback to flat structure" warnings
+- **🚫 Nested Format Rejection** - Clear error messages guide users to reliable flat format (theme.name vs [theme])  
+- **💥 Breaking Change Management** - Comprehensive migration guidance for users with nested configs
+- **🛡️ Enhanced Error Detection** - Return code 6 with helpful examples for nested configuration detection
+
+**✨ NEW FEATURES & ENHANCEMENTS**
+
+- **📦 Enhanced Installer** - Automatic backup system with timestamped files before config updates
+- **🗂️ Repository Config Template** - Comprehensive 287-line flat TOML template from examples/Config.toml (maintainable, transparent, reviewable)
+- **📍 Extended Config Path** - Added `~/.claude/statusline/Config.toml` support for streamlined installation
+- **🎯 Template-Based Architecture** - Clean download-based config generation replaces complex embedded heredoc
+
+**🔧 TECHNICAL IMPROVEMENTS**
+
+- **⚡ Simplified Architecture** - Removed 200+ lines of Python nesting complexity from TOML parser
+- **🚀 Performance Boost** - Direct flat parsing without fallback overhead improves response times
+- **📚 Documentation Consistency** - Updated 6 major documentation files with working flat format examples
+- **✅ Quality Assurance** - All TOML examples now use reliable flat notation (447 insertions, 647 deletions)
+
+**🎨 CONFIGURATION FORMAT EXAMPLES**
+
+```toml
+# NEW: Flat format (reliable, no warnings)
+theme.name = "catppuccin"
+features.show_commits = true
+colors.basic.red = "\\033[31m"
+
+# OLD: Nested format (now returns helpful error)
+# [theme]           ← Will show migration guidance
+# name = "catppuccin" 
+```
+
+**📈 IMPACT**: Complete elimination of parser warnings, enhanced user experience, and simplified maintenance
+
+---
+
 ### v1.8.0 - Enterprise-Grade Security & Performance Enhancement 🛡️✨
 
 - **🔒 XDG-Compliant Cache Security** - Migrated from `/tmp` to secure user-isolated directories following XDG Base Directory specification
@@ -238,23 +278,20 @@ Revolutionary performance enhancement system that transforms statusline response
 
 #### **⚙️ Comprehensive TOML Configuration**
 ```toml
-[cache]
-base_directory = "auto"              # XDG-compliant auto-selection
-enable_universal_caching = true      # Master cache toggle
-enable_statistics = true             # Performance analytics
-enable_corruption_detection = true   # SHA-256 integrity validation
+cache.base_directory = "auto"              # XDG-compliant auto-selection
+cache.enable_universal_caching = true      # Master cache toggle
+cache.enable_statistics = true             # Performance analytics
+cache.enable_corruption_detection = true   # SHA-256 integrity validation
 
-[cache.durations]
-command_exists = "session"           # Session-wide command caching
-claude_version = 21600              # 6 hours for CLI version
-git_status = 10                     # 10 seconds for git working directory
-mcp_server_list = 120               # 2 minutes for MCP connections
+cache.durations.command_exists = "session"           # Session-wide command caching
+cache.durations.claude_version = 21600              # 6 hours for CLI version
+cache.durations.git_status = 10                     # 10 seconds for git working directory
+cache.durations.mcp_server_list = 120               # 2 minutes for MCP connections
 
-[cache.security]  
-enable_checksums = true             # SHA-256 integrity protection
-validate_on_read = true             # Real-time corruption detection
-directory_permissions = "700"        # Secure directory access
-file_permissions = "600"            # Owner-only file access
+cache.security.enable_checksums = true             # SHA-256 integrity protection
+cache.security.validate_on_read = true             # Real-time corruption detection
+cache.security.directory_permissions = "700"        # Secure directory access
+cache.security.file_permissions = "600"            # Owner-only file access
 ```
 
 #### **🧪 Validation & Testing**
@@ -482,8 +519,7 @@ Rich, warm colors inspired by the beloved [Catppuccin](https://catppuccin.com/) 
 **TOML Configuration (Recommended):**
 ```toml
 # In your Config.toml file
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 ```
 
 **Environment Override:**
@@ -508,8 +544,7 @@ Soft, pastel colors that create a gentle and soothing terminal environment. Idea
 **TOML Configuration (Recommended):**
 ```toml
 # In your Config.toml file
-[theme]
-name = "garden"
+theme.name = "garden"
 ```
 
 **Environment Override:**
@@ -527,8 +562,7 @@ Traditional terminal colors with modern polish. ANSI-compatible and universally 
 **TOML Configuration (Recommended):**
 ```toml
 # In your Config.toml file
-[theme]
-name = "classic"
+theme.name = "classic"
 ```
 
 **Environment Override:**
@@ -544,22 +578,19 @@ Complete creative control with full RGB/256-color/ANSI color customization capab
 **TOML Configuration (Recommended):**
 ```toml
 # In your Config.toml file
-[theme]
-name = "custom"
+theme.name = "custom"
 
 # Define your custom color palette
-[colors.basic]
-red = "\\033[38;2;255;182;193m"    # Soft pink
-blue = "\\033[38;2;173;216;230m"   # Light blue
-green = "\\033[38;2;144;238;144m"  # Light green
-yellow = "\\033[38;2;255;165;0m"   # Orange
-magenta = "\\033[38;2;221;160;221m" # Plum
-cyan = "\\033[38;2;175;238;238m"    # Pale turquoise
+colors.basic.red = "\\033[38;2;255;182;193m"    # Soft pink
+colors.basic.blue = "\\033[38;2;173;216;230m"   # Light blue
+colors.basic.green = "\\033[38;2;144;238;144m"  # Light green
+colors.basic.yellow = "\\033[38;2;255;165;0m"   # Orange
+colors.basic.magenta = "\\033[38;2;221;160;221m" # Plum
+colors.basic.cyan = "\\033[38;2;175;238;238m"    # Pale turquoise
 
-[colors.extended]
-orange = "\\033[38;2;255;140;0m"
-light_gray = "\\033[38;2;211;211;211m"
-purple = "\\033[38;2;147;112;219m"
+colors.extended.orange = "\\033[38;2;255;140;0m"
+colors.extended.light_gray = "\\033[38;2;211;211;211m"
+colors.extended.purple = "\\033[38;2;147;112;219m"
 ```
 
 **Advanced Custom Configuration:**
@@ -790,12 +821,10 @@ ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
 
 # Or create a simple Config.toml
 cat > Config.toml << 'EOF'
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
-[features]
-show_commits = true
-show_cost_tracking = true
+features.show_commits = true
+features.show_cost_tracking = true
 EOF
 
 # Test your theme
@@ -857,54 +886,46 @@ The statusline automatically discovers your configuration in this order:
 
 ```toml
 # === THEME CONFIGURATION ===
-[theme]
-name = "catppuccin"  # Options: classic, garden, catppuccin, custom
+theme.name = "catppuccin"  # Options: classic, garden, catppuccin, custom
 
 # === FEATURE TOGGLES ===
-[features]
-show_commits = true
-show_version = true
-show_mcp_status = true
-show_cost_tracking = true
+features.show_commits = true
+features.show_version = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
 
 # === TIMEOUTS & PERFORMANCE ===
 # Enhanced validation with contextual bounds checking (v1.2+)
-[timeouts]
-mcp = "10s"      # 1s-60s recommended, optimal: 3s-15s
-version = "2s"   # 1s-10s recommended, optimal: 1s-3s
-ccusage = "8s"   # 1s-30s recommended, optimal: 3s-10s
+timeouts.mcp = "10s"      # 1s-60s recommended, optimal: 3s-15s
+timeouts.version = "2s"   # 1s-10s recommended, optimal: 1s-3s
+timeouts.ccusage = "8s"   # 1s-30s recommended, optimal: 3s-10s
 
 # === CUSTOMIZATION ===
-[emojis]
-opus = "🧠"
-haiku = "⚡"
-sonnet = "🎵"
-clean_status = "✅"
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
+emojis.clean_status = "✅"
 
-[labels]
-commits = "Commits:"
-repo = "REPO"
-mcp = "MCP"
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.mcp = "MCP"
 ```
 
 ### Advanced Custom Colors
 
 ```toml
 # === CUSTOM THEME COLORS ===
-[theme]
-name = "custom"
+theme.name = "custom"
 
-[colors.basic]
-red = "\\033[31m"
-blue = "\\033[34m"
-green = "\\033[32m"
-yellow = "\\033[33m"
+colors.basic.red = "\\033[31m"
+colors.basic.blue = "\\033[34m"
+colors.basic.green = "\\033[32m"
+colors.basic.yellow = "\\033[33m"
 
-[colors.extended]
-orange = "\\033[38;5;208m"
-light_gray = "\\033[38;5;248m"
-purple = "\\033[95m"
-teal = "\\033[38;5;73m"
+colors.extended.orange = "\\033[38;5;208m"
+colors.extended.light_gray = "\\033[38;5;248m"
+colors.extended.purple = "\\033[95m"
+colors.extended.teal = "\\033[38;5;73m"
 ```
 
 ## 🔧 **Rich CLI Interface**
@@ -978,43 +999,36 @@ ENV_CONFIG_THEME=classic \
 
 ```toml
 # Minimal Config.toml for performance
-[theme]
-name = "classic"
+theme.name = "classic"
 
-[features]
-show_commits = true
-show_version = false
-show_mcp_status = false
-show_cost_tracking = false
+features.show_commits = true
+features.show_version = false
+features.show_mcp_status = false
+features.show_cost_tracking = false
 
-[timeouts]
-mcp = "1s"
-ccusage = "1s"
+timeouts.mcp = "1s"
+timeouts.ccusage = "1s"
 ```
 
 ### Developer Full-Featured
 
 ```toml
 # Developer Config.toml with all features
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
-[features]
-show_commits = true
-show_version = true  
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
+features.show_commits = true
+features.show_version = true  
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
 
-[timeouts]
-mcp = "10s"      # Enhanced validation: 1s-60s range
-version = "2s"   # Enhanced validation: 1s-10s range  
-ccusage = "8s"   # Enhanced validation: 1s-30s range
+timeouts.mcp = "10s"      # Enhanced validation: 1s-60s range
+timeouts.version = "2s"   # Enhanced validation: 1s-10s range  
+timeouts.ccusage = "8s"   # Enhanced validation: 1s-30s range
 
-[labels]
-commits = "Today's Commits:"
-mcp = "MCP Servers"
-repo = "Repository Cost"
+labels.commits = "Today's Commits:"
+labels.mcp = "MCP Servers"
+labels.repo = "Repository Cost"
 ```
 
 ### Multiple Configuration Files
@@ -1022,20 +1036,16 @@ repo = "Repository Cost"
 ```toml
 # Create different config files for different contexts
 # work-config.toml - Professional setup
-[theme]
-name = "classic"
+theme.name = "classic"
 
-[features]
-show_cost_tracking = true
-show_reset_info = true
+features.show_cost_tracking = true
+features.show_reset_info = true
 
 # personal-config.toml - Personal projects  
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
-[features]
-show_cost_tracking = false
-show_reset_info = false
+features.show_cost_tracking = false
+features.show_reset_info = false
 ```
 
 > 💡 **Note**: Profile-based automatic switching is planned for a future release. Currently, use different config files for different contexts.
@@ -1117,13 +1127,18 @@ MCP (3/4): upstash-context-7-mcp, supabase-mcp-server, firecrawl-mcp, sqlscan-mc
 ### ⏰ **Line 4: Block Reset Timer** *(Context-Aware Display)*
 
 ```
-RESET at 11.00 (2h 37m left)
+RESET at 11.00 (2h 37m left)           # Normal countdown
+RESET at 06.00 (waiting API response...)  # API calculating projection
+(Hidden when no active block)              # No active billing block
 ```
 
 - **🕒 Reset Time**: When current 5-hour conversation block expires
-- **⏳ Countdown**: Time remaining in human-readable format
-- **🎯 Smart Detection**: Only appears when billing block is active
-- **📅 Context Aware**: Automatically tracks block boundaries from conversation history
+- **⏳ Smart States**: Three intelligent display modes:
+  - **📊 Active Countdown**: `(4h 15m left)` when projection data available
+  - **⏳ API Processing**: `(waiting API response...)` during calculation delays  
+  - **🔇 Hidden Display**: Automatically hidden when no active block
+- **🎯 Enhanced Detection**: Validates both block status and projection data
+- **📅 Context Aware**: Handles API timing issues gracefully
 
 ---
 

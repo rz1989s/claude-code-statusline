@@ -21,17 +21,13 @@ CONFIG_RED="\\033[38;2;255;0;0m"
 **To This (TOML Configuration)**:
 ```toml
 # Organized Config.toml file:
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
-[features]
-show_commits = true
+features.show_commits = true
 
-[timeouts]
-mcp = "3s"
+timeouts.mcp = "3s"
 
-[colors.basic]
-red = "\\033[38;2;255;0;0m"
+colors.basic.red = "\\033[38;2;255;0;0m"
 ```
 
 ### Benefits of TOML Configuration
@@ -165,21 +161,21 @@ mv Config.toml.bak Config.toml
 vim Config.toml
 
 # Example organized structure:
-[theme]
+theme.name =
 name = "catppuccin"
 
-[features]
+# Features section converted to flat format
 show_commits = true
 show_version = true
 show_mcp_status = true
 show_cost_tracking = true
 
-[timeouts]
+# Timeouts section converted to flat format
 mcp = "3s"
 ccusage = "3s"
 version = "2s"
 
-[emojis]
+# Emojis section converted to flat format
 opus = "🧠"
 sonnet = "🎵"
 clean_status = "✅"
@@ -215,7 +211,7 @@ CONFIG_THEME="catppuccin"
 #### After (TOML Configuration)
 ```toml
 # In Config.toml:
-[theme]
+theme.name =
 name = "catppuccin"
 ```
 
@@ -243,10 +239,10 @@ CONFIG_GREEN="\\033[38;2;100;255;100m"
 #### After (TOML Configuration)
 ```toml
 # In Config.toml:
-[theme]
+theme.name =
 name = "custom"
 
-[colors.basic]
+# Colors.basic section converted to flat format
 red = "\\033[38;2;255;100;100m"
 blue = "\\033[38;2;100;150;255m"
 green = "\\033[38;2;100;255;100m"
@@ -277,7 +273,7 @@ CONFIG_SHOW_COST_TRACKING=false
 #### After (TOML Configuration)
 ```toml
 # In Config.toml:
-[features]
+# Features section converted to flat format
 show_commits = true
 show_version = false
 show_mcp_status = true
@@ -308,7 +304,7 @@ CONFIG_VERSION_CACHE_DURATION=3600
 #### After (TOML Configuration)
 ```toml
 # In Config.toml:
-[timeouts]
+# Timeouts section converted to flat format
 mcp = "5s"
 version = "3s"
 ccusage = "4s"

@@ -9,6 +9,7 @@ This is the Claude Code Enhanced Statusline project (v1.8.1) - a sophisticated 4
 **📋 Key Resources for Development:**
 - **TODOS.md** - Comprehensive development roadmap with 50+ actionable items, complexity estimates, and implementation hints
 - **CONTRIBUTING.md** - Professional contribution guidelines covering development setup, testing requirements, and code standards  
+- **examples/Config.toml** - Master configuration template (287 lines) used by installer - keep updated with new features
 - **Ocean Theme Ready** - Complete theme in `examples/sample-configs/ocean-theme.toml` ready for integration (High Priority)
 
 **Architecture**: 

@@ -23,6 +23,7 @@ export STATUSLINE_CONFIG_LOADED=true
 # Configuration file precedence (highest to lowest)
 export CONFIG_FILE_PATHS=(
     "./Config.toml"
+    "$HOME/.claude/statusline/Config.toml"
     "$HOME/.config/claude-code-statusline/Config.toml"
     "$HOME/.claude-statusline.toml"
 )
@@ -152,21 +153,42 @@ parse_toml_to_json() {
         [[ "$line" =~ ^[[:space:]]*# ]] && continue
         [[ "$line" =~ ^[[:space:]]*$ ]] && continue
 
-        # Handle section headers [section] or [section.subsection] or [section.sub.subsub]
-        if [[ "$line" =~ ^\\[[[:space:]]*([^]]+)[[:space:]]*\\]$ ]]; then
-            local section_name="${BASH_REMATCH[1]}"
-            current_section="$section_name"
-            continue
+        # Detect nested TOML sections and return error (flat format required)
+        if [[ "$line" == \[*\] ]]; then
+            # Extract section name using sed for better compatibility
+            local section_name=$(echo "$line" | sed 's/^[[:space:]]*\[\([^]]*\)\][[:space:]]*$/\1/')
+            
+            # Return clear error for nested configuration
+            handle_error "❌ NESTED TOML FORMAT DETECTED: [$section_name]
+
+Your Config.toml uses nested sections, but this system now requires FLAT format for reliability.
+
+NESTED (old):          FLAT (required):
+[theme]                theme.name = \"catppuccin\"
+name = \"catppuccin\"     theme.inheritance.enabled = true
+
+[theme.inheritance]
+enabled = true
+
+Please convert your Config.toml to flat format using dot notation.
+Run: ./statusline.sh --help config  for examples and migration help.
+
+File: $toml_file" 6 "parse_toml_to_json"
+            echo "{}"
+            return 6 # Nested format detected
         fi
 
-        # Handle key-value pairs
-        if [[ "$line" =~ ^[[:space:]]*([^=]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
-            local key="${BASH_REMATCH[1]}"
-            local value="${BASH_REMATCH[2]}"
-
-            # Clean up key and value
-            key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-            value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        # Handle key-value pairs using sed for robust extraction (fixes BASH_REMATCH compatibility issues)
+        if [[ "$line" =~ = ]]; then
+            # Use sed to extract key and value parts
+            local key=$(echo "$line" | sed 's/^[[:space:]]*\([^=]*\)[[:space:]]*=.*/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            local value=$(echo "$line" | sed 's/^[[:space:]]*[^=]*=[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            
+            # Skip if key is empty (malformed line)
+            if [[ -z "$key" ]]; then
+                debug_log "Skipping malformed TOML line: $line" "DEBUG"
+                continue
+            fi
 
             # Create flat key with section prefix
             local flat_key
@@ -181,14 +203,14 @@ parse_toml_to_json() {
                 flat_json="$flat_json,"
             fi
 
-            # Parse value type and format for JSON
-            if [[ "$value" =~ ^\\\"(.*)\\\"$ ]]; then
-                # String value (quoted)
-                local string_val="${BASH_REMATCH[1]}"
-                # Escape quotes and backslashes for JSON
-                string_val=$(echo "$string_val" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+            # Parse value type and format for JSON using sed-based extraction
+            if [[ "$value" =~ ^\".*\"$ ]]; then
+                # String value (quoted) - extract content between quotes using sed
+                local string_val=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
+                # Escape quotes and backslashes for JSON (fixed over-escaping)
+                string_val=$(echo "$string_val" | sed 's/\\\\/\\\\/g; s/"/\\"/g')
                 flat_json="$flat_json\"$flat_key\":\"$string_val\""
-            elif [[ "$value" =~ ^\\[.*\\]$ ]]; then
+            elif [[ "$value" =~ ^\[.*\]$ ]]; then
                 # Array value - simplified for now
                 flat_json="$flat_json\"$flat_key\":$value"
             elif [[ "$value" =~ ^(true|false)$ ]]; then
@@ -197,12 +219,12 @@ parse_toml_to_json() {
             elif [[ "$value" =~ ^[0-9]+$ ]]; then
                 # Integer value
                 flat_json="$flat_json\"$flat_key\":$value"
-            elif [[ "$value" =~ ^[0-9]*\\.[0-9]+$ ]]; then
+            elif [[ "$value" =~ ^[0-9]*\.[0-9]+$ ]]; then
                 # Float value
                 flat_json="$flat_json\"$flat_key\":$value"
             else
-                # Unquoted string - treat as string
-                value=$(echo "$value" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+                # Unquoted string - treat as string (fixed over-escaping)
+                value=$(echo "$value" | sed 's/\\\\/\\\\/g; s/"/\\"/g')
                 flat_json="$flat_json\"$flat_key\":\"$value\""
             fi
 
@@ -218,84 +240,19 @@ parse_toml_to_json() {
         # Validate flat JSON before processing
         if ! echo "$flat_json" | jq . >/dev/null 2>&1; then
             handle_error "Generated invalid JSON during TOML parsing: $toml_file" 4 "parse_toml_to_json"
-            debug_log "Flat JSON: $flat_json" "DEBUG"
+            debug_log "Invalid flat JSON: $flat_json" "DEBUG"
             echo "{}"
             return 4 # Parse error
+        else
+            debug_log "Valid flat JSON generated successfully" "DEBUG"
         fi
     else
         debug_log "jq not available for JSON validation, skipping validation: $toml_file" "WARN"
     fi
 
-    # Convert flat structure to nested using Python (if available) or simple approach
-    if command_exists python3; then
-        local nested_json
-        nested_json=$(python3 -c "
-import json
-import sys
-
-try:
-    flat = json.loads('$flat_json')
-    nested = {}
-    
-    for key, value in flat.items():
-        parts = key.split('.')
-        current = nested
-        
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-        
-        current[parts[-1]] = value
-    
-    print(json.dumps(nested))
-except json.JSONDecodeError as e:
-    print(f'ERROR: JSON decode error in TOML parser: {e}', file=sys.stderr)
-    print('{}')
-except Exception as e:
-    print(f'ERROR: Python processing error in TOML parser: {e}', file=sys.stderr)
-    print('{}')
-" 2>/dev/null)
-
-        # Validate nested JSON output (if jq is available)
-        local is_valid_nested=false
-        if command_exists jq; then
-            if [[ -n "$nested_json" ]] && echo "$nested_json" | jq . >/dev/null 2>&1; then
-                is_valid_nested=true
-            fi
-        else
-            # Without jq, use basic validation
-            if [[ -n "$nested_json" && "$nested_json" != "{}" ]]; then
-                is_valid_nested=true
-            fi
-        fi
-
-        if [[ "$is_valid_nested" == "true" ]]; then
-            echo "$nested_json"
-        else
-            if [[ "$nested_json" == "{}" ]]; then
-                handle_warning "Python TOML processing failed, falling back to flat structure: $toml_file" "parse_toml_to_json"
-            else
-                handle_warning "Invalid nested JSON generated, falling back to flat structure: $toml_file" "parse_toml_to_json"
-                debug_log "Python output: $nested_json" "DEBUG"
-            fi
-            
-            # Validate flat JSON again before returning it (if jq available)
-            if command_exists jq && echo "$flat_json" | jq . >/dev/null 2>&1; then
-                echo "$flat_json"
-            elif [[ ! -f "$(which jq)" ]]; then
-                # Without jq, assume flat JSON is valid if non-empty
-                echo "$flat_json"
-            else
-                handle_error "Both nested and flat JSON structures are invalid: $toml_file" 5 "parse_toml_to_json"
-                echo "{}"
-                return 5 # Critical parse failure
-            fi
-        fi
-    else
-        handle_warning "Python3 not available for TOML nesting, using flat structure: $toml_file" "parse_toml_to_json"
-        echo "$flat_json"
-    fi
+    # Return the flat JSON directly (no Python nesting needed)
+    debug_log "Flat TOML configuration parsed successfully: $toml_file" "INFO"
+    echo "$flat_json"
 }
 
 # Discover config files in order of precedence
@@ -445,25 +402,25 @@ extract_config_values() {
         return 1
     fi
 
-    # Single jq operation for single-pass config extraction with fallbacks
+    # Optimized jq operation for flat structure only (simplified and faster)
     local config_data
     config_data=$(echo "$config_json" | jq -r '{
-            theme_name: (.theme.name // "catppuccin"),
-            feature_show_commits: (.features.show_commits // true),
-            feature_show_version: (.features.show_version // true),
-            feature_show_submodules: (.features.show_submodules // true),
-            feature_show_mcp: (.features.show_mcp_status // true),
-            feature_show_cost: (.features.show_cost_tracking // true),
-            feature_show_reset: (.features.show_reset_info // true),
-            feature_show_session: (.features.show_session_info // true),
-            timeout_mcp: (.timeouts.mcp // "10s"),
-            timeout_version: (.timeouts.version // "2s"),
-            timeout_ccusage: (.timeouts.ccusage // "3s"),
-            cache_version_duration: (.cache.version_duration // 3600),
-            cache_version_file: (.cache.version_file // "/tmp/.claude_version_cache"),
-            display_time_format: (.display.time_format // "%H:%M"),
-            display_date_format: (.display.date_format // "%Y-%m-%d"),
-            display_date_format_compact: (.display.date_format_compact // "%Y%m%d")
+            theme_name: (."theme.name" // "catppuccin"),
+            feature_show_commits: (."features.show_commits" // true),
+            feature_show_version: (."features.show_version" // true),
+            feature_show_submodules: (."features.show_submodules" // true),
+            feature_show_mcp: (."features.show_mcp_status" // true),
+            feature_show_cost: (."features.show_cost_tracking" // true),
+            feature_show_reset: (."features.show_reset_info" // true),
+            feature_show_session: (."features.show_session_info" // true),
+            timeout_mcp: (."timeouts.mcp" // "10s"),
+            timeout_version: (."timeouts.version" // "2s"),
+            timeout_ccusage: (."timeouts.ccusage" // "3s"),
+            cache_version_duration: (."cache.version_duration" // 3600),
+            cache_version_file: (."cache.version_file" // "/tmp/.claude_version_cache"),
+            display_time_format: (."display.time_format" // "%H:%M"),
+            display_date_format: (."display.date_format" // "%Y-%m-%d"),
+            display_date_format_compact: (."display.date_format_compact" // "%Y%m%d")
         } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
