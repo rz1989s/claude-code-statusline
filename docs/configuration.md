@@ -82,71 +82,63 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Temporarily uses garden theme
 # ============================================================================
 
 # === THEME CONFIGURATION ===
-[theme]
 # Available themes: "classic", "garden", "catppuccin", "custom"
-name = "catppuccin"
+theme.name = "catppuccin"
 
 # === CORE FEATURE TOGGLES ===
-[features]
-show_commits = true          # Show today's commit count
-show_version = true          # Display Claude Code version
-show_submodules = true       # Show git submodule count
-show_mcp_status = true       # MCP server health monitoring
-show_cost_tracking = true    # Financial cost tracking (ccusage)
-show_reset_info = true       # Block reset countdown
-show_session_info = true     # Session information
+features.show_commits = true          # Show today's commit count
+features.show_version = true          # Display Claude Code version
+features.show_submodules = true       # Show git submodule count
+features.show_mcp_status = true       # MCP server health monitoring
+features.show_cost_tracking = true    # Financial cost tracking (ccusage)
+features.show_reset_info = true       # Block reset countdown
+features.show_session_info = true     # Session information
 
 # === MODEL EMOJIS ===
-[emojis]
-opus = "🧠"                  # Claude Opus
-haiku = "⚡"                 # Claude Haiku
-sonnet = "🎵"                # Claude Sonnet
-default_model = "🤖"         # Other models
-clean_status = "✅"          # Clean git repository
-dirty_status = "📁"          # Dirty git repository
-clock = "🕐"                 # Time display
-live_block = "🔥"            # Active billing block
+emojis.opus = "🧠"                  # Claude Opus
+emojis.haiku = "⚡"                 # Claude Haiku
+emojis.sonnet = "🎵"                # Claude Sonnet
+emojis.default_model = "🤖"         # Other models
+emojis.clean_status = "✅"          # Clean git repository
+emojis.dirty_status = "📁"          # Dirty git repository
+emojis.clock = "🕐"                 # Time display
+emojis.live_block = "🔥"            # Active billing block
 
 # === TIMEOUTS ===
-[timeouts]
-mcp = "3s"                   # MCP server status check timeout
-version = "2s"               # Claude Code version check timeout
-ccusage = "3s"               # Cost tracking API timeout
+timeouts.mcp = "3s"                   # MCP server status check timeout
+timeouts.version = "2s"               # Claude Code version check timeout
+timeouts.ccusage = "3s"               # Cost tracking API timeout
 
 # === DISPLAY LABELS ===
-[labels]
-commits = "Commits:"         # Commit count label
-repo = "REPO"                # Repository cost label
-monthly = "30DAY"            # Monthly cost label
-weekly = "7DAY"              # Weekly cost label
-daily = "DAY"                # Daily cost label
-mcp = "MCP"                  # MCP server label
-version_prefix = "ver"       # Version prefix
-submodule = "SUB:"           # Submodule label
-session_prefix = "S:"        # Session prefix
-live = "LIVE"                # Live cost label
-reset = "RESET"              # Reset timer label
+labels.commits = "Commits:"         # Commit count label
+labels.repo = "REPO"                # Repository cost label
+labels.monthly = "30DAY"            # Monthly cost label
+labels.weekly = "7DAY"              # Weekly cost label
+labels.daily = "DAY"                # Daily cost label
+labels.mcp = "MCP"                  # MCP server label
+labels.version_prefix = "ver"       # Version prefix
+labels.submodule = "SUB:"           # Submodule label
+labels.session_prefix = "S:"        # Session prefix
+labels.live = "LIVE"                # Live cost label
+labels.reset = "RESET"              # Reset timer label
 
 # === CACHE SETTINGS ===
-[cache]
-version_duration = 3600      # Cache Claude version for 1 hour
-version_file = "/tmp/.claude_version_cache"  # Version cache file location
+cache.version_duration = 3600      # Cache Claude version for 1 hour
+cache.version_file = "/tmp/.claude_version_cache"  # Version cache file location
 
 # === DISPLAY FORMATS ===
-[display]
-time_format = "%H:%M"        # 24-hour format (14:30)
-date_format = "%Y-%m-%d"     # ISO format (2024-08-18)
-date_format_compact = "%Y%m%d"  # Compact format (20240818)
+display.time_format = "%H:%M"        # 24-hour format (14:30)
+display.date_format = "%Y-%m-%d"     # ISO format (2024-08-18)
+display.date_format_compact = "%Y%m%d"  # Compact format (20240818)
 
 # === ERROR/FALLBACK MESSAGES ===
-[messages]
-no_ccusage = "No ccusage"
-ccusage_install = "Install ccusage for cost tracking"
-no_active_block = "No active block"
-mcp_unknown = "unknown"
-mcp_none = "none"
-unknown_version = "?"
-no_submodules = "--"
+messages.no_ccusage = "No ccusage"
+messages.ccusage_install = "Install ccusage for cost tracking"
+messages.no_active_block = "No active block"
+messages.mcp_unknown = "unknown"
+messages.mcp_none = "none"
+messages.unknown_version = "?"
+messages.no_submodules = "--"
 ```
 
 ---
@@ -157,55 +149,48 @@ no_submodules = "--"
 
 ```toml
 # === CLASSIC THEME ===
-[theme]
-name = "classic"        # Traditional ANSI terminal colors
+theme.name = "classic"        # Traditional ANSI terminal colors
 
 # === GARDEN THEME ===
-[theme]
-name = "garden"         # Soft pastel colors for gentle aesthetic
+theme.name = "garden"         # Soft pastel colors for gentle aesthetic
 
 # === CATPPUCCIN THEME ===
-[theme]
-name = "catppuccin"     # Popular catppuccin mocha theme colors
+theme.name = "catppuccin"     # Popular catppuccin mocha theme colors
 ```
 
 ### Custom Theme Configuration
 
 ```toml
 # === CUSTOM THEME ===
-[theme]
-name = "custom"
+theme.name = "custom"
 
 # Basic ANSI colors (most compatible)
-[colors.basic]
-red = "\\033[31m"       # Used for: mode info, alerts
-blue = "\\033[34m"      # Used for: directory path, information
-green = "\\033[32m"     # Used for: clean git status, success
-yellow = "\\033[33m"    # Used for: dirty git status, warnings
-magenta = "\\033[35m"   # Used for: git branch, highlights
-cyan = "\\033[36m"      # Used for: model name, secondary info
-white = "\\033[37m"     # Used for: general text
+colors.basic.red = "\\033[31m"       # Used for: mode info, alerts
+colors.basic.blue = "\\033[34m"      # Used for: directory path, information
+colors.basic.green = "\\033[32m"     # Used for: clean git status, success
+colors.basic.yellow = "\\033[33m"    # Used for: dirty git status, warnings
+colors.basic.magenta = "\\033[35m"   # Used for: git branch, highlights
+colors.basic.cyan = "\\033[36m"      # Used for: model name, secondary info
+colors.basic.white = "\\033[37m"     # Used for: general text
 
 # Extended colors (256-color and RGB)
-[colors.extended]
-orange = "\\033[38;5;208m"       # Used for: time display
-light_orange = "\\033[38;5;215m" # Used for: clock emoji
-light_gray = "\\033[38;5;248m"   # Used for: reset info
-bright_green = "\\033[92m"       # Used for: MCP servers, submodules
-purple = "\\033[95m"             # Used for: Claude version
-teal = "\\033[38;5;73m"          # Used for: commits, daily costs
-gold = "\\033[38;5;220m"         # Used for: special highlights
-pink_bright = "\\033[38;5;205m"  # Used for: 30-day costs
-indigo = "\\033[38;5;105m"       # Used for: 7-day costs
-violet = "\\033[38;5;99m"        # Used for: session info
-light_blue = "\\033[38;5;111m"   # Used for: MCP server names
+colors.extended.orange = "\\033[38;5;208m"       # Used for: time display
+colors.extended.light_orange = "\\033[38;5;215m" # Used for: clock emoji
+colors.extended.light_gray = "\\033[38;5;248m"   # Used for: reset info
+colors.extended.bright_green = "\\033[92m"       # Used for: MCP servers, submodules
+colors.extended.purple = "\\033[95m"             # Used for: Claude version
+colors.extended.teal = "\\033[38;5;73m"          # Used for: commits, daily costs
+colors.extended.gold = "\\033[38;5;220m"         # Used for: special highlights
+colors.extended.pink_bright = "\\033[38;5;205m"  # Used for: 30-day costs
+colors.extended.indigo = "\\033[38;5;105m"       # Used for: 7-day costs
+colors.extended.violet = "\\033[38;5;99m"        # Used for: session info
+colors.extended.light_blue = "\\033[38;5;111m"   # Used for: MCP server names
 
 # Text formatting
-[colors.formatting]
-dim = "\\033[2m"           # Used for: separators, dimmed text
-italic = "\\033[3m"        # Used for: reset info
-strikethrough = "\\033[9m" # Used for: offline MCP servers
-reset = "\\033[0m"         # Used for: reset all formatting
+colors.formatting.dim = "\\033[2m"           # Used for: separators, dimmed text
+colors.formatting.italic = "\\033[3m"        # Used for: reset info
+colors.formatting.strikethrough = "\\033[9m" # Used for: offline MCP servers
+colors.formatting.reset = "\\033[0m"         # Used for: reset all formatting
 ```
 
 ### Theme Examples
@@ -226,17 +211,15 @@ white = "\\033[38;2;224;247;250m"   # Sea foam
 
 #### Cyberpunk Theme
 ```toml
-[theme]
-name = "custom"
+theme.name = "custom"
 
-[colors.basic]
-red = "\\033[38;2;255;0;102m"      # Electric pink
-blue = "\\033[38;2;0;255;255m"     # Neon cyan
-green = "\\033[38;2;0;255;0m"      # Matrix green
-yellow = "\\033[38;2;255;255;0m"   # Electric yellow
-magenta = "\\033[38;2;255;0;255m"  # Neon magenta
-cyan = "\\033[38;2;0;255;255m"     # Bright cyan
-white = "\\033[38;2;255;255;255m"  # Bright white
+colors.basic.red = "\\033[38;2;255;0;102m"      # Electric pink
+colors.basic.blue = "\\033[38;2;0;255;255m"     # Neon cyan
+colors.basic.green = "\\033[38;2;0;255;0m"      # Matrix green
+colors.basic.yellow = "\\033[38;2;255;255;0m"   # Electric yellow
+colors.basic.magenta = "\\033[38;2;255;0;255m"  # Neon magenta
+colors.basic.cyan = "\\033[38;2;0;255;255m"     # Bright cyan
+colors.basic.white = "\\033[38;2;255;255;255m"  # Bright white
 ```
 
 ---
