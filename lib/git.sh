@@ -70,11 +70,11 @@ get_git_branch() {
         return 1
     fi
     
-    # Use cached result if available (10 second cache - branches change during development)
+    # Use cached result if available (30 second cache - branches change during development)
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local git_root
         git_root=$(get_git_root)
-        cache_git_operation "branch_${git_root//\//_}" "$CACHE_DURATION_VERY_SHORT" _get_git_branch_direct
+        cache_git_operation "branch_${git_root//\//_}" "$CACHE_DURATION_SHORT" _get_git_branch_direct
     else
         _get_git_branch_direct
     fi
@@ -138,11 +138,11 @@ get_git_status() {
         return 1
     fi
     
-    # Use cached result if available (5 second cache - status changes frequently during development)
+    # Use cached result if available (30 second cache - status changes frequently during development)
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local git_root
         git_root=$(get_git_root)
-        cache_git_operation "status_${git_root//\//_}" "$CACHE_DURATION_REALTIME" _get_git_status_direct
+        cache_git_operation "status_${git_root//\//_}" "$CACHE_DURATION_SHORT" _get_git_status_direct
     else
         _get_git_status_direct
     fi
