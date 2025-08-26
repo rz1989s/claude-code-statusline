@@ -185,8 +185,8 @@ parse_toml_to_json() {
             if [[ "$value" =~ ^\\\"(.*)\\\"$ ]]; then
                 # String value (quoted)
                 local string_val="${BASH_REMATCH[1]}"
-                # Escape quotes and backslashes for JSON
-                string_val=$(echo "$string_val" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+                # Escape quotes and backslashes for JSON (fixed over-escaping)
+                string_val=$(echo "$string_val" | sed 's/\\\\/\\\\/g; s/"/\\"/g')
                 flat_json="$flat_json\"$flat_key\":\"$string_val\""
             elif [[ "$value" =~ ^\\[.*\\]$ ]]; then
                 # Array value - simplified for now
@@ -201,8 +201,8 @@ parse_toml_to_json() {
                 # Float value
                 flat_json="$flat_json\"$flat_key\":$value"
             else
-                # Unquoted string - treat as string
-                value=$(echo "$value" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
+                # Unquoted string - treat as string (fixed over-escaping)
+                value=$(echo "$value" | sed 's/\\\\/\\\\/g; s/"/\\"/g')
                 flat_json="$flat_json\"$flat_key\":\"$value\""
             fi
 
@@ -218,9 +218,11 @@ parse_toml_to_json() {
         # Validate flat JSON before processing
         if ! echo "$flat_json" | jq . >/dev/null 2>&1; then
             handle_error "Generated invalid JSON during TOML parsing: $toml_file" 4 "parse_toml_to_json"
-            debug_log "Flat JSON: $flat_json" "DEBUG"
+            debug_log "Invalid flat JSON: $flat_json" "DEBUG"
             echo "{}"
             return 4 # Parse error
+        else
+            debug_log "Valid flat JSON generated successfully" "DEBUG"
         fi
     else
         debug_log "jq not available for JSON validation, skipping validation: $toml_file" "WARN"
