@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the Claude Code Enhanced Statusline project (v1.8.1) - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 9 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
+This is the Claude Code Enhanced Statusline project (v2.0.0) - a sophisticated 4-line statusline with modular architecture. The system consists of a main orchestrator script (`statusline.sh`) that coordinates 9 specialized modules in `lib/` directory, providing rich information display for Claude Code sessions including git status, MCP server monitoring, cost tracking, and beautiful themes.
 
 **📋 Key Resources for Development:**
 - **TODOS.md** - Comprehensive development roadmap with 50+ actionable items, complexity estimates, and implementation hints
@@ -63,7 +63,7 @@ ENV_CONFIG_THEME=catppuccin ./statusline.sh    # Test catppuccin theme
 
 ### Installation and Setup
 
-**Branch-Aware Installer (v1.8.1+)**
+**Branch-Aware Installer (v2.0.0+)**
 
 **Production Installation (Main Branch):**
 ```bash

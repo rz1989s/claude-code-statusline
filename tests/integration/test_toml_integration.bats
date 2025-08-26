@@ -517,6 +517,110 @@ EOF
     fi
 }
 
+# Test nested TOML format detection and error code 6
+@test "should detect nested TOML format and return error code 6" {
+    local test_config="$TEST_CONFIG_DIR/nested_format.toml"
+    
+    cat > "$test_config" << 'EOF'
+[theme]
+name = "catppuccin"
+
+[features]
+show_commits = true
+show_version = false
+
+[colors.basic]
+red = "\033[31m"
+blue = "\033[34m"
+EOF
+
+    # Call parse_toml_to_json and expect failure with exit code 6
+    local config_json
+    local exit_code
+    
+    config_json=$(parse_toml_to_json "$test_config" 2>/dev/null)
+    exit_code=$?
+    
+    # Should return exit code 6 for nested format detection
+    [[ "$exit_code" -eq 6 ]]
+    
+    # Should return empty JSON object on error
+    [[ "$config_json" == "{}" ]]
+}
+
+# Test multiple nested sections trigger error code 6
+@test "should detect multiple nested sections and return error code 6" {
+    local test_config="$TEST_CONFIG_DIR/multiple_nested.toml"
+    
+    cat > "$test_config" << 'EOF'
+theme.name = "catppuccin"
+
+[theme]
+inheritance = true
+
+[colors.basic]
+red = "\033[31m"
+
+[features]
+show_commits = true
+EOF
+
+    # Should fail on first nested section encountered
+    local exit_code
+    parse_toml_to_json "$test_config" >/dev/null 2>&1
+    exit_code=$?
+    
+    [[ "$exit_code" -eq 6 ]]
+}
+
+# Test valid flat format works correctly (regression test)
+@test "should parse valid flat TOML format without error" {
+    local test_config="$TEST_CONFIG_DIR/valid_flat.toml"
+    
+    cat > "$test_config" << 'EOF'
+theme.name = "catppuccin"
+theme.inheritance.enabled = true
+
+features.show_commits = true
+features.show_version = false
+
+colors.basic.red = "\033[31m"
+colors.basic.blue = "\033[34m"
+
+timeouts.mcp = "3s"
+timeouts.version = "2s"
+EOF
+
+    # Should parse successfully
+    local config_json
+    local exit_code
+    
+    config_json=$(parse_toml_to_json "$test_config")
+    exit_code=$?
+    
+    # Should succeed with exit code 0
+    [[ "$exit_code" -eq 0 ]]
+    
+    # Should contain valid JSON
+    [[ "$config_json" != "{}" ]]
+    [[ -n "$config_json" ]]
+    
+    # Verify specific flat format values are parsed correctly
+    if command -v jq >/dev/null 2>&1; then
+        local theme_name
+        theme_name=$(echo "$config_json" | jq -r '."theme.name" // "default"')
+        [[ "$theme_name" == "catppuccin" ]]
+        
+        local show_commits
+        show_commits=$(echo "$config_json" | jq -r '."features.show_commits" // false')
+        [[ "$show_commits" == "true" ]]
+        
+        local red_color
+        red_color=$(echo "$config_json" | jq -r '."colors.basic.red" // "default"')
+        [[ "$red_color" == "\\033[31m" ]]
+    fi
+}
+
 # Helper function to skip tests if jq is not available
 skip_if_no_jq() {
     if ! command -v jq >/dev/null 2>&1; then
