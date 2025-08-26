@@ -154,9 +154,13 @@ get_mcp_status() {
     
     # Split servers by comma and count
     local temp_servers="${servers_data}," # Add trailing comma for easier parsing
-    while [[ "$temp_servers" == *","* ]]; do
+    local parse_count=0
+    local max_servers=50  # Prevent infinite parsing loops
+    
+    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
+        ((parse_count++))
         
         # Extract server status
         local server_status="${server_entry#*:}"
@@ -218,9 +222,13 @@ get_active_mcp_servers() {
     
     # Filter only connected servers
     local temp_servers="${all_servers}," # Add trailing comma for easier parsing
-    while [[ "$temp_servers" == *","* ]]; do
+    local parse_count=0
+    local max_servers=50  # Prevent infinite parsing loops
+    
+    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
+        ((parse_count++))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"
@@ -262,9 +270,13 @@ format_mcp_servers() {
 
     # Split servers by comma and process each one
     local temp_servers="${servers}," # Add trailing comma for easier parsing
-    while [[ "$temp_servers" == *","* ]]; do
+    local parse_count=0
+    local max_servers=50  # Prevent infinite parsing loops
+    
+    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
+        ((parse_count++))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"
@@ -373,9 +385,13 @@ get_mcp_server_details() {
     
     # Find the specific server
     local temp_servers="${all_servers},"
-    while [[ "$temp_servers" == *","* ]]; do
+    local parse_count=0
+    local max_servers=50  # Prevent infinite parsing loops
+    
+    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
+        ((parse_count++))
         
         local entry_name="${server_entry%:*}"
         local entry_status="${server_entry#*:}"

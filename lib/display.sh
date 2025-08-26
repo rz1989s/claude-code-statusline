@@ -221,9 +221,13 @@ format_mcp_server_list() {
 
     # Split servers by comma and process each one
     local temp_servers="${servers_data},"
-    while [[ "$temp_servers" == *","* ]]; do
+    local parse_count=0
+    local max_servers=50  # Prevent infinite parsing loops
+    
+    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
+        ((parse_count++))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"

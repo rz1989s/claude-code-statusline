@@ -188,11 +188,15 @@ setup_full_mock_environment() {
     # Create smart mock date command that handles +%s parameter for timer functions
     cat > "$MOCK_BIN_DIR/date" << 'EOF'
 #!/bin/bash
+# Mock date command with timeout protection
+timeout 2s bash -c '
 if [[ "$1" == "+%s" ]]; then
     echo "1756172467"  # Static timestamp for consistent test results
 else
-    echo "$(date)"     # Real date for other uses
+    # Use system date but with timeout protection
+    /bin/date "$@"
 fi
+' -- "$@"
 EOF
     chmod +x "$MOCK_BIN_DIR/date"
     create_mock_command "bc" "0.00"
