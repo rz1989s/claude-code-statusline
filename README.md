@@ -52,6 +52,46 @@
 
 ## 🆕 Recent Updates
 
+### v2.0.0 - Flat-Only TOML Configuration Revolution 🚀⚡
+
+**🚨 BREAKING CHANGES - Enhanced Configuration Reliability**
+
+- **🔧 Flat-Only TOML Parser** - Eliminated Python complexity and "fallback to flat structure" warnings
+- **🚫 Nested Format Rejection** - Clear error messages guide users to reliable flat format (theme.name vs [theme])  
+- **💥 Breaking Change Management** - Comprehensive migration guidance for users with nested configs
+- **🛡️ Enhanced Error Detection** - Return code 6 with helpful examples for nested configuration detection
+
+**✨ NEW FEATURES & ENHANCEMENTS**
+
+- **📦 Enhanced Installer** - Automatic backup system with timestamped files before config updates
+- **🗂️ Embedded Config Template** - Self-contained flat TOML template (no external dependencies)
+- **📍 Extended Config Path** - Added `~/.claude/statusline/Config.toml` support for streamlined installation
+- **🎯 Intelligent Parser** - Direct flat JSON processing eliminates parsing warnings and improves reliability
+
+**🔧 TECHNICAL IMPROVEMENTS**
+
+- **⚡ Simplified Architecture** - Removed 200+ lines of Python nesting complexity from TOML parser
+- **🚀 Performance Boost** - Direct flat parsing without fallback overhead improves response times
+- **📚 Documentation Consistency** - Updated 6 major documentation files with working flat format examples
+- **✅ Quality Assurance** - All TOML examples now use reliable flat notation (447 insertions, 647 deletions)
+
+**🎨 CONFIGURATION FORMAT EXAMPLES**
+
+```toml
+# NEW: Flat format (reliable, no warnings)
+theme.name = "catppuccin"
+features.show_commits = true
+colors.basic.red = "\\033[31m"
+
+# OLD: Nested format (now returns helpful error)
+# [theme]           ← Will show migration guidance
+# name = "catppuccin" 
+```
+
+**📈 IMPACT**: Complete elimination of parser warnings, enhanced user experience, and simplified maintenance
+
+---
+
 ### v1.8.0 - Enterprise-Grade Security & Performance Enhancement 🛡️✨
 
 - **🔒 XDG-Compliant Cache Security** - Migrated from `/tmp` to secure user-isolated directories following XDG Base Directory specification
