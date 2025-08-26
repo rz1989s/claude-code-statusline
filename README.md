@@ -64,9 +64,9 @@
 **✨ NEW FEATURES & ENHANCEMENTS**
 
 - **📦 Enhanced Installer** - Automatic backup system with timestamped files before config updates
-- **🗂️ Embedded Config Template** - Self-contained flat TOML template (no external dependencies)
+- **🗂️ Repository Config Template** - Comprehensive 287-line flat TOML template from examples/Config.toml (maintainable, transparent, reviewable)
 - **📍 Extended Config Path** - Added `~/.claude/statusline/Config.toml` support for streamlined installation
-- **🎯 Intelligent Parser** - Direct flat JSON processing eliminates parsing warnings and improves reliability
+- **🎯 Template-Based Architecture** - Clean download-based config generation replaces complex embedded heredoc
 
 **🔧 TECHNICAL IMPROVEMENTS**
 
