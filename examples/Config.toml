@@ -1,0 +1,288 @@
+# ============================================================================
+# Claude Code Statusline - Default Configuration Template
+# ============================================================================
+#
+# This file serves as the comprehensive configuration template for installations.
+# It uses simplified flat TOML format for reliable parsing across all platforms.
+# All settings use dot notation instead of nested sections.
+#
+# Configuration Precedence (highest to lowest):
+# 1. Environment variables (ENV_CONFIG_*)
+# 2. ./Config.toml (project-specific)
+# 3. ~/.claude/statusline/Config.toml (user installation - THIS FILE)
+# 4. ~/.config/claude-code-statusline/Config.toml (XDG standard)
+# 5. ~/.claude-statusline.toml (legacy fallback)
+# 6. Inline script defaults (fallback)
+#
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+# Choose your visual theme for the statusline
+# Available themes: "classic", "garden", "catppuccin", "custom"
+theme.name = "catppuccin"
+
+# === CUSTOM COLORS ===
+# Only used when theme.name = "custom"
+# Use ANSI escape codes for terminal colors
+
+# Basic ANSI colors (most compatible)
+colors.basic.red = "\\033[31m"
+colors.basic.blue = "\\033[34m" 
+colors.basic.green = "\\033[32m"
+colors.basic.yellow = "\\033[33m"
+colors.basic.magenta = "\\033[35m"
+colors.basic.cyan = "\\033[36m"
+colors.basic.white = "\\033[37m"
+
+# Extended colors (256-color and bright ANSI)
+colors.extended.orange = "\\033[38;5;208m"
+colors.extended.light_orange = "\\033[38;5;215m"
+colors.extended.light_gray = "\\033[38;5;248m"
+colors.extended.bright_green = "\\033[92m"
+colors.extended.purple = "\\033[95m"
+colors.extended.teal = "\\033[38;5;73m"
+colors.extended.gold = "\\033[38;5;220m"
+colors.extended.pink_bright = "\\033[38;5;205m"
+colors.extended.indigo = "\\033[38;5;105m"
+colors.extended.violet = "\\033[38;5;99m"
+colors.extended.light_blue = "\\033[38;5;111m"
+
+# Text formatting
+colors.formatting.dim = "\\033[2m"
+colors.formatting.italic = "\\033[3m"
+colors.formatting.strikethrough = "\\033[9m"
+colors.formatting.reset = "\\033[0m"
+
+# === CORE FEATURE TOGGLES ===
+# Enable/disable major sections of the statusline
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_session_info = true
+
+# === MODEL EMOJIS ===
+# Emojis displayed for different Claude models
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
+emojis.default_model = "🤖"
+emojis.clean_status = "✅"
+emojis.dirty_status = "📁"
+emojis.clock = "🕐"
+emojis.live_block = "🔥"
+
+# === TIMEOUTS ===
+# Timeout values for external command execution
+timeouts.mcp = "10s"
+timeouts.version = "2s"
+timeouts.ccusage = "8s"
+
+# === DISPLAY LABELS ===
+# Text labels used throughout the statusline
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
+labels.weekly = "7DAY"
+labels.daily = "DAY"
+labels.mcp = "MCP"
+labels.version_prefix = "ver"
+labels.submodule = "SUB:"
+labels.session_prefix = "S:"
+labels.live = "LIVE"
+labels.reset = "RESET"
+
+# === CACHE SETTINGS ===
+# Control caching behavior for performance optimization
+cache.base_directory = "auto"
+cache.enable_universal_caching = true
+cache.enable_statistics = true
+cache.enable_corruption_detection = true
+cache.cleanup_stale_files = true
+cache.migrate_legacy_cache = true
+
+# Cache duration settings (in seconds, or "session" for session-wide)
+cache.durations.command_exists = "session"
+cache.durations.system_info = 86400
+cache.durations.claude_version = 21600
+cache.durations.git_config = 3600
+cache.durations.git_submodules = 300
+cache.durations.git_branches = 30
+cache.durations.git_status = 10
+cache.durations.git_current_branch = 10
+cache.durations.mcp_server_list = 120
+cache.durations.directory_info = 5
+cache.durations.file_operations = 2
+
+# Performance and reliability settings
+cache.performance.max_lock_retries = 10
+cache.performance.lock_retry_delay_ms = "100-500"
+cache.performance.atomic_write_timeout = 5
+cache.performance.cache_cleanup_interval = 300
+cache.performance.max_cache_age_hours = 168
+
+# Security and integrity settings
+cache.security.directory_permissions = "700"
+cache.security.file_permissions = "600"
+cache.security.enable_checksums = true
+cache.security.validate_on_read = true
+cache.security.secure_temp_files = true
+cache.security.instance_isolation = true
+
+# Legacy compatibility settings
+cache.legacy.version_duration = 3600
+cache.legacy.version_file = "/tmp/.claude_version_cache"
+
+# === DISPLAY FORMATS ===
+# Date and time formatting options
+display.time_format = "%H:%M"
+display.date_format = "%Y-%m-%d"
+display.date_format_compact = "%Y%m%d"
+
+# === ERROR/FALLBACK MESSAGES ===
+# Messages displayed when services are unavailable
+messages.no_ccusage = "No ccusage"
+messages.ccusage_install = "Install ccusage for cost tracking"
+messages.no_active_block = "No active block"
+messages.mcp_unknown = "unknown"
+messages.mcp_none = "none"
+messages.unknown_version = "?"
+messages.no_submodules = "--"
+
+# === ADVANCED SETTINGS ===
+# Fine-grained control over behavior and performance
+advanced.warn_missing_deps = false
+advanced.debug_mode = false
+advanced.performance_mode = false
+advanced.strict_validation = true
+
+# === BASH COMPATIBILITY ===
+# Universal bash compatibility settings (automatically managed)
+compatibility.auto_detect_bash = true
+compatibility.enable_compatibility_mode = true
+compatibility.compatibility_warnings = true
+compatibility.bash_path = ""
+
+# === PLATFORM SETTINGS ===  
+# Platform-specific configurations
+platform.prefer_gtimeout = true
+platform.use_gdate = false
+platform.color_support_level = "full"
+
+# === PATH CONFIGURATIONS ===
+# Customizable paths for various functions
+paths.temp_dir = "/tmp"
+paths.config_dir = "~/.config/claude-code-statusline"
+paths.cache_dir = "~/.cache/claude-code-statusline"
+paths.log_file = "~/.cache/claude-code-statusline/statusline.log"
+
+# === PERFORMANCE TUNING ===
+# Optimization settings
+performance.parallel_data_collection = true
+performance.max_concurrent_operations = 3
+performance.git_operation_timeout = "5s"
+performance.network_operation_timeout = "10s"
+performance.enable_smart_caching = true
+performance.cache_compression = false
+
+# === DEBUGGING & LOGGING ===
+# Development and troubleshooting options
+debug.log_level = "error"
+debug.log_config_loading = false
+debug.log_theme_application = false
+debug.log_validation_details = false
+debug.benchmark_performance = false
+debug.export_debug_info = false
+
+# === THEME INHERITANCE SYSTEM ===
+# Advanced theme customization with inheritance
+theme.inheritance.enabled = true
+theme.inheritance.base_theme = ""
+theme.inheritance.override_colors = []
+theme.inheritance.merge_strategy = "override"
+
+# === CONDITIONAL CONFIGURATION ===
+# Context-aware configuration
+conditional.enabled = false
+
+# Work hours configuration (24-hour format)
+conditional.work_hours.enabled = false
+conditional.work_hours.start_time = "09:00"
+conditional.work_hours.end_time = "17:00"
+conditional.work_hours.timezone = "local"
+conditional.work_hours.work_profile = "work"
+conditional.work_hours.off_hours_profile = "personal"
+
+# Git repository context
+conditional.git_context.enabled = false
+conditional.git_context.work_repos = []
+conditional.git_context.personal_repos = []
+
+# === CONFIGURATION PROFILES ===
+# Different configurations for different contexts
+profiles.enabled = false
+profiles.default_profile = "default"
+profiles.auto_switch = true
+
+# Profile definitions (examples)
+profiles.work.theme = "classic"
+profiles.work.show_cost_tracking = true
+profiles.work.show_reset_info = true
+profiles.work.mcp_timeout = "10s"
+
+profiles.personal.theme = "catppuccin"
+profiles.personal.show_cost_tracking = false
+profiles.personal.show_reset_info = false
+profiles.personal.mcp_timeout = "10s"
+
+profiles.demo.theme = "garden"
+profiles.demo.show_cost_tracking = false
+profiles.demo.show_commits = false
+
+# === PLUGIN SYSTEM ===
+# Extensible data source system (Phase 3 foundation)
+plugins.enabled = false
+plugins.auto_discovery = true
+plugins.plugin_dirs = ["~/.config/claude-code-statusline/plugins", "./plugins"]
+plugins.timeout_per_plugin = "2s"
+
+# Built-in plugin configurations
+plugins.git_extended.enabled = false
+plugins.git_extended.show_stash_count = false
+plugins.git_extended.show_ahead_behind = false
+plugins.git_extended.show_branch_age = false
+
+plugins.system_info.enabled = false
+plugins.system_info.show_load_average = false
+plugins.system_info.show_memory_usage = false
+plugins.system_info.show_disk_usage = false
+
+plugins.weather.enabled = false
+plugins.weather.api_key = ""
+plugins.weather.location = "auto"
+plugins.weather.units = "metric"
+
+# ============================================================================
+# TEMPLATE MAINTENANCE NOTES
+# ============================================================================
+#
+# 🔧 IMPORTANT: When adding new configuration options to the codebase:
+#    1. Add the new option to this template with sensible default values
+#    2. Include comprehensive documentation comments for new sections
+#    3. Update any related documentation referencing configuration options
+#    4. Test the template for TOML syntax validity before committing
+#
+# 📚 This file serves multiple purposes:
+#    • Installation template (copied to ~/.claude/statusline/Config.toml)
+#    • Configuration documentation (comprehensive reference)
+#    • Testing baseline (validated for TOML syntax)
+#    • Developer reference (complete list of all available options)
+#
+# 🎯 Usage by installer:
+#    • Downloaded from: https://raw.githubusercontent.com/rz1989s/claude-code-statusline/{branch}/examples/Config.toml
+#    • Copied to: ~/.claude/statusline/Config.toml (with backup if exists)
+#    • No shell processing required - direct TOML-to-TOML copy
+#
+# ============================================================================

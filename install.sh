@@ -695,231 +695,40 @@ migrate_existing_installation() {
 }
 
 # Function to generate flat Config.toml with backup support
-generate_config_with_backup() {
-    print_status "Setting up flat TOML configuration..."
+download_config_template() {
+    print_status "Setting up comprehensive TOML configuration..."
     
-    # Check if config file already exists and create backup
+    # Create backup of existing config if present
     if [[ -f "$CONFIG_PATH" ]]; then
         local backup_path="${CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "📄 Existing Config.toml found, creating backup..."
-        cp "$CONFIG_PATH" "$backup_path"
-        print_success "✅ Backup created: $backup_path"
+        if cp "$CONFIG_PATH" "$backup_path"; then
+            print_success "✅ Backup created: $backup_path"
+        else
+            print_warning "⚠️ Failed to create backup, continuing..."
+        fi
     fi
     
-    # Generate flat TOML configuration (embedded template)
-    print_status "🔧 Generating default flat TOML configuration..."
+    # Download comprehensive config template from repository
+    local config_template_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/Config.toml"
+    print_status "🔧 Downloading comprehensive Config.toml template..."
     
-    cat > "$CONFIG_PATH" << 'EOF'
-# ============================================================================
-# Claude Code Statusline - Flat Configuration Format
-# ============================================================================
-#
-# This file uses simplified flat TOML format for reliable parsing.
-# All settings use dot notation instead of nested sections.
-#
-# Configuration Precedence (highest to lowest):
-# 1. Environment variables (ENV_CONFIG_*)
-# 2. ./Config.toml (this file)
-# 3. ~/.claude/statusline/Config.toml
-# 4. ~/.config/claude-code-statusline/Config.toml
-# 5. ~/.claude-statusline.toml
-# 6. Inline script defaults (fallback)
-#
-# ============================================================================
-
-# === THEME CONFIGURATION ===
-# Choose your visual theme for the statusline
-# Available themes: "classic", "garden", "catppuccin", "custom"
-theme.name = "catppuccin"
-
-# === CUSTOM COLORS ===
-# Only used when theme.name = "custom"
-# Use ANSI escape codes for terminal colors
-
-# Basic ANSI colors (most compatible)
-colors.basic.red = "\\033[31m"
-colors.basic.blue = "\\033[34m" 
-colors.basic.green = "\\033[32m"
-colors.basic.yellow = "\\033[33m"
-colors.basic.magenta = "\\033[35m"
-colors.basic.cyan = "\\033[36m"
-colors.basic.white = "\\033[37m"
-
-# Extended colors (256-color and bright ANSI)
-colors.extended.orange = "\\033[38;5;208m"
-colors.extended.light_orange = "\\033[38;5;215m"
-colors.extended.light_gray = "\\033[38;5;248m"
-colors.extended.bright_green = "\\033[92m"
-colors.extended.purple = "\\033[95m"
-colors.extended.teal = "\\033[38;5;73m"
-colors.extended.gold = "\\033[38;5;220m"
-colors.extended.pink_bright = "\\033[38;5;205m"
-colors.extended.indigo = "\\033[38;5;105m"
-colors.extended.violet = "\\033[38;5;99m"
-colors.extended.light_blue = "\\033[38;5;111m"
-
-# Text formatting
-colors.formatting.dim = "\\033[2m"
-colors.formatting.italic = "\\033[3m"
-colors.formatting.strikethrough = "\\033[9m"
-colors.formatting.reset = "\\033[0m"
-
-# === CORE FEATURE TOGGLES ===
-# Enable/disable major sections of the statusline
-features.show_commits = true
-features.show_version = true
-features.show_submodules = true
-features.show_mcp_status = true
-features.show_cost_tracking = true
-features.show_reset_info = true
-features.show_session_info = true
-
-# === MODEL EMOJIS ===
-# Emojis displayed for different Claude models
-emojis.opus = "🧠"
-emojis.haiku = "⚡"
-emojis.sonnet = "🎵"
-emojis.default_model = "🤖"
-emojis.clean_status = "✅"
-emojis.dirty_status = "📁"
-emojis.clock = "🕐"
-emojis.live_block = "🔥"
-
-# === TIMEOUTS ===
-# Timeout values for external command execution
-timeouts.mcp = "10s"
-timeouts.version = "2s"
-timeouts.ccusage = "8s"
-
-# === DISPLAY LABELS ===
-# Text labels used throughout the statusline
-labels.commits = "Commits:"
-labels.repo = "REPO"
-labels.monthly = "30DAY"
-labels.weekly = "7DAY"
-labels.daily = "DAY"
-labels.mcp = "MCP"
-labels.version_prefix = "ver"
-labels.submodule = "SUB:"
-labels.session_prefix = "S:"
-labels.live = "LIVE"
-labels.reset = "RESET"
-
-# === CACHE SETTINGS ===
-# Control caching behavior for performance optimization
-cache.base_directory = "auto"
-cache.enable_universal_caching = true
-cache.enable_statistics = true
-cache.enable_corruption_detection = true
-cache.cleanup_stale_files = true
-cache.migrate_legacy_cache = true
-
-# Cache duration settings (in seconds, or "session" for session-wide)
-cache.durations.command_exists = "session"
-cache.durations.system_info = 86400
-cache.durations.claude_version = 21600
-cache.durations.git_config = 3600
-cache.durations.git_submodules = 300
-cache.durations.git_branches = 30
-cache.durations.git_status = 10
-cache.durations.git_current_branch = 10
-cache.durations.mcp_server_list = 120
-cache.durations.directory_info = 5
-cache.durations.file_operations = 2
-
-# Performance and reliability settings
-cache.performance.max_lock_retries = 10
-cache.performance.lock_retry_delay_ms = "100-500"
-cache.performance.atomic_write_timeout = 5
-cache.performance.cache_cleanup_interval = 300
-cache.performance.max_cache_age_hours = 168
-
-# Security and integrity settings
-cache.security.directory_permissions = "700"
-cache.security.file_permissions = "600"
-cache.security.enable_checksums = true
-cache.security.validate_on_read = true
-cache.security.secure_temp_files = true
-cache.security.instance_isolation = true
-
-# Legacy compatibility settings
-cache.legacy.version_duration = 3600
-cache.legacy.version_file = "/tmp/.claude_version_cache"
-
-# === DISPLAY FORMATS ===
-# Date and time formatting options
-display.time_format = "%H:%M"
-display.date_format = "%Y-%m-%d"
-display.date_format_compact = "%Y%m%d"
-
-# === ERROR/FALLBACK MESSAGES ===
-# Messages displayed when services are unavailable
-messages.no_ccusage = "No ccusage"
-messages.ccusage_install = "Install ccusage for cost tracking"
-messages.no_active_block = "No active block"
-messages.mcp_unknown = "unknown"
-messages.mcp_none = "none"
-messages.unknown_version = "?"
-messages.no_submodules = "--"
-
-# === ADVANCED SETTINGS ===
-# Fine-grained control over behavior and performance
-advanced.warn_missing_deps = false
-advanced.debug_mode = false
-advanced.performance_mode = false
-advanced.strict_validation = true
-
-# === BASH COMPATIBILITY ===
-# Universal bash compatibility settings (automatically managed)
-compatibility.auto_detect_bash = true
-compatibility.enable_compatibility_mode = true
-compatibility.compatibility_warnings = true
-compatibility.bash_path = ""
-
-# === PLATFORM SETTINGS ===  
-# Platform-specific configurations
-platform.prefer_gtimeout = true
-platform.use_gdate = false
-platform.color_support_level = "full"
-
-# === PATH CONFIGURATIONS ===
-# Customizable paths for various functions
-paths.temp_dir = "/tmp"
-paths.config_dir = "~/.config/claude-code-statusline"
-paths.cache_dir = "~/.cache/claude-code-statusline"
-paths.log_file = "~/.cache/claude-code-statusline/statusline.log"
-
-# === PERFORMANCE TUNING ===
-# Optimization settings
-performance.parallel_data_collection = true
-performance.max_concurrent_operations = 3
-performance.git_operation_timeout = "5s"
-performance.network_operation_timeout = "10s"
-performance.enable_smart_caching = true
-performance.cache_compression = false
-
-# === DEBUGGING & LOGGING ===
-# Development and troubleshooting options
-debug.log_level = "error"
-debug.log_config_loading = false
-debug.log_theme_application = false
-debug.log_validation_details = false
-debug.benchmark_performance = false
-debug.export_debug_info = false
-
-# ============================================================================
-# Flat Configuration Complete  
-# All settings converted from nested to flat format for reliable parsing
-# ============================================================================
-EOF
-    
-    if [[ -f "$CONFIG_PATH" ]]; then
-        print_success "✅ Generated flat TOML Config.toml at: $CONFIG_PATH"
-        print_status "💡 Edit $CONFIG_PATH to customize your statusline"
-        print_status "🔧 All settings use flat format (e.g., theme.name = \"catppuccin\")"
-        return 0
+    if curl -fsSL "$config_template_url" -o "$CONFIG_PATH"; then
+        # Verify the downloaded file is valid
+        if [[ -f "$CONFIG_PATH" ]] && [[ -s "$CONFIG_PATH" ]]; then
+            local line_count=$(wc -l < "$CONFIG_PATH" 2>/dev/null || echo "0")
+            print_success "✅ Downloaded comprehensive Config.toml template ($line_count lines)"
+            print_status "💡 Edit $CONFIG_PATH to customize your statusline"
+            print_status "🔧 All settings use flat format (e.g., theme.name = \"catppuccin\")"
+            print_status "📚 Template includes 280+ configuration options with documentation"
+            return 0
+        else
+            print_error "❌ Downloaded config template appears to be empty or invalid"
+            return 1
+        fi
     else
-        print_error "❌ Failed to generate Config.toml"
+        print_error "❌ Failed to download config template from: $config_template_url"
+        print_status "🔍 This might be a network issue or the template file doesn't exist in branch: $INSTALL_BRANCH"
         return 1
     fi
 }
@@ -1135,7 +944,7 @@ main() {
     check_bash_compatibility
     make_executable
     configure_settings
-    generate_config_with_backup || true  # Don't fail if config generation fails
+    download_config_template  # Fail installation if config template download fails
     
     echo
     if verify_installation; then
