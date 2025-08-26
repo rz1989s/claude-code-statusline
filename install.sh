@@ -542,8 +542,8 @@ download_statusline() {
     local failed_modules=()
     
     for module in "${modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
-        local module_path="$LIB_DIR/$module"
+        module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
+        module_path="$LIB_DIR/$module"
         
         if curl -fsSL "$module_url" -o "$module_path"; then
             print_status "✓ Downloaded $module"
@@ -652,7 +652,7 @@ EOF
     fi
     
     # Clean up temp file if it still exists
-    [ -f "$temp_settings" ] && rm -f "$temp_settings"
+    [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
 # Function to migrate existing installation
