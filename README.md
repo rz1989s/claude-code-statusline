@@ -1074,6 +1074,7 @@ Your existing inline configuration **continues to work unchanged**! When you're 
 - 🎨 **[Themes Guide](docs/themes.md)** - Theme creation and customization with TOML
 - 🚀 **[Migration Guide](docs/migration.md)** - Step-by-step migration from inline configuration  
 - 🔧 **[CLI Reference](docs/cli-reference.md)** - Complete command-line interface documentation
+- ⏱️ **[Cache & Update Frequencies](docs/CACHE_AND_UPDATE_FREQUENCIES.md)** - Technical reference for cache durations and update intervals
 - 🐛 **[Troubleshooting](docs/troubleshooting.md)** - TOML configuration troubleshooting
 
 > ⚡ **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base Config.toml, then customize from there! Changes are validated automatically.
@@ -1223,6 +1224,7 @@ ccusage --version && echo "✅ ccusage OK" || echo "⚠️ ccusage missing (inst
 - [📦 Installation Guide](docs/installation.md) - Platform-specific setup instructions
 - [⚙️ Configuration Guide](docs/configuration.md) - Detailed customization options  
 - [🎨 Themes Guide](docs/themes.md) - Theme showcase and custom theme creation
+- [⏱️ Cache & Update Frequencies](docs/CACHE_AND_UPDATE_FREQUENCIES.md) - Technical reference for cache durations
 - [🐛 Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 🤝 Contributing
