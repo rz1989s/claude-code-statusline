@@ -153,20 +153,24 @@ parse_toml_to_json() {
         [[ "$line" =~ ^[[:space:]]*$ ]] && continue
 
         # Handle section headers [section] or [section.subsection] or [section.sub.subsub]
-        if [[ "$line" =~ ^\\[[[:space:]]*([^]]+)[[:space:]]*\\]$ ]]; then
-            local section_name="${BASH_REMATCH[1]}"
+        if [[ "$line" =~ ^\[.*\]$ ]]; then
+            # Extract section name using sed for better compatibility
+            local section_name=$(echo "$line" | sed 's/^[[:space:]]*\[\([^]]*\)\][[:space:]]*$/\1/')
             current_section="$section_name"
             continue
         fi
 
-        # Handle key-value pairs
-        if [[ "$line" =~ ^[[:space:]]*([^=]+)[[:space:]]*=[[:space:]]*(.+)$ ]]; then
-            local key="${BASH_REMATCH[1]}"
-            local value="${BASH_REMATCH[2]}"
-
-            # Clean up key and value
-            key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-            value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        # Handle key-value pairs using sed for robust extraction (fixes BASH_REMATCH compatibility issues)
+        if [[ "$line" =~ = ]]; then
+            # Use sed to extract key and value parts
+            local key=$(echo "$line" | sed 's/^[[:space:]]*\([^=]*\)[[:space:]]*=.*/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            local value=$(echo "$line" | sed 's/^[[:space:]]*[^=]*=[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            
+            # Skip if key is empty (malformed line)
+            if [[ -z "$key" ]]; then
+                debug_log "Skipping malformed TOML line: $line" "DEBUG"
+                continue
+            fi
 
             # Create flat key with section prefix
             local flat_key
@@ -181,14 +185,14 @@ parse_toml_to_json() {
                 flat_json="$flat_json,"
             fi
 
-            # Parse value type and format for JSON
-            if [[ "$value" =~ ^\\\"(.*)\\\"$ ]]; then
-                # String value (quoted)
-                local string_val="${BASH_REMATCH[1]}"
+            # Parse value type and format for JSON using sed-based extraction
+            if [[ "$value" =~ ^\".*\"$ ]]; then
+                # String value (quoted) - extract content between quotes using sed
+                local string_val=$(echo "$value" | sed 's/^"\(.*\)"$/\1/')
                 # Escape quotes and backslashes for JSON (fixed over-escaping)
                 string_val=$(echo "$string_val" | sed 's/\\\\/\\\\/g; s/"/\\"/g')
                 flat_json="$flat_json\"$flat_key\":\"$string_val\""
-            elif [[ "$value" =~ ^\\[.*\\]$ ]]; then
+            elif [[ "$value" =~ ^\[.*\]$ ]]; then
                 # Array value - simplified for now
                 flat_json="$flat_json\"$flat_key\":$value"
             elif [[ "$value" =~ ^(true|false)$ ]]; then
@@ -197,7 +201,7 @@ parse_toml_to_json() {
             elif [[ "$value" =~ ^[0-9]+$ ]]; then
                 # Integer value
                 flat_json="$flat_json\"$flat_key\":$value"
-            elif [[ "$value" =~ ^[0-9]*\\.[0-9]+$ ]]; then
+            elif [[ "$value" =~ ^[0-9]*\.[0-9]+$ ]]; then
                 # Float value
                 flat_json="$flat_json\"$flat_key\":$value"
             else
@@ -447,25 +451,25 @@ extract_config_values() {
         return 1
     fi
 
-    # Single jq operation for single-pass config extraction with fallbacks
+    # Single jq operation with both nested and flat structure support
     local config_data
     config_data=$(echo "$config_json" | jq -r '{
-            theme_name: (.theme.name // "catppuccin"),
-            feature_show_commits: (.features.show_commits // true),
-            feature_show_version: (.features.show_version // true),
-            feature_show_submodules: (.features.show_submodules // true),
-            feature_show_mcp: (.features.show_mcp_status // true),
-            feature_show_cost: (.features.show_cost_tracking // true),
-            feature_show_reset: (.features.show_reset_info // true),
-            feature_show_session: (.features.show_session_info // true),
-            timeout_mcp: (.timeouts.mcp // "10s"),
-            timeout_version: (.timeouts.version // "2s"),
-            timeout_ccusage: (.timeouts.ccusage // "3s"),
-            cache_version_duration: (.cache.version_duration // 3600),
-            cache_version_file: (.cache.version_file // "/tmp/.claude_version_cache"),
-            display_time_format: (.display.time_format // "%H:%M"),
-            display_date_format: (.display.date_format // "%Y-%m-%d"),
-            display_date_format_compact: (.display.date_format_compact // "%Y%m%d")
+            theme_name: (.theme.name // ."theme.name" // "catppuccin"),
+            feature_show_commits: (.features.show_commits // ."features.show_commits" // true),
+            feature_show_version: (.features.show_version // ."features.show_version" // true),
+            feature_show_submodules: (.features.show_submodules // ."features.show_submodules" // true),
+            feature_show_mcp: (.features.show_mcp_status // ."features.show_mcp_status" // true),
+            feature_show_cost: (.features.show_cost_tracking // ."features.show_cost_tracking" // true),
+            feature_show_reset: (.features.show_reset_info // ."features.show_reset_info" // true),
+            feature_show_session: (.features.show_session_info // ."features.show_session_info" // true),
+            timeout_mcp: (.timeouts.mcp // ."timeouts.mcp" // "10s"),
+            timeout_version: (.timeouts.version // ."timeouts.version" // "2s"),
+            timeout_ccusage: (.timeouts.ccusage // ."timeouts.ccusage" // "3s"),
+            cache_version_duration: (.cache.version_duration // ."cache.version_duration" // 3600),
+            cache_version_file: (.cache.version_file // ."cache.version_file" // "/tmp/.claude_version_cache"),
+            display_time_format: (.display.time_format // ."display.time_format" // "%H:%M"),
+            display_date_format: (.display.date_format // ."display.date_format" // "%Y-%m-%d"),
+            display_date_format_compact: (.display.date_format_compact // ."display.date_format_compact" // "%Y%m%d")
         } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
