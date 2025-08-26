@@ -12,7 +12,8 @@
     "lint:all": "npm run lint && npm run lint:tests",
     "setup": "npm install && npm run setup:bats",
     "setup:bats": "git submodule update --init --recursive || echo 'Note: Install bats-core manually if needed'",
-    "clean": "rm -f tests/**/*.log /tmp/.claude_* /tmp/statusline_test_*",
+    "clean": "npm run clean:processes && rm -f tests/**/*.log /tmp/.claude_* && rm -rf /tmp/statusline_test_*",
+    "clean:processes": "pkill -f 'statusline_test_.*mock_bin' || true; ps aux | grep -E '/tmp/statusline_test.*date' | grep -v grep | awk '{print $2}' | xargs -r kill -9 || true",
     "dev": "npm run clean && npm run test",
     "ci": "npm run lint:all && npm run test"
   },

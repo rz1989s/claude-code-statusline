@@ -63,6 +63,19 @@ setup_test_env() {
 
 # Cleanup test environment
 teardown_test_env() {
+    # Kill any orphaned processes from this test session first
+    local test_session_id="$$"
+    
+    # Kill processes spawned by this test session
+    pkill -f "statusline_test_$test_session_id" 2>/dev/null || true
+    pkill -f "$TEST_TMP_DIR" 2>/dev/null || true
+    
+    # Wait a moment for processes to terminate
+    sleep 0.1
+    
+    # Force kill any remaining processes
+    ps aux | grep -E "$TEST_TMP_DIR" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+    
     # Clean up temporary files and directories
     if [[ -d "$TEST_TMP_DIR" ]]; then
         rm -rf "$TEST_TMP_DIR"
@@ -70,7 +83,9 @@ teardown_test_env() {
     
     # Clear test cache files and directories
     rm -f /tmp/.claude_version_cache_test*
-    rm -rf /tmp/statusline_test_*
+    
+    # More aggressive cleanup for any orphaned test directories
+    find /tmp -maxdepth 1 -name "statusline_test_*" -type d -mmin +5 -exec rm -rf {} + 2>/dev/null || true
 }
 
 # Create mock command
@@ -126,19 +141,34 @@ create_timeout_mock() {
     
     cat > "$MOCK_BIN_DIR/timeout" << 'EOF'
 #!/bin/bash
-# Simple timeout mock for testing
+# Simple timeout mock for testing with improved process cleanup
 duration="$1"
 shift
 timeout_val="${duration%s}"  # Remove 's' suffix if present
-"$@" &
+
+# Create new process group to ensure clean termination
+setsid "$@" &
 cmd_pid=$!
 sleep "$timeout_val" &
 sleep_pid=$!
+
+# Wait for either command completion or timeout
 wait -n $cmd_pid $sleep_pid
+result=$?
+
+# If command is still running, kill the entire process group
 if ps -p $cmd_pid > /dev/null 2>&1; then
-    kill $cmd_pid
+    # Kill process group to ensure all child processes are terminated
+    pkill -g $cmd_pid 2>/dev/null || true
+    kill -TERM $cmd_pid 2>/dev/null || true
+    sleep 0.1
+    kill -KILL $cmd_pid 2>/dev/null || true
     exit 124  # timeout exit code
 fi
+
+# Clean up sleep process if command completed first
+kill $sleep_pid 2>/dev/null || true
+exit $result
 EOF
     chmod +x "$MOCK_BIN_DIR/timeout"
     

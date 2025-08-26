@@ -124,10 +124,20 @@ is_module_loaded() {
 # Returns: String path to script directory
 get_script_dir() {
     local script_path="${BASH_SOURCE[0]}"
-    # Follow symlinks to find the real script location
-    while [[ -L "$script_path" ]]; do
+    local link_count=0
+    local max_links=10  # Prevent infinite symlink loops
+    
+    # Follow symlinks to find the real script location with loop protection
+    while [[ -L "$script_path" ]] && [[ $link_count -lt $max_links ]]; do
         script_path=$(readlink "$script_path")
+        ((link_count++))
     done
+    
+    # Warn if we hit the symlink limit
+    if [[ $link_count -ge $max_links ]]; then
+        handle_warning "Too many symlinks detected, using current path: $script_path" "get_script_dir"
+    fi
+    
     dirname "$(cd "$(dirname "$script_path")" && pwd)"
 }
 
