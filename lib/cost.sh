@@ -28,7 +28,7 @@ export STATUSLINE_COST_LOADED=true
 # Cache settings for cost data - differentiated by data type
 export COST_CACHE_DURATION_LIVE=30        # 30 seconds - active blocks (real-time)
 export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
-export COST_CACHE_DURATION_DAILY=600      # 10 minutes - today's cost
+export COST_CACHE_DURATION_DAILY=60       # 1 minute - today's cost
 export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
 export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
 # Use the proper XDG-compliant cache directory from cache.sh module

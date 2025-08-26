@@ -22,7 +22,7 @@ This document details all time-related constants and update frequencies for info
 |---|---|---|---|
 | `COST_CACHE_DURATION_LIVE` | **30** | 30 seconds | Active blocks (real-time) |
 | `COST_CACHE_DURATION_SESSION` | **120** | 2 minutes | Repository session cost |
-| `COST_CACHE_DURATION_DAILY` | **600** | 10 minutes | Today's cost |
+| `COST_CACHE_DURATION_DAILY` | **60** | 1 minute | Today's cost |
 | `COST_CACHE_DURATION_WEEKLY` | **3600** | 1 hour | 7-day total |
 | `COST_CACHE_DURATION_MONTHLY` | **7200** | 2 hours | 30-day total |
 
@@ -49,7 +49,7 @@ This document details all time-related constants and update frequencies for info
 | **🔌 MCP Server List** | 5 minutes | **Every 5 minutes** | `CACHE_DURATION_MEDIUM` |
 | **🔌 MCP Status (connected/total)** | 5 minutes | **Every 5 minutes** | `CACHE_DURATION_MEDIUM` |
 | **💰 Session Cost** | 2 minutes | **Every 2 minutes** | `COST_CACHE_DURATION_SESSION` |
-| **📅 Today's Cost** | 10 minutes | **Every 10 minutes** | `COST_CACHE_DURATION_DAILY` |
+| **📅 Today's Cost** | 1 minute | **Every minute** | `COST_CACHE_DURATION_DAILY` |
 | **📊 7-Day Cost** | 1 hour | **Every hour** | `COST_CACHE_DURATION_WEEKLY` |
 | **📈 30-Day Cost** | 2 hours | **Every 2 hours** | `COST_CACHE_DURATION_MONTHLY` |
 | **⏱️ Active Block Cost** | 30 seconds | **Every 30 seconds** | `COST_CACHE_DURATION_LIVE` |
@@ -59,7 +59,7 @@ This document details all time-related constants and update frequencies for info
 
 **Most Frequent (Real-time):** Directory path, commits today, submodules  
 **High Frequency (≤30s):** Git branch, git status, active blocks, block reset  
-**Medium Frequency (2-10min):** Session cost, today's cost  
+**Medium Frequency (1-2min):** Session cost, today's cost  
 **Low Frequency (1-6hr):** Weekly cost, monthly cost, Claude version, MCP servers  
 **Rare Updates (24hr+):** System information (OS, architecture)
 
