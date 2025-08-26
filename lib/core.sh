@@ -227,21 +227,44 @@ debug_log() {
 start_timer() {
     local timer_name="$1"
     local timer_var="STATUSLINE_TIMER_$(echo "$timer_name" | tr '[:lower:]' '[:upper:]')"
-    export "$timer_var"=$(get_timestamp)
+    local timestamp=$(get_timestamp)
+    
+    # Validate timestamp is numeric before export
+    if [[ "$timestamp" =~ ^[0-9]+$ ]]; then
+        export "$timer_var"="$timestamp"
+    else
+        debug_log "Invalid timestamp from get_timestamp: $timestamp" "ERROR"
+        # Fallback to direct date call
+        export "$timer_var"="$(date +%s)"
+    fi
 }
 
 end_timer() {
     local timer_name="$1"
     local start_var="STATUSLINE_TIMER_$(echo "$timer_name" | tr '[:lower:]' '[:upper:]')"
-    local start_time="${!start_var:-}"
+    local start_time
     
-    if [[ -n "$start_time" ]]; then
+    # Use eval for portable variable indirection (works in both bash and zsh)
+    start_time=$(eval echo "\${$start_var:-}")
+    
+    if [[ -n "$start_time" ]] && [[ "$start_time" =~ ^[0-9]+$ ]]; then
         local end_time=$(get_timestamp)
-        local duration=$((end_time - start_time))
-        debug_log "Timer $timer_name: ${duration}s" "PERF"
-        echo "$duration"
+        
+        # Validate end_time is also numeric
+        if [[ "$end_time" =~ ^[0-9]+$ ]]; then
+            local duration=$((end_time - start_time))
+            debug_log "Timer $timer_name: ${duration}s" "PERF"
+            echo "$duration"
+        else
+            debug_log "Invalid end timestamp from get_timestamp: $end_time" "ERROR"
+            echo "0"
+        fi
     else
-        debug_log "Timer $timer_name was not started" "WARN"
+        if [[ -n "$start_time" ]]; then
+            debug_log "Timer $timer_name has invalid start time: $start_time" "WARN"
+        else
+            debug_log "Timer $timer_name was not started" "WARN"
+        fi
         echo "0"
     fi
 }

@@ -542,8 +542,8 @@ download_statusline() {
     local failed_modules=()
     
     for module in "${modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
-        local module_path="$LIB_DIR/$module"
+        module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
+        module_path="$LIB_DIR/$module"
         
         if curl -fsSL "$module_url" -o "$module_path"; then
             print_status "✓ Downloaded $module"
@@ -652,7 +652,7 @@ EOF
     fi
     
     # Clean up temp file if it still exists
-    [ -f "$temp_settings" ] && rm -f "$temp_settings"
+    [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
 # Function to migrate existing installation
@@ -694,31 +694,41 @@ migrate_existing_installation() {
     fi
 }
 
-# Function to generate default Config.toml
-generate_default_config() {
-    print_status "Generating default Config.toml..."
+# Function to generate flat Config.toml with backup support
+download_config_template() {
+    print_status "Setting up comprehensive TOML configuration..."
     
-    # Check if statusline script can generate config
-    if [ -x "$STATUSLINE_PATH" ]; then
-        local error_output
-        if error_output=$("$STATUSLINE_PATH" --generate-config "$CONFIG_PATH" 2>&1); then
-            print_success "✅ Generated Config.toml at: $CONFIG_PATH"
+    # Create backup of existing config if present
+    if [[ -f "$CONFIG_PATH" ]]; then
+        local backup_path="${CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "📄 Existing Config.toml found, creating backup..."
+        if cp "$CONFIG_PATH" "$backup_path"; then
+            print_success "✅ Backup created: $backup_path"
+        else
+            print_warning "⚠️ Failed to create backup, continuing..."
+        fi
+    fi
+    
+    # Download comprehensive config template from repository
+    local config_template_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/Config.toml"
+    print_status "🔧 Downloading comprehensive Config.toml template..."
+    
+    if curl -fsSL "$config_template_url" -o "$CONFIG_PATH"; then
+        # Verify the downloaded file is valid
+        if [[ -f "$CONFIG_PATH" ]] && [[ -s "$CONFIG_PATH" ]]; then
+            local line_count=$(wc -l < "$CONFIG_PATH" 2>/dev/null || echo "0")
+            print_success "✅ Downloaded comprehensive Config.toml template ($line_count lines)"
             print_status "💡 Edit $CONFIG_PATH to customize your statusline"
+            print_status "🔧 All settings use flat format (e.g., theme.name = \"catppuccin\")"
+            print_status "📚 Template includes 280+ configuration options with documentation"
             return 0
         else
-            print_warning "Could not generate Config.toml (statusline will use built-in defaults)"
-            if [[ -n "$error_output" ]]; then
-                print_warning "Error details: $error_output"
-                case "$error_output" in
-                    *"Permission denied"*) print_status "💡 Try: chmod +x $STATUSLINE_PATH" ;;
-                    *"No such file"*) print_status "💡 Check that $CONFIG_PATH directory exists" ;;
-                    *"Invalid"*) print_status "💡 Verify statusline script is not corrupted" ;;
-                esac
-            fi
+            print_error "❌ Downloaded config template appears to be empty or invalid"
             return 1
         fi
     else
-        print_warning "Statusline script not executable, skipping Config.toml generation"
+        print_error "❌ Failed to download config template from: $config_template_url"
+        print_status "🔍 This might be a network issue or the template file doesn't exist in branch: $INSTALL_BRANCH"
         return 1
     fi
 }
@@ -934,7 +944,7 @@ main() {
     check_bash_compatibility
     make_executable
     configure_settings
-    generate_default_config || true  # Don't fail if config generation fails
+    download_config_template  # Fail installation if config template download fails
     
     echo
     if verify_installation; then

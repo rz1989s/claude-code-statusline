@@ -478,10 +478,10 @@ ENV_CONFIG_THEME=classic ~/.claude/statusline.sh     # Traditional
 
 # Or create a simple Config.toml
 cat > Config.toml << 'EOF'
-[theme]
+theme.name =
 name = "catppuccin"
 
-[features]
+# Features section converted to flat format
 show_commits = true
 show_cost_tracking = true
 show_mcp_status = true
@@ -627,22 +627,22 @@ After successful installation, explore the **powerful TOML configuration system*
 ```bash
 # Minimal setup - just choose a theme
 cat > Config.toml << 'EOF'
-[theme]
+theme.name =
 name = "catppuccin"
 EOF
 
 # Developer setup - all features enabled
 cat > Config.toml << 'EOF'
-[theme]
+theme.name =
 name = "catppuccin"
 
-[features]
+# Features section converted to flat format
 show_commits = true
 show_version = true
 show_mcp_status = true
 show_cost_tracking = true
 
-[timeouts]
+# Timeouts section converted to flat format
 mcp = "3s"
 ccusage = "3s"
 EOF

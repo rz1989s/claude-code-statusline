@@ -49,15 +49,15 @@ execute_mcp_list() {
         return 1
     fi
     
-    # Use universal caching system (2-minute cache - MCP servers don't disconnect frequently)
+    # Use universal caching system (5-minute cache - MCP servers don't disconnect frequently)
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         # Use direct command instead of function call for cache compatibility
         if command_exists timeout; then
-            cache_external_command "claude_mcp_list" "120" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
-            cache_external_command "claude_mcp_list" "120" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
         else
-            cache_external_command "claude_mcp_list" "120" "validate_command_output" claude mcp list 2>/dev/null
+            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
         _execute_mcp_list_direct "$timeout_duration"

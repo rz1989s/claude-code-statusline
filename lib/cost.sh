@@ -8,6 +8,10 @@
 # ccusage integration, including session costs, daily/weekly/monthly totals,
 # and active billing block management.
 #
+
+# CRITICAL EMERGENCY FIX: Set date format defaults immediately to fix DAY $0.00 bug
+[[ -z "$CONFIG_DATE_FORMAT" ]] && export CONFIG_DATE_FORMAT="%Y-%m-%d"
+[[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]] && export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
 # Dependencies: core.sh, security.sh
 # ============================================================================
 
@@ -24,7 +28,7 @@ export STATUSLINE_COST_LOADED=true
 # Cache settings for cost data - differentiated by data type
 export COST_CACHE_DURATION_LIVE=30        # 30 seconds - active blocks (real-time)
 export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
-export COST_CACHE_DURATION_DAILY=600      # 10 minutes - today's cost
+export COST_CACHE_DURATION_DAILY=60       # 1 minute - today's cost
 export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
 export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
 # Use the proper XDG-compliant cache directory from cache.sh module
@@ -253,6 +257,15 @@ execute_ccusage_with_cache() {
 calculate_cost_dates() {
     local seven_days_ago thirty_days_ago today
     
+    # CRITICAL FIX: Ensure date format variables are never empty (fallback to hardcoded defaults)
+    # This fixes the DAY $0.00 issue when TOML configuration fails to load
+    if [[ -z "$CONFIG_DATE_FORMAT" ]]; then
+        export CONFIG_DATE_FORMAT="%Y-%m-%d"
+    fi
+    if [[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]]; then
+        export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
+    fi
+    
     # Calculate dates with proper fallbacks
     if date -d '7 days ago' "+$CONFIG_DATE_FORMAT_COMPACT" >/dev/null 2>&1; then
         # GNU date (Linux)
@@ -434,23 +447,12 @@ process_active_blocks() {
     
     local block_cost remaining_minutes is_active
     block_cost=$(echo "$block_data" | jq -r '.blocks[0].costUSD // 0' 2>/dev/null)
-    remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // 0' 2>/dev/null)
+    remaining_minutes=$(echo "$block_data" | jq -r '.blocks[0].projection.remainingMinutes // null' 2>/dev/null)
     is_active=$(echo "$block_data" | jq -r '.blocks[0].isActive // false' 2>/dev/null)
     
-    # Simple and reliable block detection: only check isActive flag
+    # Enhanced block detection with three states
     if [[ "$is_active" == "true" ]]; then
-        # Calculate time remaining
-        local hours=$((remaining_minutes / 60))
-        local mins=$((remaining_minutes % 60))
-        local time_str=""
-        
-        if [[ "$hours" -gt 0 ]]; then
-            time_str="${hours}h ${mins}m left"
-        else
-            time_str="${mins}m left"
-        fi
-        
-        # Get reset time from endTime and convert to local time
+        # Get reset time from endTime and convert to local time (always needed)
         local end_time reset_time
         end_time=$(echo "$block_data" | jq -r '.blocks[0].endTime // ""' 2>/dev/null)
         
@@ -463,9 +465,26 @@ print(local_time.strftime('%H.%M'))
 " "")
         fi
         
-        local block_info reset_info
+        local block_info reset_info time_str
         block_info=$(printf "%s%s \$%.2f" "$CONFIG_LIVE_BLOCK_EMOJI" "$CONFIG_LIVE_LABEL" "$block_cost")
         
+        # Check if we have valid projection data
+        if [[ "$remaining_minutes" != "null" && "$remaining_minutes" -gt 0 ]]; then
+            # Valid projection: show normal countdown
+            local hours=$((remaining_minutes / 60))
+            local mins=$((remaining_minutes % 60))
+            
+            if [[ "$hours" -gt 0 ]]; then
+                time_str="${hours}h ${mins}m left"
+            else
+                time_str="${mins}m left"
+            fi
+        else
+            # Active block but no projection: API still calculating
+            time_str="waiting API response..."
+        fi
+        
+        # Format reset info
         if [[ -n "$reset_time" ]]; then
             reset_info=$(printf "$CONFIG_RESET_LABEL at %s (%s)" "$reset_time" "$time_str")
         else

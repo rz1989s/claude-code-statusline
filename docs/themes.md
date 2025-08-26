@@ -164,29 +164,25 @@ ENV_CONFIG_THEME=garden ./statusline.sh
 **TOML Configuration:**
 ```toml
 # In your Config.toml
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
 # Catppuccin pairs beautifully with these settings
-[features]
-show_commits = true
-show_version = true
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
+features.show_commits = true
+features.show_version = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
 
-[emojis]
-opus = "🧠"
-sonnet = "🎵"
-haiku = "⚡"
-clean_status = "✅"
-dirty_status = "📁"
-live_block = "🔥"
+emojis.opus = "🧠"
+emojis.sonnet = "🎵"
+emojis.haiku = "⚡"
+emojis.clean_status = "✅"
+emojis.dirty_status = "📁"
+emojis.live_block = "🔥"
 
-[labels]
-commits = "Commits:"
-repo = "REPO"
-mcp = "MCP"
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.mcp = "MCP"
 ```
 
 **Color Palette** (Catppuccin Mocha):
