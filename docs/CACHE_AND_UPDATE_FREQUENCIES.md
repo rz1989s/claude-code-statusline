@@ -1,5 +1,13 @@
 # Cache and Update Frequencies
 
+## Quick Reference
+
+**Real-time (no cache):** Directory, commits today, submodules  
+**Fast updates (<1min):** Git branch/status (30s), costs (30s-2min)  
+**Slow updates (>1hr):** Weekly/monthly costs, Claude version (15min), MCP servers (5min)
+
+---
+
 This document details all time-related constants and update frequencies for information displayed in the Claude Code statusline.
 
 ## All Time-Related Constants
@@ -9,7 +17,8 @@ This document details all time-related constants and update frequencies for info
 |---|---|---|---|
 | `CACHE_DURATION_SESSION` | **0** | Never expires | Command existence checks |
 | `CACHE_DURATION_PERMANENT` | **86400** | 24 hours | System info (OS, architecture) |
-| `CACHE_DURATION_VERY_LONG` | **21600** | 6 hours | Claude version |
+| `CACHE_DURATION_CLAUDE_VERSION` | **900** | 15 minutes | Claude version checks |
+| `CACHE_DURATION_VERY_LONG` | **21600** | 6 hours | Other long-term caches |
 | `CACHE_DURATION_LONG` | **3600** | 1 hour | Git config, version files |
 | `CACHE_DURATION_MEDIUM` | **300** | 5 minutes | MCP servers, git submodules, directory info |
 | `CACHE_DURATION_SHORT` | **30** | 30 seconds | Git repo check, branches |
@@ -45,7 +54,7 @@ This document details all time-related constants and update frequencies for info
 | **📊 Git Status (clean/dirty)** | 30 seconds | **Every 30s** | `CACHE_DURATION_SHORT` |
 | **📝 Commits Today** | None | **Real-time** | Direct git query, no caching |
 | **📦 Git Submodules** | None | **Real-time** | Direct count, no explicit caching |
-| **⚡ Claude Version** | 6 hours | **Every 6 hours** | `CACHE_DURATION_VERY_LONG` |
+| **⚡ Claude Version** | 15 minutes | **Every 15 minutes** | `CACHE_DURATION_CLAUDE_VERSION` |
 | **🔌 MCP Server List** | 5 minutes | **Every 5 minutes** | `CACHE_DURATION_MEDIUM` |
 | **🔌 MCP Status (connected/total)** | 5 minutes | **Every 5 minutes** | `CACHE_DURATION_MEDIUM` |
 | **💰 Session Cost** | 2 minutes | **Every 2 minutes** | `COST_CACHE_DURATION_SESSION` |
@@ -60,7 +69,7 @@ This document details all time-related constants and update frequencies for info
 **Most Frequent (Real-time):** Directory path, commits today, submodules  
 **High Frequency (≤30s):** Git branch, git status, active blocks, block reset  
 **Medium Frequency (1-2min):** Session cost, today's cost  
-**Low Frequency (1-6hr):** Weekly cost, monthly cost, Claude version, MCP servers  
+**Low Frequency (15min-6hr):** Claude version (15min), MCP servers (5min), weekly/monthly costs  
 **Rare Updates (24hr+):** System information (OS, architecture)
 
 ## Performance Optimization Strategy
