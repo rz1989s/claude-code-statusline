@@ -438,11 +438,6 @@ init_mcp_module() {
         return 1
     fi
     
-    # Log Claude CLI version for debugging
-    local claude_version
-    claude_version=$(claude --version 2>/dev/null | head -1)
-    debug_log "Claude CLI version: $claude_version" "INFO"
-    
     return 0
 }
 

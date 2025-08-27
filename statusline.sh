@@ -266,9 +266,9 @@ fi
 # 3. Get Claude version (with intelligent caching)
 claude_version="$CONFIG_UNKNOWN_VERSION"
 if command_exists claude; then
-    # Use universal caching system (6-hour cache - versions change very rarely)
+    # Use universal caching system (15-minute cache - detect updates quickly)
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
-        claude_raw=$(execute_cached_command "external_claude_version" "$CACHE_DURATION_VERY_LONG" "validate_command_output" "false" "false" claude --version)
+        claude_raw=$(execute_cached_command "external_claude_version" "$CACHE_DURATION_CLAUDE_VERSION" "validate_command_output" "false" "false" claude --version)
         if [[ -n "$claude_raw" ]]; then
             # Extract version number from output
             claude_version=$(echo "$claude_raw" | head -1 | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
