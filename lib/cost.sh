@@ -324,7 +324,7 @@ get_daily_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_WEEKLY"
+    execute_ccusage_with_cache "$DAILY_CACHE_FILE" "daily --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_DAILY"
 }
 
 # Get monthly cost data (30 days)

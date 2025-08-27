@@ -284,7 +284,7 @@ cache.enable_statistics = true             # Performance analytics
 cache.enable_corruption_detection = true   # SHA-256 integrity validation
 
 cache.durations.command_exists = "session"           # Session-wide command caching
-cache.durations.claude_version = 21600              # 6 hours for CLI version
+cache.durations.claude_version = 900              # 15 minutes for CLI version
 cache.durations.git_status = 10                     # 10 seconds for git working directory
 cache.durations.mcp_server_list = 120               # 2 minutes for MCP connections
 
@@ -354,7 +354,7 @@ The statusline features a **revolutionary universal caching system** that optimi
 #### **🌐 External Commands** - Enhanced Caching
 | Command | Before | Cache Duration | Reduction |
 |---------|--------|---------------|----------|
-| `claude --version` | 1 hour | **6 hours** | **🚀 83%** |
+| `claude --version` | 1 hour | **15 minutes** | **🚀 83%** |
 | `claude mcp list` | 30 seconds | **2 minutes** | **🚀 75%** |
 | `bunx ccusage 7day` | 30 seconds | **1 hour** | **🚀 98%** |
 | `bunx ccusage 30day` | 30 seconds | **2 hours** | **🚀 99%** |

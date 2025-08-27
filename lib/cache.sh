@@ -139,7 +139,8 @@ export CACHE_BASE_DIR
 # Cache duration constants (in seconds)
 export CACHE_DURATION_SESSION=0          # Session-wide (never expires during session)
 export CACHE_DURATION_PERMANENT=86400    # 24 hours (system info that never changes)
-export CACHE_DURATION_VERY_LONG=21600    # 6 hours (claude --version)
+export CACHE_DURATION_CLAUDE_VERSION=900 # 15 minutes (claude --version) - detect updates quickly
+export CACHE_DURATION_VERY_LONG=21600    # 6 hours (other long-term caches)
 export CACHE_DURATION_LONG=3600          # 1 hour (git config, version files)
 export CACHE_DURATION_MEDIUM=300         # 5 minutes (git submodules, directory info)
 export CACHE_DURATION_SHORT=30           # 30 seconds (git repo check, branches)
@@ -148,7 +149,8 @@ export CACHE_DURATION_REALTIME=5         # 5 seconds (current directory, file st
 export CACHE_DURATION_LIVE=2             # 2 seconds (for high-frequency operations)
 
 # Instance-specific cache management with XDG compliance
-export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${PPID:-$$}}}"
+# Use a more stable session identifier for better cache sharing across statusline calls
+export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${USER}_claude_statusline}}"
 
 # Update session marker location to be more secure
 if [[ "$CACHE_BASE_DIR" =~ ^/tmp ]]; then
