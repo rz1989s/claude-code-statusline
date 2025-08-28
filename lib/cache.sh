@@ -180,14 +180,23 @@ get_repo_identifier() {
     local repo_path="${1:-$PWD}"
     local hash_method="${2:-path}"
     
+    # Validate path length - switch to hash method for extremely long paths
+    if [[ ${#repo_path} -gt 200 ]]; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && \
+            debug_log "Repository path too long (${#repo_path} chars), using hash method" "INFO"
+        hash_method="hash"
+    fi
+    
     case "$hash_method" in
         "hash")
             # Use SHA-256 hash for shorter keys
             echo "$repo_path" | sha256sum 2>/dev/null | cut -d' ' -f1 | cut -c1-8
             ;;
         "path"|*)
-            # Use sanitized path (default)
-            echo "${repo_path//\//_}"
+            # Use sanitized path with safer delimiter to prevent collisions
+            # Double underscore reduces collision risk between paths like:
+            # /home/user_project vs /home/user/project
+            echo "${repo_path//\//__}"
             ;;
     esac
 }
