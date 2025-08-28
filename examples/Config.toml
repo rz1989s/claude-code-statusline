@@ -77,8 +77,8 @@ emojis.live_block = "🔥"
 # === TIMEOUTS ===
 # Timeout values for external command execution
 timeouts.mcp = "10s"
-timeouts.version = "2s"
-timeouts.ccusage = "8s"
+timeouts.version = "10s"
+timeouts.ccusage = "10s"
 
 # === DISPLAY LABELS ===
 # Text labels used throughout the statusline
@@ -119,7 +119,7 @@ cache.durations.file_operations = 2
 # Performance and reliability settings
 cache.performance.max_lock_retries = 10
 cache.performance.lock_retry_delay_ms = "100-500"
-cache.performance.atomic_write_timeout = 5
+cache.performance.atomic_write_timeout = 10
 cache.performance.cache_cleanup_interval = 300
 cache.performance.max_cache_age_hours = 168
 
@@ -182,7 +182,7 @@ paths.log_file = "~/.cache/claude-code-statusline/statusline.log"
 # Optimization settings
 performance.parallel_data_collection = true
 performance.max_concurrent_operations = 3
-performance.git_operation_timeout = "5s"
+performance.git_operation_timeout = "10s"
 performance.network_operation_timeout = "10s"
 performance.enable_smart_caching = true
 performance.cache_compression = false
@@ -246,7 +246,7 @@ profiles.demo.show_commits = false
 plugins.enabled = false
 plugins.auto_discovery = true
 plugins.plugin_dirs = ["~/.config/claude-code-statusline/plugins", "./plugins"]
-plugins.timeout_per_plugin = "2s"
+plugins.timeout_per_plugin = "10s"
 
 # Built-in plugin configurations
 plugins.git_extended.enabled = false

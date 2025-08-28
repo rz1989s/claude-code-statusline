@@ -36,7 +36,7 @@ load_cache_configuration() {
     # Performance configuration
     export CACHE_CONFIG_MAX_LOCK_RETRIES=${ENV_CONFIG_CACHE_PERFORMANCE_MAX_LOCK_RETRIES:-10}
     export CACHE_CONFIG_LOCK_RETRY_DELAY=${ENV_CONFIG_CACHE_PERFORMANCE_LOCK_RETRY_DELAY_MS:-"100-500"}
-    export CACHE_CONFIG_ATOMIC_TIMEOUT=${ENV_CONFIG_CACHE_PERFORMANCE_ATOMIC_WRITE_TIMEOUT:-5}
+    export CACHE_CONFIG_ATOMIC_TIMEOUT=${ENV_CONFIG_CACHE_PERFORMANCE_ATOMIC_WRITE_TIMEOUT:-10}
     export CACHE_CONFIG_CLEANUP_INTERVAL=${ENV_CONFIG_CACHE_PERFORMANCE_CACHE_CLEANUP_INTERVAL:-300}
     export CACHE_CONFIG_MAX_AGE_HOURS=${ENV_CONFIG_CACHE_PERFORMANCE_MAX_CACHE_AGE_HOURS:-168}
     
@@ -71,7 +71,7 @@ load_cache_configuration() {
                     [[ -z "${ENV_CONFIG_CACHE_PERFORMANCE_MAX_LOCK_RETRIES:-}" ]] && \
                         CACHE_CONFIG_MAX_LOCK_RETRIES=$(echo "$perf_config" | jq -r '.max_lock_retries // 10')
                     [[ -z "${ENV_CONFIG_CACHE_PERFORMANCE_ATOMIC_WRITE_TIMEOUT:-}" ]] && \
-                        CACHE_CONFIG_ATOMIC_TIMEOUT=$(echo "$perf_config" | jq -r '.atomic_write_timeout // 5')
+                        CACHE_CONFIG_ATOMIC_TIMEOUT=$(echo "$perf_config" | jq -r '.atomic_write_timeout // 10')
                 fi
                 
                 # Load security settings
