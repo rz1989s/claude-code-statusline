@@ -317,7 +317,20 @@ get_session_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
+    
+    # Use repository-aware session cache file to prevent cross-contamination
+    local session_cache_file
+    if [[ "${CACHE_CONFIG_SESSION_ISOLATION:-}" == "repository" ]]; then
+        local repo_id
+        repo_id=$(get_repo_identifier "$PWD" "path")
+        session_cache_file="$COST_CACHE_DIR/session_${repo_id}.json"
+        debug_log "Using repository-aware session cache: $(basename "$session_cache_file")" "INFO"
+    else
+        session_cache_file="$SESSION_CACHE_FILE"
+        debug_log "Using shared session cache: $(basename "$session_cache_file")" "INFO"
+    fi
+    
+    execute_ccusage_with_cache "$session_cache_file" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
 }
 
 # Get daily cost data (7 days)

@@ -46,6 +46,13 @@ load_cache_configuration() {
     export CACHE_CONFIG_ENABLE_CHECKSUMS=${ENV_CONFIG_CACHE_SECURITY_ENABLE_CHECKSUMS:-"true"}
     export CACHE_CONFIG_VALIDATE_ON_READ=${ENV_CONFIG_CACHE_SECURITY_VALIDATE_ON_READ:-"true"}
     
+    # Instance isolation configuration
+    export CACHE_CONFIG_ISOLATION_MODE=${ENV_CONFIG_CACHE_ISOLATION_MODE:-"repository"}
+    export CACHE_CONFIG_MCP_ISOLATION=${ENV_CONFIG_CACHE_MCP_ISOLATION:-"repository"}
+    export CACHE_CONFIG_GIT_ISOLATION=${ENV_CONFIG_CACHE_GIT_ISOLATION:-"repository"}
+    export CACHE_CONFIG_COST_ISOLATION=${ENV_CONFIG_CACHE_COST_ISOLATION:-"shared"}
+    export CACHE_CONFIG_SESSION_ISOLATION=${ENV_CONFIG_CACHE_SESSION_ISOLATION:-"repository"}
+    
     # Load TOML configuration if available and no environment overrides
     if [[ "${STATUSLINE_CONFIG_LOADED:-}" == "true" ]] && command -v jq >/dev/null 2>&1; then
         local toml_data="${STATUSLINE_TOML_DATA:-}"
@@ -82,6 +89,22 @@ load_cache_configuration() {
                         CACHE_CONFIG_ENABLE_CHECKSUMS=$(echo "$sec_config" | jq -r '.enable_checksums // true')
                     [[ -z "${ENV_CONFIG_CACHE_SECURITY_VALIDATE_ON_READ:-}" ]] && \
                         CACHE_CONFIG_VALIDATE_ON_READ=$(echo "$sec_config" | jq -r '.validate_on_read // true')
+                fi
+                
+                # Load isolation settings
+                local isolation_config
+                isolation_config=$(echo "$cache_config" | jq -r '.isolation // {}' 2>/dev/null)
+                if [[ "$isolation_config" != "null" && "$isolation_config" != "{}" ]]; then
+                    [[ -z "${ENV_CONFIG_CACHE_ISOLATION_MODE:-}" ]] && \
+                        CACHE_CONFIG_ISOLATION_MODE=$(echo "$isolation_config" | jq -r '.mode // "repository"')
+                    [[ -z "${ENV_CONFIG_CACHE_MCP_ISOLATION:-}" ]] && \
+                        CACHE_CONFIG_MCP_ISOLATION=$(echo "$isolation_config" | jq -r '.mcp // "repository"')
+                    [[ -z "${ENV_CONFIG_CACHE_GIT_ISOLATION:-}" ]] && \
+                        CACHE_CONFIG_GIT_ISOLATION=$(echo "$isolation_config" | jq -r '.git // "repository"')
+                    [[ -z "${ENV_CONFIG_CACHE_COST_ISOLATION:-}" ]] && \
+                        CACHE_CONFIG_COST_ISOLATION=$(echo "$isolation_config" | jq -r '.cost // "shared"')
+                    [[ -z "${ENV_CONFIG_CACHE_SESSION_ISOLATION:-}" ]] && \
+                        CACHE_CONFIG_SESSION_ISOLATION=$(echo "$isolation_config" | jq -r '.session // "repository"')
                 fi
                 
                 [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Loaded cache configuration from TOML" "INFO"
@@ -147,6 +170,94 @@ export CACHE_DURATION_SHORT=30           # 30 seconds (git repo check, branches)
 export CACHE_DURATION_VERY_SHORT=10      # 10 seconds (git status, current branch)
 export CACHE_DURATION_REALTIME=5         # 5 seconds (current directory, file status)
 export CACHE_DURATION_LIVE=2             # 2 seconds (for high-frequency operations)
+
+# ============================================================================
+# UNIFIED CACHE KEY GENERATION
+# ============================================================================
+
+# Get repository identifier for cache isolation
+get_repo_identifier() {
+    local repo_path="${1:-$PWD}"
+    local hash_method="${2:-path}"
+    
+    # Validate path length - switch to hash method for extremely long paths
+    if [[ ${#repo_path} -gt 200 ]]; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && \
+            debug_log "Repository path too long (${#repo_path} chars), using hash method" "INFO"
+        hash_method="hash"
+    fi
+    
+    case "$hash_method" in
+        "hash")
+            # Use SHA-256 hash for shorter keys
+            echo "$repo_path" | sha256sum 2>/dev/null | cut -d' ' -f1 | cut -c1-8
+            ;;
+        "path"|*)
+            # Use sanitized path with safer delimiter to prevent collisions
+            # Double underscore reduces collision risk between paths like:
+            # /home/user_project vs /home/user/project
+            echo "${repo_path//\//__}"
+            ;;
+    esac
+}
+
+# Generate instance-aware cache key with configurable isolation
+generate_instance_cache_key() {
+    local base_key="$1"
+    local isolation_mode="${2:-$CACHE_CONFIG_ISOLATION_MODE}"
+    local repo_path="${3:-$PWD}"
+    
+    # Validate isolation mode
+    case "$isolation_mode" in
+        "repository")
+            local repo_id
+            repo_id=$(get_repo_identifier "$repo_path" "path")
+            echo "${base_key}_${repo_id}"
+            ;;
+        "instance")
+            echo "${base_key}_${CACHE_INSTANCE_ID}"
+            ;;
+        "shared")
+            echo "$base_key"
+            ;;
+        *)
+            # Default to repository isolation for safety
+            [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && \
+                debug_log "Unknown isolation mode '$isolation_mode', defaulting to repository" "WARN"
+            local repo_id
+            repo_id=$(get_repo_identifier "$repo_path" "path")
+            echo "${base_key}_${repo_id}"
+            ;;
+    esac
+}
+
+# Generate cache key for specific data types with their configured isolation
+generate_typed_cache_key() {
+    local base_key="$1"
+    local data_type="$2"  # mcp, git, cost, session
+    local repo_path="${3:-$PWD}"
+    
+    local isolation_mode
+    case "$data_type" in
+        "mcp")
+            isolation_mode="$CACHE_CONFIG_MCP_ISOLATION"
+            ;;
+        "git")
+            isolation_mode="$CACHE_CONFIG_GIT_ISOLATION"
+            ;;
+        "cost")
+            isolation_mode="$CACHE_CONFIG_COST_ISOLATION"
+            ;;
+        "session")
+            isolation_mode="$CACHE_CONFIG_SESSION_ISOLATION"
+            ;;
+        *)
+            isolation_mode="$CACHE_CONFIG_ISOLATION_MODE"
+            ;;
+    esac
+    
+    generate_instance_cache_key "$base_key" "$isolation_mode" "$repo_path"
+}
 
 # Instance-specific cache management with XDG compliance
 # Use a more stable session identifier for better cache sharing across statusline calls
@@ -1490,6 +1601,7 @@ init_cache_module
 export -f execute_cached_command cache_command_exists cache_system_info
 export -f cache_git_operation cache_external_command
 export -f get_cache_file_path acquire_cache_lock release_cache_lock
+export -f get_repo_identifier generate_instance_cache_key generate_typed_cache_key
 export -f validate_basic_cache validate_json_cache validate_command_output
 export -f validate_git_cache validate_git_branch_name validate_system_cache
 export -f clear_all_cache clear_instance_cache show_cache_stats

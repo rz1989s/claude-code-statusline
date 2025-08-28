@@ -120,6 +120,14 @@ labels.reset = "RESET"              # Reset timer label
 cache.version_duration = 3600      # Cache Claude version for 1 hour
 cache.version_file = "/tmp/.claude_version_cache"  # Version cache file location
 
+# === CACHE ISOLATION (v2.1.0+) ===
+# Prevents cache contamination when running multiple Claude Code instances
+cache.isolation.mode = "repository"     # Default isolation mode
+cache.isolation.mcp = "repository"      # MCP servers per repository  
+cache.isolation.git = "repository"      # Git data per repository
+cache.isolation.cost = "shared"         # Cost tracking user-wide
+cache.isolation.session = "repository"  # Session costs per project
+
 # === DISPLAY FORMATS ===
 display.time_format = "%H:%M"        # 24-hour format (14:30)
 display.date_format = "%Y-%m-%d"     # ISO format (2024-08-18)

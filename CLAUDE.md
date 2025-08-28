@@ -86,6 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 - `features.show_mcp_status = true` - Feature toggles
 - `timeouts.mcp_timeout = "5s"` - Performance tuning
 - `cache.claude_version_ttl = "3600"` - Caching behavior
+- `cache.isolation.*` - Instance-aware cache isolation settings
 
 **Environment Overrides:**
 Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
@@ -96,6 +97,32 @@ Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
 3. `~/.claude/statusline/Config.toml` (user installation)
 4. `~/.config/claude-code-statusline/Config.toml` (XDG standard)
 5. Inline defaults
+
+## Cache Isolation System
+
+**Instance-Aware Caching (v2.1.0+):**
+Prevents cache contamination when running multiple Claude Code instances in different repositories.
+
+**Configuration Options:**
+```toml
+# Instance isolation settings
+cache.isolation.mode = "repository"     # Default: isolate by working directory
+cache.isolation.mcp = "repository"      # MCP servers per repository
+cache.isolation.git = "repository"      # Git data per repository
+cache.isolation.cost = "shared"         # Cost tracking user-wide
+cache.isolation.session = "repository"  # Session costs per project
+```
+
+**Isolation Modes:**
+- `"repository"` - Isolate by working directory (recommended)
+- `"instance"` - Isolate by process ID
+- `"shared"` - No isolation (legacy behavior)
+
+**Benefits:**
+- ✅ Each repository shows correct MCP servers
+- ✅ Git information properly isolated
+- ✅ Session costs tracked per project
+- ✅ Prevents cache cross-contamination
 
 ## Testing Architecture
 
