@@ -21,7 +21,7 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
 fi
 
 # ============================================================================
-# Claude Code Enhanced Statusline - Main Orchestrator (v2.0.6-refactored)
+# Claude Code Enhanced Statusline - Main Orchestrator (v2.1.0-refactored)
 # ============================================================================
 # 
 # This is the main orchestrator for the modularized Claude Code statusline.
@@ -137,7 +137,7 @@ debug_log "Configuration initialization completed in ${config_time}s" "INFO"
 # Handle command-line arguments (preserved from original)
 show_usage() {
     cat <<'EOF'
-Claude Code Statusline (Refactored v2.0.6)
+Claude Code Statusline (Refactored v2.1.0)
 ==========================================
 
 USAGE:

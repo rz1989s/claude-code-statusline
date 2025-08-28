@@ -131,6 +131,14 @@ cache.security.validate_on_read = true
 cache.security.secure_temp_files = true
 cache.security.instance_isolation = true
 
+# Instance isolation settings - prevent cache contamination between repositories
+# Options: "repository" (isolate by working directory), "instance" (by process), "shared" (no isolation)
+cache.isolation.mode = "repository"          # Default isolation mode for all cache types
+cache.isolation.mcp = "repository"           # MCP server status (prevents showing wrong servers)
+cache.isolation.git = "repository"           # Git operations (already repository-aware by design)
+cache.isolation.cost = "shared"              # Cost tracking (user-wide, should be shared)
+cache.isolation.session = "repository"       # Session costs (isolate per project)
+
 # Legacy compatibility settings
 cache.legacy.version_duration = 3600
 cache.legacy.version_file = "/tmp/.claude_version_cache"
