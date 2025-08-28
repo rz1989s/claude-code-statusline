@@ -44,7 +44,7 @@ We welcome contributions in many forms! Choose what resonates with your skills a
 
 ### 🎨 **Theme Creation & Design**
 - **Create beautiful themes** → Follow our theme system
-- **Ocean theme integration** → Ready to implement from examples/
+- **Custom theme development** → Create new themes beyond classic/garden/catppuccin
 - **Theme inheritance** → Planned future feature
 - **Visual improvements** → Screenshots, icons, ASCII art
 
@@ -164,7 +164,7 @@ We welcome contributions in many forms! Choose what resonates with your skills a
 - [ ] All tests pass: `npm test`
 - [ ] Linting passes: `npm run lint`
 - [ ] Statusline runs: `./statusline.sh --help`
-- [ ] Can generate config: `./statusline.sh --generate-config test.toml`
+- [ ] Can generate config: `cp examples/Config.toml ./Config.toml test.toml`
 
 ---
 
@@ -193,7 +193,7 @@ git checkout -b docs/documentation-improvement
    vim lib/themes.sh    # Example: adding Ocean theme
    
    # Test your changes frequently
-   ./statusline.sh --test-config
+   ./statusline.sh # Configuration is automatically loaded
    ```
 
 2. **Run Tests & Validation**:
@@ -217,7 +217,7 @@ git checkout -b docs/documentation-improvement
    ENV_CONFIG_THEME=catppuccin ./statusline.sh
    
    # Test configuration generation
-   ./statusline.sh --generate-config
+   cp examples/Config.toml ./Config.toml
    ./statusline.sh --validate-config
    ```
 
@@ -457,13 +457,13 @@ Before submitting a pull request:
 2. **Test Your Changes Thoroughly**:
    ```bash
    # Test with different configurations
-   ./statusline.sh --test-config
+   ./statusline.sh # Configuration is automatically loaded
    ENV_CONFIG_THEME=garden ./statusline.sh
    ENV_CONFIG_THEME=catppuccin ./statusline.sh
    
    # Test edge cases
    ./statusline.sh --help
-   ./statusline.sh --generate-config
+   cp examples/Config.toml ./Config.toml
    ```
 
 ### 📋 **PR Submission Guidelines**
@@ -739,9 +739,9 @@ The Ocean theme is **ready to implement** - it exists in `examples/sample-config
    ENV_CONFIG_THEME=your_theme ./statusline.sh
    
    # Generate config with your theme
-   ./statusline.sh --generate-config
+   cp examples/Config.toml ./Config.toml
    # Edit Config.toml to set theme.name = "your_theme"
-   ./statusline.sh --test-config
+   ./statusline.sh # Configuration is automatically loaded
    ```
 
 ### 📸 **Theme Documentation Requirements**
@@ -942,7 +942,7 @@ If you experience or witness unacceptable behavior:
 A: Absolutely! Start with documentation, themes, or testing. Everyone's contributions are valuable.
 
 **Q: How do I test my changes without affecting my system?**  
-A: Use the test environment and temporary configurations: `./statusline.sh --test-config test.toml`
+A: Use the test environment and temporary configurations: `./statusline.sh # Configuration is automatically loaded test.toml`
 
 **Q: What if I break something?**  
 A: Don't worry! That's what tests are for. Run `npm test` to catch issues early, and the community will help fix any problems.

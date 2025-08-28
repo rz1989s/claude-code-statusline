@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm test                              # Run all 77 tests
 npm run lint:all                     # Lint everything 
 npm run dev                          # Clean + test cycle
-./statusline.sh --test-config        # Validate current config
+# Current config is automatically loaded, no validation command needed
 ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
 ```
 
@@ -24,8 +24,7 @@ bats tests/**/*.bats --tap                          # Verbose output
 ```bash
 STATUSLINE_DEBUG=true ./statusline.sh          # Enable debug logging
 STATUSLINE_DEBUG=true npm test                 # Debug test execution
-./statusline.sh --validate-config              # Check config syntax
-./statusline.sh --help config                  # Config-specific help
+# Configuration errors are automatically reported during execution
 ```
 
 ## Project Architecture
@@ -63,9 +62,8 @@ npm run clean                       # Remove cache and test artifacts
 npm run ci                          # Full CI pipeline
 
 # Configuration management  
-./statusline.sh --generate-config   # Create Config.toml from settings
-./statusline.sh --reload-config     # Reload configuration
-./statusline.sh --compare-config    # Compare inline vs TOML
+# Config is automatically loaded from TOML files in discovery order
+# Edit examples/Config.toml or create your own based on the template
 
 # Performance profiling
 bats tests/benchmarks/test_performance.bats    # Performance benchmarks
@@ -137,7 +135,7 @@ Each module has include guard: `[[ "${STATUSLINE_*_LOADED:-}" == "true" ]] && re
 ## High-Priority Development Opportunities
 
 **Ready for Implementation:**
-1. **Ocean Theme** - Complete theme in `examples/sample-configs/ocean-theme.toml`, needs integration to `lib/themes.sh:apply_theme()`
+1. **Custom Theme System** - Framework exists for additional themes beyond classic, garden, and catppuccin
 2. **CI/CD Pipeline** - No `.github/workflows/` exists, critical infrastructure gap
 3. **Profile System** - Conditional configuration for work/personal contexts
 

@@ -184,7 +184,7 @@ The enterprise-grade TOML configuration system requires proper syntax and struct
 **Diagnosis**:
 ```bash
 # Check configuration discovery
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 
 # Expected output shows which config file is loaded:
 # Loading configuration from: ./Config.toml
@@ -196,10 +196,10 @@ The enterprise-grade TOML configuration system requires proper syntax and struct
 1. **Generate missing configuration**:
    ```bash
    # Generate Config.toml in current directory
-   ./statusline.sh --generate-config
+   cp examples/Config.toml ./Config.toml
    
    # Or generate in specific location
-   ./statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+   cp examples/Config.toml ./Config.toml ~/.config/claude-code-statusline/Config.toml
    ```
 
 2. **Check configuration discovery order**:
@@ -291,11 +291,11 @@ The enterprise-grade TOML configuration system requires proper syntax and struct
 ./statusline.sh --validate-config
 
 # 2. Regenerate configuration if heavily corrupted
-./statusline.sh --generate-config Config-backup.toml
+cp examples/Config.toml ./Config.toml Config-backup.toml
 # Then copy working sections to your Config.toml
 
 # 3. Test incrementally
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
@@ -307,7 +307,7 @@ The enterprise-grade TOML configuration system requires proper syntax and struct
 **Diagnosis**:
 ```bash
 # Test environment override
-ENV_CONFIG_THEME=garden ./statusline.sh --test-config
+ENV_CONFIG_THEME=garden ./statusline.sh # Configuration is automatically loaded
 
 # Should show:
 # Theme: garden (environment override)
@@ -339,8 +339,8 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config
 3. **Test override isolation**:
    ```bash
    # Test one variable at a time
-   ENV_CONFIG_THEME=classic ./statusline.sh --test-config
-   ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh --test-config
+   ENV_CONFIG_THEME=classic ./statusline.sh # Configuration is automatically loaded
+   ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh # Configuration is automatically loaded
    ```
 
 ---
@@ -352,7 +352,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config
 **Diagnosis**:
 ```bash
 # Test configuration loading
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 
 # Compare configurations
 ./statusline.sh --compare-config
@@ -373,8 +373,8 @@ ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-status
 2. **Test specific configuration file**:
    ```bash
    # Test specific config file explicitly
-   ./statusline.sh --test-config ./Config.toml
-   ./statusline.sh --test-config ~/.config/claude-code-statusline/Config.toml
+   ./statusline.sh # Configuration is automatically loaded ./Config.toml
+   ./statusline.sh # Configuration is automatically loaded ~/.config/claude-code-statusline/Config.toml
    ```
 
 3. **Clear cache if applicable**:
@@ -430,7 +430,7 @@ echo $COLORTERM
 echo -e "\\033[31mRed\\033[0m \\033[32mGreen\\033[0m \\033[34mBlue\\033[0m"
 
 # Test theme loading
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 ```
 
 **Solutions**:
@@ -469,7 +469,7 @@ echo -e "\\033[31mRed\\033[0m \\033[32mGreen\\033[0m \\033[34mBlue\\033[0m"
 **Diagnosis**:
 ```bash
 # Verify theme configuration
-./statusline.sh --test-config-verbose | grep -i theme
+./statusline.sh # Configuration is automatically loaded-verbose | grep -i theme
 
 # Check custom theme syntax
 ./statusline.sh --validate-config
@@ -506,7 +506,7 @@ echo -e "\\033[31mRed\\033[0m \\033[32mGreen\\033[0m \\033[34mBlue\\033[0m"
    blue = "\\033[94m"
    EOF
    
-   ./statusline.sh --test-config TestTheme.toml
+   ./statusline.sh # Configuration is automatically loaded TestTheme.toml
    ```
 
 ---
@@ -556,7 +556,7 @@ echo $LANG
 time ./statusline.sh
 
 # Test with verbose output to see where it hangs
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 ```
 
 **Solutions**:
@@ -590,7 +590,7 @@ time ./statusline.sh
    ```bash
    # Copy minimal config for performance
    cp examples/sample-configs/minimal-config.toml Config.toml
-   ./statusline.sh --test-config
+   ./statusline.sh # Configuration is automatically loaded
    ```
 
 ---
@@ -647,7 +647,7 @@ bunx ccusage --version
 bash -x ~/.claude/statusline/statusline.sh
 
 # Use verbose configuration testing
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 
 # Check specific configuration sections
 ./statusline.sh --compare-config
@@ -662,7 +662,7 @@ bash -x ~/.claude/statusline/statusline.sh
 **Diagnosis**:
 ```bash
 # Check configuration priority
-./statusline.sh --test-config-verbose | grep -i "loading\|config\|override"
+./statusline.sh # Configuration is automatically loaded-verbose | grep -i "loading\|config\|override"
 
 # List all potential config files
 ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-statusline.toml
@@ -680,8 +680,8 @@ ls -la Config.toml ~/.config/claude-code-statusline/Config.toml ~/.claude-status
    ```bash
    # Test with only one config source
    mv Config.toml Config.toml.backup
-   ./statusline.sh --generate-config Config.toml
-   ./statusline.sh --test-config
+   cp examples/Config.toml ./Config.toml Config.toml
+   ./statusline.sh # Configuration is automatically loaded
    ```
 
 ---
@@ -712,10 +712,10 @@ version_duration = 0    # Disable caching
 
 ```bash
 # 1. Regenerate configuration
-./statusline.sh --generate-config
+cp examples/Config.toml ./Config.toml
 
 # 2. Test configuration
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 
 # 3. Validate syntax
 ./statusline.sh --validate-config
@@ -741,7 +741,7 @@ gtimeout --version && echo "gtimeout OK" || echo "gtimeout MISSING"
 echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ./statusline.sh
 
 # 3. Test configuration loading
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 
 # 4. Isolate issues
 ENV_CONFIG_SHOW_MCP_STATUS=false ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh

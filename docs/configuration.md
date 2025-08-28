@@ -12,31 +12,25 @@ Transform your terminal with enterprise-grade configuration management - structu
 
 **From project directory:**
 ```bash
-# 1. Generate your Config.toml
-./statusline.sh --generate-config
+# 1. Copy the template
+cp examples/Config.toml ./Config.toml
 
 # 2. Customize it
 vim Config.toml
 
-# 3. Test it
-./statusline.sh --test-config
-
-# 4. Use it!
+# 3. Use it!
 ./statusline.sh
 ```
 
 **From anywhere (using installed statusline):**
 ```bash
-# 1. Generate your Config.toml
-~/.claude/statusline.sh --generate-config
+# 1. Copy the template  
+cp ~/.claude/statusline/examples/Config.toml ./Config.toml
 
 # 2. Customize it
 vim Config.toml
 
-# 3. Test it
-~/.claude/statusline.sh --test-config
-
-# 4. Use it!
+# 3. Use it!
 ~/.claude/statusline.sh
 ```
 
@@ -59,11 +53,11 @@ Your configuration is loaded in this **priority order** (highest to lowest):
 ```bash
 # Project-specific configuration (highest precedence)
 cd ~/my-project/
-./statusline.sh --generate-config        # Creates ./Config.toml
+cp examples/Config.toml ./Config.toml    # Copy template
 ./statusline.sh                          # Uses ./Config.toml
 
 # User-wide configuration
-./statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml
+cp examples/Config.toml ~/.config/claude-code-statusline/Config.toml
 ./statusline.sh                          # Uses ~/.config/.../Config.toml
 
 # Environment override (overrides all files)
@@ -230,35 +224,35 @@ colors.basic.white = "\\033[38;2;255;255;255m"  # Bright white
 
 ```bash
 # === GENERATE CONFIG FILES ===
-./statusline.sh --generate-config                    # Creates Config.toml in current directory
-./statusline.sh --generate-config MyTheme.toml       # Creates custom-named config file
-./statusline.sh --generate-config ~/.config/claude-code-statusline/Config.toml  # XDG location
+cp examples/Config.toml ./Config.toml # Copy template                    # Creates Config.toml in current directory
+cp examples/Config.toml ./Config.toml # Copy template MyTheme.toml       # Creates custom-named config file
+cp examples/Config.toml ./Config.toml # Copy template ~/.config/claude-code-statusline/Config.toml  # XDG location
 ```
 
 ### Configuration Testing & Validation
 
 ```bash
 # === TEST CONFIGURATIONS ===
-./statusline.sh --test-config                        # Test current configuration
-./statusline.sh --test-config MyTheme.toml           # Test specific config file
-./statusline.sh --test-config-verbose                # Detailed testing output
-./statusline.sh --validate-config                    # Validate configuration syntax
+./statusline.sh # Configuration is automatically loaded                        # Test current configuration
+./statusline.sh # Configuration is automatically loaded MyTheme.toml           # Test specific config file
+./statusline.sh # Configuration is automatically loaded-verbose                # Detailed testing output
+./statusline.sh                                      # Configuration validation happens automatically
 
 # === CONFIGURATION COMPARISON ===
-./statusline.sh --compare-config                     # Compare inline vs TOML settings
+# Configuration values are shown in debug mode: STATUSLINE_DEBUG=true ./statusline.sh                     # Compare inline vs TOML settings
 ```
 
 ### Live Configuration Management
 
 ```bash
 # === LIVE RELOAD & MANAGEMENT ===
-./statusline.sh --reload-config                      # Reload configuration now
-./statusline.sh --reload-interactive                 # Interactive config management menu
-./statusline.sh --watch-config 3                     # Watch for changes every 3 seconds
+./statusline.sh                                      # Configuration automatically reloaded
+# Configuration is automatically discovered and loaded on each run
+# Edit your TOML file and the changes will be applied immediately
 
 # === CONFIGURATION BACKUP & RESTORE ===
-./statusline.sh --backup-config backup-dir/          # Backup current configuration
-./statusline.sh --restore-config backup-dir/         # Restore from backup directory
+cp Config.toml backup-dir/Config.toml.backup         # Backup current configuration
+cp backup-dir/Config.toml.backup Config.toml         # Restore from backup
 ```
 
 ### Help System
@@ -266,7 +260,7 @@ colors.basic.white = "\\033[38;2;255;255;255m"  # Bright white
 ```bash
 # === HELP & DOCUMENTATION ===
 ./statusline.sh --help                               # Complete help documentation
-./statusline.sh --help config                        # Configuration-specific help
+./statusline.sh --help                               # General help information
 ```
 
 ---
@@ -529,7 +523,7 @@ Your **existing inline configuration continues to work** with zero changes requi
 
 ```bash
 # Generate Config.toml based on your current inline configuration
-./statusline.sh --generate-config
+cp examples/Config.toml ./Config.toml # Copy template
 
 # This creates Config.toml with all your current settings
 ```
@@ -538,7 +532,7 @@ Your **existing inline configuration continues to work** with zero changes requi
 
 ```bash
 # See the differences between inline and TOML settings
-./statusline.sh --compare-config
+# Configuration values are shown in debug mode: STATUSLINE_DEBUG=true ./statusline.sh
 
 # Output shows:
 # 📋 Current inline configuration:
@@ -553,7 +547,7 @@ Your **existing inline configuration continues to work** with zero changes requi
 
 ```bash
 # Test your new TOML configuration
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 
 # If tests pass, your migration is complete!
 ```
@@ -596,7 +590,7 @@ mcp = "3s"
 
 ```bash
 # Check configuration discovery
-./statusline.sh --test-config-verbose
+./statusline.sh # Configuration is automatically loaded-verbose
 
 # Expected output shows which config file is loaded:
 # Loading configuration from: ./Config.toml
@@ -607,7 +601,7 @@ mcp = "3s"
 
 ```bash
 # Validate TOML syntax
-./statusline.sh --validate-config
+./statusline.sh # Configuration errors are reported automatically
 
 # Common syntax issues:
 # ❌ Incorrect: theme = catppuccin
@@ -634,7 +628,7 @@ chmod 644 Config.toml
 
 ```bash
 # Test environment overrides
-ENV_CONFIG_THEME=garden ./statusline.sh --test-config
+ENV_CONFIG_THEME=garden ./statusline.sh # Configuration is automatically loaded
 
 # Check if override is working:
 # Environment variable overrides applied
@@ -644,7 +638,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config
 
 ```bash
 # Compare inline vs TOML to find discrepancies
-./statusline.sh --compare-config
+# Configuration values are shown in debug mode: STATUSLINE_DEBUG=true ./statusline.sh
 
 # Shows exact differences between configurations
 ```
@@ -705,7 +699,7 @@ show_cost_tracking = true
 ### 2. Test Incrementally
 ```bash
 # Test each change
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ### 3. Use Environment Overrides for Experimentation
