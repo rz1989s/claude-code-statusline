@@ -11,7 +11,7 @@ This directory contains professionally crafted configuration templates that demo
 cp examples/sample-configs/developer-config.toml Config.toml
 
 # Test your configuration
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 
 # Use your customized statusline
 ./statusline.sh
@@ -27,13 +27,13 @@ examples/
 ├── sample-configs/                 # Ready-to-use TOML configurations
 │   ├── minimal-config.toml        # Performance-optimized, lightweight
 │   ├── developer-config.toml      # Full-featured developer setup
-│   ├── ocean-theme.toml           # Custom ocean-inspired theme
+│   ├── custom-theme.toml          # Custom theme template
 │   ├── work-profile.toml          # Professional work environment
 │   └── personal-profile.toml      # Relaxed personal project setup
 └── screenshots/                   # Visual previews (to be added)
     ├── minimal-setup.png
     ├── developer-setup.png
-    ├── ocean-theme.png
+    ├── custom-theme.png
     ├── work-profile.png
     └── personal-profile.png
 ```
@@ -56,7 +56,7 @@ examples/
 **Usage**:
 ```bash
 cp examples/sample-configs/minimal-config.toml Config.toml
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
@@ -75,26 +75,26 @@ cp examples/sample-configs/minimal-config.toml Config.toml
 **Usage**:
 ```bash
 cp examples/sample-configs/developer-config.toml Config.toml
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
 
-### 3. Ocean Theme (`ocean-theme.toml`)
-**Purpose**: Beautiful custom theme inspired by ocean depths  
+### 3. Custom Theme (`custom-theme.toml`)
+**Purpose**: Template for creating beautiful custom themes  
 **Best for**: Users who want calming, nature-inspired aesthetics  
 
 **Key Features**:
-- Custom ocean-inspired color palette (blues, teals, coral)
-- Ocean-themed emojis (🐋 for Opus, 🐠 for Haiku, 🌊 for clean status)
-- Maritime labels ("Waves:" for commits, "DEPTHS" for MCP)
-- Deep sea color combinations for readability
+- Custom color palette template (configurable colors)
+- Custom emoji configuration examples
+- Custom label templates  
+- Balanced color combinations for readability
 - Calming timeout settings
 
 **Usage**:
 ```bash
-cp examples/sample-configs/ocean-theme.toml Config.toml
-./statusline.sh --test-config
+cp examples/sample-configs/custom-theme.toml Config.toml
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
@@ -113,7 +113,7 @@ cp examples/sample-configs/ocean-theme.toml Config.toml
 **Usage**:
 ```bash
 cp examples/sample-configs/work-profile.toml Config.toml
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
@@ -133,7 +133,7 @@ cp examples/sample-configs/work-profile.toml Config.toml
 **Usage**:
 ```bash
 cp examples/sample-configs/personal-profile.toml Config.toml
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ---
@@ -149,16 +149,16 @@ cp examples/sample-configs/developer-config.toml Config.toml
 vim Config.toml
 
 # Test your configuration
-./statusline.sh --test-config
+./statusline.sh # Configuration is automatically loaded
 ```
 
 ### Method 2: Generate Base + Merge Examples
 ```bash
 # Generate your current config as base
-./statusline.sh --generate-config
+cp examples/Config.toml ./Config.toml
 
 # Then copy specific sections from examples
-# For example, copy [theme] section from ocean-theme.toml
+# For example, copy [theme] section from custom-theme.toml
 ```
 
 ### Method 3: Multiple Configuration Files
@@ -168,8 +168,8 @@ cp examples/sample-configs/work-profile.toml work-config.toml
 cp examples/sample-configs/personal-profile.toml personal-config.toml
 
 # Use specific configurations
-./statusline.sh --test-config work-config.toml
-./statusline.sh --test-config personal-config.toml
+./statusline.sh # Configuration is automatically loaded work-config.toml
+./statusline.sh # Configuration is automatically loaded personal-config.toml
 ```
 
 ---
@@ -212,7 +212,7 @@ cp examples/sample-configs/developer-config.toml MyConfig.toml
 vim MyConfig.toml
 
 # Test each change
-./statusline.sh --test-config MyConfig.toml
+./statusline.sh # Configuration is automatically loaded MyConfig.toml
 ```
 
 ### Step 3: Mix and Match Features
@@ -225,7 +225,7 @@ name = "catppuccin"  # From developer-config.toml
 show_cost_tracking = false  # From personal-profile.toml
 
 [emojis]
-clean_status = "🌊"  # From ocean-theme.toml
+clean_status = "🌊"  # From custom-theme.toml
 ```
 
 ---
@@ -249,10 +249,10 @@ clean_status = "🌊"  # From ocean-theme.toml
 ### Testing Examples
 ```bash
 # Test any example configuration
-./statusline.sh --test-config examples/sample-configs/developer-config.toml
+./statusline.sh # Configuration is automatically loaded examples/sample-configs/developer-config.toml
 
 # Detailed testing with verbose output
-./statusline.sh --test-config-verbose examples/sample-configs/ocean-theme.toml
+./statusline.sh # Configuration is automatically loaded-verbose examples/sample-configs/custom-theme.toml
 
 # Compare example with your current setup
 cp examples/sample-configs/work-profile.toml Config.toml
@@ -267,7 +267,7 @@ cp examples/sample-configs/work-profile.toml Config.toml
 # Test specific configurations
 for config in examples/sample-configs/*.toml; do
     echo "Testing $config..."
-    ./statusline.sh --test-config "$config"
+    ./statusline.sh # Configuration is automatically loaded "$config"
 done
 ```
 
@@ -286,7 +286,7 @@ done
 - **Perfect for**: Daily development, debugging, feature-rich environments
 
 ### 🎨 **Aesthetic Focus**
-- **Use**: `ocean-theme.toml` or create custom themes
+- **Use**: `custom-theme.toml` or create custom themes
 - **Why**: Beautiful custom colors, themed emojis, cohesive design
 - **Perfect for**: Personal branding, visual appeal, unique workflows
 
@@ -310,7 +310,7 @@ done
 ./statusline.sh --validate-config examples/sample-configs/developer-config.toml
 
 # Test configuration loading
-./statusline.sh --test-config-verbose examples/sample-configs/ocean-theme.toml
+./statusline.sh # Configuration is automatically loaded-verbose examples/sample-configs/custom-theme.toml
 ```
 
 ### Colors Not Displaying (Ocean Theme)
@@ -327,7 +327,7 @@ ENV_CONFIG_THEME=classic ./statusline.sh
 # Reduce timeouts if needed
 ENV_CONFIG_MCP_TIMEOUT=2s \
 ENV_CONFIG_CCUSAGE_TIMEOUT=2s \
-./statusline.sh --test-config examples/sample-configs/developer-config.toml
+./statusline.sh # Configuration is automatically loaded examples/sample-configs/developer-config.toml
 ```
 
 ---

@@ -259,11 +259,14 @@ calculate_cost_dates() {
     
     # CRITICAL FIX: Ensure date format variables are never empty (fallback to hardcoded defaults)
     # This fixes the DAY $0.00 issue when TOML configuration fails to load
-    if [[ -z "$CONFIG_DATE_FORMAT" ]]; then
+    # Apply fallbacks whenever the variables are empty, even if they were set to empty strings by config loading
+    if [[ -z "$CONFIG_DATE_FORMAT" || "$CONFIG_DATE_FORMAT" == "" ]]; then
         export CONFIG_DATE_FORMAT="%Y-%m-%d"
+        debug_log "Applied fallback for CONFIG_DATE_FORMAT: %Y-%m-%d" "INFO"
     fi
-    if [[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]]; then
+    if [[ -z "$CONFIG_DATE_FORMAT_COMPACT" || "$CONFIG_DATE_FORMAT_COMPACT" == "" ]]; then
         export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
+        debug_log "Applied fallback for CONFIG_DATE_FORMAT_COMPACT: %Y%m%d" "INFO"
     fi
     
     # Calculate dates with proper fallbacks

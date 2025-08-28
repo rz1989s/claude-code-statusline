@@ -12,33 +12,27 @@ Create stunning visual experiences with structured theme configuration - from pr
 
 **From project directory:**
 ```bash
-# 1. Generate your base Config.toml
-./statusline.sh --generate-config
+# 1. Copy the base Config.toml template
+cp examples/Config.toml ./Config.toml
 
 # 2. Choose your theme in Config.toml
 vim Config.toml
-# Change: name = "catppuccin"  # or "classic", "garden", "custom"
+# Change: theme.name = "catppuccin"  # or "classic", "garden", "custom"
 
-# 3. Test your theme
-./statusline.sh --test-config
-
-# 4. Use your themed statusline!
+# 3. Use your themed statusline!
 ./statusline.sh
 ```
 
 **Using installed statusline:**
 ```bash
-# 1. Generate your base Config.toml
-~/.claude/statusline.sh --generate-config
+# 1. Copy the base Config.toml template
+cp ~/.claude/statusline/examples/Config.toml ./Config.toml
 
 # 2. Choose your theme in Config.toml
 vim Config.toml
-# Change: name = "catppuccin"  # or "classic", "garden", "custom"
+# Change: theme.name = "catppuccin"  # or "classic", "garden", "custom"
 
-# 3. Test your theme
-~/.claude/statusline.sh --test-config
-
-# 4. Use your themed statusline!
+# 3. Use your themed statusline!
 ~/.claude/statusline.sh
 ```
 
@@ -270,12 +264,12 @@ reset = "\\033[0m"         # Reset formatting
 
 ```bash
 # Test your custom theme before committing
-./statusline.sh --test-config
+./statusline.sh # Themes are automatically applied
 
 # Test specific config file with custom theme
-./statusline.sh --generate-config MyCustomTheme.toml
+cp examples/Config.toml ./Config.toml # Copy theme template MyCustomTheme.toml
 # Edit MyCustomTheme.toml with your colors
-./statusline.sh --test-config MyCustomTheme.toml
+./statusline.sh # Themes are automatically applied MyCustomTheme.toml
 ```
 
 ---
@@ -284,20 +278,20 @@ reset = "\\033[0m"         # Reset formatting
 
 ### Ocean Theme
 
-Deep ocean-inspired colors with blues and teals:
+Cool blue-inspired colors with various shades:
 
 ```toml
 [theme]
 name = "custom"
 
 [colors.basic]
-blue = "\\033[38;2;0;119;190m"      # Deep ocean blue - directories
-teal = "\\033[38;2;0;150;136m"      # Teal depths - commits  
-cyan = "\\033[38;2;0;188;212m"      # Surface water - models
-green = "\\033[38;2;76;175;80m"     # Seaweed green - success states
-yellow = "\\033[38;2;255;193;7m"    # Sandy shore - warnings
-red = "\\033[38;2;220;53;69m"       # Coral red - alerts
-white = "\\033[38;2;224;247;250m"   # Sea foam - text
+blue = "\\033[38;2;0;119;190m"      # Deep blue - directories
+teal = "\\033[38;2;0;150;136m"      # Teal shade - commits  
+cyan = "\\033[38;2;0;188;212m"      # Light cyan - models
+green = "\\033[38;2;76;175;80m"     # Bright green - success states
+yellow = "\\033[38;2;255;193;7m"    # Bright yellow - warnings
+red = "\\033[38;2;220;53;69m"       # Bright red - alerts
+white = "\\033[38;2;224;247;250m"   # Light white - text
 
 [colors.extended]
 orange = "\\033[38;2;255;165;0m"    # Sunset orange - time
@@ -434,13 +428,13 @@ version_prefix = "v"
 
 ```bash
 # === THEME CONFIGURATION GENERATION ===
-./statusline.sh --generate-config                    # Generate base Config.toml
-./statusline.sh --generate-config MyTheme.toml       # Generate custom theme file
+cp examples/Config.toml ./Config.toml # Copy theme template                    # Generate base Config.toml
+cp examples/Config.toml ./Config.toml # Copy theme template MyTheme.toml       # Generate custom theme file
 
 # === THEME TESTING ===
-./statusline.sh --test-config                        # Test current theme
-./statusline.sh --test-config MyTheme.toml           # Test specific theme file
-./statusline.sh --test-config-verbose                # Detailed theme testing
+./statusline.sh # Themes are automatically applied                        # Test current theme
+./statusline.sh # Themes are automatically applied MyTheme.toml           # Test specific theme file
+./statusline.sh # Themes are automatically applied-verbose                # Detailed theme testing
 
 # === THEME COMPARISON ===
 ./statusline.sh --compare-config                     # Compare theme settings
@@ -651,7 +645,7 @@ pure_red = "\\033[38;2;255;0;0m"      # RGB(255,0,0)
 pure_green = "\\033[38;2;0;255;0m"    # RGB(0,255,0)
 pure_blue = "\\033[38;2;0;0;255m"     # RGB(0,0,255)
 custom_purple = "\\033[38;2;128;0;128m" # RGB(128,0,128)
-ocean_blue = "\\033[38;2;0;119;190m"   # RGB(0,119,190)
+deep_blue = "\\033[38;2;0;119;190m"   # RGB(0,119,190)
 sunset_orange = "\\033[38;2;255;87;51m" # RGB(255,87,51)
 ```
 
@@ -696,16 +690,16 @@ echo -e "\\033[38;2;255;0;0mTrue Color Red\\033[0m"
 
 ```bash
 # === THEME VALIDATION ===
-./statusline.sh --test-config                        # Test current theme
+./statusline.sh # Themes are automatically applied                        # Test current theme
 ./statusline.sh --validate-config                    # Validate TOML syntax
 
 # === THEME COMPARISON ===
 ./statusline.sh --compare-config                     # Compare themes
 
 # === INTERACTIVE THEME TESTING ===
-ENV_CONFIG_THEME=classic ./statusline.sh --test-config       # Test classic
-ENV_CONFIG_THEME=garden ./statusline.sh --test-config        # Test garden  
-ENV_CONFIG_THEME=catppuccin ./statusline.sh --test-config    # Test catppuccin
+ENV_CONFIG_THEME=classic ./statusline.sh # Themes are automatically applied       # Test classic
+ENV_CONFIG_THEME=garden ./statusline.sh # Themes are automatically applied        # Test garden  
+ENV_CONFIG_THEME=catppuccin ./statusline.sh # Themes are automatically applied    # Test catppuccin
 ```
 
 ---
@@ -718,7 +712,7 @@ Your existing theme configuration **continues to work unchanged**! When you're r
 
 ```bash
 # Generate TOML from your current theme settings
-./statusline.sh --generate-config
+cp examples/Config.toml ./Config.toml # Copy theme template
 
 # This preserves your current theme choice in TOML format
 ```
@@ -764,7 +758,7 @@ blue = "\\033[38;2;0;0;255m"
 ./statusline.sh --compare-config
 
 # Test your migrated theme
-./statusline.sh --test-config
+./statusline.sh # Themes are automatically applied
 ```
 
 ---
@@ -779,7 +773,7 @@ echo $TERM                 # Should show terminal type
 echo $COLORTERM           # Should show color support
 
 # === VALIDATE THEME CONFIGURATION ===
-./statusline.sh --test-config-verbose
+./statusline.sh # Themes are automatically applied-verbose
 
 # Expected output:
 # Loading configuration from: ./Config.toml
@@ -808,7 +802,7 @@ echo $COLORTERM           # Should show color support
 
 ```bash
 # === TEST ENVIRONMENT THEME OVERRIDES ===
-ENV_CONFIG_THEME=garden ./statusline.sh --test-config
+ENV_CONFIG_THEME=garden ./statusline.sh # Themes are automatically applied
 
 # Check if override is working:
 # Theme: garden (environment override)
@@ -816,7 +810,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh --test-config
 # === TEST CUSTOM COLOR OVERRIDES ===
 ENV_CONFIG_THEME=custom \
 ENV_CONFIG_RED="\\033[91m" \
-./statusline.sh --test-config
+./statusline.sh # Themes are automatically applied
 ```
 
 ### Terminal-Specific Issues
@@ -871,7 +865,7 @@ blue = "\\033[38;2;38;139;210m"   # High contrast blue
 name = "custom"  # Ocean-inspired theme for calming effect
 
 [colors.basic]
-blue = "\\033[38;2;0;119;190m"  # Deep ocean blue for directories
+blue = "\\033[38;2;0;119;190m"  # Deep blue for directories
 teal = "\\033[38;2;0;150;136m"  # Teal depths for commit counts
 ```
 

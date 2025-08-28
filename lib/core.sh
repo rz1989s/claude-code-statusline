@@ -57,8 +57,8 @@ export STATUSLINE_MODULES_FAILED=()
 
 # Default timeouts (can be overridden by configuration)
 export DEFAULT_MCP_TIMEOUT="10s"
-export DEFAULT_VERSION_TIMEOUT="2s"
-export DEFAULT_CCUSAGE_TIMEOUT="3s"
+export DEFAULT_VERSION_TIMEOUT="10s"
+export DEFAULT_CCUSAGE_TIMEOUT="10s"
 
 # Default cache settings
 export DEFAULT_VERSION_CACHE_DURATION=3600

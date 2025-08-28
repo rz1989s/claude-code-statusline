@@ -52,43 +52,28 @@
 
 ## 🆕 Recent Updates
 
-### v2.0.0 - Flat-Only TOML Configuration Revolution 🚀⚡
+### v2.0.6 - Enhanced Reliability & Timeout Improvements 🚀⚡
 
-**🚨 BREAKING CHANGES - Enhanced Configuration Reliability**
+**🐛 CRITICAL BUG FIXES**
 
-- **🔧 Flat-Only TOML Parser** - Eliminated Python complexity and "fallback to flat structure" warnings
-- **🚫 Nested Format Rejection** - Clear error messages guide users to reliable flat format (theme.name vs [theme])  
-- **💥 Breaking Change Management** - Comprehensive migration guidance for users with nested configs
-- **🛡️ Enhanced Error Detection** - Return code 6 with helpful examples for nested configuration detection
+- **Fixed DAY $0.00 display issue** - Resolved timeout-related failure where `ccusage daily` commands were timing out at 3s when they need ~3.5s to complete
+- **Enhanced configuration fallback logic** - Improved handling of empty string values in TOML config parsing
 
-**✨ NEW FEATURES & ENHANCEMENTS**
+**⚡ PERFORMANCE & RELIABILITY IMPROVEMENTS** 
 
-- **📦 Enhanced Installer** - Automatic backup system with timestamped files before config updates
-- **🗂️ Repository Config Template** - Comprehensive 287-line flat TOML template from examples/Config.toml (maintainable, transparent, reviewable)
-- **📍 Extended Config Path** - Added `~/.claude/statusline/Config.toml` support for streamlined installation
-- **🎯 Template-Based Architecture** - Clean download-based config generation replaces complex embedded heredoc
+- **Standardized all timeouts to 10s minimum** - Increased reliability for external command execution
+  - `DEFAULT_VERSION_TIMEOUT`: 2s → 10s
+  - `DEFAULT_CCUSAGE_TIMEOUT`: 3s → 10s  
+  - `CACHE_CONFIG_ATOMIC_TIMEOUT`: 5s → 10s
+- **Updated all configuration examples** - Ensures consistent timeout values across all TOML templates
 
-**🔧 TECHNICAL IMPROVEMENTS**
+**📚 DOCUMENTATION ENHANCEMENTS**
 
-- **⚡ Simplified Architecture** - Removed 200+ lines of Python nesting complexity from TOML parser
-- **🚀 Performance Boost** - Direct flat parsing without fallback overhead improves response times
-- **📚 Documentation Consistency** - Updated 6 major documentation files with working flat format examples
-- **✅ Quality Assurance** - All TOML examples now use reliable flat notation (447 insertions, 647 deletions)
+- **Streamlined CLAUDE.md** - Enhanced developer experience with clearer quick reference section
+- **Updated cache timing documentation** - Improved accuracy of cache behavior explanations
+- **Better configuration guidance** - Updated examples to reflect new timeout standards
 
-**🎨 CONFIGURATION FORMAT EXAMPLES**
-
-```toml
-# NEW: Flat format (reliable, no warnings)
-theme.name = "catppuccin"
-features.show_commits = true
-colors.basic.red = "\\033[31m"
-
-# OLD: Nested format (now returns helpful error)
-# [theme]           ← Will show migration guidance
-# name = "catppuccin" 
-```
-
-**📈 IMPACT**: Complete elimination of parser warnings, enhanced user experience, and simplified maintenance
+**📈 IMPACT**: Eliminated DAY cost display bug, improved system reliability, and enhanced timeout handling
 
 ---
 
@@ -147,7 +132,7 @@ colors.basic.red = "\\033[31m"
 
 ### v1.3.0 - Modular Architecture Implementation 🏗️ 
 
-*Contains internal v2.0.0-refactored architecture while maintaining v1.3.x compatibility*
+*Contains internal v2.0.6-refactored architecture while maintaining v1.3.x compatibility*
 
 - **🏗️ Modular Architecture** - Complete refactor from 3930-line monolithic script to clean modular system
 - **📦 9 Specialized Modules** - Core, security, config, themes, git, MCP, cost, display, and cache modules  
