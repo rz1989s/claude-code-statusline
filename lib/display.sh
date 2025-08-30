@@ -457,11 +457,35 @@ build_line4() {
     fi
 }
 
+# Build Line 5: Islamic Prayer Times & Hijri Calendar (conditional)
+# Format: 🕌 29 Jumada I 1446 │ Fajr 05:30 ✓ │ Dhuhr 12:45 ✓ │ Asr 15:45 (next) │ Maghrib 18:30 │ Isha 20:00
+build_line5_prayer() {
+    local prayer_enabled="$1"
+    
+    # Only build prayer line if prayer module is loaded and enabled
+    if [[ "$prayer_enabled" == "true" ]] && is_module_loaded "prayer"; then
+        # Get prayer display from prayer module
+        if type get_prayer_display &>/dev/null; then
+            local prayer_display
+            prayer_display=$(get_prayer_display)
+            
+            if [[ $? -eq 0 && -n "$prayer_display" ]]; then
+                echo "$prayer_display"
+            else
+                # Fallback display if prayer data unavailable
+                echo "🕌 Prayer times unavailable"
+            fi
+        else
+            debug_log "get_prayer_display function not available" "WARN"
+        fi
+    fi
+}
+
 # ============================================================================
 # COMPLETE STATUSLINE BUILDER
 # ============================================================================
 
-# Build complete 4-line statusline output
+# Build complete 5-line statusline output (with optional prayer line)
 build_complete_statusline() {
     local statusline_data="$1"
     
@@ -483,20 +507,23 @@ build_complete_statusline() {
     local mcp_status="${15}"
     local mcp_servers="${16}"
     local reset_info="${17}"
+    local prayer_enabled="${18:-false}"
     
     # Build each line
-    local line1 line2 line3 line4
+    local line1 line2 line3 line4 line5
     
     line1=$(build_line1 "$mode_info" "$dir_display" "$branch" "$git_status" "$commits_count" "$claude_version" "$submodule_display")
     line2=$(build_line2 "$model_name" "$session_cost" "$month_cost" "$week_cost" "$today_cost" "$block_info")
     line3=$(build_line3 "$mcp_status" "$mcp_servers")
     line4=$(build_line4 "$reset_info")
+    line5=$(build_line5_prayer "$prayer_enabled")
     
     # Output lines
     echo "$line1"
     echo "$line2"
     echo "$line3"
     [[ -n "$line4" ]] && echo "$line4"
+    [[ -n "$line5" ]] && echo "$line5"
 }
 
 # ============================================================================

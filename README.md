@@ -18,8 +18,8 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with a beautiful 4-line statusline experience**  
-*Rich information display • Stunning themes • Real-time monitoring • MCP integration*
+**🎨 Transform your terminal with a beautiful 5-line statusline experience**  
+*Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times*
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
@@ -51,6 +51,40 @@
 ---
 
 ## 🆕 Recent Updates
+
+### v2.2.0 - Islamic Prayer Times & Hijri Calendar Integration 🕌📅
+
+**🕌 MAJOR NEW FEATURE: ISLAMIC PRAYER TIMES**
+
+- **Complete Prayer Times Display** - All 5 daily Islamic prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with real-time status indicators
+- **AlAdhan API Integration** - Accurate prayer time calculations using the trusted AlAdhan API with multiple calculation methods (ISNA, MWL, Makkah, etc.)
+- **Visual Status Indicators** - ✓ for completed prayers, "(next)" highlighting for upcoming prayers, elegant formatting with 🕌 Islamic indicator
+- **Intelligent Caching** - 1-hour cache duration for optimal performance, location-aware cache keys, automatic refresh
+
+**🌙 HIJRI CALENDAR WITH AUTHENTIC ISLAMIC TIMEKEEPING**
+
+- **Maghrib-Based Day Changes** - Proper Islamic calendar where Hijri date changes at Maghrib (sunset), not midnight - authentic to Islamic tradition
+- **Real-Time Hijri Date Display** - Current Islamic date with Arabic month names (e.g., "2 Jumādá al-ūlá 1452")
+- **Moon Phase Indicator** - 🌙 symbol when Islamic day changes at Maghrib time
+- **Multiple Calculation Standards** - Support for Umm Al-Qura and other Hijri calculation methods
+
+**🔧 COMPREHENSIVE CONFIGURATION SYSTEM**
+
+- **Full Prayer Customization** - Calculation methods (ISNA/MWL/Makkah), Madhab selection (Shafi/Hanafi), manual/auto location modes
+- **Location Intelligence** - Auto-detection or manual coordinates, timezone override support
+- **Display Preferences** - 12h/24h time formats, completed indicators, next prayer highlighting, countdown timers
+- **Hijri Calendar Options** - Arabic month names, weekday display, Maghrib change indicators, manual adjustments
+
+**🏗️ ENHANCED ARCHITECTURE**
+
+- **New Prayer Module** - `lib/prayer.sh` with 400+ lines of Islamic timekeeping logic following existing modular patterns
+- **Enhanced Display System** - 4-line → **5-line statusline** with dedicated Islamic prayer times line
+- **Comprehensive Testing** - Complete unit test suite in `tests/unit/test_prayer_functions.bats` with edge case coverage
+- **Performance Optimized** - < 2s execution with intelligent caching, graceful API fallbacks, minimal external dependencies
+
+**📈 IMPACT**: Muslim developers now have accurate Islamic timekeeping integrated seamlessly into their development workflow with authentic religious observance support.
+
+---
 
 ### v2.0.6 - Enhanced Reliability & Timeout Improvements 🚀⚡
 
@@ -184,7 +218,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **⚡ Classic Theme** - Traditional terminal colors with modern polish
 - **🎨 Custom Themes** - Full RGB/256-color/ANSI color customization
 
-### 📊 **4-Line Information Display**
+### 📊 **5-Line Information Display**
 
 ![Repository Information](assets/screenshots/basic-repo-info.png)
 
@@ -218,9 +252,16 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - Countdown to block expiration
 - Smart detection and tracking
 
+**Line 5: Islamic Prayer Times & Hijri Calendar** *(lib/display.sh, lib/prayer.sh)*
+- All 5 daily Islamic prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with accurate timing
+- Real-time Hijri date with authentic Maghrib-based day changes
+- Visual prayer status indicators (✓ completed, "(next)" upcoming)
+- AlAdhan API integration with multiple calculation methods
+- 🕌 Islamic formatting with moon phase indicators 🌙
+
 ### 🏗️ **Modular Architecture**
 
-- **📦 9 Specialized Modules** - Clean separation of concerns with dedicated modules for each feature
+- **📦 10 Specialized Modules** - Clean separation of concerns with dedicated modules for each feature
   - `core.sh` - Base utilities, module loading, and performance timing
   - `security.sh` - Input sanitization and secure file operations  
   - `config.sh` - TOML configuration parsing and management
@@ -228,8 +269,9 @@ Experience three beautifully crafted themes that transform your terminal into a 
   - `git.sh` - Repository status, branch detection, and commit tracking
   - `mcp.sh` - MCP server monitoring and health checking
   - `cost.sh` - Cost tracking integration with ccusage
-  - `display.sh` - Output formatting and 4-line statusline generation
-  - `cache.sh` - **NEW** Universal intelligent caching system with enterprise-grade features
+  - `prayer.sh` - **NEW** Islamic prayer times and Hijri calendar with AlAdhan API integration
+  - `display.sh` - Output formatting and 5-line statusline generation
+  - `cache.sh` - Universal intelligent caching system with enterprise-grade features
 - **🎯 91.4% Code Reduction** - Main orchestrator script reduced from 3930 to 338 lines
 - **🔧 Enhanced Maintainability** - Modular design enables easier testing, debugging, and feature development
 - **⚡ Improved Performance** - Optimized module loading and reduced script complexity

@@ -62,6 +62,8 @@ features.show_mcp_status = true
 features.show_cost_tracking = true
 features.show_reset_info = true
 features.show_session_info = true
+features.show_prayer_times = true
+features.show_hijri_date = true
 
 # === MODEL EMOJIS ===
 # Emojis displayed for different Claude models
@@ -79,6 +81,40 @@ emojis.live_block = "🔥"
 timeouts.mcp = "10s"
 timeouts.version = "10s"
 timeouts.ccusage = "10s"
+timeouts.prayer = "10s"
+
+# === PRAYER TIMES CONFIGURATION ===
+# Islamic prayer times calculation and display settings
+
+# Prayer calculation settings
+prayer.enabled = true
+prayer.calculation_method = "2"        # 1=MWL, 2=ISNA, 3=Egypt, 4=Makkah, 5=Karachi, etc.
+prayer.madhab = "1"                    # 1=Shafi, 2=Hanafi (affects Asr calculation)
+prayer.location_mode = "auto"          # auto, manual, ip_based
+prayer.latitude = ""                   # Manual coordinates (when location_mode = "manual")
+prayer.longitude = ""                  # Manual coordinates (when location_mode = "manual")
+prayer.timezone = ""                   # Override auto-detection (e.g., "America/New_York")
+
+# Prayer display settings
+prayer.show_completed_indicator = true  # Show ✓ for completed prayers
+prayer.highlight_next_prayer = true     # Highlight next upcoming prayer
+prayer.show_countdown = false           # Show countdown to next prayer
+prayer.time_format = "24h"             # 12h or 24h format
+
+# === HIJRI CALENDAR CONFIGURATION ===
+# Islamic calendar display with proper Maghrib-based day changes
+
+# Hijri calculation settings
+hijri.enabled = true
+hijri.calculation_method = "umm_alqura" # umm_alqura, kuwait, qatar, singapore
+hijri.adjustment_days = 0              # Manual adjustment for moon sighting differences
+hijri.show_arabic = false              # Display Arabic month names instead of English
+hijri.highlight_friday = true          # Special formatting for Jumu'ah (Friday)
+hijri.show_maghrib_indicator = true    # Show 🌙 when Islamic day changes at Maghrib
+
+# Hijri display format
+hijri.display_format = "short"         # short, full, with_weekday
+hijri.show_weekday = true              # Include day of week in display
 
 # === DISPLAY LABELS ===
 # Text labels used throughout the statusline
@@ -113,6 +149,9 @@ cache.durations.git_branches = 30
 cache.durations.git_status = 10
 cache.durations.git_current_branch = 10
 cache.durations.mcp_server_list = 120
+cache.durations.prayer_data = 3600
+cache.durations.hijri_date = 3600
+cache.durations.location_data = 604800
 cache.durations.directory_info = 5
 cache.durations.file_operations = 2
 
@@ -138,6 +177,8 @@ cache.isolation.mcp = "repository"           # MCP server status (prevents showi
 cache.isolation.git = "repository"           # Git operations (already repository-aware by design)
 cache.isolation.cost = "shared"              # Cost tracking (user-wide, should be shared)
 cache.isolation.session = "repository"       # Session costs (isolate per project)
+cache.isolation.prayer = "shared"            # Prayer times (user-wide, location-based)
+cache.isolation.hijri = "shared"             # Hijri dates (user-wide, location-based)
 
 # Legacy compatibility settings
 cache.legacy.version_duration = 3600
