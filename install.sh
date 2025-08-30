@@ -538,7 +538,7 @@ download_statusline() {
     
     # Download all modules
     print_status "Downloading statusline modules..."
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "display.sh" "cache.sh")
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh")
     local failed_modules=()
     
     for module in "${modules[@]}"; do
@@ -754,7 +754,7 @@ verify_installation() {
     fi
     
     # Check if all modules exist
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "display.sh" "cache.sh")
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh")
     local missing_modules=()
     
     for module in "${modules[@]}"; do
