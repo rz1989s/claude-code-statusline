@@ -58,7 +58,7 @@
 
 - **Complete Prayer Times Display** - All 5 daily Islamic prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with real-time status indicators
 - **AlAdhan API Integration** - Accurate prayer time calculations using the trusted AlAdhan API with multiple calculation methods (ISNA, MWL, Makkah, etc.)
-- **Visual Status Indicators** - ✓ for completed prayers, "(next)" highlighting for upcoming prayers, elegant formatting with 🕌 Islamic indicator
+- **Visual Status Indicators** - ✓ for completed prayers, time remaining display (e.g., "3h 29m") with green highlighting for upcoming prayers, elegant formatting with 🕌 Islamic indicator
 - **Intelligent Caching** - 1-hour cache duration for optimal performance, location-aware cache keys, automatic refresh
 
 **🌙 HIJRI CALENDAR WITH AUTHENTIC ISLAMIC TIMEKEEPING**
@@ -255,7 +255,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 **Line 5: Islamic Prayer Times & Hijri Calendar** *(lib/display.sh, lib/prayer.sh)*
 - All 5 daily Islamic prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with accurate timing
 - Real-time Hijri date with authentic Maghrib-based day changes
-- Visual prayer status indicators (✓ completed, "(next)" upcoming)
+- Visual prayer status indicators (✓ completed, time remaining with green highlighting for upcoming)
 - AlAdhan API integration with multiple calculation methods
 - 🕌 Islamic formatting with moon phase indicators 🌙
 
@@ -327,15 +327,15 @@ prayer.location_mode = "manual"      # Use manual coordinates (disable auto-dete
 ```bash
 # Indonesia User
 # Timezone: Asia/Jakarta → Method: KEMENAG (20) → Coordinates: Jakarta
-🕌 12 Jumādá al-ūlá 1453 │ Fajr 04:35 ✓ │ Dhuhr 11:53 (next) │ Asr 15:10 │ Maghrib 17:52 │ Isha 19:02
+🕌 12 Jumādá al-ūlá 1453 │ Fajr 04:35 ✓ │ Dhuhr 11:53 (2h 18m) │ Asr 15:10 │ Maghrib 17:52 │ Isha 19:02
 
 # USA User  
 # Timezone: America/New_York → Method: ISNA (2) → Coordinates: New York
-🕌 12 Jumādá al-ūlá 1453 │ Fajr 05:42 ✓ │ Dhuhr 12:15 (next) │ Asr 15:28 │ Maghrib 18:05 │ Isha 19:35
+🕌 12 Jumādá al-ūlá 1453 │ Fajr 05:42 ✓ │ Dhuhr 12:15 (3h 25m) │ Asr 15:28 │ Maghrib 18:05 │ Isha 19:35
 
 # Saudi User
 # Timezone: Asia/Riyadh → Method: Umm al-Qura (4) → Coordinates: Riyadh  
-🕌 12 Jumādá al-ūlá 1453 │ Fajr 04:18 ✓ │ Dhuhr 11:47 (next) │ Asr 15:02 │ Maghrib 17:41 │ Isha 19:11
+🕌 12 Jumādá al-ūlá 1453 │ Fajr 04:18 ✓ │ Dhuhr 11:47 (1h 52m) │ Asr 15:02 │ Maghrib 17:41 │ Isha 19:11
 ```
 
 **💡 The statusline works perfectly out-of-the-box for Muslims anywhere in the world - no configuration needed!**

@@ -142,6 +142,10 @@ prayer.show_completed_indicator = true  # Show ✓ for completed prayers
 prayer.highlight_next_prayer = true     # Highlight next upcoming prayer
 prayer.show_countdown = false           # Show countdown to next prayer
 prayer.time_format = "24h"             # 12h or 24h format
+prayer.show_time_remaining = true       # Show time remaining for next prayer (e.g., "3h 29m")
+prayer.use_legacy_indicator = false     # Use "(next)" instead of time remaining
+prayer.next_prayer_color_enabled = true # Apply color highlighting to next prayer
+prayer.next_prayer_color = "bright_green" # Color for next prayer: green, bright_green, teal
 
 # === CALCULATION METHODS WORLDWIDE ===
 # Choose the method used in your country/region:

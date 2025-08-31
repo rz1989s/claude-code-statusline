@@ -78,6 +78,10 @@ load_prayer_config() {
     CONFIG_PRAYER_HIGHLIGHT_NEXT_PRAYER="${ENV_CONFIG_PRAYER_HIGHLIGHT_NEXT_PRAYER:-${CONFIG_PRAYER_HIGHLIGHT_NEXT_PRAYER:-true}}"
     CONFIG_PRAYER_SHOW_COUNTDOWN="${ENV_CONFIG_PRAYER_SHOW_COUNTDOWN:-${CONFIG_PRAYER_SHOW_COUNTDOWN:-false}}"
     CONFIG_PRAYER_TIME_FORMAT="${ENV_CONFIG_PRAYER_TIME_FORMAT:-${CONFIG_PRAYER_TIME_FORMAT:-24h}}"
+    CONFIG_PRAYER_SHOW_TIME_REMAINING="${ENV_CONFIG_PRAYER_SHOW_TIME_REMAINING:-${CONFIG_PRAYER_SHOW_TIME_REMAINING:-true}}"
+    CONFIG_PRAYER_USE_LEGACY_INDICATOR="${ENV_CONFIG_PRAYER_USE_LEGACY_INDICATOR:-${CONFIG_PRAYER_USE_LEGACY_INDICATOR:-false}}"
+    CONFIG_PRAYER_NEXT_PRAYER_COLOR_ENABLED="${ENV_CONFIG_PRAYER_NEXT_PRAYER_COLOR_ENABLED:-${CONFIG_PRAYER_NEXT_PRAYER_COLOR_ENABLED:-true}}"
+    CONFIG_PRAYER_NEXT_PRAYER_COLOR="${ENV_CONFIG_PRAYER_NEXT_PRAYER_COLOR:-${CONFIG_PRAYER_NEXT_PRAYER_COLOR:-bright_green}}"
     
     # Auto-detection integration
     if [[ "$CONFIG_PRAYER_ENABLED" == "true" ]]; then
@@ -928,9 +932,75 @@ get_location_coordinates() {
                 debug_log "No internet connection for IP-based detection" "WARN"
             fi
             
-            # Fallback to timezone-based detection
+            # Fallback to timezone-based detection: use auto mode logic
             debug_log "Falling back to timezone-based detection" "INFO"
-            ;& # Fall through to auto mode
+            
+            # Tier 1: Try IP geolocation (if online and not already attempted) 
+            if check_internet_connection; then
+                local location_data=$(get_ip_location)
+                if [[ -n "$location_data" ]]; then
+                    cache_location_data "$location_data"
+                    apply_location_config "$location_data"
+                    
+                    # Extract coordinates from location data
+                    local latitude=$(echo "$location_data" | jq -r '.latitude // 0' 2>/dev/null)
+                    local longitude=$(echo "$location_data" | jq -r '.longitude // 0' 2>/dev/null)
+                    echo "$latitude,$longitude"
+                    debug_log "IP geolocation successful in fallback mode" "INFO"
+                    return 0
+                else
+                    debug_log "IP geolocation failed, continuing with fallback methods" "INFO"
+                fi
+            fi
+            
+            # Tier 2: Try cached location data (7-day cache)
+            if load_cached_location && [[ -n "$CONFIG_PRAYER_LATITUDE" && -n "$CONFIG_PRAYER_LONGITUDE" ]]; then
+                echo "$CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE"
+                debug_log "Using cached location data in fallback mode" "INFO"
+                return 0
+            fi
+            
+            # Tier 3: Timezone-based detection (offline fallback)
+            debug_log "Using timezone-based location detection..." "INFO"
+            
+            # Step 1: Get system timezone
+            local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
+            debug_log "System timezone detected: $system_tz" "INFO"
+            
+            # Step 2: Map timezone to prayer method
+            local detected_method=$(get_prayer_method_from_timezone "$system_tz")
+            debug_log "Detected prayer method: $detected_method for timezone: $system_tz" "INFO"
+            
+            # Step 3: Override config if not manually set
+            if [[ -z "$CONFIG_PRAYER_CALCULATION_METHOD" || "$CONFIG_PRAYER_CALCULATION_METHOD" == "$DEFAULT_CALCULATION_METHOD" ]]; then
+                CONFIG_PRAYER_CALCULATION_METHOD="$detected_method"
+                debug_log "Auto-updated calculation method to: $detected_method" "INFO"
+            fi
+            
+            # Step 4: Provide region-specific default coordinates based on timezone
+            case "$system_tz" in
+                # Major Islamic regions with specific coordinates
+                Asia/Jakarta|Asia/Pontianak) echo "-6.2088,106.8456" ;;    # Jakarta
+                Asia/Makassar) echo "-5.1477,119.4327" ;;                   # Makassar
+                Asia/Jayapura) echo "-2.5489,140.7163" ;;                   # Jayapura
+                Asia/Kuala_Lumpur) echo "3.1390,101.6869" ;;               # Kuala Lumpur
+                Asia/Singapore) echo "1.3521,103.8198" ;;                  # Singapore
+                Asia/Karachi) echo "24.8607,67.0011" ;;                    # Karachi
+                Asia/Dhaka) echo "23.8103,90.4125" ;;                      # Dhaka
+                Asia/Riyadh) echo "24.7136,46.6753" ;;                     # Riyadh
+                Asia/Dubai) echo "25.2048,55.2708" ;;                      # Dubai
+                Asia/Kuwait) echo "29.3117,47.4818" ;;                     # Kuwait City
+                Asia/Qatar) echo "25.3548,51.1839" ;;                      # Doha
+                Asia/Istanbul|Europe/Istanbul) echo "41.0082,28.9784" ;;   # Istanbul
+                Africa/Cairo) echo "30.0444,31.2357" ;;                    # Cairo
+                Africa/Lagos) echo "6.5244,3.3792" ;;                      # Lagos
+                # Ultimate fallback (Indonesian coordinates)
+                *) echo "-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
+            esac
+            
+            debug_log "Auto-detection completed successfully in fallback mode" "INFO"
+            return 0
+            ;;
         "auto"|*)
             # Enhanced multi-tier automatic location detection
             debug_log "Starting comprehensive automatic location detection..." "INFO"
@@ -1055,6 +1125,40 @@ time_is_after() {
     local time2_minutes=$(echo "$time2" | awk -F: '{print $1 * 60 + $2}')
     
     [[ $time1_minutes -ge $time2_minutes ]]
+}
+
+# Calculate time remaining until a prayer
+# Returns: minutes until prayer time
+calculate_time_until_prayer() {
+    local current_time="$1"
+    local prayer_time="$2"
+    
+    # Convert to minutes
+    local current_minutes=$(echo "$current_time" | awk -F: '{print $1 * 60 + $2}')
+    local prayer_minutes=$(echo "$prayer_time" | awk -F: '{print $1 * 60 + $2}')
+    
+    # Calculate difference
+    local diff=$((prayer_minutes - current_minutes))
+    
+    # Handle next day prayers (after midnight)
+    if [[ $diff -lt 0 ]]; then
+        diff=$((diff + 1440))  # Add 24 hours
+    fi
+    
+    echo "$diff"
+}
+
+# Format time remaining as "Xh Ym" or "Xm"
+format_time_remaining() {
+    local minutes="$1"
+    
+    if [[ $minutes -ge 60 ]]; then
+        local hours=$((minutes / 60))
+        local mins=$((minutes % 60))
+        echo "${hours}h ${mins}m"
+    else
+        echo "${minutes}m"
+    fi
 }
 
 # Format time according to configuration (12h or 24h)
@@ -1374,7 +1478,42 @@ get_prayer_display() {
                 ;;
             "$PRAYER_STATUS_NEXT")
                 if [[ "$CONFIG_PRAYER_HIGHLIGHT_NEXT_PRAYER" == "true" ]]; then
-                    prayer_display="$prayer_display $PRAYER_NEXT_INDICATOR"
+                    # Build the prayer display with time remaining or legacy indicator
+                    if [[ "$CONFIG_PRAYER_USE_LEGACY_INDICATOR" == "true" ]]; then
+                        # Use legacy "(next)" indicator
+                        prayer_display="$prayer_display $PRAYER_NEXT_INDICATOR"
+                    elif [[ "$CONFIG_PRAYER_SHOW_TIME_REMAINING" == "true" ]]; then
+                        # Calculate and show time remaining
+                        local minutes_until=$(calculate_time_until_prayer "$current_time" "${times[$i]}")
+                        local time_remaining=$(format_time_remaining "$minutes_until")
+                        prayer_display="$prayer_display ($time_remaining)"
+                    else
+                        # Fallback to legacy indicator
+                        prayer_display="$prayer_display $PRAYER_NEXT_INDICATOR"
+                    fi
+                    
+                    # Apply color highlighting if enabled
+                    if [[ "$CONFIG_PRAYER_NEXT_PRAYER_COLOR_ENABLED" == "true" ]]; then
+                        # Choose color based on configuration
+                        local next_color=""
+                        case "$CONFIG_PRAYER_NEXT_PRAYER_COLOR" in
+                            "green")
+                                next_color="$CONFIG_GREEN"
+                                ;;
+                            "bright_green")
+                                next_color="$CONFIG_BRIGHT_GREEN"
+                                ;;
+                            "teal")
+                                next_color="$CONFIG_TEAL"
+                                ;;
+                            *)
+                                next_color="$CONFIG_BRIGHT_GREEN"  # Default
+                                ;;
+                        esac
+                        
+                        # Apply color to entire prayer display
+                        prayer_display="${next_color}${prayer_display}${CONFIG_RESET}"
+                    fi
                 fi
                 ;;
         esac
