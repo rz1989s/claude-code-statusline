@@ -931,7 +931,6 @@ get_location_coordinates() {
             # Fallback to timezone-based detection
             debug_log "Falling back to timezone-based detection" "INFO"
             ;& # Fall through to auto mode
-            ;;
         "auto"|*)
             # Enhanced multi-tier automatic location detection
             debug_log "Starting comprehensive automatic location detection..." "INFO"
@@ -1040,9 +1039,9 @@ get_current_time() {
     date +"%H:%M"
 }
 
-# Get current date in YYYY-MM-DD format
+# Get current date in DD-MM-YYYY format (required by AlAdhan API)
 get_current_date() {
-    date +"%Y-%m-%d"
+    date +"%d-%m-%Y"
 }
 
 # Compare two times in HH:MM format
