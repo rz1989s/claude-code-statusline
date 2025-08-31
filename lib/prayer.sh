@@ -33,9 +33,9 @@ export PRAYER_STATUS_UPCOMING="upcoming"
 export ALADHAN_API_BASE="https://api.aladhan.com/v1"
 export ALADHAN_TIMINGS_ENDPOINT="/timings"
 
-# Default calculation methods
-export DEFAULT_CALCULATION_METHOD="2"  # ISNA (Islamic Society of North America)
-export DEFAULT_MADHAB="1"              # Shafi (1) or Hanafi (2)
+# Default calculation methods (Indonesian defaults)
+export DEFAULT_CALCULATION_METHOD="20" # KEMENAG (Indonesian Ministry of Religious Affairs)  
+export DEFAULT_MADHAB="2"              # Hanafi (Indonesian standard) - Shafi (1) or Hanafi (2)
 
 # Hijri calendar constants
 export HIJRI_MONTHS=("Muharram" "Safar" "Rabi' al-awwal" "Rabi' al-thani" "Jumada al-awwal" "Jumada al-thani" "Rajab" "Sha'ban" "Ramadan" "Shawwal" "Dhu al-Qi'dah" "Dhu al-Hijjah")
@@ -103,9 +103,9 @@ get_location_coordinates() {
             ;;
         "auto"|*)
             # Try to determine location automatically
-            # For now, fall back to a default location (can be enhanced later)
-            debug_log "Auto location detection not implemented yet, using default coordinates" "WARN"
-            echo "40.7128,-74.0060"  # NYC coordinates as fallback
+            # For now, fall back to Indonesian location (can be enhanced later)
+            debug_log "Auto location detection not implemented yet, using default Indonesian coordinates" "WARN"
+            echo "-6.2349,106.9896"  # Jakarta/Bekasi coordinates as fallback
             return 0
             ;;
     esac

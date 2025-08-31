@@ -85,21 +85,152 @@ timeouts.prayer = "10s"
 
 # === PRAYER TIMES CONFIGURATION ===
 # Islamic prayer times calculation and display settings
+# ⚠️  IMPORTANT: Update coordinates and method for YOUR location!
 
+# === ACTIVE CONFIGURATION (Default: Indonesia) ===
 # Prayer calculation settings
 prayer.enabled = true
-prayer.calculation_method = "2"        # 1=MWL, 2=ISNA, 3=Egypt, 4=Makkah, 5=Karachi, etc.
-prayer.madhab = "1"                    # 1=Shafi, 2=Hanafi (affects Asr calculation)
-prayer.location_mode = "auto"          # auto, manual, ip_based
-prayer.latitude = ""                   # Manual coordinates (when location_mode = "manual")
-prayer.longitude = ""                  # Manual coordinates (when location_mode = "manual")
-prayer.timezone = ""                   # Override auto-detection (e.g., "America/New_York")
+prayer.calculation_method = "20"       # KEMENAG (Indonesia) - See full method list below
+prayer.madhab = "2"                    # Hanafi (Indonesian standard)
+prayer.location_mode = "manual"        # Manual is more reliable than auto-detection
+prayer.latitude = "-6.2349"            # Jakarta/Bekasi (UPDATE WITH YOUR CITY!)
+prayer.longitude = "106.9896"          # Jakarta/Bekasi (UPDATE WITH YOUR CITY!)
+prayer.timezone = "Asia/Jakarta"       # WIB (UPDATE WITH YOUR TIMEZONE!)
 
 # Prayer display settings
 prayer.show_completed_indicator = true  # Show ✓ for completed prayers
 prayer.highlight_next_prayer = true     # Highlight next upcoming prayer
 prayer.show_countdown = false           # Show countdown to next prayer
 prayer.time_format = "24h"             # 12h or 24h format
+
+# === CALCULATION METHODS WORLDWIDE ===
+# Choose the method used in your country/region:
+#
+# WORLDWIDE ORGANIZATIONS:
+#  0 = Shia Ithna-Ashari
+#  3 = Muslim World League (MWL) - Europe, Far East, parts of USA
+# 15 = Moonsighting Committee Worldwide
+#
+# MIDDLE EAST & AFRICA:
+#  4 = Umm al-Qura, Makkah - Saudi Arabia
+#  5 = Egyptian General Authority - Egypt, Africa, Middle East  
+#  8 = Gulf Region - Kuwait, Saudi Arabia (old method)
+#  9 = Kuwait
+# 10 = Qatar
+# 16 = Dubai (UAE)
+# 21 = Tunisia
+# 22 = Algeria
+# 23 = Morocco
+#
+# ASIA:
+#  1 = University of Islamic Sciences, Karachi - Pakistan, Afghanistan, India
+#  7 = Institute of Geophysics, Tehran - Iran
+# 11 = Majlis Ugama Islam Singapura (MUIS) - Singapore
+# 17 = Jabatan Kemajuan Islam Malaysia (JAKIM) - Malaysia
+# 20 = Kementerian Agama RI (KEMENAG) - Indonesia ✓ DEFAULT
+#
+# EUROPE & AMERICA:
+#  2 = Islamic Society of North America (ISNA) - USA, Canada
+# 12 = Union of Islamic Organizations of France (UOIF) - France
+# 13 = Diyanet İşleri Başkanlığı - Turkey
+# 14 = Spiritual Administration of Muslims - Russia
+#
+# CUSTOM:
+# 99 = Custom (provide parameters in method_settings)
+
+# === REGIONAL CONFIGURATION EXAMPLES ===
+# Find your region below, uncomment and adjust coordinates for your city
+# To find coordinates: Google "latitude longitude [your city name]"
+
+# --- INDONESIA (DEFAULT - Active above) ---
+# Major Indonesian cities coordinates:
+# Jakarta:    -6.2088, 106.8456
+# Surabaya:   -7.2504, 112.7688  
+# Bandung:    -6.9147, 107.6098
+# Medan:      3.5952, 98.6722
+# Makassar:   -5.1477, 119.4327
+# Bekasi:     -6.2349, 106.9896
+
+# --- SAUDI ARABIA (Umm al-Qura Method) ---
+# prayer.calculation_method = "4"   # Umm al-Qura
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "21.4225"       # Makkah
+# prayer.longitude = "39.8262"
+# prayer.timezone = "Asia/Riyadh"
+# Major cities:
+# Riyadh:     24.7136, 46.6753
+# Jeddah:     21.5433, 39.1728
+# Dammam:     26.3927, 49.9777
+
+# --- USA/CANADA (ISNA Method) ---
+# prayer.calculation_method = "2"   # ISNA
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "40.7128"       # New York
+# prayer.longitude = "-74.0060"
+# prayer.timezone = "America/New_York"
+# Major cities:
+# Los Angeles: 34.0522, -118.2437
+# Chicago:     41.8781, -87.6298
+# Toronto:     43.6532, -79.3832
+
+# --- MALAYSIA (JAKIM Method) ---
+# prayer.calculation_method = "17"  # JAKIM
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "3.1390"        # Kuala Lumpur
+# prayer.longitude = "101.6869"
+# prayer.timezone = "Asia/Kuala_Lumpur"
+
+# --- TURKEY (Diyanet Method) ---
+# prayer.calculation_method = "13"  # Diyanet
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "41.0082"       # Istanbul
+# prayer.longitude = "28.9784"
+# prayer.timezone = "Europe/Istanbul"
+# Major cities:
+# Ankara:     39.9334, 32.8597
+# Izmir:      38.4192, 27.1287
+
+# --- UK/EUROPE (Muslim World League) ---
+# prayer.calculation_method = "3"   # Muslim World League
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "51.5074"       # London
+# prayer.longitude = "-0.1278"
+# prayer.timezone = "Europe/London"
+# Major cities:
+# Paris:      48.8566, 2.3522
+# Berlin:     52.5200, 13.4050
+# Rome:       41.9028, 12.4964
+
+# --- EGYPT/MIDDLE EAST (Egyptian Authority) ---
+# prayer.calculation_method = "5"   # Egyptian Authority
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "30.0444"       # Cairo
+# prayer.longitude = "31.2357"
+# prayer.timezone = "Africa/Cairo"
+# Major cities:
+# Dubai:      25.2048, 55.2708
+# Baghdad:    33.3152, 44.3661
+# Damascus:   33.5138, 36.2765
+
+# --- PAKISTAN/INDIA (Karachi Method) ---
+# prayer.calculation_method = "1"   # Karachi University
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "24.8607"       # Karachi
+# prayer.longitude = "67.0011"
+# prayer.timezone = "Asia/Karachi"
+# Major cities:
+# Delhi:      28.6139, 77.2090
+# Mumbai:     19.0760, 72.8777
+# Islamabad:  33.6844, 73.0479
+
+# --- HIGH LATITUDE (Scandinavia, Northern Canada) ---
+# Special handling for extreme latitudes where sun may not set
+# prayer.calculation_method = "3"   # MWL (handles high latitude well)
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "59.3293"       # Stockholm
+# prayer.longitude = "18.0686"
+# prayer.timezone = "Europe/Stockholm"
+# prayer.high_latitude_method = "1" # Angle-based adjustment for extreme latitudes
 
 # === HIJRI CALENDAR CONFIGURATION ===
 # Islamic calendar display with proper Maghrib-based day changes
