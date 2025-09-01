@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Essential Commands:**
 ```bash
-npm test                              # Run all 77 tests
+npm test                              # Run all 246 tests across 17 files
 npm run lint:all                     # Lint everything 
 npm run dev                          # Clean + test cycle
 npm run ci                           # Full CI pipeline
@@ -72,10 +72,24 @@ bats tests/benchmarks/test_cache_performance.bats  # Cache performance tests
 # Performance baseline in tests/benchmarks/performance_baseline.txt
 ```
 
+**Prayer System Testing:**
+```bash
+bats tests/unit/test_prayer_functions.bats       # Core prayer functionality
+bats tests/unit/test_prayer_auto_location.bats    # Auto-location detection
+ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer display
+```
+
+**API Research Tools:**
+```bash
+./api-research/claude-statusline-api-extractor.sh start   # Start API capture
+./api-research/claude-statusline-api-extractor.sh analyze # Analyze captured data
+./api-research/claude-statusline-api-extractor.sh status  # View statistics
+```
+
 ## Project Architecture
 
 **Modular System (91.5% code reduction from monolithic v1):**
-- `statusline.sh` (332 lines) - Main orchestrator, loads modules via `load_module()`
+- `statusline.sh` (368 lines) - Main orchestrator, loads modules via `load_module()`
 - `lib/core.sh` - Base utilities, error handling, performance timing
 - `lib/security.sh` - Input sanitization, path validation
 - `lib/config.sh` - TOML parsing via `load_toml_configuration()`
@@ -85,6 +99,8 @@ bats tests/benchmarks/test_cache_performance.bats  # Cache performance tests
 - `lib/cost.sh` - ccusage integration, cost tracking
 - `lib/display.sh` - Output formatting, color application
 - `lib/cache.sh` - Intelligent caching system
+- `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
+- `lib/prayer/*.sh` - Modular prayer system (location, calculation, display)
 
 **Data Flow:**
 1. JSON input → Configuration loading → Theme application
@@ -99,7 +115,9 @@ bats tests/benchmarks/test_cache_performance.bats  # Cache performance tests
 6. `git.sh` → Independent module (git operations)
 7. `mcp.sh` → Independent module (MCP server monitoring)
 8. `cost.sh` → Independent module (cost tracking)
-9. `display.sh` → Depends on themes + all data modules (output formatting)
+9. `prayer.sh` → Islamic prayer times system (depends on core, security, cache, config)
+10. `prayer/*.sh` → Prayer sub-modules (location, calculation, display, timezone)
+11. `display.sh` → Depends on themes + all data modules (output formatting)
 
 **Key Functions:**
 - `statusline.sh:load_module()` - Module loading with dependency checking
@@ -107,6 +125,8 @@ bats tests/benchmarks/test_cache_performance.bats  # Cache performance tests
 - `lib/themes.sh:apply_theme()` - Theme inheritance and color management
 - `lib/mcp.sh:get_mcp_status()` - MCP server health monitoring
 - `lib/cache.sh:execute_cached_command()` - Universal caching with TTL support
+- `lib/prayer.sh:get_prayer_times()` - Islamic prayer times with auto-location
+- `lib/prayer.sh:get_hijri_date()` - Hijri calendar integration
 
 ## Development Workflow
 
@@ -290,7 +310,7 @@ cache.isolation.session = "repository"  # Session costs per project
 
 ## Testing Architecture
 
-**77-Test Comprehensive Suite:**
+**246-Test Comprehensive Suite (17 files):**
 - `tests/unit/` - Function-level testing with mocked dependencies
 - `tests/integration/` - End-to-end statusline functionality  
 - `tests/benchmarks/` - Performance regression prevention
@@ -317,10 +337,36 @@ setup_mock_bin_dir()          # Set up isolated mock binary directory
 
 **Test Categories:**
 ```bash
-tests/unit/*.bats             # Function-level unit tests with mocks
-tests/integration/*.bats      # End-to-end integration tests
-tests/benchmarks/*.bats       # Performance regression tests
+tests/unit/*.bats             # Function-level unit tests with mocks (9 files)
+tests/integration/*.bats      # End-to-end integration tests (6 files)
+tests/benchmarks/*.bats       # Performance regression tests (2 files)
 tests/race-conditions/        # Multi-instance concurrency tests
+```
+
+**Current Test Files (17 total, 246 test cases):**
+```bash
+# Unit Tests (9 files)
+tests/unit/test_cache_enhancements.bats
+tests/unit/test_git_functions.bats  
+tests/unit/test_mcp_parsing.bats
+tests/unit/test_module_loading.bats
+tests/unit/test_prayer_auto_location.bats  # NEW: Prayer system
+tests/unit/test_prayer_functions.bats      # NEW: Prayer system
+tests/unit/test_security.bats
+tests/unit/test_timeout_validation.bats
+
+# Integration Tests (6 files)
+tests/integration/test_cache_integration.bats
+tests/integration/test_full_statusline.bats
+tests/integration/test_optimized_extraction.bats
+tests/integration/test_toml_advanced.bats
+tests/integration/test_toml_integration.bats
+tests/integration/test_toml_simple.bats
+
+# Performance Tests (2 files)
+tests/benchmarks/test_cache_performance.bats
+tests/benchmarks/test_performance.bats
+tests/benchmarks/test_toml_performance.bats  # NEW: TOML parsing performance
 ```
 
 **Running Specific Test Types:**
@@ -331,7 +377,7 @@ bats tests/benchmarks/test_performance.bats      # Performance benchmarks
 tests/race-conditions/test-concurrent-access.sh  # Concurrency testing
 ```
 
-## Recent Fixes & Known Issues (v2.4.1+)
+## Recent Fixes & Known Issues (v2.5.0+)
 
 **Critical Fixes Applied:**
 ```bash
@@ -364,6 +410,8 @@ rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
 - ✅ Zero commits show as: `│ Commits:0 │ ver1.0.98 │`
 - ✅ Cache key sanitization prevents arithmetic errors
 - ✅ All 11 label types (commits, repo, monthly, weekly, daily, submodule, mcp, version_prefix, session_prefix, live, reset) load from TOML
+- ✅ Prayer system integration with auto-location detection
+- ✅ API research framework for comprehensive statusline analysis
 
 ## Key Implementation Notes
 
@@ -382,21 +430,25 @@ Each module has include guard: `[[ "${STATUSLINE_*_LOADED:-}" == "true" ]] && re
 
 **External Dependencies:**
 - **Required**: `jq` (JSON parsing), `git` (repository integration)
+- **Prayer System**: `curl` (API calls), `date` (time calculations)
 - **Optional**: `ccusage` (cost tracking), `timeout/gtimeout` (platform-specific)
 - **Auto-detection**: Dependencies validated in installer and runtime
 
 ## High-Priority Development Opportunities
 
-**Recently Completed (v2.4.1):**
+**Recently Completed (v2.5.0):**
+- ✅ **Islamic Prayer Times Integration** - Complete prayer system with auto-location (v2.2.0-2.5.0)
+- ✅ **Modular Prayer Architecture** - Separated prayer functionality into focused modules
 - ✅ **Label Configuration System** - Fixed TOML label loading (commits 6a4a677, 7c0037d)
 - ✅ **Cache Key Sanitization** - Resolved arithmetic errors in cache system
-- ✅ **Commit Count Display** - Now properly shows daily commit statistics
+- ✅ **API Research Framework** - Comprehensive Claude Code API analysis tools
 
 **Ready for Implementation:**
 1. **Custom Theme System** - Framework exists for additional themes beyond classic, garden, and catppuccin
 2. **CI/CD Pipeline** - No `.github/workflows/` exists, critical infrastructure gap  
 3. **Profile System** - Conditional configuration for work/personal contexts
 4. **Enhanced Error Recovery** - Improve cache corruption detection and recovery mechanisms
+5. **Prayer System Enhancements** - Additional prayer calculation methods and customization
 
 **Quality Improvements:**
 - **Cache Error Logging** - Better error messages for cache-related issues
@@ -407,7 +459,36 @@ Each module has include guard: `[[ "${STATUSLINE_*_LOADED:-}" == "true" ]] && re
 - `TODOS.md` - 50+ categorized items with complexity estimates
 - `CONTRIBUTING.md` - Complete development environment setup  
 - `examples/Config.toml` - Master configuration template (keep updated)
-- Recent commits for debugging patterns: `git log --oneline -10`
+- `api-research/` - Claude Code API analysis framework and tools
+- `lib/prayer/` - Modular Islamic prayer times system
+- Recent commits for debugging patterns: `git log --oneline -15`
+
+## Prayer System Integration Notes
+
+**Prayer Time Display Format:**
+```bash
+# Example prayer time output
+│ Fajr: 05:42 (in 2h 15m) │ Dhuhr: 12:30 │ Maghrib: 18:45 │
+│ 📅 15 Muharram 1446 │ 🕐 Next: Fajr │ ⏰ 2h 15m remaining │
+```
+
+**Prayer System Dependencies:**
+- **Required**: `curl` (API calls), `date` (time calculations)
+- **Optional**: `jq` (JSON parsing - automatically detected)
+- **Caching**: Prayer times cached for 24 hours, location cached for 7 days
+
+**Prayer Configuration Examples:**
+```bash
+# Indonesian/Malaysian settings (default)
+ENV_CONFIG_PRAYER_CALCULATION_METHOD=5 ./statusline.sh
+
+# Custom location override
+ENV_CONFIG_PRAYER_LOCATION_LATITUDE=-6.2088 ./statusline.sh
+ENV_CONFIG_PRAYER_LOCATION_LONGITUDE=106.8456 ./statusline.sh
+
+# Disable auto-location, use manual coordinates
+ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh
+```
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
