@@ -420,7 +420,18 @@ extract_config_values() {
             cache_version_file: (."cache.version_file" // "/tmp/.claude_version_cache"),
             display_time_format: (."display.time_format" // "%H:%M"),
             display_date_format: (."display.date_format" // "%Y-%m-%d"),
-            display_date_format_compact: (."display.date_format_compact" // "%Y%m%d")
+            display_date_format_compact: (."display.date_format_compact" // "%Y%m%d"),
+            label_commits: (."labels.commits" // "Commits:"),
+            label_repo: (."labels.repo" // "REPO"),
+            label_monthly: (."labels.monthly" // "30DAY"),
+            label_weekly: (."labels.weekly" // "7DAY"),
+            label_daily: (."labels.daily" // "DAY"),
+            label_submodule: (."labels.submodule" // "SUB:"),
+            label_mcp: (."labels.mcp" // "MCP"),
+            label_version_prefix: (."labels.version_prefix" // "ver"),
+            label_session_prefix: (."labels.session_prefix" // "S:"),
+            label_live: (."labels.live" // "LIVE"),
+            label_reset: (."labels.reset" // "RESET")
         } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
@@ -478,6 +489,39 @@ extract_config_values() {
             ;;
         display_date_format_compact)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_DATE_FORMAT_COMPACT="$value"
+            ;;
+        label_commits)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_COMMITS_LABEL="$value"
+            ;;
+        label_repo)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_REPO_LABEL="$value"
+            ;;
+        label_monthly)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_MONTHLY_LABEL="$value"
+            ;;
+        label_weekly)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_WEEKLY_LABEL="$value"
+            ;;
+        label_daily)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_DAILY_LABEL="$value"
+            ;;
+        label_submodule)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_SUBMODULE_LABEL="$value"
+            ;;
+        label_mcp)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_MCP_LABEL="$value"
+            ;;
+        label_version_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_PREFIX="$value"
+            ;;
+        label_session_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_SESSION_PREFIX="$value"
+            ;;
+        label_live)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LIVE_LABEL="$value"
+            ;;
+        label_reset)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_RESET_LABEL="$value"
             ;;
         esac
     done <<<"$config_data"

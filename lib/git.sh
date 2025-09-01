@@ -257,6 +257,7 @@ get_commits_since() {
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local cache_key
         local sanitized_date="${since_date// /_}"  # Replace spaces with underscores
+        sanitized_date="${sanitized_date//:/_}"    # Replace colons with underscores
         cache_key=$(generate_typed_cache_key "commits_since_${sanitized_date}" "git")
         cache_git_operation "$cache_key" "$CACHE_DURATION_SHORT" bash -c "git log --since='$since_date' --oneline 2>/dev/null | wc -l | tr -d ' '"
     else
