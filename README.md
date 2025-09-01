@@ -316,10 +316,14 @@ prayer.location_mode = "manual"      # Use manual coordinates (disable auto-dete
 
 #### **🔒 Privacy & Performance**
 
-- **Privacy-First Design** - Location data cached locally, no tracking
-- **Graceful Degradation** - Works offline with timezone/locale fallbacks
-- **Intelligent Caching** - 7-day cache prevents repeated API calls
-- **Ultra-Fast Offline** - Timezone mapping completes in microseconds
+- **Privacy-First Design** - Location data cached locally, no tracking or data collection
+- **IP Geolocation Transparency** - When using auto-detection, your IP address is sent to ip-api.com for location lookup (can be disabled)
+- **Local Data Storage** - All location and prayer data stored locally in `~/.cache/claude-code-statusline/` 
+- **No Personal Information** - Only coordinates and prayer calculation method are stored, no personal data
+- **Manual Override Available** - Set `prayer.location_mode = "manual"` to completely disable IP-based detection
+- **Graceful Degradation** - Works offline with timezone/locale fallbacks when internet unavailable
+- **Intelligent Caching** - 7-day cache prevents repeated API calls, reduces external requests
+- **Ultra-Fast Offline** - Timezone mapping completes in microseconds using local data structures
 - **Zero Dependencies** - No external libraries required for offline operation
 
 #### **🎯 Example Auto-Detection Results**

@@ -1,0 +1,128 @@
+# ============================================================================
+# Claude Code Statusline - Advanced Configuration Options
+# ============================================================================
+#
+# This file contains advanced customization options for power users.
+# Most users should stick to Config.base.toml and optionally Config.prayer.toml
+#
+# To use: Copy desired settings to your main Config.toml file
+#
+# ============================================================================
+
+# === CUSTOM THEME COLORS ===
+# Only used when theme.name = "custom"
+# Use ANSI escape codes for terminal colors
+
+# Basic ANSI colors (most compatible)
+colors.basic.red = "\\033[31m"
+colors.basic.green = "\\033[32m"
+colors.basic.yellow = "\\033[33m"
+colors.basic.blue = "\\033[34m"
+colors.basic.magenta = "\\033[35m"
+colors.basic.cyan = "\\033[36m"
+colors.basic.white = "\\033[37m"
+colors.basic.black = "\\033[30m"
+colors.basic.reset = "\\033[0m"
+
+# Bright ANSI colors
+colors.bright.red = "\\033[91m"
+colors.bright.green = "\\033[92m"
+colors.bright.yellow = "\\033[93m"
+colors.bright.blue = "\\033[94m"
+colors.bright.magenta = "\\033[95m"
+colors.bright.cyan = "\\033[96m"
+colors.bright.white = "\\033[97m"
+
+# === ADVANCED DISPLAY OPTIONS ===
+# Experimental or less common display features
+
+# Git repository information
+git.show_branch_info = true
+git.show_commit_count = true
+git.show_submodule_count = false
+git.commit_count_period = "today"  # today, week, month
+
+# MCP server details
+mcp.show_server_names = true
+mcp.show_connection_count = true
+mcp.max_displayed_servers = 3
+
+# Cost tracking granularity
+cost.show_hourly_costs = false
+cost.precision_decimals = 2
+cost.currency_symbol = "$"
+
+# === PERFORMANCE TUNING ===
+# Advanced cache and timeout settings
+
+# Git operation timeouts
+timeouts.git_status = "3s"
+timeouts.git_branch = "2s"
+timeouts.git_log = "5s"
+
+# External command timeouts
+timeouts.curl = "8s"
+timeouts.ping = "3s"
+
+# Cache TTL values (in seconds)
+cache.git_status_ttl = "30"
+cache.git_branch_ttl = "10"
+cache.mcp_server_list_ttl = "120"
+cache.system_info_ttl = "86400"  # 24 hours
+
+# === DEBUGGING AND LOGGING ===
+# Development and troubleshooting options
+
+# Debug logging (can be overridden with STATUSLINE_DEBUG=true)
+debug.enable_debug_logging = false
+debug.log_level = "INFO"  # DEBUG, INFO, WARN, ERROR
+debug.log_to_file = false
+debug.log_file_path = "/tmp/statusline-debug.log"
+
+# Performance monitoring
+debug.show_timing_info = false
+debug.show_cache_stats = false
+
+# === EXPERIMENTAL FEATURES ===
+# Features that may change in future versions
+
+# Alternative display modes
+display.compact_mode = false
+display.single_line_mode = false
+display.color_emoji_support = true
+
+# Advanced caching strategies
+cache.aggressive_caching = false
+cache.preload_common_data = false
+
+# Network optimization
+network.prefer_ipv4 = false
+network.connection_pooling = false
+network.retry_failed_requests = true
+
+# === INTEGRATION OPTIONS ===
+# Advanced integration with external tools
+
+# Custom command integration
+integration.custom_commands = false
+integration.shell_hooks = false
+
+# Third-party tool integration  
+integration.tmux_support = false
+integration.screen_support = false
+integration.terminal_title_update = false
+
+# === ACCESSIBILITY OPTIONS ===
+# Options for accessibility and special use cases
+
+accessibility.high_contrast_mode = false
+accessibility.screen_reader_friendly = false
+accessibility.reduce_animations = false
+accessibility.simplified_output = false
+
+# === LEGACY COMPATIBILITY ===
+# Compatibility options for older systems
+
+compatibility.legacy_color_support = false
+compatibility.bash_3_support = false
+compatibility.minimal_dependencies = false

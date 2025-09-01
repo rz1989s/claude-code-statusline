@@ -1,0 +1,128 @@
+# ============================================================================
+# Claude Code Statusline - Islamic Prayer Times Configuration
+# ============================================================================
+#
+# This configuration enables and customizes Islamic prayer time features.
+# Requires the base configuration (Config.base.toml) to be loaded first.
+#
+# To enable prayer features:
+# 1. Copy Config.base.toml to ~/.claude/statusline/Config.toml
+# 2. Add desired settings from this file to your Config.toml
+#
+# ============================================================================
+
+# === PRAYER FEATURE TOGGLES ===
+# Enable/disable Islamic prayer functionality
+features.show_prayer_times = true
+features.show_hijri_date = true
+
+# === LOCATION DETECTION ===
+# Location detection method for prayer calculations
+# Options:
+#   "auto"     - Comprehensive auto-detection (IP → Cache → Timezone) [RECOMMENDED]  
+#   "ip_based" - Force IP geolocation only (requires internet)
+#   "manual"   - Use manual coordinates (completely disable auto-detection)
+prayer.location_mode = "auto"
+
+# Manual coordinates (only used when location_mode = "manual")
+# prayer.latitude = "-6.2088"   # Jakarta example
+# prayer.longitude = "106.8456"
+# prayer.timezone = "Asia/Jakarta"
+
+# === CALCULATION METHODS ===
+# Prayer calculation method (auto-detected based on location if not specified)
+# Common methods:
+#   1  = University of Islamic Sciences, Karachi (South Asia)
+#   2  = Islamic Society of North America (ISNA) (North America)
+#   3  = Muslim World League (MWL) (Europe, Australia)  
+#   4  = Umm Al-Qura University, Makkah (Saudi Arabia, Gulf)
+#   5  = Egyptian General Authority of Survey (Egypt, Libya)
+#   11 = Majlis Ugama Islam Singapura (MUIS) (Singapore)
+#   17 = Jabatan Kemajuan Islam Malaysia (JAKIM) (Malaysia)
+#   18 = Presidency of Religious Affairs, Turkey (Turkey, North Africa)
+#   20 = Kementerian Agama Republik Indonesia (KEMENAG) (Indonesia)
+# prayer.calculation_method = "20"  # Auto-detected if not specified
+
+# Madhab (jurisprudence school)
+# 1 = Shafi, 2 = Hanafi
+prayer.madhab = "2"
+
+# === HIJRI CALENDAR SETTINGS ===
+# Hijri date calculation method
+hijri.calculation_method = "umm_alqura"
+hijri.adjustment_days = "0"
+hijri.show_arabic = false
+hijri.highlight_friday = true
+hijri.show_maghrib_indicator = true  # Show moon 🌙 after Maghrib
+
+# === DISPLAY PREFERENCES ===
+# Prayer time display format
+prayer.time_format = "24h"  # "12h" or "24h"
+
+# Status indicators
+prayer.show_completed_indicator = true      # Show ✓ for completed prayers
+prayer.highlight_next_prayer = true         # Highlight upcoming prayer
+prayer.show_time_remaining = true          # Show time remaining like "(2h 15m)"
+prayer.use_legacy_indicator = false        # Use "(next)" instead of time remaining
+
+# Next prayer highlighting colors
+prayer.next_prayer_color_enabled = true
+prayer.next_prayer_color = "bright_green"  # green, bright_green, teal, yellow, etc.
+
+# Advanced display options
+prayer.show_countdown = false              # Show countdown timer
+prayer.show_session_info = false          # Show session-related info
+
+# === PRAYER LABELS ===
+# Customize display labels (optional)
+labels.mcp = "MCP"
+labels.live = "LIVE"
+labels.reset = "RESET"
+labels.session_prefix = "S:"
+labels.submodule = "SUB:"
+
+# === PERFORMANCE & CACHING ===
+# API timeouts for prayer data
+timeouts.aladhan_api = "10s"
+timeouts.ip_geolocation = "8s"
+
+# Cache settings for prayer data
+cache.prayer_times_ttl = "3600"        # 1 hour
+cache.location_data_ttl = "604800"     # 7 days
+cache.hijri_date_ttl = "86400"         # 1 day
+
+# === PRIVACY SETTINGS ===
+# Note: When location_mode = "auto" or "ip_based", your IP address
+# will be sent to ip-api.com for location determination.
+# All data is cached locally and no tracking occurs.
+# Set location_mode = "manual" to completely disable external requests.
+
+# Example manual configuration for common locations:
+
+# Indonesia (Jakarta)
+# prayer.location_mode = "manual"
+# prayer.latitude = "-6.2088"
+# prayer.longitude = "106.8456"  
+# prayer.timezone = "Asia/Jakarta"
+# prayer.calculation_method = "20"  # KEMENAG
+
+# Saudi Arabia (Riyadh)  
+# prayer.location_mode = "manual"
+# prayer.latitude = "24.7136"
+# prayer.longitude = "46.6753"
+# prayer.timezone = "Asia/Riyadh" 
+# prayer.calculation_method = "4"   # Umm Al-Qura
+
+# United States (New York)
+# prayer.location_mode = "manual"
+# prayer.latitude = "40.7128"
+# prayer.longitude = "-74.0060"
+# prayer.timezone = "America/New_York"
+# prayer.calculation_method = "2"   # ISNA
+
+# United Kingdom (London)
+# prayer.location_mode = "manual"
+# prayer.latitude = "51.5074"
+# prayer.longitude = "-0.1278"
+# prayer.timezone = "Europe/London"
+# prayer.calculation_method = "3"   # MWL

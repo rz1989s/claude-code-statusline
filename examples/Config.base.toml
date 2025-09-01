@@ -1,0 +1,68 @@
+# ============================================================================
+# Claude Code Statusline - Base Configuration Template
+# ============================================================================
+#
+# This is the core configuration for basic statusline functionality.
+# For Islamic prayer features, see Config.prayer.toml
+# For advanced customization, see Config.advanced.toml
+#
+# Installation: Copy to ~/.claude/statusline/Config.toml
+#
+# Configuration Precedence (highest to lowest):
+# 1. Environment variables (ENV_CONFIG_*)
+# 2. ./Config.toml (project-specific)
+# 3. ~/.claude/statusline/Config.toml (user installation)
+# 4. ~/.config/claude-code-statusline/Config.toml (XDG standard)
+# 5. Inline script defaults
+#
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+# Choose your visual theme for the statusline
+# Available themes: "classic", "garden", "catppuccin"
+theme.name = "catppuccin"
+
+# === FEATURE TOGGLES ===
+# Core features
+features.show_git_info = true
+features.show_mcp_status = true  
+features.show_cost_tracking = true
+features.show_claude_version = true
+
+# Prayer features (disabled by default - see Config.prayer.toml)
+features.show_prayer_times = false
+features.show_hijri_date = false
+
+# === DISPLAY CONFIGURATION ===
+# Labels for different sections
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
+labels.weekly = "7DAY"
+labels.daily = "DAY"
+labels.version_prefix = "ver"
+
+# === MCP SERVER MONITORING ===
+# Timeout for MCP server status checks
+timeouts.mcp = "5s"
+
+# === COST TRACKING ===
+# Timeout for ccusage command
+timeouts.ccusage = "10s"
+
+# Display preferences
+cost.show_session_costs = true
+cost.show_daily_costs = true
+cost.show_weekly_costs = false
+cost.show_monthly_costs = false
+
+# === CACHE CONFIGURATION ===
+# Universal caching system
+cache.enable_universal_caching = true
+cache.claude_version_ttl = "900"  # 15 minutes
+
+# Cache isolation (prevent cross-contamination between repos)
+cache.isolation.mode = "repository"
+cache.isolation.mcp = "repository"
+cache.isolation.git = "repository"
+cache.isolation.cost = "shared"
