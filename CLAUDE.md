@@ -33,21 +33,36 @@ STATUSLINE_DEBUG=true ./statusline.sh          # Enable debug logging
 STATUSLINE_DEBUG=true npm test                 # Debug test execution
 ./statusline.sh --modules                      # Check module loading status
 # Configuration errors are automatically reported during execution
+
+# Commit count debugging (for missing or zero commit counts)
+git log --since="today 00:00" --oneline | wc -l | tr -d ' '  # Direct commit check
+echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Test"}}' | ./statusline.sh | sed 's/\x1b\[[0-9;]*m//g'  # Clean statusline output
+
+# Label configuration debugging (for missing labels like "Commits:")
+grep -r "CONFIG_COMMITS_LABEL" lib/config.sh   # Check if labels are being loaded
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "commit\|label"  # Debug label loading
 ```
 
 **Cache Management:**
 ```bash
-# Clear cache files
+# Clear all cache files
 rm -rf ~/.cache/claude-code-statusline/
 rm -rf ~/.local/share/claude-code-statusline/
 
+# Clear specific cache types
+rm -rf ~/.cache/claude-code-statusline/git_commits_since_*    # Commit count cache
+rm -rf ~/.cache/claude-code-statusline/git_branch_*          # Branch name cache
+rm -rf ~/.cache/claude-code-statusline/external_claude_*     # Claude version cache
+
 # Debug cache behavior
 STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep "Using cached"
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -E "(cache.*arithmetic|commits_since)"  # Debug arithmetic errors
 CACHE_INSTANCE_ID=DEBUG ./statusline.sh       # Custom cache instance
 
-# View cache statistics
+# View cache statistics and files
 ls -la ~/.cache/claude-code-statusline/*.cache
 ls -la ~/.local/share/claude-code-statusline/*.cache
+find ~/.cache/claude-code-statusline/ -name "*commits_since*" -exec ls -la {} \;  # Find commit cache files
 ```
 
 **Performance Profiling:**
@@ -126,8 +141,8 @@ ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh  # Feature toggles
 
 **Branch-Aware Development:**
 ```bash
-# 1. Test dev branch changes before PR
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+# 1. Test dev2 branch changes before PR
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev2/install.sh | bash -s -- --branch=dev2
 
 # 2. Production deployment (after PR merge)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
@@ -176,6 +191,31 @@ features.show_session_info = true
 - Invalid values fall back to defaults
 - Configuration errors reported with specific line numbers
 - Environment overrides validated in real-time
+
+**Label Configuration (Fixed v2.4.1):**
+All display labels are now properly loaded from TOML configuration:
+```toml
+# All these labels are correctly extracted and applied
+labels.commits = "Commits:"           # Commit count label
+labels.repo = "REPO"                  # Session cost label  
+labels.monthly = "30DAY"              # Monthly cost label
+labels.weekly = "7DAY"                # Weekly cost label
+labels.daily = "DAY"                  # Daily cost label
+labels.submodule = "SUB:"             # Submodule count label
+labels.mcp = "MCP"                    # MCP server label
+labels.version_prefix = "ver"         # Claude version prefix
+labels.session_prefix = "S:"          # Session identifier
+labels.live = "LIVE"                  # Live cost label
+labels.reset = "RESET"                # Reset time label
+```
+
+**Label Override Examples:**
+```bash
+# Test custom labels via environment variables
+ENV_CONFIG_LABELS_COMMITS="Today:" ./statusline.sh
+ENV_CONFIG_LABELS_REPO="SESSION" ./statusline.sh
+ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
+```
 
 ## Configuration System
 
@@ -291,6 +331,40 @@ bats tests/benchmarks/test_performance.bats      # Performance benchmarks
 tests/race-conditions/test-concurrent-access.sh  # Concurrency testing
 ```
 
+## Recent Fixes & Known Issues (v2.4.1+)
+
+**Critical Fixes Applied:**
+```bash
+# Fix 1: Label Configuration Loading (commit 6a4a677)
+# Problem: TOML labels (commits, repo, monthly, etc.) not loaded from Config.toml
+# Cause: extract_config_values() missing label extraction in jq query
+# Solution: Added all 11 label types to jq query and case statements in lib/config.sh
+
+# Fix 2: Cache Key Sanitization (commit 7c0037d) 
+# Problem: Cache arithmetic errors with "git_commits_since_today_00:00_..." keys
+# Cause: Colons in cache keys cause bash arithmetic syntax errors
+# Solution: Added colon sanitization alongside space sanitization in get_commits_since()
+```
+
+**Debugging Patterns Discovered:**
+```bash
+# For missing commit counts (shows as "Commits:" with no number):
+# 1. Check if git command works directly
+git log --since="today 00:00" --oneline | wc -l | tr -d ' '
+
+# 2. Check for cache key issues in logs  
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -E "(arithmetic|cache|commits_since)"
+
+# 3. Clear cache and retry
+rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
+```
+
+**Post-Fix Validation:**
+- ✅ Labels display correctly: `│ Commits:2 │ ver1.0.98 │`  
+- ✅ Zero commits show as: `│ Commits:0 │ ver1.0.98 │`
+- ✅ Cache key sanitization prevents arithmetic errors
+- ✅ All 11 label types (commits, repo, monthly, weekly, daily, submodule, mcp, version_prefix, session_prefix, live, reset) load from TOML
+
 ## Key Implementation Notes
 
 **Module Loading Pattern:**
@@ -313,15 +387,27 @@ Each module has include guard: `[[ "${STATUSLINE_*_LOADED:-}" == "true" ]] && re
 
 ## High-Priority Development Opportunities
 
+**Recently Completed (v2.4.1):**
+- ✅ **Label Configuration System** - Fixed TOML label loading (commits 6a4a677, 7c0037d)
+- ✅ **Cache Key Sanitization** - Resolved arithmetic errors in cache system
+- ✅ **Commit Count Display** - Now properly shows daily commit statistics
+
 **Ready for Implementation:**
 1. **Custom Theme System** - Framework exists for additional themes beyond classic, garden, and catppuccin
-2. **CI/CD Pipeline** - No `.github/workflows/` exists, critical infrastructure gap
+2. **CI/CD Pipeline** - No `.github/workflows/` exists, critical infrastructure gap  
 3. **Profile System** - Conditional configuration for work/personal contexts
+4. **Enhanced Error Recovery** - Improve cache corruption detection and recovery mechanisms
+
+**Quality Improvements:**
+- **Cache Error Logging** - Better error messages for cache-related issues
+- **Configuration Validation** - More detailed TOML validation with specific fix suggestions
+- **Performance Monitoring** - Real-time cache hit ratio and performance metrics display
 
 **Development Resources:**
 - `TODOS.md` - 50+ categorized items with complexity estimates
-- `CONTRIBUTING.md` - Complete development environment setup
+- `CONTRIBUTING.md` - Complete development environment setup  
 - `examples/Config.toml` - Master configuration template (keep updated)
+- Recent commits for debugging patterns: `git log --oneline -10`
 
 # important-instruction-reminders
 Do what has been asked; nothing more, nothing less.
