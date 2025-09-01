@@ -527,6 +527,153 @@ build_complete_statusline() {
 }
 
 # ============================================================================
+# MODULAR LINE BUILDING SYSTEM
+# ============================================================================
+
+# Get line configuration for a specific line number
+get_line_config() {
+    local line_number="$1"
+    local config_type="$2"  # "components", "separator", "show_when_empty"
+    
+    case "$config_type" in
+        "components")
+            case "$line_number" in
+                1) echo "$CONFIG_LINE1_COMPONENTS" ;;
+                2) echo "$CONFIG_LINE2_COMPONENTS" ;;
+                3) echo "$CONFIG_LINE3_COMPONENTS" ;;
+                4) echo "$CONFIG_LINE4_COMPONENTS" ;;
+                5) echo "$CONFIG_LINE5_COMPONENTS" ;;
+                6) echo "$CONFIG_LINE6_COMPONENTS" ;;
+                7) echo "$CONFIG_LINE7_COMPONENTS" ;;
+                8) echo "$CONFIG_LINE8_COMPONENTS" ;;
+                9) echo "$CONFIG_LINE9_COMPONENTS" ;;
+                *) echo "" ;;
+            esac
+            ;;
+        "separator")
+            case "$line_number" in
+                1) echo "$CONFIG_LINE1_SEPARATOR" ;;
+                2) echo "$CONFIG_LINE2_SEPARATOR" ;;
+                3) echo "$CONFIG_LINE3_SEPARATOR" ;;
+                4) echo "$CONFIG_LINE4_SEPARATOR" ;;
+                5) echo "$CONFIG_LINE5_SEPARATOR" ;;
+                6) echo "$CONFIG_LINE6_SEPARATOR" ;;
+                7) echo "$CONFIG_LINE7_SEPARATOR" ;;
+                8) echo "$CONFIG_LINE8_SEPARATOR" ;;
+                9) echo "$CONFIG_LINE9_SEPARATOR" ;;
+                *) echo "$DEFAULT_CONFIG_LINE_SEPARATOR" ;;
+            esac
+            ;;
+        "show_when_empty")
+            case "$line_number" in
+                1) echo "$CONFIG_LINE1_SHOW_WHEN_EMPTY" ;;
+                2) echo "$CONFIG_LINE2_SHOW_WHEN_EMPTY" ;;
+                3) echo "$CONFIG_LINE3_SHOW_WHEN_EMPTY" ;;
+                4) echo "$CONFIG_LINE4_SHOW_WHEN_EMPTY" ;;
+                5) echo "$CONFIG_LINE5_SHOW_WHEN_EMPTY" ;;
+                6) echo "$CONFIG_LINE6_SHOW_WHEN_EMPTY" ;;
+                7) echo "$CONFIG_LINE7_SHOW_WHEN_EMPTY" ;;
+                8) echo "$CONFIG_LINE8_SHOW_WHEN_EMPTY" ;;
+                9) echo "$CONFIG_LINE9_SHOW_WHEN_EMPTY" ;;
+                *) echo "$DEFAULT_CONFIG_LINE_SHOW_WHEN_EMPTY" ;;
+            esac
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# Build a modular statusline using component system
+build_modular_statusline() {
+    debug_log "Building modular statusline with ${CONFIG_DISPLAY_LINES:-5} lines" "INFO"
+    
+    # Ensure components module is loaded
+    if ! is_module_loaded "components"; then
+        handle_error "Components module not loaded - cannot build modular statusline" "build_modular_statusline"
+        return 1
+    fi
+    
+    local max_lines="${CONFIG_DISPLAY_LINES:-5}"
+    local lines_output=()
+    
+    # Build each configured line
+    for line_number in $(seq 1 "$max_lines"); do
+        local components_config separator show_when_empty
+        
+        components_config=$(get_line_config "$line_number" "components")
+        separator=$(get_line_config "$line_number" "separator")
+        show_when_empty=$(get_line_config "$line_number" "show_when_empty")
+        
+        debug_log "Line $line_number: components='$components_config', separator='$separator'" "INFO"
+        
+        # Skip empty lines unless show_when_empty is true
+        if [[ -z "$components_config" && "$show_when_empty" != "true" ]]; then
+            debug_log "Line $line_number: skipping empty line" "INFO"
+            continue
+        fi
+        
+        # Build line using component system
+        local line_output
+        if [[ -n "$components_config" ]]; then
+            line_output=$(build_component_line "$line_number" "$components_config" "$separator")
+            
+            if [[ $? -eq 0 && -n "$line_output" ]]; then
+                lines_output+=("$line_output")
+                debug_log "Line $line_number: built successfully" "INFO"
+            elif [[ "$show_when_empty" == "true" ]]; then
+                lines_output+=("")  # Add empty line if show_when_empty is true
+                debug_log "Line $line_number: added empty line (show_when_empty=true)" "INFO"
+            else
+                debug_log "Line $line_number: no content, skipping" "INFO"
+            fi
+        elif [[ "$show_when_empty" == "true" ]]; then
+            lines_output+=("")  # Add empty line if show_when_empty is true
+            debug_log "Line $line_number: added empty line (no components, show_when_empty=true)" "INFO"
+        fi
+    done
+    
+    # Output all lines
+    local line_count=0
+    for line in "${lines_output[@]}"; do
+        echo "$line"
+        ((line_count++))
+    done
+    
+    debug_log "Modular statusline built: $line_count lines output" "INFO"
+    
+    # Return 0 if at least one line was output
+    [[ $line_count -gt 0 ]]
+}
+
+# Legacy compatibility function - checks if modular config exists
+use_modular_display() {
+    # Use modular display if any line configuration is present
+    [[ -n "$CONFIG_DISPLAY_LINES" ]] || 
+    [[ -n "$CONFIG_LINE1_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE2_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE3_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE4_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE5_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE6_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE7_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE8_COMPONENTS" ]] ||
+    [[ -n "$CONFIG_LINE9_COMPONENTS" ]]
+}
+
+# Main statusline builder - automatically chooses modular or legacy
+build_statusline() {
+    if use_modular_display; then
+        debug_log "Using modular display system" "INFO"
+        build_modular_statusline
+    else
+        debug_log "Using legacy display system" "INFO"
+        # Legacy display code - can be called with parameters
+        build_complete_statusline "$@"
+    fi
+}
+
+# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
 
@@ -584,4 +731,5 @@ export -f format_cost_value format_session_cost format_monthly_cost format_weekl
 export -f format_daily_cost format_live_block_cost get_mcp_status_format format_mcp_server_list
 export -f format_claude_version format_submodule_display format_current_time format_separator
 export -f build_line1 build_line2 build_line3 build_line4 build_complete_statusline
+export -f get_line_config build_modular_statusline use_modular_display build_statusline
 export -f test_display_formatting

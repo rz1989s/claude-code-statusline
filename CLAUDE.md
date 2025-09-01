@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Status (v2.5.0)
+
+**🎯 NEW: Modular Component System** - The statusline now supports configurable 1-9 lines with flexible component arrangement. Users can reorder, show/hide, and customize any component on any line position.
+
 ## Quick Reference
 
 **Essential Commands:**
@@ -15,6 +19,21 @@ npm run clean:processes              # Kill background test processes
 npm run setup                        # Complete project setup
 # Current config is automatically loaded, no validation command needed
 ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
+
+# NEW: Modular system testing
+./statusline.sh --modules            # Show component status
+```
+
+**Modular Configuration Testing (v2.5.0):**
+```bash
+# Test different layouts
+cp examples/Config.modular-compact.toml Config.toml    # 3-line minimal
+cp examples/Config.modular-comprehensive.toml Config.toml  # 7-line full
+cp examples/Config.modular-custom.toml Config.toml     # Custom reordering
+
+# Component-specific testing
+ENV_CONFIG_DISPLAY_LINES=2 ./statusline.sh            # Override line count
+ENV_CONFIG_LINE1_COMPONENTS="mcp_status,prayer_times" ./statusline.sh  # Custom line 1
 ```
 
 **Single Test Execution:**
@@ -92,19 +111,41 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 - `statusline.sh` (368 lines) - Main orchestrator, loads modules via `load_module()`
 - `lib/core.sh` - Base utilities, error handling, performance timing
 - `lib/security.sh` - Input sanitization, path validation
-- `lib/config.sh` - TOML parsing via `load_toml_configuration()`
+- `lib/config.sh` - TOML parsing via `load_toml_configuration()`, **NEW** modular line configuration
 - `lib/themes.sh` - Theme application via `apply_theme()`
+- `lib/components.sh` - **NEW** Component registry system and modular display orchestration
 - `lib/git.sh` - Repository status, commit counting
 - `lib/mcp.sh` - MCP server monitoring via `get_mcp_status()`
 - `lib/cost.sh` - ccusage integration, cost tracking
-- `lib/display.sh` - Output formatting, color application
+- `lib/display.sh` - Output formatting, **NEW** 1-9 line modular building system
 - `lib/cache.sh` - Intelligent caching system
 - `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
 - `lib/prayer/*.sh` - Modular prayer system (location, calculation, display)
+- `lib/components/*.sh` - **NEW** Individual component modules (11 components)
 
-**Data Flow:**
+**Component Architecture (v2.5.0):**
+Each component follows a standardized interface:
+- `collect_${component_name}_data()` - Gather component data
+- `render_${component_name}()` - Format display output
+- `get_${component_name}_config()` - Get component configuration
+
+**Available Components:**
+- `repo_info.sh` - Repository directory and git status
+- `git_stats.sh` - Commits count and submodules
+- `version_info.sh` - Claude Code version display
+- `time_display.sh` - Current time formatting
+- `model_info.sh` - Claude model with emoji
+- `cost_session.sh` - Repository session cost
+- `cost_period.sh` - 30day/7day/daily costs
+- `cost_live.sh` - Live block cost
+- `mcp_status.sh` - MCP server health monitoring
+- `reset_timer.sh` - Block reset countdown
+- `prayer_times.sh` - Islamic prayer times integration
+
+**Data Flow (Updated v2.5.0):**
 1. JSON input → Configuration loading → Theme application
-2. Parallel data collection (git/mcp/cost) → Formatting → 4-line output
+2. **NEW** Component system initialization → Component data collection
+3. Modular line building → 1-9 line dynamic output (vs legacy 5-line fixed)
 
 **Module Dependencies & Load Order:**
 1. `core.sh` → Always loaded first (provides `load_module()`, logging, timers)

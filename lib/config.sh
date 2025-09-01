@@ -115,6 +115,50 @@ export CONFIG_MCP_NONE_MESSAGE=""
 export CONFIG_UNKNOWN_VERSION=""
 export CONFIG_NO_SUBMODULES=""
 
+# Display line configuration (new modular system)
+export CONFIG_DISPLAY_LINES=""
+export CONFIG_LINE1_COMPONENTS=""
+export CONFIG_LINE2_COMPONENTS=""
+export CONFIG_LINE3_COMPONENTS=""
+export CONFIG_LINE4_COMPONENTS=""
+export CONFIG_LINE5_COMPONENTS=""
+export CONFIG_LINE6_COMPONENTS=""
+export CONFIG_LINE7_COMPONENTS=""
+export CONFIG_LINE8_COMPONENTS=""
+export CONFIG_LINE9_COMPONENTS=""
+export CONFIG_LINE1_SEPARATOR=""
+export CONFIG_LINE2_SEPARATOR=""
+export CONFIG_LINE3_SEPARATOR=""
+export CONFIG_LINE4_SEPARATOR=""
+export CONFIG_LINE5_SEPARATOR=""
+export CONFIG_LINE6_SEPARATOR=""
+export CONFIG_LINE7_SEPARATOR=""
+export CONFIG_LINE8_SEPARATOR=""
+export CONFIG_LINE9_SEPARATOR=""
+export CONFIG_LINE1_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE2_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE3_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE4_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE5_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE6_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE7_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE8_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE9_SHOW_WHEN_EMPTY=""
+
+# Default line configuration values
+export DEFAULT_CONFIG_DISPLAY_LINES="5"
+export DEFAULT_CONFIG_LINE1_COMPONENTS="repo_info,git_stats,version_info,time_display"
+export DEFAULT_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_period,cost_live"
+export DEFAULT_CONFIG_LINE3_COMPONENTS="mcp_status"
+export DEFAULT_CONFIG_LINE4_COMPONENTS="reset_timer"
+export DEFAULT_CONFIG_LINE5_COMPONENTS="prayer_times"
+export DEFAULT_CONFIG_LINE6_COMPONENTS=""
+export DEFAULT_CONFIG_LINE7_COMPONENTS=""
+export DEFAULT_CONFIG_LINE8_COMPONENTS=""
+export DEFAULT_CONFIG_LINE9_COMPONENTS=""
+export DEFAULT_CONFIG_LINE_SEPARATOR=" │ "
+export DEFAULT_CONFIG_LINE_SHOW_WHEN_EMPTY="false"
+
 # ============================================================================
 # TOML PARSING FUNCTIONS
 # ============================================================================
@@ -329,6 +373,27 @@ init_default_config() {
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
 
+    # Line configuration defaults
+    CONFIG_DISPLAY_LINES="$DEFAULT_CONFIG_DISPLAY_LINES"
+    CONFIG_LINE1_COMPONENTS="$DEFAULT_CONFIG_LINE1_COMPONENTS"
+    CONFIG_LINE2_COMPONENTS="$DEFAULT_CONFIG_LINE2_COMPONENTS"
+    CONFIG_LINE3_COMPONENTS="$DEFAULT_CONFIG_LINE3_COMPONENTS"
+    CONFIG_LINE4_COMPONENTS="$DEFAULT_CONFIG_LINE4_COMPONENTS"
+    CONFIG_LINE5_COMPONENTS="$DEFAULT_CONFIG_LINE5_COMPONENTS"
+    CONFIG_LINE6_COMPONENTS="$DEFAULT_CONFIG_LINE6_COMPONENTS"
+    CONFIG_LINE7_COMPONENTS="$DEFAULT_CONFIG_LINE7_COMPONENTS"
+    CONFIG_LINE8_COMPONENTS="$DEFAULT_CONFIG_LINE8_COMPONENTS"
+    CONFIG_LINE9_COMPONENTS="$DEFAULT_CONFIG_LINE9_COMPONENTS"
+    
+    # Set separators for all lines
+    for i in {1..9}; do
+        declare -n line_separator="CONFIG_LINE${i}_SEPARATOR"
+        line_separator="$DEFAULT_CONFIG_LINE_SEPARATOR"
+        
+        declare -n show_when_empty="CONFIG_LINE${i}_SHOW_WHEN_EMPTY"
+        show_when_empty="$DEFAULT_CONFIG_LINE_SHOW_WHEN_EMPTY"
+    done
+
     debug_log "Default configuration initialized" "INFO"
 }
 
@@ -431,7 +496,35 @@ extract_config_values() {
             label_version_prefix: (."labels.version_prefix" // "ver"),
             label_session_prefix: (."labels.session_prefix" // "S:"),
             label_live: (."labels.live" // "LIVE"),
-            label_reset: (."labels.reset" // "RESET")
+            label_reset: (."labels.reset" // "RESET"),
+            display_lines: (."display.lines" // 5),
+            line1_components: (."display.line1.components" // ["repo_info", "git_stats", "version_info", "time_display"] | join(",")),
+            line2_components: (."display.line2.components" // ["model_info", "cost_session", "cost_period", "cost_live"] | join(",")),
+            line3_components: (."display.line3.components" // ["mcp_status"] | join(",")),
+            line4_components: (."display.line4.components" // ["reset_timer"] | join(",")),
+            line5_components: (."display.line5.components" // ["prayer_times"] | join(",")),
+            line6_components: (."display.line6.components" // [] | join(",")),
+            line7_components: (."display.line7.components" // [] | join(",")),
+            line8_components: (."display.line8.components" // [] | join(",")),
+            line9_components: (."display.line9.components" // [] | join(",")),
+            line1_separator: (."display.line1.separator" // " │ "),
+            line2_separator: (."display.line2.separator" // " │ "),
+            line3_separator: (."display.line3.separator" // " │ "),
+            line4_separator: (."display.line4.separator" // " │ "),
+            line5_separator: (."display.line5.separator" // " │ "),
+            line6_separator: (."display.line6.separator" // " │ "),
+            line7_separator: (."display.line7.separator" // " │ "),
+            line8_separator: (."display.line8.separator" // " │ "),
+            line9_separator: (."display.line9.separator" // " │ "),
+            line1_show_when_empty: (."display.line1.show_when_empty" // false),
+            line2_show_when_empty: (."display.line2.show_when_empty" // false),
+            line3_show_when_empty: (."display.line3.show_when_empty" // false),
+            line4_show_when_empty: (."display.line4.show_when_empty" // false),
+            line5_show_when_empty: (."display.line5.show_when_empty" // false),
+            line6_show_when_empty: (."display.line6.show_when_empty" // false),
+            line7_show_when_empty: (."display.line7.show_when_empty" // false),
+            line8_show_when_empty: (."display.line8.show_when_empty" // false),
+            line9_show_when_empty: (."display.line9.show_when_empty" // false)
         } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
@@ -522,6 +615,90 @@ extract_config_values() {
             ;;
         label_reset)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_RESET_LABEL="$value"
+            ;;
+        display_lines)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_DISPLAY_LINES="$value"
+            ;;
+        line1_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE1_COMPONENTS="$value"
+            ;;
+        line2_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE2_COMPONENTS="$value"
+            ;;
+        line3_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE3_COMPONENTS="$value"
+            ;;
+        line4_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE4_COMPONENTS="$value"
+            ;;
+        line5_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE5_COMPONENTS="$value"
+            ;;
+        line6_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE6_COMPONENTS="$value"
+            ;;
+        line7_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE7_COMPONENTS="$value"
+            ;;
+        line8_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE8_COMPONENTS="$value"
+            ;;
+        line9_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE9_COMPONENTS="$value"
+            ;;
+        line1_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE1_SEPARATOR="$value"
+            ;;
+        line2_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE2_SEPARATOR="$value"
+            ;;
+        line3_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE3_SEPARATOR="$value"
+            ;;
+        line4_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE4_SEPARATOR="$value"
+            ;;
+        line5_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE5_SEPARATOR="$value"
+            ;;
+        line6_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE6_SEPARATOR="$value"
+            ;;
+        line7_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE7_SEPARATOR="$value"
+            ;;
+        line8_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE8_SEPARATOR="$value"
+            ;;
+        line9_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE9_SEPARATOR="$value"
+            ;;
+        line1_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE1_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line2_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE2_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line3_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE3_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line4_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE4_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line5_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE5_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line6_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE6_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line7_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE7_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line8_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE8_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line9_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE9_SHOW_WHEN_EMPTY="$value"
             ;;
         esac
     done <<<"$config_data"

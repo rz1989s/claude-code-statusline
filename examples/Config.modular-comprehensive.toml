@@ -1,0 +1,96 @@
+# ============================================================================
+# Claude Code Statusline - Comprehensive Modular Configuration  
+# ============================================================================
+#
+# This configuration showcases the full power of the modular system with
+# a comprehensive 7-line layout that maximizes information display.
+# Components are strategically arranged for optimal readability.
+#
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+theme.name = "garden"
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# Comprehensive 7-line layout
+display.lines = 7
+
+# Line 1: Islamic Prayer Times (Priority Display)
+display.line1.components = ["prayer_times"]
+display.line1.separator = " │ "
+
+# Line 2: Repository and Git Information
+display.line2.components = ["repo_info", "git_stats"]
+display.line2.separator = " │ "
+
+# Line 3: System and Version Information
+display.line3.components = ["model_info", "version_info", "time_display"]
+display.line3.separator = " │ "
+
+# Line 4: Session and Live Costs
+display.line4.components = ["cost_session", "cost_live"]
+display.line4.separator = " │ "
+
+# Line 5: Period Cost Analysis
+display.line5.components = ["cost_period"]
+display.line5.separator = " │ "
+
+# Line 6: MCP Server Monitoring
+display.line6.components = ["mcp_status"]
+display.line6.separator = " │ "
+
+# Line 7: Reset Timer and Status
+display.line7.components = ["reset_timer"]
+display.line7.show_when_empty = false
+
+# === COMPONENT CONFIGURATION ===
+# All components enabled with full features
+components.prayer_times.enabled = true
+components.prayer_times.show_hijri_date = true
+components.repo_info.enabled = true
+components.git_stats.enabled = true
+components.git_stats.show_commits = true
+components.git_stats.show_submodules = true
+components.model_info.enabled = true
+components.version_info.enabled = true
+components.time_display.enabled = true
+components.cost_session.enabled = true
+components.cost_period.enabled = true
+components.cost_period.show_monthly = true
+components.cost_period.show_weekly = true
+components.cost_period.show_daily = true
+components.cost_live.enabled = true
+components.mcp_status.enabled = true
+components.mcp_status.show_server_list = true
+components.reset_timer.enabled = true
+
+# === FEATURE TOGGLES ===
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_prayer_times = true
+features.show_hijri_date = true
+
+# === TIMEOUTS ===
+# Longer timeouts for comprehensive data collection
+timeouts.mcp = "15s"
+timeouts.version = "10s"
+timeouts.ccusage = "15s"
+timeouts.prayer = "15s"
+
+# === PRAYER TIMES CONFIGURATION ===
+prayer.enabled = true
+prayer.location_mode = "auto"
+
+# === CUSTOM SEPARATORS ===
+# Use different separators for visual variety
+display.line1.separator = " 🕌 "
+display.line2.separator = " • "
+display.line3.separator = " → "
+display.line4.separator = " 💰 "
+display.line5.separator = " 📊 "
+display.line6.separator = " 🔌 "
+display.line7.separator = " ⏰ "

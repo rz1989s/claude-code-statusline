@@ -18,8 +18,8 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with a beautiful 5-line statusline experience**  
-*Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times*
+**🎨 Transform your terminal with a configurable 1-9 line modular statusline**  
+*Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Fully customizable layout*
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
@@ -78,7 +78,7 @@
 **🏗️ ENHANCED ARCHITECTURE**
 
 - **New Prayer Module** - `lib/prayer.sh` with 400+ lines of Islamic timekeeping logic following existing modular patterns
-- **Enhanced Display System** - 4-line → **5-line statusline** with dedicated Islamic prayer times line
+- **Modular Display System** - **Configurable 1-9 line statusline** with flexible component arrangement and dedicated Islamic prayer times
 - **Comprehensive Testing** - Complete unit test suite in `tests/unit/test_prayer_functions.bats` with edge case coverage
 - **Performance Optimized** - < 2s execution with intelligent caching, graceful API fallbacks, minimal external dependencies
 
@@ -218,13 +218,17 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **⚡ Classic Theme** - Traditional terminal colors with modern polish
 - **🎨 Custom Themes** - Full RGB/256-color/ANSI color customization
 
-### 📊 **5-Line Information Display**
+### 📊 **Configurable 1-9 Line Information Display**
 
 ![Repository Information](assets/screenshots/basic-repo-info.png)
 
-**Line 1: Repository Overview** *(lib/display.sh, lib/git.sh)*
+**🎯 NEW: Modular Component System** - Mix and match any components on any line (1-9) according to your workflow preferences!
+
+**📋 Default Layout (Customizable):**
+
+**Line 1: Repository & Environment** *(Components: `repo_info`, `git_stats`, `version_info`, `time_display`)*
 - Working directory with elegant `~` notation
-- Git branch with clean/dirty status indicators
+- Git branch with clean/dirty status indicators  
 - Today's commit count tracking
 - Claude Code version (intelligently cached)
 - Git submodule count
@@ -232,7 +236,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 
 ![Cost Tracking Integration](assets/screenshots/ccusage-info.png)
 
-**Line 2: Cost Tracking & Model Info** *(lib/display.sh, lib/cost.sh)*
+**Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_session`, `cost_period`, `cost_live`)*
 - Current Claude model with emoji indicators
 - Repository session costs
 - 30-day, 7-day, and daily spending totals
@@ -241,23 +245,52 @@ Experience three beautifully crafted themes that transform your terminal into a 
 
 ![MCP Server Monitoring](assets/screenshots/mcp-info.png)
 
-**Line 3: MCP Server Health** *(lib/display.sh, lib/mcp.sh)*
+**Line 3: MCP Server Health** *(Component: `mcp_status`)*
 - Connected vs total server count
 - Server names with connection status
 - Color-coded indicators (🟢 connected, 🔴 disconnected)
 - Real-time health monitoring
 
-**Line 4: Block Reset Timer** *(lib/display.sh, lib/cost.sh)*
+**Line 4: Block Reset Timer** *(Component: `reset_timer`)*
 - Next reset time display
 - Countdown to block expiration
 - Smart detection and tracking
 
-**Line 5: Islamic Prayer Times & Hijri Calendar** *(lib/display.sh, lib/prayer.sh)*
+**Line 5: Islamic Prayer Times** *(Component: `prayer_times`)*
 - All 5 daily Islamic prayers (Fajr, Dhuhr, Asr, Maghrib, Isha) with accurate timing
 - Real-time Hijri date with authentic Maghrib-based day changes
 - Visual prayer status indicators (✓ completed, time remaining with green highlighting for upcoming)
 - AlAdhan API integration with multiple calculation methods
 - 🕌 Islamic formatting with moon phase indicators 🌙
+
+### 🧩 **Modular Component System (v2.5.0)**
+
+**Available Components:**
+- `repo_info` - Directory path and git status
+- `git_stats` - Commits count and submodules
+- `version_info` - Claude Code version
+- `time_display` - Current time
+- `model_info` - Claude model with emoji
+- `cost_session` - Repository session cost
+- `cost_period` - 30day/7day/daily costs
+- `cost_live` - Live block cost
+- `mcp_status` - MCP server health
+- `reset_timer` - Block reset countdown
+- `prayer_times` - Islamic prayer times
+
+**Configuration Examples:**
+```toml
+# Compact 3-line layout
+display.lines = 3
+display.line1.components = ["repo_info", "git_stats"]
+display.line2.components = ["model_info", "cost_session"] 
+display.line3.components = ["mcp_status"]
+
+# Custom reordering - MCP first!
+display.line1.components = ["mcp_status", "version_info"]
+display.line2.components = ["prayer_times", "time_display"]
+display.line3.components = ["repo_info", "model_info"]
+```
 
 ### 🌍 **Intelligent Worldwide Auto-Location Detection**
 
@@ -346,17 +379,19 @@ prayer.location_mode = "manual"      # Use manual coordinates (disable auto-dete
 
 ### 🏗️ **Modular Architecture**
 
-- **📦 10 Specialized Modules** - Clean separation of concerns with dedicated modules for each feature
+- **📦 11 Specialized Modules** - Clean separation of concerns with dedicated modules for each feature
   - `core.sh` - Base utilities, module loading, and performance timing
   - `security.sh` - Input sanitization and secure file operations  
-  - `config.sh` - TOML configuration parsing and management
+  - `config.sh` - TOML configuration parsing and modular line management
   - `themes.sh` - Color theme system with inheritance support
+  - `components.sh` - **NEW** Component registry and modular display system
   - `git.sh` - Repository status, branch detection, and commit tracking
   - `mcp.sh` - MCP server monitoring and health checking
   - `cost.sh` - Cost tracking integration with ccusage
-  - `prayer.sh` - **NEW** Islamic prayer times and Hijri calendar with AlAdhan API integration
-  - `display.sh` - Output formatting and 5-line statusline generation
+  - `prayer.sh` - Islamic prayer times and Hijri calendar with AlAdhan API integration
+  - `display.sh` - Modular output formatting and 1-9 line statusline generation
   - `cache.sh` - Universal intelligent caching system with enterprise-grade features
+  - `lib/components/` - **NEW** Individual component modules for flexible arrangement
 - **🎯 91.4% Code Reduction** - Main orchestrator script reduced from 3930 to 338 lines
 - **🔧 Enhanced Maintainability** - Modular design enables easier testing, debugging, and feature development
 - **⚡ Improved Performance** - Optimized module loading and reduced script complexity

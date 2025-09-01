@@ -1,0 +1,89 @@
+# ============================================================================
+# Claude Code Statusline - Custom Modular Configuration
+# ============================================================================
+#
+# This configuration demonstrates the flexibility of the modular system by
+# completely reordering components. Shows MCP status first, prayer times
+# second, and mixes components in creative ways.
+#
+# Perfect example of how users can customize their layout to their preferences!
+#
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+theme.name = "catppuccin"
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# Custom 6-line layout with unique component arrangements
+display.lines = 6
+
+# Line 1: MCP Status First (Developer Priority)
+display.line1.components = ["mcp_status", "version_info"]
+display.line1.separator = " • "
+
+# Line 2: Islamic Prayer Times Second  
+display.line2.components = ["prayer_times", "time_display"]
+display.line2.separator = " │ "
+
+# Line 3: Repository Info with Model
+display.line3.components = ["repo_info", "model_info"]
+display.line3.separator = " → "
+
+# Line 4: Git Stats Only
+display.line4.components = ["git_stats"]
+display.line4.separator = " │ "
+
+# Line 5: All Cost Information Together
+display.line5.components = ["cost_session", "cost_period", "cost_live"]
+display.line5.separator = " 💰 "
+
+# Line 6: Reset Timer (when available)
+display.line6.components = ["reset_timer"]
+display.line6.show_when_empty = false
+
+# === COMPONENT CONFIGURATION ===
+# Customized component behavior
+components.mcp_status.enabled = true
+components.mcp_status.show_server_list = true
+components.version_info.enabled = true
+components.prayer_times.enabled = true
+components.time_display.enabled = true
+components.time_display.format = "%H:%M:%S"  # Show seconds
+components.repo_info.enabled = true
+components.model_info.enabled = true
+components.git_stats.enabled = true
+components.git_stats.show_commits = true
+components.git_stats.show_submodules = true
+components.cost_session.enabled = true
+components.cost_period.enabled = true
+components.cost_period.show_monthly = true
+components.cost_period.show_weekly = false  # Hide weekly for space
+components.cost_period.show_daily = true
+components.cost_live.enabled = true
+components.reset_timer.enabled = true
+
+# === FEATURE TOGGLES ===
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_prayer_times = true
+
+# === TIMEOUTS ===
+timeouts.mcp = "10s"
+timeouts.version = "10s"
+timeouts.ccusage = "10s"
+timeouts.prayer = "10s"
+
+# === PRAYER TIMES CONFIGURATION ===
+prayer.enabled = true
+prayer.location_mode = "auto"
+
+# === LABELS CUSTOMIZATION ===
+# Custom labels to match the reordered layout
+labels.commits = "📝"
+labels.repo = "💼"
+labels.mcp = "🔌 MCP"
+labels.version_prefix = "v"
