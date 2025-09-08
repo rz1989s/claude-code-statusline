@@ -52,6 +52,55 @@
 
 ## 🆕 Recent Updates
 
+### v2.5.0 - Modular Component System & Configurable 1-9 Line Statusline 🧩🎯
+
+**🎯 MAJOR ARCHITECTURAL BREAKTHROUGH: MODULAR COMPONENT SYSTEM**
+
+- **Complete Component Architecture** - 11 individual component modules with standardized interfaces (`collect_data()`, `render()`, `get_config()`)
+- **Configurable 1-9 Line Display** - Flexible line layouts from minimal 1-line to comprehensive 9-line configurations
+- **Component Registry System** - Advanced component management with dependency tracking and enablement states
+- **Mix & Match Flexibility** - Arrange any component on any line position (MCP on line 1, prayer times on line 2, etc.)
+- **Backward Compatibility** - Legacy 5-line system preserved as fallback with seamless migration path
+
+**🧩 INDIVIDUAL COMPONENT MODULES**
+
+- **`repo_info.sh`** - Repository directory and git status display
+- **`git_stats.sh`** - Commits count and submodule tracking  
+- **`version_info.sh`** - Claude Code version with intelligent caching
+- **`time_display.sh`** - Current time formatting and display
+- **`model_info.sh`** - Claude model identification with emoji indicators
+- **`cost_session.sh`** - Repository session cost tracking
+- **`cost_period.sh`** - 30day/7day/daily cost summaries
+- **`cost_live.sh`** - Live billing block cost monitoring
+- **`mcp_status.sh`** - MCP server health and connection status
+- **`reset_timer.sh`** - Block reset countdown and timer management
+- **`prayer_times.sh`** - Islamic prayer times integration
+
+**⚙️ FLEXIBLE TOML CONFIGURATION SYSTEM**
+
+```toml
+# Compact 3-line layout
+display.lines = 3
+display.line1.components = ["repo_info", "git_stats"]
+display.line2.components = ["model_info", "cost_session"] 
+display.line3.components = ["mcp_status"]
+
+# Custom reordering - prioritize what matters to you!
+display.line1.components = ["mcp_status", "prayer_times"]
+display.line2.components = ["repo_info", "version_info"]
+```
+
+**🏗️ ENHANCED MODULAR ARCHITECTURE**
+
+- **91.5% Code Reduction** - Main orchestrator reduced from monolithic script to clean 368-line module loader
+- **Component-Based Data Flow** - Standardized interfaces enable consistent behavior and easy testing
+- **Advanced Configuration Parsing** - Modular line configuration with component arrangement flexibility
+- **Enhanced Maintainability** - Individual components can be developed, tested, and maintained independently
+
+**📈 IMPACT**: Revolutionary transformation from fixed 5-line display to fully configurable 1-9 line modular system, enabling personalized statusline layouts that adapt to any workflow preference.
+
+---
+
 ### v2.2.0 - Islamic Prayer Times & Hijri Calendar Integration 🕌📅
 
 **🕌 MAJOR NEW FEATURE: ISLAMIC PRAYER TIMES**
