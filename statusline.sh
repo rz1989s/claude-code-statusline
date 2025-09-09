@@ -36,6 +36,11 @@ fi
 # Set script directory for module loading
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Define critical paths for configuration management
+CONFIG_PATH="$HOME/.claude/statusline/Config.toml"
+EXAMPLES_DIR="$HOME/.claude/statusline/examples"
+SAMPLE_CONFIGS_DIR="$EXAMPLES_DIR/sample-configs"
+
 # ============================================================================
 # CORE MODULE LOADING
 # ============================================================================

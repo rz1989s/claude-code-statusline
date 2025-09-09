@@ -52,7 +52,7 @@
 
 ## 🆕 Recent Updates
 
-### v2.5.0 - Modular Component System & Configurable 1-9 Line Statusline 🧩🎯
+### v2.6.0 - Modular Component System & Configurable 1-9 Line Statusline 🧩🎯
 
 **🎯 MAJOR ARCHITECTURAL BREAKTHROUGH: MODULAR COMPONENT SYSTEM**
 
@@ -237,7 +237,7 @@ display.line2.components = ["repo_info", "version_info"]
 
 - **📋 TOML Configuration Files** - Modern, structured configuration with `Config.toml`
 - **🔧 Rich CLI Interface** - Generate, test, validate, and manage configurations
-- **📁 Multi-location Discovery** - `./Config.toml` → `~/.config/claude-code-statusline/` → `~/.claude-statusline.toml`
+- **📁 Single Config Location** - `~/.claude/statusline/Config.toml` (simple and consistent)
 - **🌐 Environment Overrides** - `ENV_CONFIG_*` variables override all settings
 - **🔄 Live Reload** - Hot configuration reloading with `--watch-config`
 - **🎨 Theme System** - Built-in themes with full custom color support
@@ -267,13 +267,42 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - **⚡ Classic Theme** - Traditional terminal colors with modern polish
 - **🎨 Custom Themes** - Full RGB/256-color/ANSI color customization
 
-### 📊 **Configurable 1-9 Line Information Display**
+### 🧩 **Revolutionary Modular Component System (v2.6.0)**
 
 ![Repository Information](assets/screenshots/basic-repo-info.png)
 
-**🎯 NEW: Modular Component System** - Mix and match any components on any line (1-9) according to your workflow preferences!
+**🎯 BREAKTHROUGH: Fully Configurable 1-9 Line Display System**
 
-**📋 Default Layout (Customizable):**
+Transform your statusline from a fixed layout to a completely personalized information dashboard! The revolutionary modular system gives you **complete control** over what information appears where.
+
+**🌟 Key Modular Features:**
+- **📐 1-9 Line Flexibility** - From ultra-minimal 1-line to comprehensive 9-line displays
+- **🧩 11 Individual Components** - Mix, match, and reorder any component on any line
+- **🎛️ Component Registry** - Advanced management with dependency tracking
+- **⚡ Real-time Reconfiguration** - Change layouts instantly with environment variables
+- **🔄 Backward Compatible** - Legacy 5-line system preserved as fallback
+
+**📋 Example Layout Transformations:**
+
+**Ultra-Minimal (2-line):**
+```toml
+display.lines = 2
+display.line1.components = ["repo_info", "model_info"]
+display.line2.components = ["cost_session"]
+```
+
+**Creative Reordering (6-line):**
+```toml  
+display.lines = 6
+display.line1.components = ["mcp_status", "version_info"]      # MCP first!
+display.line2.components = ["prayer_times", "time_display"]    # Prayer times priority
+display.line3.components = ["repo_info", "model_info"]         # Repository info
+display.line4.components = ["git_stats"]                       # Git stats isolated
+display.line5.components = ["cost_session", "cost_period", "cost_live"]  # All costs together
+display.line6.components = ["reset_timer"]                     # Timer when active
+```
+
+**📋 Default 5-Line Layout (Customizable):**
 
 **Line 1: Repository & Environment** *(Components: `repo_info`, `git_stats`, `version_info`, `time_display`)*
 - Working directory with elegant `~` notation
@@ -312,7 +341,7 @@ Experience three beautifully crafted themes that transform your terminal into a 
 - AlAdhan API integration with multiple calculation methods
 - 🕌 Islamic formatting with moon phase indicators 🌙
 
-### 🧩 **Modular Component System (v2.5.0)**
+### 🧩 **Modular Component System (v2.6.0)**
 
 **Available Components:**
 - `repo_info` - Directory path and git status
@@ -728,7 +757,7 @@ ENV_CONFIG_THEME=catppuccin ~/.claude/statusline.sh
 ```bash
 # Generate Config.toml with catppuccin theme
 ~/.claude/statusline.sh --generate-config
-# Then edit Config.toml to set theme.name = "catppuccin"
+# Then edit ~/.claude/statusline/Config.toml to set theme.name = "catppuccin"
 ```
 
 ### 🌿 Garden Theme  
@@ -1003,7 +1032,7 @@ cd ~/  # or any project directory
 ~/.claude/statusline.sh --generate-config
 
 # Customize your configuration
-vim Config.toml
+vim ~/.claude/statusline/Config.toml
 
 # Test your new configuration  
 ~/.claude/statusline.sh --test-config
@@ -1015,8 +1044,8 @@ vim Config.toml
 # Change theme temporarily (no file needed)
 ENV_CONFIG_THEME=garden ~/.claude/statusline.sh
 
-# Or create a simple Config.toml
-cat > Config.toml << 'EOF'
+# Or create a simple config file
+cat > ~/.claude/statusline/Config.toml << 'EOF'
 theme.name = "catppuccin"
 
 features.show_commits = true
@@ -1027,19 +1056,173 @@ EOF
 ~/.claude/statusline.sh --test-config
 ```
 
-#### Configuration Discovery
+#### 🧩 **Quick Start with Modular Examples (v2.6.0)**
 
-The statusline automatically finds your config file:
-- **`./Config.toml`** - Project-specific (highest priority)
-- **`~/.claude/statusline/Config.toml`** - Primary user config location
-- **`~/.config/claude-code-statusline/Config.toml`** - XDG standard location
-- **`~/.claude-statusline.toml`** - Legacy fallback
+**Start with ready-to-use modular configurations:**
+
+```bash
+# Ultra-minimal: Perfect for first-time users or performance focus
+cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml
+
+# Essential: Clean 3-line layout with core features  
+cp ~/.claude/statusline/examples/Config.modular-compact.toml ~/.claude/statusline/Config.toml
+
+# Comprehensive: Full 7-line display with all features including prayer times
+cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml
+
+# Extended: Strategic 8-line layout with breathing room
+cp ~/.claude/statusline/examples/Config.modular-extended.toml ~/.claude/statusline/Config.toml
+
+# Maximum: Ultimate 9-line display with maximum detail
+cp ~/.claude/statusline/examples/Config.modular-maximum.toml ~/.claude/statusline/Config.toml
+
+# Test any configuration instantly
+~/.claude/statusline.sh --test-config
+```
+
+**Quick Component Arrangement Testing:**
+```bash
+# Test different line counts instantly
+ENV_CONFIG_DISPLAY_LINES=2 ~/.claude/statusline.sh  # Minimal 2-line
+ENV_CONFIG_DISPLAY_LINES=5 ~/.claude/statusline.sh  # Standard 5-line  
+ENV_CONFIG_DISPLAY_LINES=7 ~/.claude/statusline.sh  # Comprehensive 7-line
+
+# Custom component arrangement on-the-fly
+ENV_CONFIG_LINE1_COMPONENTS="mcp_status,prayer_times" \
+ENV_CONFIG_LINE2_COMPONENTS="repo_info,model_info" \
+~/.claude/statusline.sh
+```
+
+#### Configuration Location
+
+Your configuration is stored in a single, consistent location:
+- **`~/.claude/statusline/Config.toml`** - Your configuration file (automatically created during installation)
 
 > 💡 **Pro Tip**: Start with `~/.claude/statusline.sh --generate-config` to create your base configuration, then customize from there!
 
 ### 🚀 **Ready to Use!**
 
 Start a new Claude Code session to see your enhanced statusline in action! Your configuration will be automatically detected and applied.
+
+---
+
+## 📁 Configuration Examples Gallery
+
+Explore our comprehensive collection of ready-to-use modular configurations that showcase the power of the v2.6.0 component system. Bismillah!
+
+### 🧩 **Modular Configuration Examples (v2.6.0)**
+
+**Revolutionary 1-9 Line Configurable System** - Mix and match any components on any line position:
+
+#### **Ultra-Minimal (2-line)**
+```bash
+# Perfect for minimal environments or extreme performance focus
+cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: `repo_info`, `model_info`, `cost_session`
+- **Layout**: Essential information only, ultra-fast execution
+- **Best for**: Low-resource systems, CI/CD environments
+
+#### **Essential Compact (3-line)**
+```bash
+# Clean and focused essential information display
+cp ~/.claude/statusline/examples/Config.modular-compact.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: Repository info, git stats, model, session cost, MCP status
+- **Layout**: Compact yet informative arrangement
+- **Best for**: Users wanting essential features without clutter
+
+#### **Standard Familiar (5-line)**
+```bash
+# Reproduces the classic 5-line layout with new modular system
+cp ~/.claude/statusline/examples/Config.modular-standard.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: All components in familiar arrangement
+- **Layout**: Original statusline experience with modular benefits
+- **Best for**: Users migrating from legacy system
+
+#### **Extended Strategic (8-line)**
+```bash
+# Strategic 8-line layout with component separation and breathing room
+cp ~/.claude/statusline/examples/Config.modular-extended.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: All components with strategic grouping
+- **Layout**: Extended display with clear visual organization
+- **Best for**: Users wanting comprehensive info with breathing room
+
+#### **Maximum Ultimate (9-line)**
+```bash
+# Ultimate 9-line display demonstrating maximum system capability
+cp ~/.claude/statusline/examples/Config.modular-maximum.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: Maximum separation with each major component isolated
+- **Layout**: Ultimate information density for large monitors
+- **Best for**: Power users wanting complete information visibility
+
+#### **Comprehensive Full (7-line)**
+```bash
+# Maximum information display with strategic component arrangement
+cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: All 11 components with prayer times priority display
+- **Layout**: Islamic prayer times on line 1, comprehensive information
+- **Best for**: Power users wanting complete monitoring
+
+#### **Creative Custom (6-line)**
+```bash
+# Demonstrates flexible component reordering and custom arrangements
+cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml
+```
+- **Components**: MCP status first, prayer times second, creative mixing
+- **Layout**: Shows complete flexibility of modular system
+- **Best for**: Users who want personalized arrangements
+
+### 📋 **Quick Test Any Example**
+
+```bash
+# Test any modular example without copying
+./statusline.sh --config examples/Config.modular-compact.toml
+
+# Compare different layouts instantly
+./statusline.sh --config examples/Config.modular-minimal.toml
+./statusline.sh --config examples/Config.modular-comprehensive.toml
+
+# Use environment variables for instant testing
+ENV_CONFIG_DISPLAY_LINES=3 \
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,git_stats" \
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session" \
+ENV_CONFIG_LINE3_COMPONENTS="mcp_status" \
+./statusline.sh
+```
+
+### 🎯 **Legacy Configuration Examples**
+
+Traditional configuration files for specific use cases:
+
+```bash
+# Base configuration template
+cp examples/Config.base.toml Config.toml
+
+# Advanced features showcase  
+cp examples/Config.advanced.toml Config.toml
+
+# Islamic prayer times focused
+cp examples/Config.prayer.toml Config.toml
+
+# Professional work environment (in sample-configs/)
+cp examples/sample-configs/work-profile.toml Config.toml
+
+# Personal projects setup (in sample-configs/)
+cp examples/sample-configs/personal-profile.toml Config.toml
+
+# Power developer setup (in sample-configs/)
+cp examples/sample-configs/developer-config.toml Config.toml
+
+# Performance-optimized minimal setup (in sample-configs/)
+cp examples/sample-configs/minimal-config.toml Config.toml
+```
+
+> 💡 **Pro Tip**: Start with a modular example closest to your needs, then customize the `display.lineN.components` arrays to create your perfect layout!
 
 ---
 
@@ -1056,7 +1239,7 @@ Transform your statusline with our **enterprise-grade TOML configuration system*
 ~/.claude/statusline.sh --generate-config
 
 # 2. Customize your Config.toml file  
-vim Config.toml
+vim ~/.claude/statusline/Config.toml
 
 # 3. Test your configuration
 ~/.claude/statusline.sh --test-config
@@ -1191,23 +1374,66 @@ ENV_CONFIG_THEME=classic \
 
 ## 🎛️ **Configuration Examples**
 
-### Minimal Configuration
+### 🧩 **Modular System Examples (v2.6.0)**
 
-```toml
-# Minimal Config.toml for performance
-theme.name = "classic"
-
-features.show_commits = true
-features.show_version = false
-features.show_mcp_status = false
-features.show_cost_tracking = false
-
-timeouts.mcp = "1s"
-timeouts.ccusage = "1s"
+#### Ultra-Minimal Configuration (2-line)
+```bash
+# Use the actual modular-minimal example
+cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml
 ```
 
-### Developer Full-Featured
+**Key Features from `Config.modular-minimal.toml`:**
+```toml
+# Ultra-minimal 2-line layout
+display.lines = 2
 
+# Line 1: Repository and Model Only
+display.line1.components = ["repo_info", "model_info"]
+
+# Line 2: Session Cost Only  
+display.line2.components = ["cost_session"]
+
+# Only essentials enabled
+components.repo_info.enabled = true
+components.model_info.enabled = true
+components.cost_session.enabled = true
+```
+
+#### Comprehensive Configuration (7-line)
+```bash
+# Use the actual comprehensive example
+cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml
+```
+
+**Key Features from `Config.modular-comprehensive.toml`:**
+```toml
+# Comprehensive 7-line layout
+display.lines = 7
+
+# Line 1: Islamic Prayer Times (Priority Display)
+display.line1.components = ["prayer_times"]
+
+# Lines 2-7: Strategic component arrangement
+display.line2.components = ["repo_info", "git_stats"]
+display.line3.components = ["model_info", "version_info", "time_display"]
+display.line4.components = ["cost_session", "cost_live"]
+display.line5.components = ["cost_period"]
+display.line6.components = ["mcp_status"]
+display.line7.components = ["reset_timer"]
+```
+
+### 🎯 **Legacy Style Examples**
+
+#### Traditional Developer Configuration
+```bash
+# Use the advanced features example
+cp examples/Config.advanced.toml Config.toml
+
+# Or use a sample-configs developer setup
+cp examples/sample-configs/developer-config.toml Config.toml
+```
+
+**Traditional feature-based configuration:**
 ```toml
 # Developer Config.toml with all features
 theme.name = "catppuccin"
@@ -1227,21 +1453,50 @@ labels.mcp = "MCP Servers"
 labels.repo = "Repository Cost"
 ```
 
-### Multiple Configuration Files
+#### Performance-Optimized Configuration
+```bash
+# Use the minimal performance-focused setup
+cp examples/sample-configs/minimal-config.toml Config.toml
+```
 
+**Ultra-fast configuration for CI/CD and performance-critical environments:**
 ```toml
-# Create different config files for different contexts
-# work-config.toml - Professional setup
-theme.name = "classic"
+# Minimal Config.toml for maximum speed
+theme.name = "classic"         # Maximum terminal compatibility
 
-features.show_cost_tracking = true
-features.show_reset_info = true
-
-# personal-config.toml - Personal projects  
-theme.name = "catppuccin"
-
+features.show_commits = true   # Only essential commit tracking
+features.show_version = false  # Disable network calls for speed
+features.show_mcp_status = false
 features.show_cost_tracking = false
-features.show_reset_info = false
+
+timeouts.mcp = "1s"           # Ultra-fast timeouts
+timeouts.version = "1s"
+timeouts.ccusage = "1s"
+
+labels.commits = "C:"         # Minimal labels for speed
+labels.repo = "R"
+labels.monthly = "M"
+
+cache.version_duration = 7200  # Extended 2-hour caching for performance
+```
+
+### Context-Specific Configuration Files
+
+```bash
+# Work environment - Professional setup
+cp examples/sample-configs/work-profile.toml Config.toml
+
+# Personal projects - Relaxed setup  
+cp examples/sample-configs/personal-profile.toml Config.toml
+
+# Power developer - Maximum information display
+cp examples/sample-configs/developer-config.toml Config.toml
+
+# Performance focus - Ultra-fast execution
+cp examples/sample-configs/minimal-config.toml Config.toml
+
+# Prayer-focused configuration
+cp examples/Config.prayer.toml Config.toml
 ```
 
 > 💡 **Note**: Profile-based automatic switching is planned for a future release. Currently, use different config files for different contexts.

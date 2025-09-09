@@ -20,12 +20,9 @@ export STATUSLINE_CONFIG_LOADED=true
 # CONFIGURATION CONSTANTS
 # ============================================================================
 
-# Configuration file precedence (highest to lowest)
+# Single configuration file location (source of truth)
 export CONFIG_FILE_PATHS=(
-    "./Config.toml"
     "$HOME/.claude/statusline/Config.toml"
-    "$HOME/.config/claude-code-statusline/Config.toml"
-    "$HOME/.claude-statusline.toml"
 )
 
 # Default configuration values
@@ -397,6 +394,98 @@ init_default_config() {
     debug_log "Default configuration initialized" "INFO"
 }
 
+# Auto-regenerate Config.toml from examples directory
+auto_regenerate_config() {
+    # Check if auto-regeneration is disabled
+    if [[ "${CLAUDE_STATUSLINE_NO_AUTO_REGEN:-false}" == "true" ]]; then
+        debug_log "Auto-regeneration disabled by environment variable" "INFO"
+        return 1
+    fi
+    
+    # Ensure we have the required paths (should be set in statusline.sh)
+    if [[ -z "${CONFIG_PATH:-}" || -z "${EXAMPLES_DIR:-}" ]]; then
+        debug_log "Auto-regeneration paths not configured" "ERROR"
+        return 1
+    fi
+    
+    debug_log "Attempting auto-regeneration of Config.toml..." "INFO"
+    
+    # Define source template priority order
+    local source_templates=(
+        "$EXAMPLES_DIR/Config.toml"                    # Master template (best choice)
+        "$EXAMPLES_DIR/Config.modular-standard.toml"   # 5-line familiar layout
+        "$EXAMPLES_DIR/Config.modular-compact.toml"    # 3-line minimal but functional
+        "$EXAMPLES_DIR/Config.modular-minimal.toml"    # 2-line absolute minimal
+    )
+    
+    local source_template=""
+    local template_description=""
+    
+    # Find first available template
+    for template in "${source_templates[@]}"; do
+        if [[ -f "$template" && -r "$template" ]]; then
+            source_template="$template"
+            case "$(basename "$template")" in
+                "Config.toml") template_description="master template (comprehensive default)" ;;
+                "Config.modular-standard.toml") template_description="5-line standard layout" ;;
+                "Config.modular-compact.toml") template_description="3-line compact layout" ;;
+                "Config.modular-minimal.toml") template_description="2-line minimal layout" ;;
+                *) template_description="available template" ;;
+            esac
+            break
+        fi
+    done
+    
+    # Check if we found a suitable template
+    if [[ -z "$source_template" ]]; then
+        debug_log "No example templates found for auto-regeneration" "ERROR"
+        return 1
+    fi
+    
+    debug_log "Using template: $source_template ($template_description)" "INFO"
+    
+    # Create backup if partial/corrupted config exists
+    if [[ -f "$CONFIG_PATH" ]]; then
+        if [[ ! -s "$CONFIG_PATH" ]] || ! parse_toml_to_json "$CONFIG_PATH" >/dev/null 2>&1; then
+            local backup_path="${CONFIG_PATH}.corrupted.$(date +%s)"
+            if mv "$CONFIG_PATH" "$backup_path" 2>/dev/null; then
+                debug_log "Backed up corrupted config to: $backup_path" "INFO"
+            fi
+        fi
+    fi
+    
+    # Perform atomic copy operation
+    local temp_config
+    temp_config=$(mktemp) || {
+        debug_log "Failed to create temporary file for config regeneration" "ERROR"
+        return 1
+    }
+    
+    # Copy template to temp file first
+    if cp "$source_template" "$temp_config"; then
+        # Verify the template is valid TOML
+        if parse_toml_to_json "$temp_config" >/dev/null 2>&1; then
+            # Atomic move to final location
+            if mv "$temp_config" "$CONFIG_PATH"; then
+                debug_log "Successfully regenerated Config.toml from $template_description" "INFO"
+                return 0
+            else
+                debug_log "Failed to move regenerated config to final location" "ERROR"
+                rm -f "$temp_config" 2>/dev/null
+                return 1
+            fi
+        else
+            debug_log "Source template contains invalid TOML syntax" "ERROR"
+            rm -f "$temp_config" 2>/dev/null
+            return 1
+        fi
+    else
+        debug_log "Failed to copy template during regeneration" "ERROR"
+        rm -f "$temp_config" 2>/dev/null
+        return 1
+    fi
+}
+
 # Load configuration from TOML file and set variables
 load_toml_configuration() {
     # Check if jq is available for TOML configuration
@@ -410,52 +499,73 @@ load_toml_configuration() {
 
     # Try to find config file
     if config_file=$(discover_config_file); then
-        debug_log "Loading configuration from: $config_file" "INFO"
-
-        # Parse TOML to JSON with comprehensive error handling
-        local config_json parse_exit_code
-        config_json=$(parse_toml_to_json "$config_file")
-        parse_exit_code=$?
-
-        # Handle different types of parsing errors
-        case $parse_exit_code in
-        0)
-            # Success - check for empty result
-            if [[ "$config_json" == "{}" ]]; then
-                handle_warning "Empty config file, using defaults" "load_toml_configuration"
-                return 1
-            fi
-
-            # Extract configuration values using optimized single-pass jq operation
-            if ! extract_config_values "$config_json"; then
-                handle_warning "Failed to extract config values, using defaults" "load_toml_configuration"
-                return 1
-            fi
-
-            debug_log "Configuration loaded successfully from TOML" "INFO"
-            return 0
-            ;;
-        1)
-            handle_warning "Configuration file not found, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        2)
-            handle_warning "Invalid configuration file path, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        3)
-            handle_warning "Configuration file not readable (permissions), using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        *)
-            handle_warning "Unknown error parsing configuration file, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        esac
+        debug_log "Found config file: $config_file" "INFO"
     else
-        debug_log "No Config.toml found, using inline defaults" "INFO"
-        return 1
+        # No config file found - attempt auto-regeneration
+        debug_log "No configuration file found in search paths" "INFO"
+        
+        # Check if we should attempt auto-regeneration
+        if [[ -n "${CONFIG_PATH:-}" ]] && auto_regenerate_config; then
+            # Auto-regeneration successful - try discovery again
+            if config_file=$(discover_config_file); then
+                debug_log "Auto-regeneration successful, using: $config_file" "INFO"
+                
+                # Show user-friendly message (not just debug log)
+                if [[ "${STATUSLINE_DEBUG:-false}" != "true" ]]; then
+                    echo "🔧 Config.toml was missing and has been regenerated from examples" >&2
+                    echo "💡 Edit $(basename "$config_file") to customize your statusline" >&2
+                fi
+            else
+                debug_log "Auto-regeneration completed but config still not discoverable" "ERROR"
+                return 1
+            fi
+        else
+            debug_log "Auto-regeneration failed or not attempted" "INFO"
+            debug_log "No Config.toml found, using inline defaults" "INFO"
+            return 1
+        fi
     fi
+
+    # Parse TOML to JSON with comprehensive error handling
+    local config_json parse_exit_code
+    config_json=$(parse_toml_to_json "$config_file")
+    parse_exit_code=$?
+
+    # Handle different types of parsing errors
+    case $parse_exit_code in
+    0)
+        # Success - check for empty result
+        if [[ "$config_json" == "{}" ]]; then
+            handle_warning "Empty config file, using defaults" "load_toml_configuration"
+            return 1
+        fi
+
+        # Extract configuration values using optimized single-pass jq operation
+        if ! extract_config_values "$config_json"; then
+            handle_warning "Failed to extract config values, using defaults" "load_toml_configuration"
+            return 1
+        fi
+
+        debug_log "Configuration loaded successfully from TOML" "INFO"
+        return 0
+        ;;
+    1)
+        handle_warning "Configuration file not found, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    2)
+        handle_warning "Invalid configuration file path, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    3)
+        handle_warning "Configuration file not readable (permissions), using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    *)
+        handle_warning "Unknown error parsing configuration file, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    esac
 }
 
 # Extract configuration values from JSON using optimized jq operation
@@ -779,5 +889,5 @@ init_config_module
 
 # Export configuration functions
 export -f parse_toml_to_json discover_config_file init_default_config
-export -f load_toml_configuration extract_config_values apply_env_overrides
+export -f load_toml_configuration extract_config_values apply_env_overrides auto_regenerate_config
 export -f load_configuration

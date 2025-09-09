@@ -1,0 +1,113 @@
+# ============================================================================
+# Claude Code Statusline - Extended 8-Line Modular Configuration
+# ============================================================================
+#
+# This configuration demonstrates the 8-line layout capability with strategic
+# component grouping and visual breathing room. Perfect for users who want
+# comprehensive information display with clear separation between groups.
+#
+# Layout Strategy: Maximum readability with logical component grouping
+# 
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+theme.name = "garden"
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# Extended 8-line layout with strategic component separation
+display.lines = 8
+
+# Line 1: Prayer Times (Priority Display)
+display.line1.components = ["prayer_times"]
+display.line1.separator = " │ "
+
+# Line 2: Repository Context
+display.line2.components = ["repo_info", "git_stats"]
+display.line2.separator = " • "
+
+# Line 3: System Information
+display.line3.components = ["model_info", "version_info"]
+display.line3.separator = " → "
+
+# Line 4: Time Display (Clean Separator Line)
+display.line4.components = ["time_display"]
+display.line4.separator = ""
+
+# Line 5: Session Cost Tracking
+display.line5.components = ["cost_session"]
+display.line5.separator = " │ "
+
+# Line 6: Period Cost Analysis
+display.line6.components = ["cost_period"]
+display.line6.separator = " 💰 "
+
+# Line 7: Live Operations
+display.line7.components = ["cost_live", "mcp_status"]
+display.line7.separator = " ⚡ "
+
+# Line 8: Reset Timer (When Available)
+display.line8.components = ["reset_timer"]
+display.line8.show_when_empty = false
+
+# === COMPONENT CONFIGURATION ===
+# Optimized for 8-line extended display
+components.prayer_times.enabled = true
+components.repo_info.enabled = true
+components.git_stats.enabled = true
+components.git_stats.show_commits = true
+components.git_stats.show_submodules = true
+components.model_info.enabled = true
+components.version_info.enabled = true
+components.time_display.enabled = true
+components.time_display.format = "%H:%M:%S"
+components.cost_session.enabled = true
+components.cost_period.enabled = true
+components.cost_period.show_monthly = true
+components.cost_period.show_weekly = true
+components.cost_period.show_daily = true
+components.cost_live.enabled = true
+components.mcp_status.enabled = true
+components.mcp_status.show_server_list = true
+components.reset_timer.enabled = true
+
+# === FEATURE TOGGLES ===
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_prayer_times = true
+
+# === TIMEOUTS ===
+timeouts.mcp = "8s"
+timeouts.version = "5s"
+timeouts.ccusage = "8s"
+timeouts.prayer = "8s"
+
+# === PRAYER TIMES CONFIGURATION ===
+prayer.enabled = true
+prayer.location_mode = "auto"
+
+# === LABELS CUSTOMIZATION ===
+# Extended layout labels for clarity
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.mcp = "MCP"
+labels.version_prefix = "v"
+labels.monthly = "30D"
+labels.weekly = "7D"
+labels.daily = "1D"
+labels.session_prefix = "S:"
+labels.live = "LIVE"
+labels.reset = "RESET"
+
+# === EMOJIS ===
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "📝"
+emojis.default_model = "🤖"
+emojis.clean_status = "✅"
+emojis.dirty_status = "📁"
+emojis.clock = "🕐"
+emojis.live_block = "🔥"

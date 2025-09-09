@@ -30,6 +30,8 @@ CLAUDE_DIR="$HOME/.claude"
 STATUSLINE_DIR="$CLAUDE_DIR/statusline"
 STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
 LIB_DIR="$STATUSLINE_DIR/lib"
+EXAMPLES_DIR="$STATUSLINE_DIR/examples"
+SAMPLE_CONFIGS_DIR="$EXAMPLES_DIR/sample-configs"
 CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
@@ -562,6 +564,154 @@ download_statusline() {
     fi
 }
 
+# Function to backup existing examples directory
+backup_existing_examples() {
+    if [[ -d "$EXAMPLES_DIR" ]]; then
+        local backup_path="${EXAMPLES_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "📄 Existing examples directory found, creating backup..."
+        if cp -r "$EXAMPLES_DIR" "$backup_path"; then
+            print_success "✅ Backup created: $backup_path"
+            print_status "💡 Your custom configurations have been preserved"
+            return 0
+        else
+            print_warning "⚠️ Failed to create backup, continuing anyway..."
+            return 1
+        fi
+    else
+        print_status "No existing examples directory found"
+        return 1
+    fi
+}
+
+# Function to download all example configurations
+download_examples() {
+    print_status "📚 Downloading example configurations..."
+    
+    # Backup existing examples if present
+    backup_existing_examples || true
+    
+    # Create examples directory structure
+    print_status "Creating examples directory structure..."
+    mkdir -p "$EXAMPLES_DIR"
+    mkdir -p "$SAMPLE_CONFIGS_DIR"
+    
+    # Define all example configurations to download
+    local modular_configs=(
+        "Config.modular-minimal.toml"
+        "Config.modular-compact.toml" 
+        "Config.modular-standard.toml"
+        "Config.modular-comprehensive.toml"
+        "Config.modular-extended.toml"
+        "Config.modular-maximum.toml"
+        "Config.modular-custom.toml"
+    )
+    
+    local traditional_configs=(
+        "Config.base.toml"
+        "Config.advanced.toml"
+        "Config.prayer.toml"
+        "Config.toml"
+    )
+    
+    local sample_configs=(
+        "minimal-config.toml"
+        "developer-config.toml"
+        "ocean-theme.toml"
+        "work-profile.toml"
+        "personal-profile.toml"
+    )
+    
+    local failed_downloads=()
+    local successful_downloads=0
+    
+    # Download modular configurations
+    print_status "📦 Downloading modular configurations..."
+    for config in "${modular_configs[@]}"; do
+        local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/$config"
+        local config_path="$EXAMPLES_DIR/$config"
+        
+        if curl -fsSL "$config_url" -o "$config_path"; then
+            print_status "  ✓ Downloaded $config"
+            ((successful_downloads++))
+        else
+            print_error "  ✗ Failed to download $config"
+            failed_downloads+=("$config")
+        fi
+    done
+    
+    # Download traditional configurations
+    print_status "📦 Downloading traditional configurations..."
+    for config in "${traditional_configs[@]}"; do
+        # Skip Config.toml as it's already downloaded as the main template
+        if [[ "$config" == "Config.toml" ]]; then
+            continue
+        fi
+        
+        local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/$config"
+        local config_path="$EXAMPLES_DIR/$config"
+        
+        if curl -fsSL "$config_url" -o "$config_path"; then
+            print_status "  ✓ Downloaded $config"
+            ((successful_downloads++))
+        else
+            print_error "  ✗ Failed to download $config"
+            failed_downloads+=("$config")
+        fi
+    done
+    
+    # Download sample-configs profiles
+    print_status "📦 Downloading sample configuration profiles..."
+    for config in "${sample_configs[@]}"; do
+        local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/sample-configs/$config"
+        local config_path="$SAMPLE_CONFIGS_DIR/$config"
+        
+        if curl -fsSL "$config_url" -o "$config_path"; then
+            print_status "  ✓ Downloaded sample-configs/$config"
+            ((successful_downloads++))
+        else
+            print_error "  ✗ Failed to download sample-configs/$config"
+            failed_downloads+=("sample-configs/$config")
+        fi
+    done
+    
+    # Download examples README.md
+    print_status "📦 Downloading examples documentation..."
+    local readme_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/README.md"
+    local readme_path="$EXAMPLES_DIR/README.md"
+    
+    if curl -fsSL "$readme_url" -o "$readme_path"; then
+        print_status "  ✓ Downloaded examples/README.md"
+        ((successful_downloads++))
+    else
+        print_error "  ✗ Failed to download examples/README.md"
+        failed_downloads+=("examples/README.md")
+    fi
+    
+    # Report results
+    echo
+    print_success "📊 Examples download summary:"
+    print_success "  ✅ Successfully downloaded: $successful_downloads configurations"
+    
+    if [[ ${#failed_downloads[@]} -gt 0 ]]; then
+        print_warning "  ⚠️ Failed downloads: ${#failed_downloads[@]} configurations"
+        for failed_config in "${failed_downloads[@]}"; do
+            print_error "    • $failed_config"
+        done
+        
+        if [[ $successful_downloads -gt 0 ]]; then
+            print_status "💡 Partial success: You can still use the downloaded configurations"
+            return 0
+        else
+            print_error "❌ No examples downloaded successfully"
+            return 1
+        fi
+    else
+        print_success "🎉 All example configurations downloaded successfully!"
+        print_status "📁 Available at: $EXAMPLES_DIR"
+        return 0
+    fi
+}
+
 # Function to check bash compatibility (informational only)
 check_bash_compatibility() {
     print_status "Checking bash compatibility..."
@@ -721,6 +871,8 @@ download_config_template() {
             print_status "💡 Edit $CONFIG_PATH to customize your statusline"
             print_status "🔧 All settings use flat format (e.g., theme.name = \"catppuccin\")"
             print_status "📚 Template includes 280+ configuration options with documentation"
+            print_status "🧩 7 modular configs available: 1-9 line layouts (Config.modular-*.toml)"
+            print_status "🎯 Legacy profiles: work, personal, developer, minimal setups"
             return 0
         else
             print_error "❌ Downloaded config template appears to be empty or invalid"
@@ -751,6 +903,22 @@ verify_installation() {
     else
         print_error "lib directory is missing"
         return 1
+    fi
+    
+    # Check if examples directory exists
+    if [ -d "$EXAMPLES_DIR" ]; then
+        print_success "examples directory exists"
+        
+        # Count available example configurations
+        local modular_count=$(find "$EXAMPLES_DIR" -name "Config.modular-*.toml" -type f | wc -l | tr -d ' ')
+        local sample_count=$(find "$SAMPLE_CONFIGS_DIR" -name "*.toml" -type f 2>/dev/null | wc -l | tr -d ' ')
+        local traditional_count=$(find "$EXAMPLES_DIR" -maxdepth 1 -name "Config.*.toml" ! -name "Config.modular-*" -type f | wc -l | tr -d ' ')
+        
+        print_status "  • $modular_count modular configurations found"
+        print_status "  • $sample_count sample-configs profiles found"  
+        print_status "  • $traditional_count traditional configurations found"
+    else
+        print_warning "examples directory is missing (configurations will be limited)"
     fi
     
     # Check if all modules exist
@@ -849,6 +1017,12 @@ show_enhanced_completion() {
     echo "  $CONFIG_PATH"
     echo "  $SETTINGS_PATH (updated)"
     echo
+    echo -e "${BLUE}🧩 Available configurations (16 total):${NC}"
+    echo "  • 7 modular configs: 1-9 line layouts (minimal → maximum)"
+    echo "  • 9 traditional configs: themes, profiles, and specialized setups"
+    echo "  • Browse: ls $EXAMPLES_DIR"
+    echo "  • Try: cp $EXAMPLES_DIR/Config.modular-compact.toml $CONFIG_PATH"
+    echo
     echo -e "${BLUE}🚀 Ready to use! Start a new Claude Code session.${NC}"
     echo
 }
@@ -866,6 +1040,7 @@ show_completion() {
     echo -e "${BLUE}📁 Statusline files organized in: ~/.claude/statusline/${NC}"
     echo "  • statusline.sh     ← Enhanced statusline script"
     echo "  • Config.toml       ← Your configuration file"
+    echo "  • examples/         ← 16 ready-to-use configurations"
     echo
     echo -e "${BLUE}📁 Claude Code settings: ~/.claude/${NC}"
     echo "  • settings.json     ← Claude Code integration"
@@ -873,6 +1048,10 @@ show_completion() {
     echo -e "${BLUE}🎨 Customize your statusline:${NC}"
     echo "  edit ~/.claude/statusline/Config.toml"
     echo "  ~/.claude/statusline/statusline.sh --test-config"
+    echo
+    echo -e "${BLUE}🧩 Try different configurations:${NC}"
+    echo "  cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml"
+    echo "  cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml"
     echo
     echo -e "${BLUE}Test your installation:${NC}"
     echo "  $STATUSLINE_PATH --help"
@@ -941,6 +1120,7 @@ main() {
     create_claude_directory
     migrate_existing_installation || true  # Don't fail if no existing installation
     download_statusline
+    download_examples  # Download all example configurations
     check_bash_compatibility
     make_executable
     configure_settings

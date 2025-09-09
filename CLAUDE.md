@@ -26,14 +26,14 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
 ./statusline.sh --modules            # Show component status
 ```
 
-**Modular Configuration Testing (v2.5.0):**
+**Modular Configuration Testing (v2.6.0):**
 ```bash
 # Test pre-built layout examples
-cp examples/Config.modular-compact.toml Config.toml       # 3-line minimal layout
-cp examples/Config.modular-comprehensive.toml Config.toml # 7-line comprehensive layout
-cp examples/Config.modular-custom.toml Config.toml        # Custom component reordering
-cp examples/Config.modular-standard.toml Config.toml      # Standard 5-line equivalent
-cp examples/Config.modular-minimal.toml Config.toml       # Ultra-minimal 1-line layout
+cp ~/.claude/statusline/examples/Config.modular-compact.toml ~/.claude/statusline/Config.toml       # 3-line minimal layout
+cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml # 7-line comprehensive layout
+cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml        # Custom component reordering
+cp ~/.claude/statusline/examples/Config.modular-standard.toml ~/.claude/statusline/Config.toml      # Standard 5-line equivalent
+cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml       # Ultra-minimal 1-line layout
 
 # Dynamic component arrangement testing
 ENV_CONFIG_DISPLAY_LINES=2 ./statusline.sh            # Override line count
@@ -218,10 +218,8 @@ STATUSLINE_DEBUG=true ./statusline.sh --modules  # Debug module loading
 ENV_CONFIG_THEME=custom ./statusline.sh        # Test environment overrides
 ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh  # Feature toggles
 
-# Configuration discovery order testing
-./Config.toml                       # Project-specific config (highest priority)
-~/.claude/statusline/Config.toml    # User installation config
-~/.config/claude-code-statusline/Config.toml  # XDG standard location
+# Configuration location (single source of truth)
+~/.claude/statusline/Config.toml    # Your configuration file (auto-created during installation)
 
 # TOML validation  
 # Config is automatically validated during loading - errors reported in real-time
@@ -318,12 +316,10 @@ ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
 **Environment Overrides:**
 Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
 
-**Discovery Order:**
-1. Environment variables (`ENV_CONFIG_*`)
-2. `./Config.toml` (project-specific)
-3. `~/.claude/statusline/Config.toml` (user installation)
-4. `~/.config/claude-code-statusline/Config.toml` (XDG standard)
-5. Inline defaults
+**Configuration Order:**
+1. Environment variables (`ENV_CONFIG_*`) - Override any setting temporarily
+2. `~/.claude/statusline/Config.toml` - Your configuration file (single source of truth)
+3. Inline defaults - Fallback when no config exists
 
 ## Cache Isolation System
 
