@@ -4,7 +4,7 @@
 
 Transform your terminal with enterprise-grade configuration management - structured, validated, and powerful, with full backwards compatibility.
 
-> 🏗️ **Modular Architecture Note**: The statusline now uses a modular architecture with 9 specialized modules. All configuration works the same way, but the system is now more maintainable and efficient with the main script (`~/.claude/statusline.sh`) orchestrating modules in `~/.claude/lib/`.
+> 🏗️ **Atomic Component Architecture Note**: The statusline now uses atomic component architecture with 16 configurable components (v2.7.0). All configuration works the same way, but the system now offers maximum flexibility with single-purpose atomic components that can be arranged on 1-9 configurable lines. The main script (`~/.claude/statusline.sh`) orchestrates modules in `~/.claude/lib/` with standardized component interfaces.
 
 ## 🚀 **Getting Started**
 
@@ -35,6 +35,86 @@ vim Config.toml
 ```
 
 The modular statusline automatically discovers and loads your TOML configuration - no additional setup required!
+
+---
+
+## 🧩 **Atomic Component System (v2.7.0)**
+
+The statusline now uses an **atomic component architecture** where each component serves a single purpose, giving you maximum customization flexibility.
+
+### 16 Available Components
+
+**Core Components (11):**
+- `repo_info` - Repository directory and git status  
+- `git_stats` - Combined git statistics (legacy)
+- `version_info` - Claude Code version display
+- `time_display` - Current time formatting
+- `model_info` - Claude model with emoji
+- `cost_session` - Repository session cost
+- `cost_period` - Combined cost periods (legacy)
+- `cost_live` - Live block cost tracking
+- `mcp_status` - MCP server health monitoring
+- `reset_timer` - Block reset countdown
+- `prayer_times` - Islamic prayer times integration
+
+**Atomic Components (5 - NEW!):**
+- `commits` - Shows only commit count (split from git_stats)
+- `submodules` - Shows only submodule status (split from git_stats)  
+- `cost_monthly` - Shows only 30-day costs (split from cost_period)
+- `cost_weekly` - Shows only 7-day costs (split from cost_period)
+- `cost_daily` - Shows only daily costs (split from cost_period)
+
+### Modular Display Configuration
+
+Configure your statusline with **1-9 lines** and arrange components freely:
+
+```toml
+# === MODULAR DISPLAY CONFIGURATION ===
+display.lines = 4                                    # Show 4 lines total
+
+# Line 1: Repository info with separated git components
+display.line1.components = ["repo_info", "commits", "submodules", "version_info"]
+display.line1.separator = " │ "
+
+# Line 2: Model and session info  
+display.line2.components = ["model_info", "cost_session", "time_display"]
+display.line2.separator = " │ "
+
+# Line 3: Atomic cost breakdown - perfect separation!
+display.line3.components = ["cost_monthly", "cost_weekly", "cost_daily"]
+display.line3.separator = " │ "
+
+# Line 4: Live operations
+display.line4.components = ["cost_live", "mcp_status"]
+display.line4.separator = " │ "
+```
+
+### Atomic Component Benefits
+
+**Before (complex components):**
+```
+│ Commits:8 SUB:-- │ 30DAY $660.87 7DAY $9.31 DAY $36.10 │
+```
+*Missing separators within components*
+
+**After (atomic components):**
+```
+│ Commits:8 │ SUB:-- │ 30DAY $660.87 │ 7DAY $9.31 │ DAY $36.10 │
+```
+*Perfect visual separation between all data points*
+
+### Component Enabling/Disabling
+
+Enable or disable any atomic component independently:
+
+```toml
+# === ATOMIC COMPONENT CONFIGURATION ===
+components.commits.enabled = true          # Show commit count
+components.submodules.enabled = false      # Hide submodules  
+components.cost_monthly.enabled = true     # Show 30-day costs
+components.cost_weekly.enabled = false     # Hide 7-day costs
+components.cost_daily.enabled = true       # Show daily costs
+```
 
 ---
 
@@ -78,6 +158,52 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Temporarily uses garden theme
 # === THEME CONFIGURATION ===
 # Available themes: "classic", "garden", "catppuccin", "custom"
 theme.name = "catppuccin"
+
+# === MODULAR DISPLAY CONFIGURATION (v2.7.0) ===
+display.lines = 6                                    # Show 6 lines total
+
+# Line 1: Repository with atomic git components
+display.line1.components = ["repo_info", "commits", "submodules", "version_info"]
+display.line1.separator = " │ "
+
+# Line 2: Model and session info
+display.line2.components = ["model_info", "cost_session", "time_display"]
+display.line2.separator = " │ "
+
+# Line 3: Atomic cost breakdown - perfect separation!
+display.line3.components = ["cost_monthly", "cost_weekly", "cost_daily"]
+display.line3.separator = " │ "
+
+# Line 4: Live operations
+display.line4.components = ["cost_live", "mcp_status"]
+display.line4.separator = " │ "
+
+# Line 5: Reset timer when available
+display.line5.components = ["reset_timer"]
+display.line5.show_when_empty = false
+
+# Line 6: Prayer times
+display.line6.components = ["prayer_times"]
+
+# === ATOMIC COMPONENT CONFIGURATION ===
+components.repo_info.enabled = true
+components.commits.enabled = true
+components.submodules.enabled = true
+components.version_info.enabled = true
+components.time_display.enabled = true
+components.model_info.enabled = true
+components.cost_session.enabled = true
+components.cost_monthly.enabled = true
+components.cost_weekly.enabled = true
+components.cost_daily.enabled = true
+components.cost_live.enabled = true
+components.mcp_status.enabled = true
+components.reset_timer.enabled = true
+components.prayer_times.enabled = true
+
+# === LEGACY COMPONENTS (Backward Compatibility) ===
+components.git_stats.enabled = true
+components.cost_period.enabled = true
 
 # === CORE FEATURE TOGGLES ===
 features.show_commits = true          # Show today's commit count
@@ -295,6 +421,22 @@ ENV_CONFIG_SHOW_COST_TRACKING=false ./statusline.sh  # Disable cost tracking
 ENV_CONFIG_SHOW_VERSION=false ./statusline.sh        # Hide version information
 ```
 
+### Modular Display Overrides (v2.7.0)
+
+```bash
+# === ATOMIC COMPONENT OVERRIDES ===
+ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh           # Show only 3 lines
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" ./statusline.sh              # Custom line 1
+ENV_CONFIG_LINE2_COMPONENTS="cost_monthly,cost_weekly,cost_daily" ./statusline.sh  # Atomic costs on line 2
+ENV_CONFIG_LINE3_COMPONENTS="mcp_status" ./statusline.sh         # MCP status on line 3
+
+# === ATOMIC COMPONENT TOGGLES ===
+ENV_CONFIG_COMPONENTS_COMMITS_ENABLED=false ./statusline.sh      # Hide commit count
+ENV_CONFIG_COMPONENTS_SUBMODULES_ENABLED=false ./statusline.sh   # Hide submodules
+ENV_CONFIG_COMPONENTS_COST_WEEKLY_ENABLED=false ./statusline.sh  # Hide 7-day costs
+ENV_CONFIG_COMPONENTS_COST_MONTHLY_ENABLED=false ./statusline.sh # Hide 30-day costs
+```
+
 ### Performance Tuning
 
 ```bash
@@ -328,24 +470,38 @@ ENV_CONFIG_MCP_TIMEOUT=1s \
 
 ## 🎛️ **Configuration Examples**
 
-### Minimal Performance Configuration
+### Minimal Performance Configuration (Atomic Components)
 
 ```toml
-# === MINIMAL CONFIG (FAST) ===
+# === MINIMAL ATOMIC CONFIG (FAST) ===
 [theme]
 name = "classic"
 
-[features]
-show_commits = true
-show_version = false
-show_submodules = false
-show_mcp_status = false
-show_cost_tracking = false
-show_reset_info = false
+[display]
+lines = 2                                             # Just 2 lines
+
+[display.line1]
+components = ["repo_info", "commits"]                 # Minimal line 1
+separator = " │ "
+
+[display.line2]
+components = ["model_info", "time_display"]           # Minimal line 2
+separator = " │ "
+
+[components]
+commits.enabled = true                                # Only commit count
+submodules.enabled = false                            # No submodules
+version_info.enabled = false                          # No version
+mcp_status.enabled = false                            # No MCP status
+cost_monthly.enabled = false                          # No cost tracking
+cost_weekly.enabled = false
+cost_daily.enabled = false
+cost_live.enabled = false
+reset_timer.enabled = false
 
 [timeouts]
 mcp = "1s"
-version = "1s"
+version = "1s" 
 ccusage = "1s"
 
 [labels]
@@ -353,21 +509,53 @@ commits = "C:"
 repo = "R"
 ```
 
-### Developer Full-Featured Configuration
+### Developer Full-Featured Configuration (Atomic Components)
 
 ```toml
-# === DEVELOPER CONFIG (FULL FEATURES) ===
+# === DEVELOPER ATOMIC CONFIG (FULL FEATURES) ===
 [theme]
 name = "catppuccin"
 
-[features]
-show_commits = true
-show_version = true
-show_submodules = true
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
-show_session_info = true
+[display]
+lines = 7                                             # Comprehensive 7-line layout
+
+[display.line1]
+components = ["repo_info", "commits", "submodules", "version_info"]
+separator = " │ "
+
+[display.line2]
+components = ["model_info", "cost_session", "time_display"]
+separator = " │ "
+
+[display.line3]
+components = ["cost_monthly", "cost_weekly", "cost_daily"]  # Atomic cost breakdown
+separator = " │ "
+
+[display.line4]
+components = ["cost_live", "mcp_status"]
+separator = " │ "
+
+[display.line5]
+components = ["reset_timer"]
+show_when_empty = false
+
+[display.line6]
+components = ["prayer_times"]
+
+[display.line7]
+components = ["time_display"]                         # Precision time on separate line
+separator = ""
+
+[components]
+# All atomic components enabled for maximum information
+commits.enabled = true
+submodules.enabled = true
+cost_monthly.enabled = true
+cost_weekly.enabled = true
+cost_daily.enabled = true
+version_info.enabled = true
+mcp_status.enabled = true
+reset_timer.enabled = true
 
 [timeouts]
 mcp = "5s"
@@ -382,6 +570,9 @@ commits = "Today's Commits:"
 mcp = "MCP Servers"
 repo = "Repository Cost"
 version_prefix = "version"
+monthly = "MONTHLY"
+weekly = "WEEKLY"
+daily = "TODAY"
 ```
 
 ### Work Profile Configuration

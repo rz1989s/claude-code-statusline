@@ -8,7 +8,25 @@ This directory contains professionally crafted configuration templates that demo
 
 ## 🚀 **Quick Start with Examples**
 
-### 🧩 **Modular System Quick Start (v2.6.0 - RECOMMENDED)**
+### ⚛️ **Atomic Component System (v2.7.0 - LATEST & RECOMMENDED)**
+
+**Ultimate customization with 16 atomic components - eliminate separator issues:**
+
+```bash
+# 🔬 ATOMIC SHOWCASE: Perfect demonstration of atomic components
+cp ~/.claude/statusline/examples/Config.modular-atomic.toml ~/.claude/statusline/Config.toml
+
+# 🎯 ATOMIC BENEFITS:
+# • Clean visual separation: 30DAY $660.87 │ 7DAY $9.31 │ DAY $36.10  
+# • Maximum control: Pick only commits OR submodules
+# • Mix & match: Combine atomic and legacy components
+# • Backward compatible: All old configs still work
+
+# Test your atomic configuration
+./statusline.sh
+```
+
+### 🧩 **Modular System Layouts (v2.6.0)**
 
 **Revolutionary 1-9 line configurable system - choose your perfect layout:**
 
@@ -28,7 +46,7 @@ cp ~/.claude/statusline/examples/Config.modular-extended.toml ~/.claude/statusli
 # Maximum: Ultimate 9-line display with maximum detail
 cp ~/.claude/statusline/examples/Config.modular-maximum.toml ~/.claude/statusline/Config.toml
 
-# Creative custom: See flexible component reordering in action
+# Creative custom: Mix atomic & legacy components  
 cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml
 
 # Test your configuration

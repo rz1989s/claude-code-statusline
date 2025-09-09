@@ -18,8 +18,8 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with a configurable 1-9 line modular statusline**  
-*Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Fully customizable layout*
+**🎨 Transform your terminal with 16 atomic components across 1-9 configurable lines**  
+*Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
@@ -51,6 +51,38 @@
 ---
 
 ## 🆕 Recent Updates
+
+### v2.7.0 - Atomic Component System ⚛️🎯 **LATEST**
+
+**🎯 ULTIMATE CUSTOMIZATION: ATOMIC COMPONENT BREAKTHROUGH**
+
+Transform your statusline with **16 atomic components** that eliminate separator issues and provide maximum control:
+
+- **🔬 Atomic Components (NEW)** - Split complex components into single-purpose units:
+  - `commits` (atomic from git_stats) - Shows ONLY commit count
+  - `submodules` (atomic from git_stats) - Shows ONLY submodule status  
+  - `cost_monthly` (atomic from cost_period) - Shows ONLY 30-day costs
+  - `cost_weekly` (atomic from cost_period) - Shows ONLY 7-day costs
+  - `cost_daily` (atomic from cost_period) - Shows ONLY daily costs
+
+- **🎨 Clean Visual Separation** - No more `30DAY $660.87 7DAY $9.31 DAY $36.10`! Now: `30DAY $660.87 │ 7DAY $9.31 │ DAY $36.10`
+- **🧩 Maximum Control** - Want only commits without submodules? Use `commits` component only
+- **🔄 Backward Compatible** - Legacy `git_stats` and `cost_period` components still work perfectly
+- **📋 8 Example Configs** - Including new `Config.modular-atomic.toml` showcase
+
+**⚛️ ATOMIC CONFIGURATION EXAMPLES**
+```toml
+# Show only specific git info
+display.line1.components = ["repo_info", "commits", "version_info"]
+
+# Custom cost tracking - pick exactly what you need
+display.line2.components = ["cost_monthly", "cost_daily"]
+
+# Mix atomic and legacy components
+display.line3.components = ["git_stats", "cost_weekly", "mcp_status"]
+```
+
+---
 
 ### v2.6.0 - Modular Component System & Configurable 1-9 Line Statusline 🧩🎯
 

@@ -2,11 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status (v2.5.0)
+## Project Status (v2.7.0)
 
-**🎯 CURRENT: Modular Component System** - Revolutionary architecture transformation! The statusline now supports configurable 1-9 lines with complete component flexibility. Users can reorder, show/hide, and customize any of the 11 available components on any line position. This replaces the legacy fixed 5-line system with a fully dynamic, user-controlled layout system.
+**🎯 CURRENT: Atomic Component System** - Ultimate customization achieved! The statusline now features 16 atomic components that can be arranged in any combination across 1-9 lines. Complex components have been split into single-purpose units, eliminating intra-component separator issues and providing maximum user control.
 
-**🏗️ ARCHITECTURE BREAKTHROUGH**: 91.5% code reduction from monolithic design to clean modular system with standardized component interfaces and registry-based management.
+**🏗️ ATOMIC BREAKTHROUGH**: Components split from 11 composite → 16 atomic units. No more mixed data in single components - each component serves one clear purpose with clean visual separation.
+
+**🔬 NEW ATOMIC COMPONENTS (v2.7.0)**:
+- `commits` (from git_stats) - Shows only commit count
+- `submodules` (from git_stats) - Shows only submodule status  
+- `cost_monthly` (from cost_period) - Shows only 30-day costs
+- `cost_weekly` (from cost_period) - Shows only 7-day costs
+- `cost_daily` (from cost_period) - Shows only daily costs
 
 ## Quick Reference
 
@@ -26,27 +33,33 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
 ./statusline.sh --modules            # Show component status
 ```
 
-**Modular Configuration Testing (v2.6.0):**
+**Atomic Configuration Testing (v2.7.0):**
 ```bash
 # Test pre-built layout examples
+cp ~/.claude/statusline/examples/Config.modular-atomic.toml ~/.claude/statusline/Config.toml        # NEW: Atomic component showcase
 cp ~/.claude/statusline/examples/Config.modular-compact.toml ~/.claude/statusline/Config.toml       # 3-line minimal layout
 cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml # 7-line comprehensive layout
-cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml        # Custom component reordering
+cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml        # Mix atomic & legacy components
 cp ~/.claude/statusline/examples/Config.modular-standard.toml ~/.claude/statusline/Config.toml      # Standard 5-line equivalent
 cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml       # Ultra-minimal 1-line layout
 
-# Dynamic component arrangement testing
-ENV_CONFIG_DISPLAY_LINES=2 ./statusline.sh            # Override line count
-ENV_CONFIG_LINE1_COMPONENTS="mcp_status,prayer_times" ./statusline.sh  # Custom line 1
-ENV_CONFIG_LINE2_COMPONENTS="repo_info,cost_live" ./statusline.sh      # Custom line 2
+# Atomic component arrangement testing
+ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh            # Override line count
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info" ./statusline.sh  # Atomic git info
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_monthly,cost_daily" ./statusline.sh      # Custom cost mix
+ENV_CONFIG_LINE3_COMPONENTS="prayer_times" ./statusline.sh      # Prayer times only
 
-# Advanced modular testing examples
+# Advanced atomic testing examples  
 ENV_CONFIG_DISPLAY_LINES=4 \
-ENV_CONFIG_LINE1_COMPONENTS="repo_info" \
-ENV_CONFIG_LINE2_COMPONENTS="git_stats,version_info" \
-ENV_CONFIG_LINE3_COMPONENTS="mcp_status" \
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" \
+ENV_CONFIG_LINE2_COMPONENTS="submodules,version_info" \
+ENV_CONFIG_LINE3_COMPONENTS="cost_monthly,cost_weekly,cost_daily" \
 ENV_CONFIG_LINE4_COMPONENTS="prayer_times" \
-./statusline.sh  # 4-line custom layout
+./statusline.sh  # 4-line atomic layout
+
+# Compare legacy vs atomic (same data, different components)
+ENV_CONFIG_LINE1_COMPONENTS="git_stats" ./statusline.sh           # Legacy: combined commits+submodules
+ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic: separated components
 
 # Component availability testing
 ./statusline.sh --modules                              # Show all component status
@@ -138,41 +151,59 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 - `lib/cache.sh` - Intelligent caching system
 - `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
 - `lib/prayer/*.sh` - Modular prayer system (location, calculation, display)
-- `lib/components/*.sh` - **NEW** Individual component modules (11 components)
+- `lib/components/*.sh` - **ATOMIC** Individual component modules (16 components)
 
-**Component Architecture (v2.5.0):**
+**Atomic Component Architecture (v2.7.0):**
 Each component follows a standardized interface:
 - `collect_${component_name}_data()` - Gather component data
 - `render_${component_name}()` - Format display output
 - `get_${component_name}_config()` - Get component configuration
 
-**Available Components:**
+**Available Components (16 Total):**
+
+**Core Components (11):**
 - `repo_info.sh` - Repository directory and git status
-- `git_stats.sh` - Commits count and submodules
 - `version_info.sh` - Claude Code version display
 - `time_display.sh` - Current time formatting
 - `model_info.sh` - Claude model with emoji
 - `cost_session.sh` - Repository session cost
-- `cost_period.sh` - 30day/7day/daily costs
 - `cost_live.sh` - Live block cost
 - `mcp_status.sh` - MCP server health monitoring
 - `reset_timer.sh` - Block reset countdown
 - `prayer_times.sh` - Islamic prayer times integration
 
-**Data Flow (Updated v2.5.0):**
-1. JSON input → Configuration loading → Theme application
-2. **NEW** Component system initialization → Component data collection
-3. Modular line building → 1-9 line dynamic output (vs legacy 5-line fixed)
+**Legacy Components (2) - Backward Compatibility:**
+- `git_stats.sh` - Combined commits count and submodules (uses atomic components internally)
+- `cost_period.sh` - Combined 30day/7day/daily costs (uses atomic components internally)
 
-**Key v2.5.0 Achievements:**
-- ✅ **Complete Modular Transformation** - Fully functional 11-component system with registry management
-- ✅ **1-9 Line Configurability** - Dynamic layouts from minimal to comprehensive displays  
-- ✅ **Standardized Component Interface** - Consistent `collect_data()`, `render()`, `get_config()` pattern
-- ✅ **Backward Compatibility** - Legacy 5-line system preserved as fallback
-- ✅ **TOML Configuration Integration** - Full modular layout configuration via `display.lineN.components`
-- ✅ **Environment Override Support** - All modular settings configurable via `ENV_CONFIG_*` variables
-- ✅ **Component Registry System** - Advanced component management with dependency tracking
-- ✅ **5 Example Configurations** - Pre-built layouts from minimal to comprehensive arrangements
+**Atomic Components (5) - NEW v2.7.0:**
+- `commits.sh` - Shows ONLY commit count (atomic from git_stats)
+- `submodules.sh` - Shows ONLY submodule status (atomic from git_stats)  
+- `cost_monthly.sh` - Shows ONLY 30-day costs (atomic from cost_period)
+- `cost_weekly.sh` - Shows ONLY 7-day costs (atomic from cost_period)
+- `cost_daily.sh` - Shows ONLY daily costs (atomic from cost_period)
+
+**Data Flow (Updated v2.7.0):**
+1. JSON input → Configuration loading → Theme application
+2. **ATOMIC** Component system initialization → Atomic component data collection
+3. Atomic line building → 1-9 line dynamic output with clean visual separation
+
+**Key v2.7.0 Achievements:**
+- ✅ **Atomic Component System** - 16-component system (11 core + 2 legacy + 5 atomic)
+- ✅ **Eliminated Separator Issues** - No more intra-component separators needed
+- ✅ **Maximum User Control** - Pick exactly which data to display (commits only, monthly costs only, etc.)
+- ✅ **Clean Visual Output** - Each component shows one clear piece of information
+- ✅ **Backward Compatible** - Legacy git_stats and cost_period components still work
+- ✅ **1-9 Line Configurability** - Dynamic layouts with atomic component precision
+- ✅ **Environment Override Support** - All atomic components configurable via `ENV_CONFIG_*`
+- ✅ **8 Example Configurations** - Including new Config.modular-atomic.toml showcase
+
+**Atomic Component Benefits:**
+- 🎯 **Single Responsibility** - Each component does one thing perfectly
+- 🧩 **Mix & Match** - Combine any components in any order
+- 🎨 **Clean Separators** - Proper `│` between all components
+- ⚡ **Performance** - Lighter, focused component code
+- 🔧 **Maintenance** - Easier to debug and extend individual components
 
 **Module Dependencies & Load Order:**
 1. `core.sh` → Always loaded first (provides `load_module()`, logging, timers)
