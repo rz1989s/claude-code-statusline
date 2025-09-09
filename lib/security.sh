@@ -380,13 +380,23 @@ cleanup_stale_locks() {
     local max_age="${2:-120}" # Default 2 minutes
     
     if [[ -f "$lock_file" ]]; then
-        local lock_pid=$(cat "$lock_file" 2>/dev/null)
+        local lock_content=$(cat "$lock_file" 2>/dev/null)
         local lock_age=$(($(get_timestamp) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
 
+        # Extract PID from lock file format: "instance:PID:timestamp" or "PID:timestamp:instance"
+        local lock_pid
+        if [[ "$lock_content" =~ :([0-9]+): ]]; then
+            lock_pid="${BASH_REMATCH[1]}"  # PID is in the middle
+        elif [[ "$lock_content" =~ ^([0-9]+): ]]; then
+            lock_pid="${BASH_REMATCH[1]}"  # PID is at the start
+        else
+            lock_pid="$lock_content"       # Fallback: assume entire content is PID
+        fi
+
         # Remove lock if process is dead OR lock is older than max_age
-        if ! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt $max_age ]]; then
+        if [[ -n "$lock_pid" ]] && (! kill -0 "$lock_pid" 2>/dev/null || [[ $lock_age -gt $max_age ]]); then
             rm -f "$lock_file" 2>/dev/null
-            debug_log "Removed stale lock file: $lock_file" "INFO"
+            debug_log "Removed stale lock file: $lock_file (PID: $lock_pid, age: ${lock_age}s)" "INFO"
         fi
     fi
 }
