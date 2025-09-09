@@ -86,8 +86,8 @@ sanitize_path_secure() {
     # Replace slashes with hyphens
     sanitized=$(echo "$sanitized" | /usr/bin/sed 's|/|-|g')
 
-    # Remove potentially dangerous characters, keep only safe ones
-    sanitized=$(echo "$sanitized" | /usr/bin/tr -cd '[:alnum:]-_.')
+    # Remove potentially dangerous characters, keep only safe ones (no dots for cache key compatibility)
+    sanitized=$(echo "$sanitized" | /usr/bin/tr -cd '[:alnum:]-_')
 
     # Ensure result is not empty
     if [[ -z "$sanitized" ]]; then

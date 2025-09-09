@@ -137,11 +137,11 @@ determine_cache_base_dir() {
         [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using CLAUDE_CACHE_DIR: $cache_dir" "INFO"
     # Priority 2: XDG Base Directory specification
     elif [[ -n "${XDG_CACHE_HOME:-}" ]]; then
-        cache_dir="$XDG_CACHE_HOME/claude-statusline"
+        cache_dir="$XDG_CACHE_HOME/claude-code-statusline"
         [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using XDG_CACHE_HOME: $cache_dir" "INFO"
     # Priority 3: Standard user cache directory
     elif [[ -n "${HOME:-}" ]] && [[ -w "${HOME:-}" ]]; then
-        cache_dir="$HOME/.cache/claude-statusline"
+        cache_dir="$HOME/.cache/claude-code-statusline"
         [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using HOME/.cache: $cache_dir" "INFO"
     # Priority 4: Secure fallback to /tmp with user isolation
     else
@@ -601,7 +601,7 @@ recover_cache_directory() {
     
     # Try alternative cache locations
     local alternatives=(
-        "${HOME:-}/.cache/claude-statusline-fallback"
+        "${HOME:-}/.cache/claude-code-statusline-fallback"
         "/tmp/.claude_statusline_fallback_${USER:-$(id -u)}"
         "/tmp/.claude_statusline_emergency_$$"
     )
