@@ -6,13 +6,10 @@
 # It uses simplified flat TOML format for reliable parsing across all platforms.
 # All settings use dot notation instead of nested sections.
 #
-# Configuration Precedence (highest to lowest):
-# 1. Environment variables (ENV_CONFIG_*)
-# 2. ./Config.toml (project-specific)
-# 3. ~/.claude/statusline/Config.toml (user installation - THIS FILE)
-# 4. ~/.config/claude-code-statusline/Config.toml (XDG standard)
-# 5. ~/.claude-statusline.toml (legacy fallback)
-# 6. Inline script defaults (fallback)
+# Configuration Order (simplified single source of truth):
+# 1. Environment variables (ENV_CONFIG_*) - Temporary overrides
+# 2. ~/.claude/statusline/Config.toml - Your configuration (THIS FILE)
+# 3. Inline script defaults - Fallback when config missing
 #
 # ============================================================================
 
