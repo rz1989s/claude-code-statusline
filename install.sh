@@ -581,7 +581,7 @@ download_module_subdirectories() {
         local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/prayer/$module"
         local module_path="$LIB_DIR/prayer/$module"
         
-        if download_file "$module_url" "$module_path"; then
+        if curl -fsSL "$module_url" -o "$module_path"; then
             print_status "  ✓ Downloaded prayer/$module"
         else
             print_warning "  ⚠️ Failed to download prayer/$module (optional)"
@@ -594,7 +594,7 @@ download_module_subdirectories() {
         local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/components/$module"
         local module_path="$LIB_DIR/components/$module"
         
-        if download_file "$module_url" "$module_path"; then
+        if curl -fsSL "$module_url" -o "$module_path"; then
             print_status "  ✓ Downloaded components/$module"
         else
             print_warning "  ⚠️ Failed to download components/$module (optional)"
