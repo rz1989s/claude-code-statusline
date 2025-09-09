@@ -54,7 +54,7 @@ render_git_stats() {
         local commits_display="${CONFIG_TEAL}${CONFIG_COMMITS_LABEL}${COMPONENT_GIT_STATS_COMMITS}${CONFIG_RESET}"
         
         if [[ -n "$output" ]]; then
-            output="${output} ${commits_display}"
+            output="${output} │ ${commits_display}"
         else
             output="$commits_display"
         fi
@@ -66,7 +66,7 @@ render_git_stats() {
         formatted_submodules=$(format_submodule_display "$COMPONENT_GIT_STATS_SUBMODULES")
         
         if [[ -n "$output" ]]; then
-            output="${output} ${formatted_submodules}"
+            output="${output} │ ${formatted_submodules}"
         else
             output="$formatted_submodules"
         fi

@@ -75,7 +75,7 @@ render_cost_period() {
         formatted_monthly=$(format_monthly_cost "$COMPONENT_COST_PERIOD_MONTH")
         
         if [[ -n "$output" ]]; then
-            output="${output} ${formatted_monthly}"
+            output="${output} │ ${formatted_monthly}"
         else
             output="$formatted_monthly"
         fi
@@ -87,7 +87,7 @@ render_cost_period() {
         formatted_weekly=$(format_weekly_cost "$COMPONENT_COST_PERIOD_WEEK")
         
         if [[ -n "$output" ]]; then
-            output="${output} ${formatted_weekly}"
+            output="${output} │ ${formatted_weekly}"
         else
             output="$formatted_weekly"
         fi
@@ -99,7 +99,7 @@ render_cost_period() {
         formatted_daily=$(format_daily_cost "$COMPONENT_COST_PERIOD_TODAY")
         
         if [[ -n "$output" ]]; then
-            output="${output} ${formatted_daily}"
+            output="${output} │ ${formatted_daily}"
         else
             output="$formatted_daily"
         fi
