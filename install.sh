@@ -635,23 +635,11 @@ download_examples() {
     mkdir -p "$EXAMPLES_DIR"
     mkdir -p "$SAMPLE_CONFIGS_DIR"
     
-    # Define all example configurations to download
-    local modular_configs=(
-        "Config.modular-minimal.toml"
-        "Config.modular-compact.toml" 
-        "Config.modular-standard.toml"
-        "Config.modular-comprehensive.toml"
-        "Config.modular-extended.toml"
-        "Config.modular-maximum.toml"
-        "Config.modular-custom.toml"
-        "Config.modular-atomic.toml"
-    )
+    # Single source architecture - only comprehensive Config.toml needed (v2.8.0)
+    local modular_configs=()  # No longer needed - single source approach
     
     local traditional_configs=(
-        "Config.base.toml"
-        "Config.advanced.toml"
-        "Config.prayer.toml"
-        "Config.toml"
+        "Config.toml"  # The ONE comprehensive configuration template
     )
     
     local sample_configs=(
@@ -665,26 +653,15 @@ download_examples() {
     local failed_downloads=()
     local successful_downloads=0
     
-    # Download modular configurations
-    print_status "📦 Downloading modular configurations..."
-    for config in "${modular_configs[@]}"; do
-        local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/$config"
-        local config_path="$EXAMPLES_DIR/$config"
-        
-        if curl -fsSL "$config_url" -o "$config_path"; then
-            print_status "  ✓ Downloaded $config"
-            ((successful_downloads++))
-        else
-            print_error "  ✗ Failed to download $config"
-            failed_downloads+=("$config")
-        fi
-    done
+    # Single source architecture - no modular configs needed (v2.8.0)
+    print_status "📦 Single source architecture - using comprehensive Config.toml only"
     
-    # Download traditional configurations
-    print_status "📦 Downloading traditional configurations..."
+    # Download comprehensive Config.toml (single source of truth)
+    print_status "📦 Downloading comprehensive configuration template..."
     for config in "${traditional_configs[@]}"; do
         # Skip Config.toml as it's already downloaded as the main template
         if [[ "$config" == "Config.toml" ]]; then
+            print_status "  ✓ Comprehensive Config.toml already downloaded as main template"
             continue
         fi
         
@@ -910,10 +887,10 @@ download_config_template() {
             local line_count=$(wc -l < "$CONFIG_PATH" 2>/dev/null || echo "0")
             print_success "✅ Downloaded comprehensive Config.toml template ($line_count lines)"
             print_status "💡 Edit $CONFIG_PATH to customize your statusline"
-            print_status "🔧 All settings use flat format (e.g., theme.name = \"catppuccin\")"
-            print_status "📚 Template includes 280+ configuration options with documentation"
-            print_status "🧩 7 modular configs available: 1-9 line layouts (Config.modular-*.toml)"
-            print_status "🎯 Legacy profiles: work, personal, developer, minimal setups"
+            print_status "🔧 All 227 settings in ONE file - no more hunting for parameters!"
+            print_status "📚 Single source of truth - all configurations pre-filled with sensible defaults"
+            print_status "🎯 Revolutionary simplification: ONE file replaces 13 different configs"
+            print_status "🧩 Edit display.lines and components arrays for 1-9 line layouts"
             return 0
         else
             print_error "❌ Downloaded config template appears to be empty or invalid"
@@ -950,14 +927,12 @@ verify_installation() {
     if [ -d "$EXAMPLES_DIR" ]; then
         print_success "examples directory exists"
         
-        # Count available example configurations
-        local modular_count=$(find "$EXAMPLES_DIR" -name "Config.modular-*.toml" -type f | wc -l | tr -d ' ')
+        # Check comprehensive Config.toml (single source architecture)
+        local config_count=$(find "$EXAMPLES_DIR" -name "Config.toml" -type f | wc -l | tr -d ' ')
         local sample_count=$(find "$SAMPLE_CONFIGS_DIR" -name "*.toml" -type f 2>/dev/null | wc -l | tr -d ' ')
-        local traditional_count=$(find "$EXAMPLES_DIR" -maxdepth 1 -name "Config.*.toml" ! -name "Config.modular-*" -type f | wc -l | tr -d ' ')
         
-        print_status "  • $modular_count modular configurations found"
-        print_status "  • $sample_count sample-configs profiles found"  
-        print_status "  • $traditional_count traditional configurations found"
+        print_status "  • $config_count comprehensive Config.toml template (single source of truth)"
+        print_status "  • $sample_count legacy sample-configs profiles found"
     else
         print_warning "examples directory is missing (configurations will be limited)"
     fi
