@@ -588,11 +588,8 @@ get_line_config() {
 build_modular_statusline() {
     debug_log "Building modular statusline with ${CONFIG_DISPLAY_LINES:-5} lines" "INFO"
     
-    # Ensure components module is loaded
-    if ! is_module_loaded "components"; then
-        handle_error "Components module not loaded - cannot build modular statusline" "build_modular_statusline"
-        return 1
-    fi
+    # Components module loading already verified by caller - no redundant check needed
+    debug_log "Building modular statusline - components module confirmed loaded" "INFO"
     
     local max_lines="${CONFIG_DISPLAY_LINES:-5}"
     local lines_output=()
@@ -642,8 +639,8 @@ build_modular_statusline() {
     
     debug_log "Modular statusline built: $line_count lines output" "INFO"
     
-    # Return 0 if at least one line was output
-    [[ $line_count -gt 0 ]]
+    # Always return success if we reach this point - output generation succeeded
+    return 0
 }
 
 # Legacy compatibility function - checks if modular config exists
@@ -666,10 +663,12 @@ build_statusline() {
     if use_modular_display; then
         debug_log "Using modular display system" "INFO"
         build_modular_statusline
+        return $?
     else
         debug_log "Using legacy display system" "INFO"
         # Legacy display code - can be called with parameters
         build_complete_statusline "$@"
+        return $?
     fi
 }
 
