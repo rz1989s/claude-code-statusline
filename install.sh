@@ -589,7 +589,7 @@ download_module_subdirectories() {
     done
     
     # Download components subdirectory modules  
-    local component_modules=("repo_info.sh" "git_stats.sh" "version_info.sh" "time_display.sh" "model_info.sh" "cost_session.sh" "cost_period.sh" "cost_live.sh" "mcp_status.sh" "reset_timer.sh" "prayer_times.sh")
+    local component_modules=("repo_info.sh" "git_stats.sh" "version_info.sh" "time_display.sh" "model_info.sh" "cost_session.sh" "cost_period.sh" "cost_live.sh" "mcp_status.sh" "reset_timer.sh" "prayer_times.sh" "commits.sh" "submodules.sh" "cost_monthly.sh" "cost_weekly.sh" "cost_daily.sh")
     for module in "${component_modules[@]}"; do
         local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/components/$module"
         local module_path="$LIB_DIR/components/$module"
@@ -644,6 +644,7 @@ download_examples() {
         "Config.modular-extended.toml"
         "Config.modular-maximum.toml"
         "Config.modular-custom.toml"
+        "Config.modular-atomic.toml"
     )
     
     local traditional_configs=(

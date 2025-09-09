@@ -29,12 +29,12 @@ display.line2.separator = " │ "
 display.line3.components = ["repo_info", "model_info"]
 display.line3.separator = " → "
 
-# Line 4: Git Stats Only
-display.line4.components = ["git_stats"]
+# Line 4: Atomic Git Components (demonstrates granular control)
+display.line4.components = ["commits", "submodules"]
 display.line4.separator = " │ "
 
-# Line 5: All Cost Information Together
-display.line5.components = ["cost_session", "cost_period", "cost_live"]
+# Line 5: Mix of atomic and legacy cost components
+display.line5.components = ["cost_session", "cost_monthly", "cost_live"]
 display.line5.separator = " 💰 "
 
 # Line 6: Reset Timer (when available)
@@ -61,6 +61,12 @@ components.cost_period.show_weekly = false  # Hide weekly for space
 components.cost_period.show_daily = true
 components.cost_live.enabled = true
 components.reset_timer.enabled = true
+
+# === ATOMIC COMPONENT CONFIGURATION ===
+# New atomic components for granular control
+components.commits.enabled = true
+components.submodules.enabled = true
+components.cost_monthly.enabled = true
 
 # === FEATURE TOGGLES ===
 features.show_commits = true

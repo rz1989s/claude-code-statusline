@@ -1,0 +1,117 @@
+# ============================================================================
+# Claude Code Statusline - Atomic Components Configuration
+# ============================================================================
+#
+# This configuration demonstrates the new atomic component system (v2.7.0).
+# Components are now split into smaller, single-purpose units for maximum
+# customization and clean visual separation without intra-component separators.
+#
+# New Atomic Components:
+# - commits (from git_stats) - Shows only commit count
+# - submodules (from git_stats) - Shows only submodule status  
+# - cost_monthly (from cost_period) - Shows only 30-day costs
+# - cost_weekly (from cost_period) - Shows only 7-day costs
+# - cost_daily (from cost_period) - Shows only daily costs
+#
+# ============================================================================
+
+# === THEME CONFIGURATION ===
+theme.name = "catppuccin"
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# 6-line layout showcasing atomic component flexibility
+display.lines = 6
+
+# Line 1: Repository with separated git info
+display.line1.components = ["repo_info", "commits", "submodules", "version_info"]
+display.line1.separator = " │ "
+
+# Line 2: Model and session cost only
+display.line2.components = ["model_info", "cost_session", "time_display"]
+display.line2.separator = " │ "
+
+# Line 3: Atomic cost breakdown - each cost type separately
+display.line3.components = ["cost_monthly", "cost_weekly", "cost_daily"]
+display.line3.separator = " │ "
+
+# Line 4: Live operations
+display.line4.components = ["cost_live", "mcp_status"]
+display.line4.separator = " │ "
+
+# Line 5: Reset timer when available
+display.line5.components = ["reset_timer"]
+display.line5.show_when_empty = false
+
+# Line 6: Prayer times (kept as unified component)
+display.line6.components = ["prayer_times"]
+display.line6.separator = " │ "
+
+# === ATOMIC COMPONENT CONFIGURATION ===
+# All components enabled - users can disable specific ones as needed
+components.repo_info.enabled = true
+components.commits.enabled = true
+components.submodules.enabled = true
+components.version_info.enabled = true
+components.time_display.enabled = true
+components.model_info.enabled = true
+components.cost_session.enabled = true
+components.cost_monthly.enabled = true
+components.cost_weekly.enabled = true
+components.cost_daily.enabled = true
+components.cost_live.enabled = true
+components.mcp_status.enabled = true
+components.mcp_status.show_server_list = true
+components.reset_timer.enabled = true
+components.prayer_times.enabled = true
+
+# === LEGACY COMPONENTS (Backward Compatibility) ===
+# These still work but use atomic components internally
+components.git_stats.enabled = true
+components.git_stats.show_commits = true
+components.git_stats.show_submodules = true
+components.cost_period.enabled = true
+components.cost_period.show_monthly = true
+components.cost_period.show_weekly = true
+components.cost_period.show_daily = true
+
+# === FEATURE TOGGLES ===
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_prayer_times = true
+
+# === TIMEOUTS ===
+timeouts.mcp = "10s"
+timeouts.version = "10s"
+timeouts.ccusage = "10s"
+timeouts.prayer = "10s"
+
+# === PRAYER TIMES CONFIGURATION ===
+prayer.enabled = true
+prayer.location_mode = "auto"
+
+# === LABELS CUSTOMIZATION ===
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.mcp = "MCP"
+labels.version_prefix = "v"
+labels.monthly = "30DAY"
+labels.weekly = "7DAY"
+labels.daily = "DAY"
+labels.session_prefix = "S:"
+labels.live = "LIVE"
+labels.reset = "RESET"
+labels.submodule = "SUB:"
+
+# === EMOJIS ===
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
+emojis.default_model = "🤖"
+emojis.clean_status = "✅"
+emojis.dirty_status = "📁"
+emojis.clock = "🕐"
+emojis.live_block = "🔥"
