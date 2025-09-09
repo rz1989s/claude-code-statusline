@@ -659,17 +659,12 @@ download_examples() {
     # Download comprehensive Config.toml (single source of truth)
     print_status "📦 Downloading comprehensive configuration template..."
     for config in "${traditional_configs[@]}"; do
-        # Skip Config.toml as it's already downloaded as the main template
-        if [[ "$config" == "Config.toml" ]]; then
-            print_status "  ✓ Comprehensive Config.toml already downloaded as main template"
-            continue
-        fi
-        
+        # Download Config.toml to examples/ as reference template
         local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/$config"
         local config_path="$EXAMPLES_DIR/$config"
         
         if curl -fsSL "$config_url" -o "$config_path"; then
-            print_status "  ✓ Downloaded $config"
+            print_status "  ✓ Downloaded $config (reference template)"
             ((successful_downloads++))
         else
             print_error "  ✗ Failed to download $config"
