@@ -540,7 +540,7 @@ download_statusline() {
     
     # Download all modules
     print_status "Downloading statusline modules..."
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh")
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh" "components.sh")
     local failed_modules=()
     
     for module in "${modules[@]}"; do
@@ -562,6 +562,46 @@ download_statusline() {
     else
         print_success "All modules downloaded successfully"
     fi
+    
+    # Download modular system subdirectories
+    download_module_subdirectories
+}
+
+# Function to download module subdirectories (prayer/, components/)
+download_module_subdirectories() {
+    print_status "📦 Downloading modular system subdirectories..."
+    
+    # Create subdirectories
+    mkdir -p "$LIB_DIR/prayer"
+    mkdir -p "$LIB_DIR/components"
+    
+    # Download prayer subdirectory modules
+    local prayer_modules=("core.sh" "calculation.sh" "display.sh" "location.sh" "timezone.sh")
+    for module in "${prayer_modules[@]}"; do
+        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/prayer/$module"
+        local module_path="$LIB_DIR/prayer/$module"
+        
+        if download_file "$module_url" "$module_path"; then
+            print_status "  ✓ Downloaded prayer/$module"
+        else
+            print_warning "  ⚠️ Failed to download prayer/$module (optional)"
+        fi
+    done
+    
+    # Download components subdirectory modules  
+    local component_modules=("repo_info.sh" "git_stats.sh" "version_info.sh" "time_display.sh" "model_info.sh" "cost_session.sh" "cost_period.sh" "cost_live.sh" "mcp_status.sh" "reset_timer.sh" "prayer_times.sh")
+    for module in "${component_modules[@]}"; do
+        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/components/$module"
+        local module_path="$LIB_DIR/components/$module"
+        
+        if download_file "$module_url" "$module_path"; then
+            print_status "  ✓ Downloaded components/$module"
+        else
+            print_warning "  ⚠️ Failed to download components/$module (optional)"
+        fi
+    done
+    
+    print_success "Modular system subdirectories downloaded"
 }
 
 # Function to backup existing examples directory
@@ -922,7 +962,7 @@ verify_installation() {
     fi
     
     # Check if all modules exist
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh")
+    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh" "components.sh")
     local missing_modules=()
     
     for module in "${modules[@]}"; do
