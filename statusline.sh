@@ -275,7 +275,7 @@ if is_module_loaded "components" && is_module_loaded "display"; then
     
     # Build and output modular statusline
     if ! build_statusline; then
-        handle_error "Failed to build modular statusline" 1 "main"
+        handle_error "Failed to build statusline (using component-based system)" 1 "main"
         exit 1
     fi
 else

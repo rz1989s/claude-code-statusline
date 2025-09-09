@@ -1322,6 +1322,9 @@ acquire_cache_lock() {
     
     local retry_count=0
     while [[ $retry_count -lt $max_retries ]]; do
+        # Additional aggressive cleanup right before lock attempt
+        [[ -f "$lock_file" ]] && rm -f "$lock_file" 2>/dev/null
+        
         # Try to acquire lock atomically
         if (
             set -C

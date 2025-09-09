@@ -594,7 +594,7 @@ extract_config_values() {
             line7_show_when_empty: ."display.line7.show_when_empty",
             line8_show_when_empty: ."display.line8.show_when_empty",
             line9_show_when_empty: ."display.line9.show_when_empty"
-        } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
+        } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
         handle_warning "Failed to extract config values from JSON" "extract_config_values"
