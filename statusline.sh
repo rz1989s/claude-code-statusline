@@ -116,6 +116,11 @@ load_module "components" || {
     handle_warning "Components module failed to load - modular display disabled. Falling back to legacy display." "main"
 }
 
+# Initialize the component system after loading the module
+if is_module_loaded "components"; then
+    init_component_system
+fi
+
 # Load display/formatting module
 load_module "display" || {
     handle_error "Failed to load display module - output formatting disabled. Check lib/display.sh." 1 "main"

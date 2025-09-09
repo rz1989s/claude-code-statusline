@@ -350,8 +350,8 @@ init_component_system() {
     return 0
 }
 
-# Initialize the module
-init_component_system
+# Note: init_component_system should be called explicitly from the main script
+# after SCRIPT_DIR is properly set. Do not auto-initialize here.
 
 # Export component functions
 export -f register_component is_component_registered is_component_enabled
