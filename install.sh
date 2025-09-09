@@ -576,7 +576,7 @@ download_module_subdirectories() {
     mkdir -p "$LIB_DIR/components"
     
     # Download prayer subdirectory modules
-    local prayer_modules=("core.sh" "calculation.sh" "display.sh" "location.sh" "timezone.sh")
+    local prayer_modules=("core.sh" "calculation.sh" "display.sh" "location.sh" "timezone_methods.sh")
     for module in "${prayer_modules[@]}"; do
         local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/prayer/$module"
         local module_path="$LIB_DIR/prayer/$module"
