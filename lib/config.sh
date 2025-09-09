@@ -25,15 +25,8 @@ export CONFIG_FILE_PATHS=(
     "$HOME/.claude/statusline/Config.toml"
 )
 
-# Default configuration values
-export DEFAULT_CONFIG_THEME="catppuccin"
-export DEFAULT_CONFIG_SHOW_COMMITS=true
-export DEFAULT_CONFIG_SHOW_VERSION=true
-export DEFAULT_CONFIG_SHOW_SUBMODULES=true
-export DEFAULT_CONFIG_SHOW_MCP_STATUS=true
-export DEFAULT_CONFIG_SHOW_COST_TRACKING=true
-export DEFAULT_CONFIG_SHOW_RESET_INFO=true
-export DEFAULT_CONFIG_SHOW_SESSION_INFO=true
+# Configuration variables are now loaded exclusively from Config.toml
+# No hardcoded defaults - single source of truth approach
 
 # Global configuration variables (will be set by load_configuration)
 export CONFIG_THEME=""
@@ -142,19 +135,7 @@ export CONFIG_LINE7_SHOW_WHEN_EMPTY=""
 export CONFIG_LINE8_SHOW_WHEN_EMPTY=""
 export CONFIG_LINE9_SHOW_WHEN_EMPTY=""
 
-# Default line configuration values
-export DEFAULT_CONFIG_DISPLAY_LINES="5"
-export DEFAULT_CONFIG_LINE1_COMPONENTS="repo_info,git_stats,version_info,time_display"
-export DEFAULT_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_period,cost_live"
-export DEFAULT_CONFIG_LINE3_COMPONENTS="mcp_status"
-export DEFAULT_CONFIG_LINE4_COMPONENTS="reset_timer"
-export DEFAULT_CONFIG_LINE5_COMPONENTS="prayer_times"
-export DEFAULT_CONFIG_LINE6_COMPONENTS=""
-export DEFAULT_CONFIG_LINE7_COMPONENTS=""
-export DEFAULT_CONFIG_LINE8_COMPONENTS=""
-export DEFAULT_CONFIG_LINE9_COMPONENTS=""
-export DEFAULT_CONFIG_LINE_SEPARATOR=" │ "
-export DEFAULT_CONFIG_LINE_SHOW_WHEN_EMPTY="false"
+# Display line configuration loaded from Config.toml only
 
 # ============================================================================
 # TOML PARSING FUNCTIONS
@@ -410,35 +391,13 @@ auto_regenerate_config() {
     
     debug_log "Attempting auto-regeneration of Config.toml..." "INFO"
     
-    # Define source template priority order
-    local source_templates=(
-        "$EXAMPLES_DIR/Config.toml"                    # Master template (best choice)
-        "$EXAMPLES_DIR/Config.modular-standard.toml"   # 5-line familiar layout
-        "$EXAMPLES_DIR/Config.modular-compact.toml"    # 3-line minimal but functional
-        "$EXAMPLES_DIR/Config.modular-minimal.toml"    # 2-line absolute minimal
-    )
+    # Use single comprehensive Config.toml template
+    local source_template="$EXAMPLES_DIR/Config.toml"
+    local template_description="comprehensive configuration template"
     
-    local source_template=""
-    local template_description=""
-    
-    # Find first available template
-    for template in "${source_templates[@]}"; do
-        if [[ -f "$template" && -r "$template" ]]; then
-            source_template="$template"
-            case "$(basename "$template")" in
-                "Config.toml") template_description="master template (comprehensive default)" ;;
-                "Config.modular-standard.toml") template_description="5-line standard layout" ;;
-                "Config.modular-compact.toml") template_description="3-line compact layout" ;;
-                "Config.modular-minimal.toml") template_description="2-line minimal layout" ;;
-                *) template_description="available template" ;;
-            esac
-            break
-        fi
-    done
-    
-    # Check if we found a suitable template
-    if [[ -z "$source_template" ]]; then
-        debug_log "No example templates found for auto-regeneration" "ERROR"
+    # Check if the template exists and is readable
+    if [[ ! -f "$source_template" || ! -r "$source_template" ]]; then
+        debug_log "Master Config.toml template not found at: $source_template" "ERROR"
         return 1
     fi
     
@@ -577,64 +536,64 @@ extract_config_values() {
         return 1
     fi
 
-    # Optimized jq operation for flat structure only (simplified and faster)
+    # Pure extraction from Config.toml - no fallbacks (single source of truth)
     local config_data
     config_data=$(echo "$config_json" | jq -r '{
-            theme_name: (."theme.name" // "catppuccin"),
-            feature_show_commits: (."features.show_commits" // true),
-            feature_show_version: (."features.show_version" // true),
-            feature_show_submodules: (."features.show_submodules" // true),
-            feature_show_mcp: (."features.show_mcp_status" // true),
-            feature_show_cost: (."features.show_cost_tracking" // true),
-            feature_show_reset: (."features.show_reset_info" // true),
-            feature_show_session: (."features.show_session_info" // true),
-            timeout_mcp: (."timeouts.mcp" // "10s"),
-            timeout_version: (."timeouts.version" // "2s"),
-            timeout_ccusage: (."timeouts.ccusage" // "3s"),
-            cache_version_duration: (."cache.version_duration" // 3600),
-            cache_version_file: (."cache.version_file" // "/tmp/.claude_version_cache"),
-            display_time_format: (."display.time_format" // "%H:%M"),
-            display_date_format: (."display.date_format" // "%Y-%m-%d"),
-            display_date_format_compact: (."display.date_format_compact" // "%Y%m%d"),
-            label_commits: (."labels.commits" // "Commits:"),
-            label_repo: (."labels.repo" // "REPO"),
-            label_monthly: (."labels.monthly" // "30DAY"),
-            label_weekly: (."labels.weekly" // "7DAY"),
-            label_daily: (."labels.daily" // "DAY"),
-            label_submodule: (."labels.submodule" // "SUB:"),
-            label_mcp: (."labels.mcp" // "MCP"),
-            label_version_prefix: (."labels.version_prefix" // "ver"),
-            label_session_prefix: (."labels.session_prefix" // "S:"),
-            label_live: (."labels.live" // "LIVE"),
-            label_reset: (."labels.reset" // "RESET"),
-            display_lines: (."display.lines" // 5),
-            line1_components: (."display.line1.components" // ["repo_info", "git_stats", "version_info", "time_display"] | join(",")),
-            line2_components: (."display.line2.components" // ["model_info", "cost_session", "cost_period", "cost_live"] | join(",")),
-            line3_components: (."display.line3.components" // ["mcp_status"] | join(",")),
-            line4_components: (."display.line4.components" // ["reset_timer"] | join(",")),
-            line5_components: (."display.line5.components" // ["prayer_times"] | join(",")),
-            line6_components: (."display.line6.components" // [] | join(",")),
-            line7_components: (."display.line7.components" // [] | join(",")),
-            line8_components: (."display.line8.components" // [] | join(",")),
-            line9_components: (."display.line9.components" // [] | join(",")),
-            line1_separator: (."display.line1.separator" // " │ "),
-            line2_separator: (."display.line2.separator" // " │ "),
-            line3_separator: (."display.line3.separator" // " │ "),
-            line4_separator: (."display.line4.separator" // " │ "),
-            line5_separator: (."display.line5.separator" // " │ "),
-            line6_separator: (."display.line6.separator" // " │ "),
-            line7_separator: (."display.line7.separator" // " │ "),
-            line8_separator: (."display.line8.separator" // " │ "),
-            line9_separator: (."display.line9.separator" // " │ "),
-            line1_show_when_empty: (."display.line1.show_when_empty" // false),
-            line2_show_when_empty: (."display.line2.show_when_empty" // false),
-            line3_show_when_empty: (."display.line3.show_when_empty" // false),
-            line4_show_when_empty: (."display.line4.show_when_empty" // false),
-            line5_show_when_empty: (."display.line5.show_when_empty" // false),
-            line6_show_when_empty: (."display.line6.show_when_empty" // false),
-            line7_show_when_empty: (."display.line7.show_when_empty" // false),
-            line8_show_when_empty: (."display.line8.show_when_empty" // false),
-            line9_show_when_empty: (."display.line9.show_when_empty" // false)
+            theme_name: ."theme.name",
+            feature_show_commits: ."features.show_commits",
+            feature_show_version: ."features.show_version",
+            feature_show_submodules: ."features.show_submodules",
+            feature_show_mcp: ."features.show_mcp_status",
+            feature_show_cost: ."features.show_cost_tracking",
+            feature_show_reset: ."features.show_reset_info",
+            feature_show_session: ."features.show_session_info",
+            timeout_mcp: ."timeouts.mcp",
+            timeout_version: ."timeouts.version",
+            timeout_ccusage: ."timeouts.ccusage",
+            cache_version_duration: ."cache.version_duration",
+            cache_version_file: ."cache.version_file",
+            display_time_format: ."display.time_format",
+            display_date_format: ."display.date_format",
+            display_date_format_compact: ."display.date_format_compact",
+            label_commits: ."labels.commits",
+            label_repo: ."labels.repo",
+            label_monthly: ."labels.monthly",
+            label_weekly: ."labels.weekly",
+            label_daily: ."labels.daily",
+            label_submodule: ."labels.submodule",
+            label_mcp: ."labels.mcp",
+            label_version_prefix: ."labels.version_prefix",
+            label_session_prefix: ."labels.session_prefix",
+            label_live: ."labels.live",
+            label_reset: ."labels.reset",
+            display_lines: ."display.lines",
+            line1_components: (."display.line1.components" | join(",")),
+            line2_components: (."display.line2.components" | join(",")),
+            line3_components: (."display.line3.components" | join(",")),
+            line4_components: (."display.line4.components" | join(",")),
+            line5_components: (."display.line5.components" | join(",")),
+            line6_components: (."display.line6.components" | join(",")),
+            line7_components: (."display.line7.components" | join(",")),
+            line8_components: (."display.line8.components" | join(",")),
+            line9_components: (."display.line9.components" | join(",")),
+            line1_separator: ."display.line1.separator",
+            line2_separator: ."display.line2.separator",
+            line3_separator: ."display.line3.separator",
+            line4_separator: ."display.line4.separator",
+            line5_separator: ."display.line5.separator",
+            line6_separator: ."display.line6.separator",
+            line7_separator: ."display.line7.separator",
+            line8_separator: ."display.line8.separator",
+            line9_separator: ."display.line9.separator",
+            line1_show_when_empty: ."display.line1.show_when_empty",
+            line2_show_when_empty: ."display.line2.show_when_empty",
+            line3_show_when_empty: ."display.line3.show_when_empty",
+            line4_show_when_empty: ."display.line4.show_when_empty",
+            line5_show_when_empty: ."display.line5.show_when_empty",
+            line6_show_when_empty: ."display.line6.show_when_empty",
+            line7_show_when_empty: ."display.line7.show_when_empty",
+            line8_show_when_empty: ."display.line8.show_when_empty",
+            line9_show_when_empty: ."display.line9.show_when_empty"
         } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then

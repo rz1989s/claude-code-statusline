@@ -2,18 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status (v2.7.0)
+## Project Status (v2.8.0)
 
-**🎯 CURRENT: Atomic Component System** - Ultimate customization achieved! The statusline now features 16 atomic components that can be arranged in any combination across 1-9 lines. Complex components have been split into single-purpose units, eliminating intra-component separator issues and providing maximum user control.
+**🎯 CURRENT: Single Source of Truth Configuration** - Revolutionary simplification achieved! Configuration architecture completely streamlined from 13 example files + hardcoded defaults + jq fallbacks to ONE comprehensive Config.toml with all 227 settings. Users can now edit ALL configuration values in one place.
 
-**🏗️ ATOMIC BREAKTHROUGH**: Components split from 11 composite → 16 atomic units. No more mixed data in single components - each component serves one clear purpose with clean visual separation.
+**🧹 CONFIGURATION BREAKTHROUGH**: Eliminated triple redundancy system. No more hunting for parameter names or dealing with conflicting defaults across multiple sources.
 
-**🔬 NEW ATOMIC COMPONENTS (v2.7.0)**:
-- `commits` (from git_stats) - Shows only commit count
-- `submodules` (from git_stats) - Shows only submodule status  
-- `cost_monthly` (from cost_period) - Shows only 30-day costs
-- `cost_weekly` (from cost_period) - Shows only 7-day costs
-- `cost_daily` (from cost_period) - Shows only daily costs
+**⚡ NEW SINGLE SOURCE ARCHITECTURE (v2.8.0)**:
+- **ONE Config.toml** - All 227 settings in single comprehensive file
+- **Zero Hardcoded Defaults** - No more DEFAULT_CONFIG_* constants in code
+- **No jq Fallbacks** - Pure extraction from Config.toml without `// "fallback"` patterns
+- **Simplified examples/** - Only Config.toml + README.md (no confusion from 13 configs)
+- **Complete User Control** - Edit display.lines, components, themes, everything in one file
 
 ## Quick Reference
 
@@ -33,15 +33,13 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
 ./statusline.sh --modules            # Show component status
 ```
 
-**Atomic Configuration Testing (v2.7.0):**
+**Single Source Configuration Testing (v2.8.0):**
 ```bash
-# Test pre-built layout examples
-cp ~/.claude/statusline/examples/Config.modular-atomic.toml ~/.claude/statusline/Config.toml        # NEW: Atomic component showcase
-cp ~/.claude/statusline/examples/Config.modular-compact.toml ~/.claude/statusline/Config.toml       # 3-line minimal layout
-cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml # 7-line comprehensive layout
-cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline/Config.toml        # Mix atomic & legacy components
-cp ~/.claude/statusline/examples/Config.modular-standard.toml ~/.claude/statusline/Config.toml      # Standard 5-line equivalent
-cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml       # Ultra-minimal 1-line layout
+# Edit your comprehensive Config.toml directly (all 227 settings included)
+# No need to copy different examples - everything is in ONE file!
+nano ~/.claude/statusline/Config.toml     # Edit the comprehensive configuration file
+# OR
+code ~/.claude/statusline/Config.toml     # Open in VS Code
 
 # Atomic component arrangement testing
 ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh            # Override line count
@@ -303,11 +301,12 @@ timeouts.mcp = "10s"
 features.show_session_info = true
 ```
 
-**Configuration Validation:**
-- Automatic validation during loading
-- Invalid values fall back to defaults
+**Configuration Validation (v2.8.0):**
+- Automatic validation during loading from comprehensive Config.toml
+- Auto-regeneration if Config.toml is missing or corrupted
 - Configuration errors reported with specific line numbers
 - Environment overrides validated in real-time
+- No fallback values needed - all settings pre-filled in Config.toml
 
 **Label Configuration (Fixed v2.4.1):**
 All display labels are now properly loaded from TOML configuration:
@@ -334,23 +333,32 @@ ENV_CONFIG_LABELS_REPO="SESSION" ./statusline.sh
 ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
 ```
 
-## Configuration System
+## Single Source Configuration System (v2.8.0)
 
-**TOML Structure (Flat with dot notation):**
+**🎯 ONE Config.toml - All 227 Settings:**
 - `theme.name = "catppuccin"` - Theme selection (classic/garden/catppuccin/custom)
-- `colors.basic.*` - Basic ANSI colors for custom themes
+- `display.lines = 5` - Number of statusline lines (1-9)
+- `display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]` - Component arrangement
 - `features.show_mcp_status = true` - Feature toggles
-- `timeouts.mcp_timeout = "5s"` - Performance tuning
-- `cache.claude_version_ttl = "3600"` - Caching behavior
-- `cache.isolation.*` - Instance-aware cache isolation settings
+- `timeouts.mcp = "10s"` - Performance tuning
+- `cache.isolation.mode = "repository"` - Cache isolation settings
+- `labels.commits = "Commits:"` - Display labels
+- `colors.basic.*` - Custom theme colors
 
-**Environment Overrides:**
+**Environment Overrides Still Work:**
 Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
 
-**Configuration Order:**
-1. Environment variables (`ENV_CONFIG_*`) - Override any setting temporarily
-2. `~/.claude/statusline/Config.toml` - Your configuration file (single source of truth)
-3. Inline defaults - Fallback when no config exists
+**Simplified Configuration Order (v2.8.0):**
+1. **Environment variables** (`ENV_CONFIG_*`) - Temporary overrides for testing
+2. **~/.claude/statusline/Config.toml** - Single comprehensive configuration file (227 settings)
+3. **Auto-regeneration** - If Config.toml missing, copied from examples/Config.toml template
+
+**Key v2.8.0 Improvements:**
+- ✅ **No More Hunting** - All parameters pre-filled in Config.toml, just edit values
+- ✅ **Zero Code Defaults** - No hardcoded DEFAULT_CONFIG_* constants in lib/config.sh
+- ✅ **Pure Extraction** - No jq fallbacks (`// "default"`), reads directly from TOML
+- ✅ **Single Examples File** - Only examples/Config.toml (no confusion from 13 configs)
+- ✅ **Complete Control** - Edit display lines, atomic components, themes - everything in one place
 
 ## Cache Isolation System
 

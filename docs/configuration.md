@@ -1,40 +1,32 @@
-# ⚙️ TOML Configuration Guide
+# ⚙️ Single Source Configuration Guide (v2.8.0)
 
-**Complete guide to configuring your Claude Code Enhanced Statusline with the modern TOML configuration system.**
+**Complete guide to the revolutionary single source configuration system - ONE Config.toml with all 227 settings.**
 
-Transform your terminal with enterprise-grade configuration management - structured, validated, and powerful, with full backwards compatibility.
+Transform your terminal with the **most significant configuration simplification** ever - no more hunting for parameter names across multiple files!
 
-> 🏗️ **Atomic Component Architecture Note**: The statusline now uses atomic component architecture with 16 configurable components (v2.7.0). All configuration works the same way, but the system now offers maximum flexibility with single-purpose atomic components that can be arranged on 1-9 configurable lines. The main script (`~/.claude/statusline.sh`) orchestrates modules in `~/.claude/lib/` with standardized component interfaces.
+> 🎯 **Single Source Revolution**: The configuration system has been completely simplified (v2.8.0). Gone are 13 example files + hardcoded defaults + jq fallbacks. Now there's ONE comprehensive Config.toml with all 227 settings pre-filled. Users just edit values, not search for parameter names.
 
-## 🚀 **Getting Started**
+## 🚀 **Ultra-Simple Getting Started**
 
-### Quick Start with TOML
+### Single Source Setup ✨
 
-**From project directory:**
+**Comprehensive Config.toml created automatically during installation:**
 ```bash
-# 1. Copy the template
-cp examples/Config.toml ./Config.toml
+# 1. Install (creates Config.toml with ALL 227 settings automatically)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# 2. Customize it
-vim Config.toml
+# 2. Edit your comprehensive Config.toml (all settings included!)
+nano ~/.claude/statusline/Config.toml
 
-# 3. Use it!
-./statusline.sh
-```
-
-**From anywhere (using installed statusline):**
-```bash
-# 1. Copy the template  
-cp ~/.claude/statusline/examples/Config.toml ./Config.toml
-
-# 2. Customize it
-vim Config.toml
-
-# 3. Use it!
+# 3. Use it immediately!
 ~/.claude/statusline.sh
 ```
 
-The modular statusline automatically discovers and loads your TOML configuration - no additional setup required!
+**🎯 No More Configuration Hunting!**
+- ✅ All 227 settings in ONE file
+- ✅ Parameters pre-filled with sensible defaults
+- ✅ Just edit values, don't search for names
+- ✅ Zero code defaults or jq fallbacks to confuse you
 
 ---
 
