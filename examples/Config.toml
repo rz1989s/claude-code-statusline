@@ -405,7 +405,7 @@ display.line9.separator = " │ "
 display.line9.show_when_empty = false
 
 # === AVAILABLE COMPONENTS REFERENCE ===
-# Core Components (11):
+# Core Components (9):
 # - "repo_info"      - Repository directory and git branch/status
 # - "version_info"   - Claude Code version display
 # - "time_display"   - Current time formatting
