@@ -25,19 +25,98 @@
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
 [![Shell](https://img.shields.io/badge/Shell-Bash-lightgrey.svg)]()
 [![Made for Claude Code](https://img.shields.io/badge/Made%20for-Claude%20Code-9333EA.svg)](https://claude.ai/code)
+[![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 [![GitHub stars](https://img.shields.io/github/stars/rz1989s/claude-code-statusline?style=social)](https://github.com/rz1989s/claude-code-statusline/stargazers)
 
 ![Hero Screenshot](assets/screenshots/catppuccin-mocha-theme.png)
 
 </div>
 
+## 🚀 Installation (2 minutes)
+
+**📋 Before Installing**: This tool requires `jq` and `curl`
+- **macOS**: `brew install jq` 
+- **Linux**: `sudo apt install jq curl` or `sudo yum install jq curl`
+- **Windows**: Use WSL or install via package manager
+
+**Choose your preferred installation method:**
+
+### Option 1: Quick Install (Recommended)
+```bash
+# Download and inspect the installer (strongly recommended)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+
+# Review what it does - look for:
+# ✓ Only creates files in ~/.claude/statusline/
+# ✓ Downloads from this GitHub repo
+# ✓ No sudo or system modifications
+less install.sh  
+
+# Run when you're satisfied it's safe
+bash install.sh
+```
+
+**🔍 Quick Security Check**: Open `install.sh` and verify it only:
+- Creates directories in `~/.claude/`
+- Downloads files from `raw.githubusercontent.com/rz1989s/claude-code-statusline`
+- Doesn't use `sudo` or modify system files
+- Uses `curl` with proper GitHub raw URLs
+- No network calls to external domains
+
+### Option 2: Manual Install (No script required)
+```bash
+# 1. Create directory structure
+mkdir -p ~/.claude/statusline/{lib,examples}
+
+# 2. Download core files
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/examples/Config.toml -o ~/.claude/statusline/Config.toml
+
+# 3. Download library modules (automated)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --modules-only
+
+# 4. Make executable and test
+chmod +x ~/.claude/statusline/statusline.sh
+~/.claude/statusline/statusline.sh --version
+```
+
+### ✅ Verify Installation Success
+```bash
+# Confirm installation success
+~/.claude/statusline/statusline.sh --version
+ls -la ~/.claude/statusline/lib/  # Should show 10+ module files
+
+# Test with sample input
+echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Test"}}' | ~/.claude/statusline/statusline.sh
+```
+
+### What Does This Install?
+**🔍 Transparency First - Here's exactly what happens:**
+
+✅ **Creates one directory**: `~/.claude/statusline/` (in your home folder only)  
+✅ **Downloads 31 text files**: Shell scripts from this GitHub repository  
+✅ **Creates one config file**: `Config.toml` with default settings you can edit  
+✅ **No system changes**: Everything stays in your home folder  
+
+❌ **Does NOT**: 
+- Modify any system files or PATH  
+- Install packages globally or change your OS  
+- Require admin/sudo permissions  
+- Send data anywhere or phone home  
+- Modify your shell config (.bashrc, .zshrc, etc.)  
+
+**🔐 Security**: All files are downloaded from this public GitHub repository - you can inspect every line of code before running.
+
+---
+
 ## 📚 Table of Contents
 
+- [Installation](#-installation-2-minutes)
 - [Recent Updates](#-recent-updates)
 - [Features](#-features)
 - [Theme Gallery](#-theme-gallery)
 - [Screenshot Showcase](#-screenshot-showcase)
-- [Quick Start](#-quick-start)
+- [Advanced Setup](#-advanced-setup)
 - [Configuration](#️-configuration)
 - [What Each Line Shows](#-what-each-line-shows)
 - [System Requirements](#-system-requirements)
@@ -930,9 +1009,9 @@ Clean repository with detailed branch and status information.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Advanced Setup
 
-Get your enhanced statusline running in minutes with our streamlined installation process.
+For users who want additional installation options, development features, or specific configuration control.
 
 ### 📋 Prerequisites
 
