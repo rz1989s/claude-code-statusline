@@ -376,15 +376,15 @@ display.line3.components = ["mcp_status"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: Reset Timer (conditional display)
-display.line4.components = ["reset_timer"]
+# Line 4: Islamic Prayer Times (high priority - user-facing)
+display.line4.components = ["prayer_times"]
 display.line4.separator = " │ "
-display.line4.show_when_empty = false
+display.line4.show_when_empty = true
 
-# Line 5: Islamic Prayer Times
-display.line5.components = ["prayer_times"]
+# Line 5: Reset Timer (operational info - lower priority)
+display.line5.components = ["reset_timer"]
 display.line5.separator = " │ "
-display.line5.show_when_empty = true
+display.line5.show_when_empty = false
 
 # Line 6-9: Additional lines (empty by default)
 # Uncomment and configure for custom layouts up to 9 lines
