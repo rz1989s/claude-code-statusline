@@ -980,14 +980,31 @@ npm install -g bunx ccusage
 
 Our breakthrough v2.9.0 installer **eliminates GitHub rate limits forever** with intelligent 3-tier architecture and provides **100% download guarantee**:
 
+##### 🎯 **Choose Your Experience Level:**
 ```bash
-# Standard installation (minimal dependency check)
+# 📦 PRODUCTION (Recommended for Most Users)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# Enhanced mode - shows all 6 dependencies with feature impact
+# 🛠️ DEVELOPMENT (Stable Development Features)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+
+# 🌙 NIGHTLY (⚠️ Experimental - Advanced Users Only)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+```
+
+**🔍 Branch Descriptions:**
+- **📦 main**: Stable releases (v2.9.0) - Perfect for production use
+- **🛠️ dev**: Stable development features - Early access to tested improvements  
+- **🌙 nightly**: Bleeding-edge experimental features (v2.9.0-nightly-YYYYMMDD) - Community testing platform
+
+⚠️ **Nightly Warning**: Use only if you want access to experimental features before they become stable. Perfect for contributors and power users who want to help test upcoming improvements.
+
+##### 🚀 **Enhanced Installation Options:**
+```bash
+# Enhanced dependency analysis
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
 
-# Interactive mode - gives you installation choices
+# Interactive installation menu
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
 
 # Full analysis with user menu

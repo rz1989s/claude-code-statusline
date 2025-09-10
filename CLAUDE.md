@@ -243,6 +243,62 @@ Each component follows a standardized interface:
 
 ## Development Workflow
 
+**🌙 Nightly Branch Development (v2.9.0+):**
+```bash
+# 1. Feature Development (Existing Pattern)
+git checkout -b dev4 dev
+# ... develop revolutionary feature ...
+git commit -m "feat: experimental feature XYZ"
+git push origin dev4
+
+# 2. Merge to Stable Dev (Current Practice)
+git checkout dev
+git merge dev4 --no-ff -m "feat: integrate feature XYZ into stable dev"
+
+# 3. NEW: Promote to Nightly for Community Testing
+git checkout nightly
+git merge dev --no-ff -m "feat: community testing for feature XYZ"
+echo "2.9.0-nightly-$(date +%Y%m%d)" > version.txt
+git add version.txt
+git commit -m "feat: nightly build v2.9.0-nightly-$(date +%Y%m%d)"
+git push origin nightly
+
+# 4. After Community Validation: Production Release
+git checkout main
+git merge nightly --no-ff -m "release: v2.10.0 - feature XYZ stable"
+echo "2.10.0" > version.txt
+git commit -am "release: v2.10.0 stable release"
+git push origin main
+```
+
+**🎯 Branch Strategy (Updated v2.9.0+):**
+```
+dev1, dev2, dev99 → dev → nightly → main
+                     ↑      ↑        ↑
+               stable dev  experimental  production
+```
+
+**🚀 Nightly Installation Testing:**
+```bash
+# Test nightly installation from remote
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+
+# Validate nightly functionality
+~/.claude/statusline/statusline.sh --version  # Should show v2.9.0-nightly-YYYYMMDD
+~/.claude/statusline/statusline.sh --modules  # Check all 10 modules loaded
+echo '{"workspace":{"current_dir":"$(pwd)"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
+
+# Test configuration overrides
+ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh --version
+ENV_CONFIG_DISPLAY_LINES=3 echo '{...}' | ~/.claude/statusline/statusline.sh
+```
+
+**🔧 Config.toml Backup Behavior:**
+- **BACKUP AND REPLACE**: Creates timestamped backup (Config.toml.backup.YYYYMMDD_HHMMSS)
+- **Preserves customizations**: Your settings saved in backup file
+- **Fresh template**: Downloads latest nightly template with new features
+- **Zero data loss**: Restore from backup anytime
+
 **Module Development Patterns:**
 ```bash
 # Module loading check
@@ -270,34 +326,64 @@ ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh  # Feature toggles
 # Config is automatically validated during loading - errors reported in real-time
 ```
 
-**Branch-Aware Development:**
+**🎯 Three-Tier Installation Strategy:**
 ```bash
-# 1. Nightly branch (experimental features) - USE WITH CAUTION
+# 1. 🌙 NIGHTLY (Experimental - Advanced Users Only)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+# Version: v2.9.0-nightly-YYYYMMDD
+# Purpose: Bleeding-edge features, community testing, pre-release validation
+# Audience: Power users, contributors, beta testers
+# Update: Manual experimental feature pushes
 
-# 2. Development branch (stable development)
+# 2. 🛠️ DEV (Stable Development)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+# Version: v2.9.0+ (stable dev)
+# Purpose: Stable development features before production
+# Audience: Contributors, early adopters
+# Update: Feature merges from dev branches
 
-# 3. Production deployment (stable releases)
+# 3. 📦 MAIN (Production - Most Users)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+# Version: v2.9.0 (stable releases)
+# Purpose: Rock-solid production releases
+# Audience: General users, production environments
+# Update: Stable releases after nightly validation
 ```
 
-**🌙 Nightly Branch Workflow:**
+**🌙 Nightly Branch Complete Workflow:**
 ```bash
-# Switch to nightly for experimental features
-git checkout nightly
+# Development Phase
+git checkout -b dev5 dev              # Create feature branch
+# ... revolutionary development ...
+git push origin dev5                  # Push feature branch
 
-# Update nightly version for new experimental features
-echo "2.9.0-nightly-$(date +%Y%m%d)" > version.txt
+# Stable Integration  
+git checkout dev                      # Switch to stable dev
+git merge dev5 --no-ff                # Integrate feature
+git push origin dev                   # Push stable development
+
+# Nightly Promotion (NEW)
+git checkout nightly                  # Switch to experimental branch
+git merge dev --no-ff                 # Merge stable dev features
+echo "2.9.0-nightly-$(date +%Y%m%d)" > version.txt  # Update nightly version
 git add version.txt
-git commit -m "feat: experimental nightly v2.9.0-nightly-$(date +%Y%m%d)"
+git commit -m "feat: nightly v2.9.0-nightly-$(date +%Y%m%d) - feature XYZ"
+git push origin nightly               # Push to community testing
 
-# Push experimental features to nightly
-git push origin nightly
+# Production Release (After Nightly Validation)
+git checkout main                     # Switch to production
+git merge nightly --no-ff             # Merge validated features
+echo "2.10.0" > version.txt           # Stable version bump
+git commit -am "release: v2.10.0"      # Production release
+git push origin main                  # Deploy to production
+```
 
-# When features are stable, merge to dev
-git checkout dev
-git merge nightly --no-ff -m "feat: integrate experimental features from nightly"
+**🔒 Branch Protection Rules (Recommended):**
+```bash
+# main branch: ONLY accepts PRs from nightly
+# nightly branch: Accepts PRs from dev + manual experimental pushes  
+# dev branch: Accepts PRs from feature branches (dev1, dev2, dev3...)
+# dev1-99 branches: Feature development (current pattern unchanged)
 ```
 
 ## Configuration Deep Dive
@@ -392,11 +478,14 @@ Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
 
 **Key v2.9.0 Improvements:**
 - ✅ **Revolutionary 3-Tier Download System** - Complete installer architectural overhaul
+- ✅ **Nightly Branch Implementation** - Experimental development platform with community testing
+- ✅ **Three-Tier Branch Strategy** - dev → nightly → main workflow for maximum stability
 - ✅ **100% Download Guarantee** - Either all modules or clear failure with troubleshooting
 - ✅ **GitHub Rate Limit Elimination** - Direct raw URLs bypass API limitations completely
 - ✅ **Zero Intervention Required** - Primary method handles 99% of installations automatically
 - ✅ **Enhanced Error Handling** - Exponential backoff and comprehensive retry mechanisms
 - ✅ **Optional GitHub Token Support** - Enhanced fallback limits (5,000/hour vs 60/hour)
+- ✅ **Config.toml Backup System** - Automatic backup and replace with timestamped preservation
 
 **Key v2.8.2 Improvements:**
 - ✅ **No More Hunting** - All parameters pre-filled in Config.toml, just edit values
