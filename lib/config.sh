@@ -351,7 +351,7 @@ init_default_config() {
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
 
-    # Line configuration defaults removed in v2.8.1 single source architecture
+    # Line configuration defaults removed in v2.8.1+ single source architecture
     # All configuration now loaded exclusively from Config.toml via auto-regeneration
     # No hardcoded defaults needed - auto_regenerate_config() ensures Config.toml always exists
 

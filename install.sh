@@ -31,7 +31,6 @@ STATUSLINE_DIR="$CLAUDE_DIR/statusline"
 STATUSLINE_PATH="$STATUSLINE_DIR/statusline.sh"
 LIB_DIR="$STATUSLINE_DIR/lib"
 EXAMPLES_DIR="$STATUSLINE_DIR/examples"
-SAMPLE_CONFIGS_DIR="$EXAMPLES_DIR/sample-configs"
 CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
@@ -633,7 +632,6 @@ download_examples() {
     # Create examples directory structure
     print_status "Creating examples directory structure..."
     mkdir -p "$EXAMPLES_DIR"
-    mkdir -p "$SAMPLE_CONFIGS_DIR"
     
     # Single source architecture - only comprehensive Config.toml needed (v2.8.0)
     local modular_configs=()  # No longer needed - single source approach
@@ -642,13 +640,6 @@ download_examples() {
         "Config.toml"  # The ONE comprehensive configuration template
     )
     
-    local sample_configs=(
-        "minimal-config.toml"
-        "developer-config.toml"
-        "ocean-theme.toml"
-        "work-profile.toml"
-        "personal-profile.toml"
-    )
     
     local failed_downloads=()
     local successful_downloads=0
@@ -672,20 +663,6 @@ download_examples() {
         fi
     done
     
-    # Download sample-configs profiles
-    print_status "📦 Downloading sample configuration profiles..."
-    for config in "${sample_configs[@]}"; do
-        local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/sample-configs/$config"
-        local config_path="$SAMPLE_CONFIGS_DIR/$config"
-        
-        if curl -fsSL "$config_url" -o "$config_path"; then
-            print_status "  ✓ Downloaded sample-configs/$config"
-            ((successful_downloads++))
-        else
-            print_error "  ✗ Failed to download sample-configs/$config"
-            failed_downloads+=("sample-configs/$config")
-        fi
-    done
     
     # Download examples README.md
     print_status "📦 Downloading examples documentation..."
@@ -924,10 +901,7 @@ verify_installation() {
         
         # Check comprehensive Config.toml (single source architecture)
         local config_count=$(find "$EXAMPLES_DIR" -name "Config.toml" -type f | wc -l | tr -d ' ')
-        local sample_count=$(find "$SAMPLE_CONFIGS_DIR" -name "*.toml" -type f 2>/dev/null | wc -l | tr -d ' ')
-        
         print_status "  • $config_count comprehensive Config.toml template (single source of truth)"
-        print_status "  • $sample_count legacy sample-configs profiles found"
     else
         print_warning "examples directory is missing (configurations will be limited)"
     fi

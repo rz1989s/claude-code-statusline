@@ -52,11 +52,13 @@
 
 ## 🆕 Recent Updates
 
-### v2.8.1 - Critical Stability & Configuration Patch 🔧⚡ **LATEST**
+### v2.8.2 - Prayer Time Calculation & Architecture Cleanup 🕌⚡ **LATEST**
 
 **🚨 CRITICAL BUG FIXES**
 
-- **Fixed jq Template Escaping** - Resolved catastrophic configuration loading failure where `\\(.key)=\\(.value)` caused literal output instead of variable substitution, breaking entire v2.8.0 single-source config system
+- **Fixed Prayer Time Calculation** - Resolved bug where prayer times showing "24h 0m" when current time exactly matches prayer time. Now correctly shows "(0m)" for exact matches.
+- **Enhanced Test Coverage** - Added 8 comprehensive test cases for prayer time edge scenarios including exact matches, midnight boundaries, and time formatting.
+- **Architecture Cleanup** - Removed deprecated sample config files and simplified installation system for cleaner single-source approach.
 - **Implemented Aggressive Cache Lock Cleanup** - Eliminated "cannot overwrite existing file" race conditions preventing stable operation  
 - **Improved Error Message Accuracy** - Replaced misleading "Failed to build modular statusline" with clear "component-based system" messaging for better debugging
 
@@ -1139,7 +1141,7 @@ EOF
 ~/.claude/statusline.sh --test-config
 ```
 
-#### 🎯 **Single Source Quick Start (v2.8.1)**
+#### 🎯 **Single Source Quick Start (v2.8.2)**
 
 **Edit your comprehensive Config.toml directly - ALL settings included:**
 
@@ -1187,7 +1189,7 @@ Start a new Claude Code session to see your enhanced statusline in action! Your 
 
 ---
 
-## 📁 Single Source Configuration (v2.8.1)
+## 📁 Single Source Configuration (v2.8.2)
 
 Edit your **ONE comprehensive Config.toml** file to create any layout you want! No more confusion from 13 different example files. Bismillah!
 
@@ -1230,7 +1232,7 @@ ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,submodules,version_info" \
 ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_monthly,cost_weekly,cost_daily" ./statusline.sh
 ```
 
-#### **Benefits of Single Source Approach (v2.8.1)**
+#### **Benefits of Single Source Approach (v2.8.2)**
 
 - ✅ **No More Hunting** - All 227 settings in ONE file, just edit values
 - ✅ **Zero Confusion** - No need to choose from 13 different config files  
@@ -1301,7 +1303,7 @@ cp examples/sample-configs/minimal-config.toml Config.toml
 
 Transform your statusline with the **revolutionary single source configuration system**. ONE comprehensive Config.toml file with all 227 settings - no more hunting for parameter names!
 
-## 🚀 **Single Source Configuration (v2.8.1)**
+## 🚀 **Single Source Configuration (v2.8.2)**
 
 ### Ultra-Simple Setup ✨
 
@@ -1316,7 +1318,7 @@ nano ~/.claude/statusline/Config.toml
 ~/.claude/statusline.sh
 ```
 
-### Simplified Configuration Order (v2.8.1)
+### Simplified Configuration Order (v2.8.2)
 
 The statusline now uses a **streamlined single source approach**:
 
@@ -1330,7 +1332,7 @@ The statusline now uses a **streamlined single source approach**:
 - ✅ No hardcoded defaults in code
 - ✅ No jq fallbacks to confuse you
 
-## 📋 **Comprehensive TOML Configuration Structure (v2.8.1)**
+## 📋 **Comprehensive TOML Configuration Structure (v2.8.2)**
 
 ### All 227 Settings in ONE File! 🎯
 

@@ -71,9 +71,9 @@ teardown() {
     run time_is_after "12:00" "14:30"
     assert_failure
     
-    # Test case: same times should return success (equal)
+    # Test case: same times should return failure (not after, they're equal)
     run time_is_after "12:00" "12:00"
-    assert_success
+    assert_failure
 }
 
 @test "format_prayer_time should handle 24h format" {
@@ -280,6 +280,60 @@ EOF
     [[ "$output" == *"Fajr 05:30"* ]]            # Prayer times
     [[ "$output" == *"✓"* ]]                     # Completed indicator
     [[ "$output" == *"(next)"* ]]                # Next prayer indicator
+}
+
+# Test time until prayer calculation
+@test "calculate_time_until_prayer should handle exact time match" {
+    # Test case: when current time exactly matches prayer time
+    run calculate_time_until_prayer "15:04" "15:04"
+    assert_success
+    assert_output "0"
+}
+
+@test "calculate_time_until_prayer should handle regular future time" {
+    # Test case: prayer is 2 hours and 15 minutes away  
+    run calculate_time_until_prayer "12:00" "14:15"
+    assert_success
+    assert_output "135"  # 2*60 + 15 = 135 minutes
+}
+
+@test "calculate_time_until_prayer should handle next day prayer" {
+    # Test case: prayer is tomorrow (current time after prayer time)
+    run calculate_time_until_prayer "20:00" "05:30"  # Fajr tomorrow
+    assert_success
+    assert_output "570"  # 5.5*60 + 24*60 - 20*60 = 330 + 1440 - 1200 = 570 minutes
+}
+
+@test "calculate_time_until_prayer should handle 1 minute before prayer" {
+    # Test case: prayer is in 1 minute
+    run calculate_time_until_prayer "15:03" "15:04"
+    assert_success
+    assert_output "1"
+}
+
+@test "calculate_time_until_prayer should handle midnight boundary" {
+    # Test case: crossing midnight
+    run calculate_time_until_prayer "23:30" "00:15"
+    assert_success
+    assert_output "45"  # 45 minutes until 00:15 tomorrow
+}
+
+@test "format_time_remaining should format minutes only" {
+    run format_time_remaining "45"
+    assert_success
+    assert_output "45m"
+}
+
+@test "format_time_remaining should format hours and minutes" {
+    run format_time_remaining "135"  # 2 hours 15 minutes
+    assert_success
+    assert_output "2h 15m"
+}
+
+@test "format_time_remaining should handle zero minutes" {
+    run format_time_remaining "0"
+    assert_success
+    assert_output "0m"
 }
 
 # Performance test

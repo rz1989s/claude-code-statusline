@@ -2,13 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status (v2.8.1)
+## Project Status (v2.8.2)
 
 **🎯 CURRENT: Single Source Configuration FULLY OPERATIONAL** - Revolutionary simplification achieved and **100% functional**! Critical v2.8.1 patch resolved configuration loading failures, cache conflicts, and error messaging. All v2.8.0 features now working perfectly with zero critical errors.
 
 **🚨 CRITICAL v2.8.1 FIXES APPLIED**: Fixed catastrophic jq template escaping bug, implemented aggressive cache lock cleanup, and improved error message accuracy. Single source architecture now **completely stable**.
 
-**⚡ STABLE SINGLE SOURCE ARCHITECTURE (v2.8.1)**:
+**⚡ STABLE SINGLE SOURCE ARCHITECTURE (v2.8.2)**:
 - **ONE Config.toml** - All 227 settings in single comprehensive file
 - **Zero Hardcoded Defaults** - No more DEFAULT_CONFIG_* constants in code
 - **No jq Fallbacks** - Pure extraction from Config.toml without `// "fallback"` patterns
@@ -33,7 +33,7 @@ ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override
 ./statusline.sh --modules            # Show component status
 ```
 
-**Single Source Configuration Testing (v2.8.1):**
+**Single Source Configuration Testing (v2.8.2):**
 ```bash
 # Edit your comprehensive Config.toml directly (all 227 settings included)
 # No need to copy different examples - everything is in ONE file!
@@ -333,7 +333,7 @@ ENV_CONFIG_LABELS_REPO="SESSION" ./statusline.sh
 ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
 ```
 
-## Single Source Configuration System (v2.8.1)
+## Single Source Configuration System (v2.8.2)
 
 **🎯 ONE Config.toml - All 227 Settings:**
 - `theme.name = "catppuccin"` - Theme selection (classic/garden/catppuccin/custom)
@@ -348,12 +348,12 @@ ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
 **Environment Overrides Still Work:**
 Any TOML setting can be overridden: `ENV_CONFIG_THEME=garden ./statusline.sh`
 
-**Simplified Configuration Order (v2.8.1):**
+**Simplified Configuration Order (v2.8.2):**
 1. **Environment variables** (`ENV_CONFIG_*`) - Temporary overrides for testing
 2. **~/.claude/statusline/Config.toml** - Single comprehensive configuration file (227 settings)
 3. **Auto-regeneration** - If Config.toml missing, copied from examples/Config.toml template
 
-**Key v2.8.1 Improvements:**
+**Key v2.8.2 Improvements:**
 - ✅ **No More Hunting** - All parameters pre-filled in Config.toml, just edit values
 - ✅ **Zero Code Defaults** - No hardcoded DEFAULT_CONFIG_* constants in lib/config.sh
 - ✅ **Pure Extraction** - No jq fallbacks (`// "default"`), reads directly from TOML
@@ -529,7 +529,7 @@ STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -E "(arithmetic|cache|commits_
 rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
 ```
 
-**v2.8.1 Complete Validation - 100% OPERATIONAL:**
+**v2.8.2 Complete Validation - 100% OPERATIONAL:**
 - ✅ **Configuration Loading RESTORED**: All CONFIG_* variables populated from Config.toml
 - ✅ **Single Source Architecture FUNCTIONAL**: Complete v2.8.0 feature restoration
 - ✅ **Zero Cache Conflicts**: Aggressive cleanup eliminates lock race conditions
@@ -539,7 +539,7 @@ rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
 - ✅ **5-Line Modular Display**: Perfect statusline with all 16 components operational
 - ✅ **All Critical Functionality**: Labels, commits, costs, MCP, prayer times, git status
 - ✅ **Zero Critical Errors**: Clean, stable operation with comprehensive data display
-- ✅ **Version Display**: Correct v2.8.1 version reporting in all contexts
+- ✅ **Version Display**: Correct v2.8.2 version reporting in all contexts
 
 ## Key Implementation Notes
 

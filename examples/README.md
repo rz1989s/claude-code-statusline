@@ -2,9 +2,9 @@
 
 **Revolutionary single source configuration system - ONE comprehensive Config.toml with all 227 settings!**
 
-No more confusion from 13 different example files. Edit ONE comprehensive Config.toml with all settings pre-filled. Bismillah!
+No more confusion from multiple example files. Edit ONE comprehensive Config.toml with all settings pre-filled. Bismillah!
 
-> 🎯 **Configuration Revolution (v2.8.1)**: Gone are the days of hunting for parameter names across multiple files. The configuration system has been completely simplified and is **100% operational** - ONE Config.toml file contains all 227 settings that users need.
+> 🎯 **Configuration Revolution (v2.8.2)**: Gone are the days of hunting for parameter names across multiple files. The configuration system has been completely simplified and is **100% operational** - ONE Config.toml file contains all 227 settings that users need.
 
 ## 🚀 **Ultra-Simple Configuration**
 
@@ -32,7 +32,7 @@ examples/
 ```
 
 **🎯 Revolutionary Simplification:**
-- ❌ **Before**: 13 different config files to choose from (confusing!)
+- ❌ **Before**: Multiple separate config files to choose from (confusing!)
 - ✅ **After**: ONE comprehensive Config.toml with ALL settings (clear!)
 
 ---
@@ -43,7 +43,7 @@ examples/
 
 - **🎯 No More Hunting** - All 227 settings in ONE file, just edit values
 - **📋 Pre-filled Parameters** - All parameter names already included with sensible defaults
-- **🧹 Zero Confusion** - No need to choose from 13 different example files
+- **🧹 Zero Confusion** - No need to hunt through multiple example files
 - **🔧 Complete Control** - Edit display lines, components, themes, labels - everything
 - **⚡ User-Friendly** - Open one file, see all options, edit what you need
 - **🔄 Maintainable** - Single source of truth eliminates redundancy
