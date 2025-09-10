@@ -497,14 +497,29 @@ download_directory_comprehensive() {
     mkdir -p "$local_path/prayer"
     mkdir -p "$local_path/components"
     
+    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
+    # ========================================================================
+    # When adding new modules to the repository, you MUST update these arrays:
+    # 1. Add to appropriate array below (main_modules, prayer_modules, component_modules)
+    # 2. Update the fallback function arrays (in download_lib_fallback function)
+    # 3. Update verification function arrays (in verify_installation function) 
+    # 4. Update expected_modules count (in verify_installation function)
+    # 5. Test installation: curl ... | bash -s -- --branch=YOUR_BRANCH
+    # 
+    # Why hardcoded? Eliminates GitHub API rate limits (60/hour → unlimited)
+    # Provides 100% reliability and fastest installation experience
+    # ========================================================================
+    
     # Define ALL modules based on known structure (eliminates API dependency)
     local main_modules=(
         "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+        # 🆕 ADD NEW MAIN MODULES HERE (lib/*.sh files)
     )
     
     local prayer_modules=(
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
     )
     
     local component_modules=(
@@ -514,6 +529,7 @@ download_directory_comprehensive() {
         "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh"
+        # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
     # Combine all modules
@@ -758,15 +774,23 @@ download_statusline() {
 download_lib_fallback() {
     print_status "🔄 Using comprehensive fallback download method for ALL modules..."
     
+    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
+    # ================================================================
+    # These arrays MUST match the arrays in download_directory_comprehensive()
+    # When you add new modules there, add them here too for fallback support
+    # ================================================================
+    
     # ALL modules that must exist - comprehensive list for 100% functionality
     local main_modules=(
         "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+        # 🆕 ADD NEW MAIN MODULES HERE (must match line 500-504 arrays)
     )
     
     # Prayer system modules (lib/prayer/)
     local prayer_modules=(
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
     # Component modules (lib/components/) - all 16 components
@@ -777,6 +801,7 @@ download_lib_fallback() {
         "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh"
+        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 510-517 arrays)
     )
     
     # Combine all modules for comprehensive download
@@ -1148,12 +1173,19 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=20  # Based on comprehensive module list
+    local expected_modules=31  # 🆕 UPDATE THIS COUNT when adding new modules!
+    
+    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
+    # ================================================================
+    # These arrays MUST match the arrays in download_directory_comprehensive()
+    # and download_lib_fallback() functions. When you add modules there, add here too.
+    # ================================================================
     
     # Define all expected critical modules for verification
     local all_critical_modules=(
         "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+        # 🆕 ADD NEW CRITICAL MODULES HERE (must match other functions)
     )
     
     # Count all .sh files in lib/ directory and subdirectories
