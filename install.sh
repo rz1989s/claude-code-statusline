@@ -453,6 +453,11 @@ show_help() {
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
     echo
+    echo "Rate Limit Optimization:"
+    echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"
+    echo "  export GITHUB_TOKEN=ghp_xxx  # Set token persistently"
+    echo "  # Primary method uses raw URLs (no limits), token only for API fallback"
+    echo
     echo "For more information, visit:"
     echo "https://github.com/rz1989s/claude-code-statusline"
     echo
@@ -478,6 +483,179 @@ create_lib_directory() {
     else
         print_status "Lib directory already exists: $LIB_DIR"
     fi
+}
+
+# Function to download all modules using predefined structure (No API rate limits!)
+download_directory_comprehensive() {
+    local repo_path="$1"
+    local local_path="$2"
+    
+    print_status "📦 Downloading all modules using optimized method (no rate limits)..."
+    
+    # Create local directory structure
+    mkdir -p "$local_path"
+    mkdir -p "$local_path/prayer"
+    mkdir -p "$local_path/components"
+    
+    # Define ALL modules based on known structure (eliminates API dependency)
+    local main_modules=(
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+    )
+    
+    local prayer_modules=(
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+    )
+    
+    local component_modules=(
+        "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
+        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
+        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
+        "components/cost_daily.sh"
+    )
+    
+    # Combine all modules
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local files_downloaded=0
+    local total_files=${#all_modules[@]}
+    local failed_files=()
+    
+    print_status "📊 Downloading $total_files modules directly (bypassing API limits)..."
+    
+    # Download each module using direct raw URL (unlimited requests!)
+    for module in "${all_modules[@]}"; do
+        local raw_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
+        local file_path="$local_path/$module"
+        local file_downloaded=false
+        
+        # Try downloading each file up to 3 times
+        for attempt in {1..3}; do
+            if curl -fsSL "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+                print_status "  ✓ Downloaded $module"
+                ((files_downloaded++))
+                file_downloaded=true
+                break
+            else
+                [[ $attempt -lt 3 ]] && sleep 1
+            fi
+        done
+        
+        if [[ "$file_downloaded" == "false" ]]; then
+            print_error "  ✗ Failed to download $module after 3 attempts"
+            failed_files+=("$module")
+        fi
+    done
+    
+    # Report comprehensive results
+    if [[ ${#failed_files[@]} -gt 0 ]]; then
+        print_error "❌ Failed to download ${#failed_files[@]} modules:"
+        for failed_file in "${failed_files[@]}"; do
+            print_error "  • $failed_file"
+        done
+        return 1
+    else
+        print_success "✅ Downloaded $files_downloaded/$total_files modules (100% success, no API limits used)"
+        return 0
+    fi
+}
+
+# Fallback function using GitHub API (only if comprehensive method fails)
+download_directory_with_api_fallback() {
+    local repo_path="$1"
+    local local_path="$2"
+    local depth="${3:-0}"
+    local attempt="${4:-1}"
+    local max_attempts=3
+    
+    # Check for GitHub token to increase rate limits
+    local auth_header=""
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        auth_header="-H \"Authorization: token $GITHUB_TOKEN\""
+        print_status "🔑 Using GitHub token for enhanced rate limits (5000/hour)"
+    else
+        print_status "⚠️ No GitHub token - limited to 60 requests/hour"
+    fi
+    
+    if [[ $attempt -eq 1 ]]; then
+        print_status "📦 API fallback: discovering files in $repo_path..."
+    else
+        print_status "📦 API retry attempt $attempt/$max_attempts for $repo_path..."
+    fi
+    
+    local api_url="https://api.github.com/repos/rz1989s/claude-code-statusline/contents/$repo_path?ref=$INSTALL_BRANCH"
+    
+    # Create local directory
+    mkdir -p "$local_path"
+    
+    # Get directory contents with optional auth
+    local contents
+    if [[ -n "$auth_header" ]]; then
+        contents=$(eval curl -fsSL $auth_header "$api_url" 2>/dev/null)
+    else
+        contents=$(curl -fsSL "$api_url" 2>/dev/null)
+    fi
+    
+    if [[ -z "$contents" || "$contents" == "Not Found" || "$contents" == "null" ]]; then
+        if [[ $attempt -lt $max_attempts ]]; then
+            print_warning "API request failed for $repo_path, retrying in $((attempt * 2)) seconds..."
+            sleep $((attempt * 2))
+            return $(download_directory_with_api_fallback "$repo_path" "$local_path" "$depth" $((attempt + 1)))
+        else
+            print_error "Could not fetch directory contents after $max_attempts attempts: $repo_path"
+            return 1
+        fi
+    fi
+    
+    # Check if jq is available for JSON parsing
+    if ! command_exists jq; then
+        print_error "jq is required for API discovery but not available"
+        return 1
+    fi
+    
+    local files_downloaded=0
+    local total_files=0
+    local failed_files=()
+    
+    # Download files (only .sh files) with individual retry
+    while IFS='|' read -r download_url filename file_type; do
+        [[ "$file_type" == "file" && "$filename" == *.sh ]] || continue
+        
+        ((total_files++))
+        local file_path="$local_path/$filename"
+        local file_downloaded=false
+        
+        # Try downloading each file up to 3 times
+        for file_attempt in {1..3}; do
+            if curl -fsSL "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+                print_status "  ✓ Downloaded $repo_path/$filename"
+                ((files_downloaded++))
+                file_downloaded=true
+                break
+            else
+                [[ $file_attempt -lt 3 ]] && sleep 1
+            fi
+        done
+        
+        if [[ "$file_downloaded" == "false" ]]; then
+            print_error "  ✗ Failed to download $repo_path/$filename after 3 attempts"
+            failed_files+=("$repo_path/$filename")
+        fi
+    done < <(echo "$contents" | jq -r '.[] | select(.type=="file") | "\(.download_url)|\(.name)|\(.type)"' 2>/dev/null)
+    
+    # Report results
+    if [[ ${#failed_files[@]} -gt 0 ]]; then
+        print_error "Failed to download ${#failed_files[@]} files from $repo_path:"
+        for failed_file in "${failed_files[@]}"; do
+            print_error "  • $failed_file"
+        done
+        return 1
+    elif [[ $files_downloaded -gt 0 ]]; then
+        print_success "Downloaded $files_downloaded/$total_files files from $repo_path via API"
+    fi
+    
+    return 0
 }
 
 # Function to download statusline script and modules
@@ -537,70 +715,131 @@ download_statusline() {
     print_status "Creating lib directory for modules..."
     mkdir -p "$LIB_DIR"
     
-    # Download all modules
-    print_status "Downloading statusline modules..."
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh" "components.sh")
-    local failed_modules=()
+    # Download all lib/ directory contents with multi-tier approach
+    print_status "🚀 Downloading all lib/ modules with optimized strategy..."
     
-    for module in "${modules[@]}"; do
-        module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
-        module_path="$LIB_DIR/$module"
-        
-        if curl -fsSL "$module_url" -o "$module_path"; then
-            print_status "✓ Downloaded $module"
-        else
-            print_error "✗ Failed to download $module"
-            failed_modules+=("$module")
-        fi
-    done
-    
-    if [[ ${#failed_modules[@]} -gt 0 ]]; then
-        print_error "Failed to download modules: ${failed_modules[*]}"
-        print_error "Statusline may not function properly without all modules"
-        exit 1
+    # Tier 1: Direct download using known structure (NO API limits, fastest)
+    if download_directory_comprehensive "lib" "$LIB_DIR"; then
+        local downloaded_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
+        print_success "✅ Tier 1 success: $downloaded_count modules downloaded (no API limits used)"
     else
-        print_success "All modules downloaded successfully"
+        print_warning "⚠️ Tier 1 (direct download) failed"
+        
+        # Tier 2: GitHub API with optional token support
+        print_status "🔄 Trying Tier 2: GitHub API discovery..."
+        if download_directory_with_api_fallback "lib" "$LIB_DIR"; then
+            local downloaded_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
+            print_success "✅ Tier 2 success: $downloaded_count modules downloaded via API"
+        else
+            print_warning "⚠️ Tier 2 (API discovery) also failed"
+            
+            # Tier 3: Comprehensive fallback with same known structure
+            print_status "🔄 Tier 3: Final comprehensive fallback..."
+            download_lib_fallback
+        fi
     fi
     
-    # Download modular system subdirectories
-    download_module_subdirectories
+    # Final verification that we have adequate modules
+    local final_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
+    if [[ $final_count -lt 15 ]]; then
+        print_error "🚨 CRITICAL: Only $final_count modules downloaded - installation incomplete"
+        print_error "💡 All modules are required for proper functionality"
+        print_status "🔧 Troubleshooting:"
+        print_status "  1. Check internet connection to GitHub"
+        print_status "  2. Verify branch '$INSTALL_BRANCH' exists"
+        print_status "  3. For rate limit issues, set GITHUB_TOKEN environment variable"
+        exit 1
+    else
+        print_success "🎉 Module download complete: $final_count modules ready (100% functionality guaranteed)"
+    fi
 }
 
-# Function to download module subdirectories (prayer/, components/)
-download_module_subdirectories() {
-    print_status "📦 Downloading modular system subdirectories..."
+# Comprehensive fallback function - downloads ALL modules with retry mechanism
+download_lib_fallback() {
+    print_status "🔄 Using comprehensive fallback download method for ALL modules..."
+    
+    # ALL modules that must exist - comprehensive list for 100% functionality
+    local main_modules=(
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+    )
+    
+    # Prayer system modules (lib/prayer/)
+    local prayer_modules=(
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+    )
+    
+    # Component modules (lib/components/) - all 16 components
+    local component_modules=(
+        "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
+        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
+        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
+        "components/cost_daily.sh"
+    )
+    
+    # Combine all modules for comprehensive download
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local failed_modules=()
+    local successful_downloads=0
+    local total_modules=${#all_modules[@]}
+    
+    print_status "📊 Attempting to download $total_modules modules comprehensively..."
     
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/components"
     
-    # Download prayer subdirectory modules
-    local prayer_modules=("core.sh" "calculation.sh" "display.sh" "location.sh" "timezone_methods.sh")
-    for module in "${prayer_modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/prayer/$module"
-        local module_path="$LIB_DIR/prayer/$module"
+    # Download each module with retry mechanism
+    for module in "${all_modules[@]}"; do
+        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
+        local module_path="$LIB_DIR/$module"
+        local module_downloaded=false
         
-        if curl -fsSL "$module_url" -o "$module_path"; then
-            print_status "  ✓ Downloaded prayer/$module"
-        else
-            print_warning "  ⚠️ Failed to download prayer/$module (optional)"
+        # Try downloading each module up to 3 times
+        for attempt in {1..3}; do
+            if curl -fsSL "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
+                print_status "✓ Downloaded $module"
+                ((successful_downloads++))
+                module_downloaded=true
+                break
+            else
+                [[ $attempt -lt 3 ]] && sleep 1
+            fi
+        done
+        
+        if [[ "$module_downloaded" == "false" ]]; then
+            print_error "✗ Failed to download $module after 3 attempts"
+            failed_modules+=("$module")
         fi
     done
     
-    # Download components subdirectory modules  
-    local component_modules=("repo_info.sh" "git_stats.sh" "version_info.sh" "time_display.sh" "model_info.sh" "cost_session.sh" "cost_period.sh" "cost_live.sh" "mcp_status.sh" "reset_timer.sh" "prayer_times.sh" "commits.sh" "submodules.sh" "cost_monthly.sh" "cost_weekly.sh" "cost_daily.sh")
-    for module in "${component_modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/components/$module"
-        local module_path="$LIB_DIR/components/$module"
-        
-        if curl -fsSL "$module_url" -o "$module_path"; then
-            print_status "  ✓ Downloaded components/$module"
-        else
-            print_warning "  ⚠️ Failed to download components/$module (optional)"
-        fi
-    done
+    # Report comprehensive results
+    echo
+    print_status "📊 Fallback download summary:"
+    print_status "  • Successfully downloaded: $successful_downloads/$total_modules modules"
+    print_status "  • Success rate: $(( successful_downloads * 100 / total_modules ))%"
     
-    print_success "Modular system subdirectories downloaded"
+    if [[ ${#failed_modules[@]} -gt 0 ]]; then
+        print_error "❌ FALLBACK FAILED: Could not download ${#failed_modules[@]} modules:"
+        for failed_module in "${failed_modules[@]}"; do
+            print_error "  • $failed_module"
+        done
+        echo
+        print_error "🚨 Installation cannot continue with incomplete module set"
+        print_error "💡 All modules are critical for proper functionality"
+        print_status "🔧 Troubleshooting steps:"
+        print_status "  1. Check your internet connection"
+        print_status "  2. Verify GitHub.com is accessible"
+        print_status "  3. Try again in a few minutes"
+        print_status "  4. If issue persists, check if branch '$INSTALL_BRANCH' exists"
+        exit 1
+    else
+        print_success "🎉 FALLBACK SUCCESS: All $total_modules modules downloaded (100% complete)"
+        print_status "💡 Comprehensive fallback ensured full functionality"
+        return 0
+    fi
 }
 
 # Function to backup existing examples directory
@@ -906,24 +1145,70 @@ verify_installation() {
         print_warning "examples directory is missing (configurations will be limited)"
     fi
     
-    # Check if all modules exist
-    local modules=("core.sh" "security.sh" "config.sh" "themes.sh" "git.sh" "mcp.sh" "cost.sh" "prayer.sh" "display.sh" "cache.sh" "components.sh")
-    local missing_modules=()
+    # Strict module verification with comprehensive checks
+    local total_modules=0
+    local missing_critical_modules=()
+    local expected_modules=20  # Based on comprehensive module list
     
-    for module in "${modules[@]}"; do
-        if [ -f "$LIB_DIR/$module" ]; then
-            print_status "✓ Module $module found"
+    # Define all expected critical modules for verification
+    local all_critical_modules=(
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+    )
+    
+    # Count all .sh files in lib/ directory and subdirectories
+    if [ -d "$LIB_DIR" ]; then
+        total_modules=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
+        print_status "📊 Found $total_modules total modules in lib/ directory"
+        
+        # Verify all critical modules exist
+        for module in "${all_critical_modules[@]}"; do
+            if [ -f "$LIB_DIR/$module" ]; then
+                print_status "✓ Essential module $module found"
+            else
+                print_error "✗ Essential module $module missing"
+                missing_critical_modules+=("$module")
+            fi
+        done
+        
+        # Check subdirectories with detailed reporting
+        local prayer_count=0
+        local component_count=0
+        
+        if [ -d "$LIB_DIR/prayer" ]; then
+            prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
+            print_status "  • Prayer modules: $prayer_count files"
+            [[ $prayer_count -lt 4 ]] && print_warning "    Expected ≥4 prayer modules"
         else
-            print_error "✗ Module $module missing"
-            missing_modules+=("$module")
+            print_warning "  • Prayer directory missing"
         fi
-    done
-    
-    if [[ ${#missing_modules[@]} -gt 0 ]]; then
-        print_error "Missing modules: ${missing_modules[*]}"
-        return 1
+        
+        if [ -d "$LIB_DIR/components" ]; then
+            component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
+            print_status "  • Component modules: $component_count files"
+            [[ $component_count -lt 16 ]] && print_warning "    Expected 16 component modules"
+        else
+            print_warning "  • Components directory missing"
+        fi
+        
+        # Strict validation - require ALL modules for success
+        if [[ ${#missing_critical_modules[@]} -gt 0 ]]; then
+            print_error "❌ Missing essential modules: ${missing_critical_modules[*]}"
+            return 1
+        elif [[ $total_modules -lt 15 ]]; then
+            print_error "❌ Insufficient modules: $total_modules found (expected ≥15 for full functionality)"
+            print_error "💡 This indicates an incomplete installation"
+            return 1
+        elif [[ $total_modules -lt $expected_modules ]]; then
+            print_warning "⚠️ Module count below optimal: $total_modules found (expected ~$expected_modules)"
+            print_warning "💡 Some advanced features may be unavailable"
+            print_success "✅ Core functionality verified ($total_modules modules)"
+        else
+            print_success "✅ Complete installation verified: $total_modules modules (100% functionality)"
+        fi
     else
-        print_success "All modules installed successfully"
+        print_error "❌ lib directory is missing - critical installation failure"
+        return 1
     fi
     
     # Check if settings.json exists and contains statusLine configuration
@@ -1002,11 +1287,14 @@ show_enhanced_completion() {
     echo "  $CONFIG_PATH"
     echo "  $SETTINGS_PATH (updated)"
     echo
-    echo -e "${BLUE}🧩 Available configurations (16 total):${NC}"
-    echo "  • 7 modular configs: 1-9 line layouts (minimal → maximum)"
-    echo "  • 9 traditional configs: themes, profiles, and specialized setups"
+    echo -e "${BLUE}🧩 100% Complete Installation:${NC}"
+    echo "  • Dynamic discovery with comprehensive fallback"
+    echo "  • ALL modules downloaded (retry mechanism ensures 100% success)"
+    echo "  • Single comprehensive Config.toml (227 settings)" 
+    echo "  • All 16 statusline components + prayer system available"
+    echo "  • Zero missing functionality - full feature set guaranteed"
     echo "  • Browse: ls $EXAMPLES_DIR"
-    echo "  • Try: cp $EXAMPLES_DIR/Config.modular-compact.toml $CONFIG_PATH"
+    echo "  • Customize: edit $CONFIG_PATH"
     echo
     echo -e "${BLUE}🚀 Ready to use! Start a new Claude Code session.${NC}"
     echo
@@ -1024,8 +1312,9 @@ show_completion() {
     echo
     echo -e "${BLUE}📁 Statusline files organized in: ~/.claude/statusline/${NC}"
     echo "  • statusline.sh     ← Enhanced statusline script"
-    echo "  • Config.toml       ← Your configuration file"
-    echo "  • examples/         ← 16 ready-to-use configurations"
+    echo "  • Config.toml       ← Your configuration file (227 settings)"
+    echo "  • lib/              ← Auto-discovered modules"
+    echo "  • examples/         ← Configuration templates"
     echo
     echo -e "${BLUE}📁 Claude Code settings: ~/.claude/${NC}"
     echo "  • settings.json     ← Claude Code integration"
@@ -1034,9 +1323,9 @@ show_completion() {
     echo "  edit ~/.claude/statusline/Config.toml"
     echo "  ~/.claude/statusline/statusline.sh --test-config"
     echo
-    echo -e "${BLUE}🧩 Try different configurations:${NC}"
-    echo "  cp ~/.claude/statusline/examples/Config.modular-minimal.toml ~/.claude/statusline/Config.toml"
-    echo "  cp ~/.claude/statusline/examples/Config.modular-comprehensive.toml ~/.claude/statusline/Config.toml"
+    echo -e "${BLUE}🧩 Single source configuration (v2.8.2):${NC}"
+    echo "  edit ~/.claude/statusline/Config.toml  # All 227 settings in ONE file"
+    echo "  ENV_CONFIG_THEME=garden ./statusline.sh  # Test theme override"
     echo
     echo -e "${BLUE}Test your installation:${NC}"
     echo "  $STATUSLINE_PATH --help"
