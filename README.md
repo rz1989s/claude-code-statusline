@@ -31,13 +31,76 @@
 
 </div>
 
+## 🚀 Installation (2 minutes)
+
+**Choose your preferred installation method:**
+
+### Option 1: Quick Install (Recommended)
+```bash
+# Download and inspect the installer (strongly recommended)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
+
+# Review what it does - look for:
+# ✓ Only creates files in ~/.claude/statusline/
+# ✓ Downloads from this GitHub repo
+# ✓ No sudo or system modifications
+less install.sh  
+
+# Run when you're satisfied it's safe
+bash install.sh
+```
+
+**🔍 Quick Security Check**: Open `install.sh` and verify it only:
+- Creates directories in `~/.claude/`
+- Downloads files from `raw.githubusercontent.com/rz1989s/claude-code-statusline`
+- Doesn't use `sudo` or modify system files
+
+### Option 2: Manual Install (No script required)
+```bash
+# 1. Create directory structure
+mkdir -p ~/.claude/statusline/{lib,examples}
+
+# 2. Download core files
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/examples/Config.toml -o ~/.claude/statusline/Config.toml
+
+# 3. Download library modules (automated)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --modules-only
+
+# 4. Make executable and test
+chmod +x ~/.claude/statusline/statusline.sh
+~/.claude/statusline/statusline.sh --version
+```
+
+### What Does This Install?
+**🔍 Transparency First - Here's exactly what happens:**
+
+✅ **Creates one directory**: `~/.claude/statusline/` (in your home folder only)  
+✅ **Downloads 31 text files**: Shell scripts from this GitHub repository  
+✅ **Creates one config file**: `Config.toml` with default settings you can edit  
+✅ **No system changes**: Everything stays in your home folder  
+
+❌ **Does NOT**: 
+- Modify any system files or PATH  
+- Install packages globally or change your OS  
+- Require admin/sudo permissions  
+- Send data anywhere or phone home  
+- Modify your shell config (.bashrc, .zshrc, etc.)  
+
+**🔐 Security**: All files are downloaded from this public GitHub repository - you can inspect every line of code before running.
+
+**Dependencies**: Requires `jq` and `curl` (install via `brew install jq` on macOS or `sudo apt install jq` on Linux)
+
+---
+
 ## 📚 Table of Contents
 
+- [Installation](#-installation-2-minutes)
 - [Recent Updates](#-recent-updates)
 - [Features](#-features)
 - [Theme Gallery](#-theme-gallery)
 - [Screenshot Showcase](#-screenshot-showcase)
-- [Quick Start](#-quick-start)
+- [Advanced Setup](#-advanced-setup)
 - [Configuration](#️-configuration)
 - [What Each Line Shows](#-what-each-line-shows)
 - [System Requirements](#-system-requirements)
@@ -930,9 +993,9 @@ Clean repository with detailed branch and status information.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Advanced Setup
 
-Get your enhanced statusline running in minutes with our streamlined installation process.
+For users who want additional installation options, development features, or specific configuration control.
 
 ### 📋 Prerequisites
 
