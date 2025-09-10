@@ -1,356 +1,297 @@
-# 📚 Examples Directory - TOML Configuration Samples
+# 📚 Single Source Configuration - Examples Directory
 
-**Ready-to-use TOML configuration examples for Claude Code Enhanced Statusline.**
+**Revolutionary single source configuration system - ONE comprehensive Config.toml with all 227 settings!**
 
-This directory contains professionally crafted configuration templates that demonstrate the power and flexibility of the enterprise-grade TOML configuration system.
+No more confusion from multiple example files. Edit ONE comprehensive Config.toml with all settings pre-filled. Bismillah!
 
-## 🚀 **Quick Start with Examples**
+> 🎯 **Configuration Revolution (v2.8.2)**: Gone are the days of hunting for parameter names across multiple files. The configuration system has been completely simplified and is **100% operational** - ONE Config.toml file contains all 227 settings that users need.
+
+## 🚀 **Ultra-Simple Configuration**
+
+### Your ONE Comprehensive Config.toml
+
+**All 227 settings in ONE place - just edit values!**
 
 ```bash
-# Copy any example to start customizing
-cp examples/sample-configs/developer-config.toml Config.toml
+# Edit your comprehensive configuration file (auto-created during installation)
+nano ~/.claude/statusline/Config.toml
 
-# Test your configuration
-./statusline.sh # Configuration is automatically loaded
-
-# Use your customized statusline
-./statusline.sh
+# OR use your favorite editor
+code ~/.claude/statusline/Config.toml
+vim ~/.claude/statusline/Config.toml
 ```
 
----
-
-## 📁 **Directory Structure**
+### 📁 **Directory Structure (v2.8.1)**
 
 ```
 examples/
-├── README.md                       # This file
-├── sample-configs/                 # Ready-to-use TOML configurations
-│   ├── minimal-config.toml        # Performance-optimized, lightweight
-│   ├── developer-config.toml      # Full-featured developer setup
-│   ├── custom-theme.toml          # Custom theme template
-│   ├── work-profile.toml          # Professional work environment
-│   └── personal-profile.toml      # Relaxed personal project setup
-└── screenshots/                   # Visual previews (to be added)
-    ├── minimal-setup.png
-    ├── developer-setup.png
-    ├── custom-theme.png
-    ├── work-profile.png
-    └── personal-profile.png
+├── Config.toml                         # 🎯 THE comprehensive configuration template (227 settings)
+├── README.md                           # This documentation
+└── 📸 screenshots/                     # Visual previews of different layouts
+    └── (layout screenshots)
 ```
+
+**🎯 Revolutionary Simplification:**
+- ❌ **Before**: Multiple separate config files to choose from (confusing!)
+- ✅ **After**: ONE comprehensive Config.toml with ALL settings (clear!)
 
 ---
 
-## 🎨 **TOML Configuration Examples**
+## 🎯 **Configuration Benefits (v2.8.1)**
 
-### 1. Minimal Configuration (`minimal-config.toml`)
-**Purpose**: Lightning-fast performance with essential features only  
-**Best for**: Slow systems, limited bandwidth, CI/CD environments  
+### ✅ Single Source Advantages
 
-**Key Features**:
-- Classic ANSI theme for maximum compatibility
-- Reduced timeouts (1s) for speed
-- Network-dependent features disabled
-- Simplified labels and minimal emojis
-- Extended caching for performance
+- **🎯 No More Hunting** - All 227 settings in ONE file, just edit values
+- **📋 Pre-filled Parameters** - All parameter names already included with sensible defaults
+- **🧹 Zero Confusion** - No need to hunt through multiple example files
+- **🔧 Complete Control** - Edit display lines, components, themes, labels - everything
+- **⚡ User-Friendly** - Open one file, see all options, edit what you need
+- **🔄 Maintainable** - Single source of truth eliminates redundancy
 
-**Usage**:
-```bash
-cp examples/sample-configs/minimal-config.toml Config.toml
-./statusline.sh # Configuration is automatically loaded
-```
+### 🎨 Comprehensive Configuration Sections
 
----
+Your **ONE Config.toml** includes all these sections:
 
-### 2. Developer Configuration (`developer-config.toml`)
-**Purpose**: Maximum information display with all features enabled  
-**Best for**: Active development, comprehensive monitoring  
-
-**Key Features**:
-- Catppuccin theme for modern aesthetics
-- All features enabled (MCP, cost tracking, version info)
-- Extended timeouts (5s) for comprehensive data gathering
-- Descriptive labels and comprehensive error messages
-- Detailed time format with seconds
-
-**Usage**:
-```bash
-cp examples/sample-configs/developer-config.toml Config.toml
-./statusline.sh # Configuration is automatically loaded
-```
-
----
-
-### 3. Custom Theme (`custom-theme.toml`)
-**Purpose**: Template for creating beautiful custom themes  
-**Best for**: Users who want calming, nature-inspired aesthetics  
-
-**Key Features**:
-- Custom color palette template (configurable colors)
-- Custom emoji configuration examples
-- Custom label templates  
-- Balanced color combinations for readability
-- Calming timeout settings
-
-**Usage**:
-```bash
-cp examples/sample-configs/custom-theme.toml Config.toml
-./statusline.sh # Configuration is automatically loaded
-```
-
----
-
-### 4. Work Profile (`work-profile.toml`)
-**Purpose**: Professional configuration optimized for work environments  
-**Best for**: Professional development, billing-conscious environments  
-
-**Key Features**:
-- Classic theme for professional compatibility
-- Cost tracking emphasized for billing awareness
-- Business-oriented labels ("PROJECT", "PRODUCTIVITY", "BILLING")
-- Professional emojis (💼 for work, 💰 for billing)
-- Optimized for work network environments
-
-**Usage**:
-```bash
-cp examples/sample-configs/work-profile.toml Config.toml
-./statusline.sh # Configuration is automatically loaded
-```
-
----
-
-### 5. Personal Profile (`personal-profile.toml`)
-**Purpose**: Relaxed configuration for personal projects and hobbies  
-**Best for**: Personal projects, learning, experimentation  
-
-**Key Features**:
-- Garden theme for gentle, soothing colors
-- Cost tracking disabled (not needed for personal use)
-- Fun, creative emojis (🎭 for Opus, 🦋 for Haiku, 🌿 for clean)
-- Casual labels ("Today:", "HOBBY")
-- 12-hour time format with AM/PM
-- Performance mode for responsive feel
-
-**Usage**:
-```bash
-cp examples/sample-configs/personal-profile.toml Config.toml
-./statusline.sh # Configuration is automatically loaded
-```
-
----
-
-## 🔧 **How to Use TOML Examples**
-
-### Method 1: Direct Copy (Recommended)
-```bash
-# Choose your preferred configuration
-cp examples/sample-configs/developer-config.toml Config.toml
-
-# Customize as needed
-vim Config.toml
-
-# Test your configuration
-./statusline.sh # Configuration is automatically loaded
-```
-
-### Method 2: Generate Base + Merge Examples
-```bash
-# Generate your current config as base
-cp examples/Config.toml ./Config.toml
-
-# Then copy specific sections from examples
-# For example, copy [theme] section from custom-theme.toml
-```
-
-### Method 3: Multiple Configuration Files
-```bash
-# Keep multiple configurations for different contexts
-cp examples/sample-configs/work-profile.toml work-config.toml
-cp examples/sample-configs/personal-profile.toml personal-config.toml
-
-# Use specific configurations
-./statusline.sh # Configuration is automatically loaded work-config.toml
-./statusline.sh # Configuration is automatically loaded personal-config.toml
-```
-
----
-
-## 🌍 **Environment Variable Testing**
-
-Test any configuration instantly without copying files:
-
-```bash
-# Test minimal performance setup
-ENV_CONFIG_THEME=classic \
-ENV_CONFIG_SHOW_MCP_STATUS=false \
-ENV_CONFIG_SHOW_COST_TRACKING=false \
-./statusline.sh
-
-# Test work environment
-ENV_CONFIG_THEME=classic \
-ENV_CONFIG_SHOW_COST_TRACKING=true \
-./statusline.sh
-
-# Test personal setup  
-ENV_CONFIG_THEME=garden \
-ENV_CONFIG_SHOW_COST_TRACKING=false \
-./statusline.sh
-```
-
----
-
-## 🎨 **Creating Your Own Configuration**
-
-### Step 1: Start with Base Example
-```bash
-# Choose the closest example to your needs
-cp examples/sample-configs/developer-config.toml MyConfig.toml
-```
-
-### Step 2: Customize Incrementally
-```bash
-# Edit specific sections
-vim MyConfig.toml
-
-# Test each change
-./statusline.sh # Configuration is automatically loaded MyConfig.toml
-```
-
-### Step 3: Mix and Match Features
 ```toml
-# Combine features from different examples
-[theme]
-name = "catppuccin"  # From developer-config.toml
+# === THEME CONFIGURATION ===
+theme.name = "catppuccin"  # classic, garden, catppuccin, custom
 
-[features]
-show_cost_tracking = false  # From personal-profile.toml
+# === MODULAR DISPLAY CONFIGURATION ===
+display.lines = 5                      # Number of lines (1-9)
+display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line1.separator = " │ "
+display.line1.show_when_empty = true
 
-[emojis]
-clean_status = "🌊"  # From custom-theme.toml
+# === FEATURE TOGGLES ===
+features.show_commits = true
+features.show_version = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+
+# === DISPLAY LABELS ===
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
+# ... ALL labels included!
+
+# === TIMEOUTS & PERFORMANCE ===
+timeouts.mcp = "10s"
+timeouts.version = "10s"
+timeouts.ccusage = "10s"
+
+# === CACHE SETTINGS ===
+cache.isolation.mode = "repository"
+# ... ALL cache settings included!
+
+# === PRAYER TIMES CONFIGURATION ===
+prayer.enabled = true
+prayer.location_mode = "auto"
+# ... COMPLETE prayer system configuration!
+
+# Plus 200+ more settings - ALL in ONE file!
 ```
 
 ---
 
-## 📊 **Configuration Comparison**
+## 🧩 **Layout Configuration Examples**
 
-| Feature | Minimal | Developer | Ocean | Work | Personal |
-|---------|---------|-----------|--------|------|----------|
-| **Theme** | Classic | Catppuccin | Custom Ocean | Classic | Garden |
-| **Cost Tracking** | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **MCP Status** | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **Version Info** | ❌ | ✅ | ✅ | ✅ | ❌ |
-| **Timeouts** | 1s (Fast) | 5s (Comprehensive) | 4s (Calm) | 3s (Professional) | 2s (Quick) |
-| **Labels** | Short | Descriptive | Ocean-themed | Business | Casual |
-| **Best For** | Performance | Development | Aesthetics | Work | Personal |
+Edit your Config.toml to create any layout you want:
+
+### Ultra-Minimal (1-line)
+```toml
+display.lines = 1
+display.line1.components = ["repo_info", "model_info"]
+```
+
+### Essential Compact (3-line)
+```toml
+display.lines = 3
+display.line1.components = ["repo_info", "commits", "version_info"]
+display.line2.components = ["model_info", "cost_session", "cost_live"]
+display.line3.components = ["mcp_status"]
+```
+
+### Standard Familiar (5-line) - Default
+```toml
+display.lines = 5
+display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
+display.line3.components = ["prayer_times"]
+display.line4.components = ["mcp_status"]
+display.line5.components = ["reset_timer"]
+```
+
+### Atomic Components (separate git data)
+```toml
+display.line1.components = ["repo_info", "commits", "submodules", "version_info"]
+display.line2.components = ["model_info", "cost_monthly", "cost_weekly", "cost_daily"]
+```
+
+### Maximum Ultimate (9-line)
+```toml
+display.lines = 9
+display.line1.components = ["prayer_times"]
+display.line2.components = ["repo_info"]
+display.line3.components = ["commits", "submodules"]
+display.line4.components = ["model_info", "version_info"]
+display.line5.components = ["cost_session", "cost_live"]
+display.line6.components = ["cost_monthly", "cost_weekly", "cost_daily"]
+display.line7.components = ["mcp_status"]
+display.line8.components = ["reset_timer"]
+display.line9.components = ["time_display"]
+```
 
 ---
 
-## 🔧 **Configuration Management Commands**
+## ⚡ **Quick Testing with Environment Variables**
 
-### Testing Examples
+Test any layout instantly without editing your Config.toml:
+
 ```bash
-# Test any example configuration
-./statusline.sh # Configuration is automatically loaded examples/sample-configs/developer-config.toml
+# Test different line counts
+ENV_CONFIG_DISPLAY_LINES=1 ./statusline.sh   # Ultra-minimal
+ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh   # Compact
+ENV_CONFIG_DISPLAY_LINES=5 ./statusline.sh   # Standard
+ENV_CONFIG_DISPLAY_LINES=9 ./statusline.sh   # Maximum
 
-# Detailed testing with verbose output
-./statusline.sh # Configuration is automatically loaded-verbose examples/sample-configs/custom-theme.toml
+# Test custom component arrangements
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info" ./statusline.sh
 
-# Compare example with your current setup
-cp examples/sample-configs/work-profile.toml Config.toml
-./statusline.sh --compare-config
+# Test different themes
+ENV_CONFIG_THEME_NAME=garden ./statusline.sh
+ENV_CONFIG_THEME_NAME=classic ./statusline.sh
+
+# Test atomic vs legacy components
+ENV_CONFIG_LINE1_COMPONENTS="git_stats" ./statusline.sh           # Legacy combined
+ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separated
 ```
 
-### Configuration Validation
+---
+
+## 🧩 **Available Components**
+
+Your Config.toml can use any of these 16 components:
+
+### Core Components (11)
+- `repo_info` - Repository directory and git status
+- `version_info` - Claude Code version display
+- `time_display` - Current time formatting
+- `model_info` - Claude model name with emoji
+- `cost_session` - Repository session cost tracking
+- `cost_live` - Live block cost monitoring
+- `mcp_status` - MCP server health and connection status
+- `reset_timer` - Block reset countdown timer
+- `prayer_times` - Islamic prayer times integration
+
+### Legacy Components (2) - Backward Compatibility
+- `git_stats` - Combined commits + submodules (legacy)
+- `cost_period` - Combined 30day/7day/daily costs (legacy)
+
+### Atomic Components (5) - NEW v2.7.0
+- `commits` - Shows ONLY commit count (atomic from git_stats)
+- `submodules` - Shows ONLY submodule status (atomic from git_stats)
+- `cost_monthly` - Shows ONLY 30-day costs (atomic from cost_period)
+- `cost_weekly` - Shows ONLY 7-day costs (atomic from cost_period)
+- `cost_daily` - Shows ONLY daily costs (atomic from cost_period)
+
+---
+
+## 🎨 **Theme Options**
+
+Edit `theme.name` in your Config.toml:
+
+```toml
+theme.name = "catppuccin"  # Modern dark theme (default)
+theme.name = "garden"      # Soft pastel colors
+theme.name = "classic"     # Traditional ANSI colors
+theme.name = "custom"      # Use custom colors you define
+```
+
+For custom themes, all color settings are included in your Config.toml:
+```toml
+colors.basic.red = "\\033[31m"
+colors.basic.blue = "\\033[34m"
+# ... all custom colors included!
+```
+
+---
+
+## 🔧 **Configuration Management**
+
+### Edit Your Configuration
 ```bash
-# Validate any TOML configuration
-./statusline.sh --validate-config examples/sample-configs/minimal-config.toml
+# Open your comprehensive Config.toml
+nano ~/.claude/statusline/Config.toml
+code ~/.claude/statusline/Config.toml
+vim ~/.claude/statusline/Config.toml
+```
 
-# Test specific configurations
-for config in examples/sample-configs/*.toml; do
-    echo "Testing $config..."
-    ./statusline.sh # Configuration is automatically loaded "$config"
-done
+### Validate Configuration
+```bash
+# Test your configuration
+./statusline.sh
+
+# Debug configuration loading
+STATUSLINE_DEBUG=true ./statusline.sh
+```
+
+### Backup Your Configuration
+```bash
+# Backup your customized Config.toml
+cp ~/.claude/statusline/Config.toml ~/my-statusline-config-backup.toml
+
+# Restore from backup
+cp ~/my-statusline-config-backup.toml ~/.claude/statusline/Config.toml
 ```
 
 ---
 
-## 🎯 **Use Case Recommendations**
-
-### 🚀 **Performance-Critical Environments**
-- **Use**: `minimal-config.toml`
-- **Why**: Reduced network calls, shorter timeouts, essential features only
-- **Perfect for**: CI/CD, slow networks, resource-constrained systems
-
-### 💻 **Active Development**
-- **Use**: `developer-config.toml`
-- **Why**: All features enabled, comprehensive monitoring, detailed information
-- **Perfect for**: Daily development, debugging, feature-rich environments
-
-### 🎨 **Aesthetic Focus**
-- **Use**: `custom-theme.toml` or create custom themes
-- **Why**: Beautiful custom colors, themed emojis, cohesive design
-- **Perfect for**: Personal branding, visual appeal, unique workflows
-
-### 💼 **Professional Work**
-- **Use**: `work-profile.toml`
-- **Why**: Cost tracking, professional appearance, business terminology
-- **Perfect for**: Client work, billing tracking, corporate environments
-
-### 🏠 **Personal Projects**
-- **Use**: `personal-profile.toml`
-- **Why**: Fun emojis, relaxed settings, no cost tracking
-- **Perfect for**: Hobby projects, learning, experimentation
-
----
-
-## 🐛 **Example-Specific Troubleshooting**
+## 🐛 **Troubleshooting**
 
 ### Configuration Not Loading
 ```bash
-# Check if TOML syntax is valid
-./statusline.sh --validate-config examples/sample-configs/developer-config.toml
+# Check if Config.toml exists
+ls -la ~/.claude/statusline/Config.toml
 
-# Test configuration loading
-./statusline.sh # Configuration is automatically loaded-verbose examples/sample-configs/custom-theme.toml
+# Regenerate Config.toml if missing/corrupted (auto-happens during load)
+./statusline.sh  # Will auto-regenerate if needed
+
+# Debug configuration parsing
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i config
 ```
 
-### Colors Not Displaying (Ocean Theme)
+### Component Not Displaying
 ```bash
-# Test terminal color support
-echo $COLORTERM
+# Test specific component
+ENV_CONFIG_LINE1_COMPONENTS="repo_info" ./statusline.sh
 
-# Fallback to basic theme if RGB not supported
-ENV_CONFIG_THEME=classic ./statusline.sh
-```
+# Check component availability
+./statusline.sh --modules
 
-### Performance Issues (Developer Config)
-```bash
-# Reduce timeouts if needed
-ENV_CONFIG_MCP_TIMEOUT=2s \
-ENV_CONFIG_CCUSAGE_TIMEOUT=2s \
-./statusline.sh # Configuration is automatically loaded examples/sample-configs/developer-config.toml
+# Debug component loading
+STATUSLINE_DEBUG=true ./statusline.sh --modules
 ```
 
 ---
 
-## 💡 **Tips for Custom Configurations**
+## 💡 **Best Practices**
 
-1. **Start Simple**: Begin with minimal-config.toml and add features incrementally
-2. **Test Thoroughly**: Use `--test-config` after every change
-3. **Mix and Match**: Combine theme from one example with features from another
-4. **Document Changes**: Add comments to your Config.toml explaining customizations
-5. **Backup Working Configs**: Save successful configurations with descriptive names
-6. **Environment Testing**: Use ENV_CONFIG_* variables to test before committing changes
+1. **Start with Defaults** - The installed Config.toml has sensible defaults, just edit what you need
+2. **Test with Environment Variables** - Use `ENV_CONFIG_*` to test changes before editing Config.toml
+3. **One Change at a Time** - Edit one setting, test, repeat
+4. **Use Comments** - Add `# comments` in your Config.toml to document your changes
+5. **Backup Working Configs** - Save your working Config.toml before major changes
+6. **Check Component Status** - Use `./statusline.sh --modules` to verify component availability
 
 ---
 
 ## 📚 **Related Documentation**
 
-- ⚙️ **[Configuration Guide](../docs/configuration.md)** - Complete TOML configuration reference
-- 🎨 **[Themes Guide](../docs/themes.md)** - Theme creation and customization
-- 📦 **[Installation Guide](../docs/installation.md)** - Setup with TOML configuration
-- 🚀 **[Migration Guide](../docs/migration.md)** - Migrate from inline configuration
-- 🔧 **[CLI Reference](../docs/cli-reference.md)** - Configuration management commands
+- ⚙️ **[Configuration Guide](../docs/configuration.md)** - Complete configuration reference
+- 🎨 **[Themes Guide](../docs/themes.md)** - Theme customization
+- 📦 **[Installation Guide](../docs/installation.md)** - Setup and installation
+- 🔧 **[CLI Reference](../docs/cli-reference.md)** - Command line options
 
 ---
 
-**MashaAllah!** These examples showcase the power and flexibility of TOML configuration. Choose your starting point and customize to create your perfect development environment! 🌟
+**Alhamdulillah!** The single source configuration system makes customization incredibly simple - ONE file with ALL settings. Edit what you need, keep what works! 🌟

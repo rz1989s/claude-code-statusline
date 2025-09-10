@@ -4,7 +4,7 @@
 
 The statusline provides a focused set of commands for essential operations with automatic configuration discovery and intelligent defaults.
 
-> 🏗️ **Modular Architecture**: The CLI is powered by the refactored modular system with the main script orchestrating 9 specialized modules in the `lib/` directory.
+> 🏗️ **Atomic Component Architecture**: The CLI is powered by the atomic component system (v2.7.0) with 16 configurable components arranged on 1-9 customizable lines. The main script orchestrates specialized modules in the `lib/` directory with standardized component interfaces.
 
 ## 🚀 **Overview**
 
@@ -52,7 +52,7 @@ The enhanced statusline provides a streamlined command-line interface for:
 
 ```bash
 $ ./statusline.sh --help
-Claude Code Statusline (Refactored v2.0.6)
+Claude Code Statusline v2.9.0
 ==========================================
 
 USAGE:
@@ -91,7 +91,7 @@ THEMES:
 
 ```bash
 $ ./statusline.sh --version
-Claude Code Statusline v2.0.6
+Claude Code Statusline v2.9.0
 Architecture: 2.0.0-refactored (modular refactor)
 Compatible with original v1.3.0
 Modules loaded: 9
@@ -161,6 +161,69 @@ Loaded modules:
   ✓ mcp
   ✓ cost
   ✓ display
+  ✓ components (16 atomic components registered)
+```
+
+---
+
+## 🧩 **Atomic Component Testing (v2.7.0)**
+
+The atomic component system provides specialized testing commands for component validation and modular display configuration.
+
+### Component Status Check
+
+**Purpose**: Display all 16 component registration status and availability.
+
+**Syntax**:
+```bash
+./statusline.sh --modules                      # Shows component status
+STATUSLINE_DEBUG=true ./statusline.sh --modules   # Debug component loading
+```
+
+**Output**:
+- Lists all 16 components (11 core + 5 atomic)
+- Shows component registration status
+- Displays component dependencies
+- Identifies any failed component loads
+
+### Modular Display Testing
+
+**Purpose**: Test custom line configurations and atomic component arrangements.
+
+**Syntax**:
+```bash
+# Test custom line count
+ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
+
+# Test atomic component arrangement
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" ./statusline.sh
+ENV_CONFIG_LINE2_COMPONENTS="cost_monthly,cost_weekly,cost_daily" ./statusline.sh
+ENV_CONFIG_LINE3_COMPONENTS="mcp_status" ./statusline.sh
+
+# Test component enable/disable
+ENV_CONFIG_COMPONENTS_SUBMODULES_ENABLED=false ./statusline.sh
+ENV_CONFIG_COMPONENTS_COST_WEEKLY_ENABLED=false ./statusline.sh
+```
+
+**Use Cases**:
+- Testing atomic component separation
+- Validating custom line configurations
+- Debugging component arrangement issues
+- Verifying 1-9 line layouts
+
+### Pre-built Configuration Testing
+
+**Purpose**: Test example atomic component configurations.
+
+**Syntax**:
+```bash
+# Test atomic configurations
+cp examples/Config.modular-atomic.toml Config.toml       # Atomic showcase
+cp examples/Config.modular-compact.toml Config.toml      # 3-line minimal
+cp examples/Config.modular-comprehensive.toml Config.toml # 7-line full
+
+# Test and verify
+./statusline.sh                                          # Apply configuration
 ```
 
 ---
@@ -226,15 +289,21 @@ STATUSLINE_DEBUG=true ./statusline.sh
 For normal use, simply run without arguments:
 
 ```bash
-# Default operation - generates 4-line statusline
+# Default operation - generates configurable 1-9 line statusline
 ./statusline.sh
 ```
 
 The statusline will:
 1. Automatically discover and load configuration
-2. Apply the configured theme (or default to catppuccin)
-3. Collect git status, MCP server info, and cost data
-4. Generate beautiful 4-line output for Claude Code
+2. Apply the configured theme (or default to catppuccin) 
+3. Initialize all 16 atomic components and collect data
+4. Build modular display with configured line arrangements
+5. Generate beautiful output with perfect component separation for Claude Code
+
+**Atomic Component Benefits**:
+- **Perfect Separation**: `│ Commits:8 │ SUB:-- │ 30DAY $660.87 │ 7DAY $9.31 │ DAY $36.10 │`
+- **Maximum Customization**: Show/hide individual data points
+- **1-9 Line Flexibility**: From minimal to comprehensive displays
 
 ---
 

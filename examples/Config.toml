@@ -6,13 +6,10 @@
 # It uses simplified flat TOML format for reliable parsing across all platforms.
 # All settings use dot notation instead of nested sections.
 #
-# Configuration Precedence (highest to lowest):
-# 1. Environment variables (ENV_CONFIG_*)
-# 2. ./Config.toml (project-specific)
-# 3. ~/.claude/statusline/Config.toml (user installation - THIS FILE)
-# 4. ~/.config/claude-code-statusline/Config.toml (XDG standard)
-# 5. ~/.claude-statusline.toml (legacy fallback)
-# 6. Inline script defaults (fallback)
+# Configuration Order (simplified single source of truth):
+# 1. Environment variables (ENV_CONFIG_*) - Temporary overrides
+# 2. ~/.claude/statusline/Config.toml - Your configuration (THIS FILE)
+# 3. Inline script defaults - Fallback when config missing
 #
 # ============================================================================
 
@@ -356,6 +353,89 @@ hijri.show_maghrib_indicator = true    # Show 🌙 when Islamic day changes at M
 # Hijri display format
 hijri.display_format = "short"         # short, full, with_weekday
 hijri.show_weekday = true              # Include day of week in display
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# Configure 1-9 line statusline with atomic component system
+# Each line can contain any combination of available components
+
+# Number of lines to display (1-9)
+display.lines = 5
+
+# Line 1: Repository and Development Info
+display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line1.separator = " │ "
+display.line1.show_when_empty = true
+
+# Line 2: Model and Cost Tracking
+display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
+display.line2.separator = " │ "
+display.line2.show_when_empty = true
+
+# Line 3: Islamic Prayer Times (high priority - user-facing)
+display.line3.components = ["prayer_times"]
+display.line3.separator = " │ "
+display.line3.show_when_empty = true
+
+# Line 4: MCP Server Status
+display.line4.components = ["mcp_status"]
+display.line4.separator = " │ "
+display.line4.show_when_empty = true
+
+# Line 5: Reset Timer (operational info - lower priority)
+display.line5.components = ["reset_timer"]
+display.line5.separator = " │ "
+display.line5.show_when_empty = false
+
+# Line 6-9: Additional lines (empty by default)
+# Uncomment and configure for custom layouts up to 9 lines
+display.line6.components = []
+display.line6.separator = " │ "
+display.line6.show_when_empty = false
+
+display.line7.components = []
+display.line7.separator = " │ "
+display.line7.show_when_empty = false
+
+display.line8.components = []
+display.line8.separator = " │ "
+display.line8.show_when_empty = false
+
+display.line9.components = []
+display.line9.separator = " │ "
+display.line9.show_when_empty = false
+
+# === AVAILABLE COMPONENTS REFERENCE ===
+# Core Components (9):
+# - "repo_info"      - Repository directory and git branch/status
+# - "version_info"   - Claude Code version display
+# - "time_display"   - Current time formatting
+# - "model_info"     - Claude model name with emoji
+# - "cost_session"   - Repository session cost tracking
+# - "cost_live"      - Live block cost monitoring
+# - "mcp_status"     - MCP server health and connection status
+# - "reset_timer"    - Block reset countdown timer
+# - "prayer_times"   - Islamic prayer times integration
+#
+# Legacy Components (2) - Backward Compatibility:
+# - "git_stats"      - Combined commits + submodules (legacy)
+# - "cost_period"    - Combined 30day/7day/daily costs (legacy)
+#
+# Atomic Components (5) - NEW v2.7.0:
+# - "commits"        - Shows ONLY commit count (atomic from git_stats)
+# - "submodules"     - Shows ONLY submodule status (atomic from git_stats)
+# - "cost_monthly"   - Shows ONLY 30-day costs (atomic from cost_period)
+# - "cost_weekly"    - Shows ONLY 7-day costs (atomic from cost_period)
+# - "cost_daily"     - Shows ONLY daily costs (atomic from cost_period)
+#
+# Example Atomic Component Configurations:
+# display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data
+# display.line2.components = ["model_info", "cost_monthly", "cost_weekly", "cost_daily"]  # Separate cost data
+# display.line3.components = ["cost_session", "cost_live", "prayer_times"]  # Mixed components
+#
+# Environment Override Examples:
+# ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
+# ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info" ./statusline.sh
+# ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_monthly,cost_daily" ./statusline.sh
 
 # === DISPLAY LABELS ===
 # Text labels used throughout the statusline

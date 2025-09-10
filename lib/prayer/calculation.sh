@@ -50,7 +50,7 @@ calculate_time_until_prayer() {
     local prayer_minutes=$((10#${prayer_time%:*} * 60 + 10#${prayer_time#*:}))
     
     # Calculate difference
-    if [[ $prayer_minutes -gt $current_minutes ]]; then
+    if [[ $prayer_minutes -ge $current_minutes ]]; then
         echo $((prayer_minutes - current_minutes))
     else
         # Prayer is tomorrow (add 24 hours)

@@ -20,26 +20,16 @@ export STATUSLINE_CONFIG_LOADED=true
 # CONFIGURATION CONSTANTS
 # ============================================================================
 
-# Configuration file precedence (highest to lowest)
+# Single configuration file location (source of truth)
 export CONFIG_FILE_PATHS=(
-    "./Config.toml"
     "$HOME/.claude/statusline/Config.toml"
-    "$HOME/.config/claude-code-statusline/Config.toml"
-    "$HOME/.claude-statusline.toml"
 )
 
-# Default configuration values
-export DEFAULT_CONFIG_THEME="catppuccin"
-export DEFAULT_CONFIG_SHOW_COMMITS=true
-export DEFAULT_CONFIG_SHOW_VERSION=true
-export DEFAULT_CONFIG_SHOW_SUBMODULES=true
-export DEFAULT_CONFIG_SHOW_MCP_STATUS=true
-export DEFAULT_CONFIG_SHOW_COST_TRACKING=true
-export DEFAULT_CONFIG_SHOW_RESET_INFO=true
-export DEFAULT_CONFIG_SHOW_SESSION_INFO=true
+# Configuration variables are now loaded exclusively from Config.toml
+# No hardcoded defaults - single source of truth approach
 
 # Global configuration variables (will be set by load_configuration)
-export CONFIG_THEME=""
+export CONFIG_THEME="catppuccin"  # Default theme for single source architecture
 export CONFIG_SHOW_COMMITS=""
 export CONFIG_SHOW_VERSION=""
 export CONFIG_SHOW_SUBMODULES=""
@@ -114,6 +104,38 @@ export CONFIG_MCP_UNKNOWN_MESSAGE=""
 export CONFIG_MCP_NONE_MESSAGE=""
 export CONFIG_UNKNOWN_VERSION=""
 export CONFIG_NO_SUBMODULES=""
+
+# Display line configuration (new modular system)
+export CONFIG_DISPLAY_LINES=""
+export CONFIG_LINE1_COMPONENTS=""
+export CONFIG_LINE2_COMPONENTS=""
+export CONFIG_LINE3_COMPONENTS=""
+export CONFIG_LINE4_COMPONENTS=""
+export CONFIG_LINE5_COMPONENTS=""
+export CONFIG_LINE6_COMPONENTS=""
+export CONFIG_LINE7_COMPONENTS=""
+export CONFIG_LINE8_COMPONENTS=""
+export CONFIG_LINE9_COMPONENTS=""
+export CONFIG_LINE1_SEPARATOR=""
+export CONFIG_LINE2_SEPARATOR=""
+export CONFIG_LINE3_SEPARATOR=""
+export CONFIG_LINE4_SEPARATOR=""
+export CONFIG_LINE5_SEPARATOR=""
+export CONFIG_LINE6_SEPARATOR=""
+export CONFIG_LINE7_SEPARATOR=""
+export CONFIG_LINE8_SEPARATOR=""
+export CONFIG_LINE9_SEPARATOR=""
+export CONFIG_LINE1_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE2_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE3_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE4_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE5_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE6_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE7_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE8_SHOW_WHEN_EMPTY=""
+export CONFIG_LINE9_SHOW_WHEN_EMPTY=""
+
+# Display line configuration loaded from Config.toml only
 
 # ============================================================================
 # TOML PARSING FUNCTIONS
@@ -276,22 +298,22 @@ discover_config_file() {
 
 # Initialize default configuration values
 init_default_config() {
-    # Set all configuration to defaults
-    CONFIG_THEME="$DEFAULT_CONFIG_THEME"
-    CONFIG_SHOW_COMMITS="$DEFAULT_CONFIG_SHOW_COMMITS"
-    CONFIG_SHOW_VERSION="$DEFAULT_CONFIG_SHOW_VERSION"
-    CONFIG_SHOW_SUBMODULES="$DEFAULT_CONFIG_SHOW_SUBMODULES"
-    CONFIG_SHOW_MCP_STATUS="$DEFAULT_CONFIG_SHOW_MCP_STATUS"
-    CONFIG_SHOW_COST_TRACKING="$DEFAULT_CONFIG_SHOW_COST_TRACKING"
-    CONFIG_SHOW_RESET_INFO="$DEFAULT_CONFIG_SHOW_RESET_INFO"
-    CONFIG_SHOW_SESSION_INFO="$DEFAULT_CONFIG_SHOW_SESSION_INFO"
+    # Hardcoded defaults for single source architecture (v2.8.0 - no DEFAULT_CONFIG_* constants needed)
+    CONFIG_THEME="catppuccin"
+    CONFIG_SHOW_COMMITS="true"
+    CONFIG_SHOW_VERSION="true"
+    CONFIG_SHOW_SUBMODULES="true"
+    CONFIG_SHOW_MCP_STATUS="true"
+    CONFIG_SHOW_COST_TRACKING="true"
+    CONFIG_SHOW_RESET_INFO="true"
+    CONFIG_SHOW_SESSION_INFO="true"
 
-    CONFIG_MCP_TIMEOUT="$DEFAULT_MCP_TIMEOUT"
-    CONFIG_VERSION_TIMEOUT="$DEFAULT_VERSION_TIMEOUT"
-    CONFIG_CCUSAGE_TIMEOUT="$DEFAULT_CCUSAGE_TIMEOUT"
+    CONFIG_MCP_TIMEOUT="10s"
+    CONFIG_VERSION_TIMEOUT="5s"
+    CONFIG_CCUSAGE_TIMEOUT="8s"
 
-    CONFIG_VERSION_CACHE_DURATION="$DEFAULT_VERSION_CACHE_DURATION"
-    CONFIG_VERSION_CACHE_FILE="$DEFAULT_VERSION_CACHE_FILE"
+    CONFIG_VERSION_CACHE_DURATION="15"
+    CONFIG_VERSION_CACHE_FILE="claude_version.cache"
 
     CONFIG_TIME_FORMAT="%H:%M"
     CONFIG_DATE_FORMAT="%Y-%m-%d"
@@ -329,7 +351,81 @@ init_default_config() {
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
 
+    # Line configuration defaults removed in v2.8.1+ single source architecture
+    # All configuration now loaded exclusively from Config.toml via auto-regeneration
+    # No hardcoded defaults needed - auto_regenerate_config() ensures Config.toml always exists
+
     debug_log "Default configuration initialized" "INFO"
+}
+
+# Auto-regenerate Config.toml from examples directory
+auto_regenerate_config() {
+    # Check if auto-regeneration is disabled
+    if [[ "${CLAUDE_STATUSLINE_NO_AUTO_REGEN:-false}" == "true" ]]; then
+        debug_log "Auto-regeneration disabled by environment variable" "INFO"
+        return 1
+    fi
+    
+    # Ensure we have the required paths (should be set in statusline.sh)
+    if [[ -z "${CONFIG_PATH:-}" || -z "${EXAMPLES_DIR:-}" ]]; then
+        debug_log "Auto-regeneration paths not configured" "ERROR"
+        return 1
+    fi
+    
+    debug_log "Attempting auto-regeneration of Config.toml..." "INFO"
+    
+    # Use single comprehensive Config.toml template
+    local source_template="$EXAMPLES_DIR/Config.toml"
+    local template_description="comprehensive configuration template"
+    
+    # Check if the template exists and is readable
+    if [[ ! -f "$source_template" || ! -r "$source_template" ]]; then
+        debug_log "Master Config.toml template not found at: $source_template" "ERROR"
+        return 1
+    fi
+    
+    debug_log "Using template: $source_template ($template_description)" "INFO"
+    
+    # Create backup if partial/corrupted config exists
+    if [[ -f "$CONFIG_PATH" ]]; then
+        if [[ ! -s "$CONFIG_PATH" ]] || ! parse_toml_to_json "$CONFIG_PATH" >/dev/null 2>&1; then
+            local backup_path="${CONFIG_PATH}.corrupted.$(date +%s)"
+            if mv "$CONFIG_PATH" "$backup_path" 2>/dev/null; then
+                debug_log "Backed up corrupted config to: $backup_path" "INFO"
+            fi
+        fi
+    fi
+    
+    # Perform atomic copy operation
+    local temp_config
+    temp_config=$(mktemp) || {
+        debug_log "Failed to create temporary file for config regeneration" "ERROR"
+        return 1
+    }
+    
+    # Copy template to temp file first
+    if cp "$source_template" "$temp_config"; then
+        # Verify the template is valid TOML
+        if parse_toml_to_json "$temp_config" >/dev/null 2>&1; then
+            # Atomic move to final location
+            if mv "$temp_config" "$CONFIG_PATH"; then
+                debug_log "Successfully regenerated Config.toml from $template_description" "INFO"
+                return 0
+            else
+                debug_log "Failed to move regenerated config to final location" "ERROR"
+                rm -f "$temp_config" 2>/dev/null
+                return 1
+            fi
+        else
+            debug_log "Source template contains invalid TOML syntax" "ERROR"
+            rm -f "$temp_config" 2>/dev/null
+            return 1
+        fi
+    else
+        debug_log "Failed to copy template during regeneration" "ERROR"
+        rm -f "$temp_config" 2>/dev/null
+        return 1
+    fi
 }
 
 # Load configuration from TOML file and set variables
@@ -345,52 +441,73 @@ load_toml_configuration() {
 
     # Try to find config file
     if config_file=$(discover_config_file); then
-        debug_log "Loading configuration from: $config_file" "INFO"
-
-        # Parse TOML to JSON with comprehensive error handling
-        local config_json parse_exit_code
-        config_json=$(parse_toml_to_json "$config_file")
-        parse_exit_code=$?
-
-        # Handle different types of parsing errors
-        case $parse_exit_code in
-        0)
-            # Success - check for empty result
-            if [[ "$config_json" == "{}" ]]; then
-                handle_warning "Empty config file, using defaults" "load_toml_configuration"
-                return 1
-            fi
-
-            # Extract configuration values using optimized single-pass jq operation
-            if ! extract_config_values "$config_json"; then
-                handle_warning "Failed to extract config values, using defaults" "load_toml_configuration"
-                return 1
-            fi
-
-            debug_log "Configuration loaded successfully from TOML" "INFO"
-            return 0
-            ;;
-        1)
-            handle_warning "Configuration file not found, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        2)
-            handle_warning "Invalid configuration file path, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        3)
-            handle_warning "Configuration file not readable (permissions), using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        *)
-            handle_warning "Unknown error parsing configuration file, using defaults" "load_toml_configuration"
-            return 1
-            ;;
-        esac
+        debug_log "Found config file: $config_file" "INFO"
     else
-        debug_log "No Config.toml found, using inline defaults" "INFO"
-        return 1
+        # No config file found - attempt auto-regeneration
+        debug_log "No configuration file found in search paths" "INFO"
+        
+        # Check if we should attempt auto-regeneration
+        if [[ -n "${CONFIG_PATH:-}" ]] && auto_regenerate_config; then
+            # Auto-regeneration successful - try discovery again
+            if config_file=$(discover_config_file); then
+                debug_log "Auto-regeneration successful, using: $config_file" "INFO"
+                
+                # Show user-friendly message (not just debug log)
+                if [[ "${STATUSLINE_DEBUG:-false}" != "true" ]]; then
+                    echo "🔧 Config.toml was missing and has been regenerated from examples" >&2
+                    echo "💡 Edit $(basename "$config_file") to customize your statusline" >&2
+                fi
+            else
+                debug_log "Auto-regeneration completed but config still not discoverable" "ERROR"
+                return 1
+            fi
+        else
+            debug_log "Auto-regeneration failed or not attempted" "INFO"
+            debug_log "No Config.toml found, using inline defaults" "INFO"
+            return 1
+        fi
     fi
+
+    # Parse TOML to JSON with comprehensive error handling
+    local config_json parse_exit_code
+    config_json=$(parse_toml_to_json "$config_file")
+    parse_exit_code=$?
+
+    # Handle different types of parsing errors
+    case $parse_exit_code in
+    0)
+        # Success - check for empty result
+        if [[ "$config_json" == "{}" ]]; then
+            handle_warning "Empty config file, using defaults" "load_toml_configuration"
+            return 1
+        fi
+
+        # Extract configuration values using optimized single-pass jq operation
+        if ! extract_config_values "$config_json"; then
+            handle_warning "Failed to extract config values, using defaults" "load_toml_configuration"
+            return 1
+        fi
+
+        debug_log "Configuration loaded successfully from TOML" "INFO"
+        return 0
+        ;;
+    1)
+        handle_warning "Configuration file not found, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    2)
+        handle_warning "Invalid configuration file path, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    3)
+        handle_warning "Configuration file not readable (permissions), using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    *)
+        handle_warning "Unknown error parsing configuration file, using defaults" "load_toml_configuration"
+        return 1
+        ;;
+    esac
 }
 
 # Extract configuration values from JSON using optimized jq operation
@@ -402,37 +519,65 @@ extract_config_values() {
         return 1
     fi
 
-    # Optimized jq operation for flat structure only (simplified and faster)
+    # Pure extraction from Config.toml - no fallbacks (single source of truth)
     local config_data
     config_data=$(echo "$config_json" | jq -r '{
-            theme_name: (."theme.name" // "catppuccin"),
-            feature_show_commits: (."features.show_commits" // true),
-            feature_show_version: (."features.show_version" // true),
-            feature_show_submodules: (."features.show_submodules" // true),
-            feature_show_mcp: (."features.show_mcp_status" // true),
-            feature_show_cost: (."features.show_cost_tracking" // true),
-            feature_show_reset: (."features.show_reset_info" // true),
-            feature_show_session: (."features.show_session_info" // true),
-            timeout_mcp: (."timeouts.mcp" // "10s"),
-            timeout_version: (."timeouts.version" // "2s"),
-            timeout_ccusage: (."timeouts.ccusage" // "3s"),
-            cache_version_duration: (."cache.version_duration" // 3600),
-            cache_version_file: (."cache.version_file" // "/tmp/.claude_version_cache"),
-            display_time_format: (."display.time_format" // "%H:%M"),
-            display_date_format: (."display.date_format" // "%Y-%m-%d"),
-            display_date_format_compact: (."display.date_format_compact" // "%Y%m%d"),
-            label_commits: (."labels.commits" // "Commits:"),
-            label_repo: (."labels.repo" // "REPO"),
-            label_monthly: (."labels.monthly" // "30DAY"),
-            label_weekly: (."labels.weekly" // "7DAY"),
-            label_daily: (."labels.daily" // "DAY"),
-            label_submodule: (."labels.submodule" // "SUB:"),
-            label_mcp: (."labels.mcp" // "MCP"),
-            label_version_prefix: (."labels.version_prefix" // "ver"),
-            label_session_prefix: (."labels.session_prefix" // "S:"),
-            label_live: (."labels.live" // "LIVE"),
-            label_reset: (."labels.reset" // "RESET")
-        } | to_entries | map("\\(.key)=\\(.value)") | .[]' 2>/dev/null)
+            theme_name: ."theme.name",
+            feature_show_commits: ."features.show_commits",
+            feature_show_version: ."features.show_version",
+            feature_show_submodules: ."features.show_submodules",
+            feature_show_mcp: ."features.show_mcp_status",
+            feature_show_cost: ."features.show_cost_tracking",
+            feature_show_reset: ."features.show_reset_info",
+            feature_show_session: ."features.show_session_info",
+            timeout_mcp: ."timeouts.mcp",
+            timeout_version: ."timeouts.version",
+            timeout_ccusage: ."timeouts.ccusage",
+            cache_version_duration: ."cache.version_duration",
+            cache_version_file: ."cache.version_file",
+            display_time_format: ."display.time_format",
+            display_date_format: ."display.date_format",
+            display_date_format_compact: ."display.date_format_compact",
+            label_commits: ."labels.commits",
+            label_repo: ."labels.repo",
+            label_monthly: ."labels.monthly",
+            label_weekly: ."labels.weekly",
+            label_daily: ."labels.daily",
+            label_submodule: ."labels.submodule",
+            label_mcp: ."labels.mcp",
+            label_version_prefix: ."labels.version_prefix",
+            label_session_prefix: ."labels.session_prefix",
+            label_live: ."labels.live",
+            label_reset: ."labels.reset",
+            display_lines: ."display.lines",
+            line1_components: (."display.line1.components" | join(",")),
+            line2_components: (."display.line2.components" | join(",")),
+            line3_components: (."display.line3.components" | join(",")),
+            line4_components: (."display.line4.components" | join(",")),
+            line5_components: (."display.line5.components" | join(",")),
+            line6_components: (."display.line6.components" | join(",")),
+            line7_components: (."display.line7.components" | join(",")),
+            line8_components: (."display.line8.components" | join(",")),
+            line9_components: (."display.line9.components" | join(",")),
+            line1_separator: ."display.line1.separator",
+            line2_separator: ."display.line2.separator",
+            line3_separator: ."display.line3.separator",
+            line4_separator: ."display.line4.separator",
+            line5_separator: ."display.line5.separator",
+            line6_separator: ."display.line6.separator",
+            line7_separator: ."display.line7.separator",
+            line8_separator: ."display.line8.separator",
+            line9_separator: ."display.line9.separator",
+            line1_show_when_empty: ."display.line1.show_when_empty",
+            line2_show_when_empty: ."display.line2.show_when_empty",
+            line3_show_when_empty: ."display.line3.show_when_empty",
+            line4_show_when_empty: ."display.line4.show_when_empty",
+            line5_show_when_empty: ."display.line5.show_when_empty",
+            line6_show_when_empty: ."display.line6.show_when_empty",
+            line7_show_when_empty: ."display.line7.show_when_empty",
+            line8_show_when_empty: ."display.line8.show_when_empty",
+            line9_show_when_empty: ."display.line9.show_when_empty"
+        } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
 
     if [[ -z "$config_data" ]]; then
         handle_warning "Failed to extract config values from JSON" "extract_config_values"
@@ -523,6 +668,90 @@ extract_config_values() {
         label_reset)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_RESET_LABEL="$value"
             ;;
+        display_lines)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_DISPLAY_LINES="$value"
+            ;;
+        line1_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE1_COMPONENTS="$value"
+            ;;
+        line2_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE2_COMPONENTS="$value"
+            ;;
+        line3_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE3_COMPONENTS="$value"
+            ;;
+        line4_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE4_COMPONENTS="$value"
+            ;;
+        line5_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE5_COMPONENTS="$value"
+            ;;
+        line6_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE6_COMPONENTS="$value"
+            ;;
+        line7_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE7_COMPONENTS="$value"
+            ;;
+        line8_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE8_COMPONENTS="$value"
+            ;;
+        line9_components)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE9_COMPONENTS="$value"
+            ;;
+        line1_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE1_SEPARATOR="$value"
+            ;;
+        line2_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE2_SEPARATOR="$value"
+            ;;
+        line3_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE3_SEPARATOR="$value"
+            ;;
+        line4_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE4_SEPARATOR="$value"
+            ;;
+        line5_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE5_SEPARATOR="$value"
+            ;;
+        line6_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE6_SEPARATOR="$value"
+            ;;
+        line7_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE7_SEPARATOR="$value"
+            ;;
+        line8_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE8_SEPARATOR="$value"
+            ;;
+        line9_separator)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_LINE9_SEPARATOR="$value"
+            ;;
+        line1_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE1_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line2_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE2_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line3_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE3_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line4_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE4_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line5_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE5_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line6_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE6_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line7_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE7_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line8_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE8_SHOW_WHEN_EMPTY="$value"
+            ;;
+        line9_show_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_LINE9_SHOW_WHEN_EMPTY="$value"
+            ;;
         esac
     done <<<"$config_data"
 
@@ -548,10 +777,24 @@ apply_env_overrides() {
     [[ -n "$ENV_CONFIG_MCP_TIMEOUT" ]] && CONFIG_MCP_TIMEOUT="$ENV_CONFIG_MCP_TIMEOUT"
     [[ -n "$ENV_CONFIG_VERSION_TIMEOUT" ]] && CONFIG_VERSION_TIMEOUT="$ENV_CONFIG_VERSION_TIMEOUT"
     [[ -n "$ENV_CONFIG_CCUSAGE_TIMEOUT" ]] && CONFIG_CCUSAGE_TIMEOUT="$ENV_CONFIG_CCUSAGE_TIMEOUT"
+    
+    # Modular display configuration (v2.5.0+)
+    [[ -n "$ENV_CONFIG_DISPLAY_LINES" ]] && CONFIG_DISPLAY_LINES="$ENV_CONFIG_DISPLAY_LINES"
+    [[ -n "$ENV_CONFIG_LINE1_COMPONENTS" ]] && CONFIG_LINE1_COMPONENTS="$ENV_CONFIG_LINE1_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE2_COMPONENTS" ]] && CONFIG_LINE2_COMPONENTS="$ENV_CONFIG_LINE2_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE3_COMPONENTS" ]] && CONFIG_LINE3_COMPONENTS="$ENV_CONFIG_LINE3_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE4_COMPONENTS" ]] && CONFIG_LINE4_COMPONENTS="$ENV_CONFIG_LINE4_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE5_COMPONENTS" ]] && CONFIG_LINE5_COMPONENTS="$ENV_CONFIG_LINE5_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE6_COMPONENTS" ]] && CONFIG_LINE6_COMPONENTS="$ENV_CONFIG_LINE6_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE7_COMPONENTS" ]] && CONFIG_LINE7_COMPONENTS="$ENV_CONFIG_LINE7_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE8_COMPONENTS" ]] && CONFIG_LINE8_COMPONENTS="$ENV_CONFIG_LINE8_COMPONENTS"
+    [[ -n "$ENV_CONFIG_LINE9_COMPONENTS" ]] && CONFIG_LINE9_COMPONENTS="$ENV_CONFIG_LINE9_COMPONENTS"
 
     # Log environment overrides if any were applied
     local overrides_applied=false
-    for var in ENV_CONFIG_THEME ENV_CONFIG_SHOW_COMMITS ENV_CONFIG_MCP_TIMEOUT; do
+    local env_vars=(ENV_CONFIG_THEME ENV_CONFIG_SHOW_COMMITS ENV_CONFIG_MCP_TIMEOUT ENV_CONFIG_DISPLAY_LINES ENV_CONFIG_LINE1_COMPONENTS ENV_CONFIG_LINE2_COMPONENTS ENV_CONFIG_LINE3_COMPONENTS)
+    
+    for var in "${env_vars[@]}"; do
         if [[ -n "${!var}" ]]; then
             if [[ "$overrides_applied" == "false" ]]; then
                 debug_log "Environment variable overrides applied" "INFO"
@@ -602,5 +845,5 @@ init_config_module
 
 # Export configuration functions
 export -f parse_toml_to_json discover_config_file init_default_config
-export -f load_toml_configuration extract_config_values apply_env_overrides
+export -f load_toml_configuration extract_config_values apply_env_overrides auto_regenerate_config
 export -f load_configuration
