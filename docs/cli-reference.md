@@ -52,7 +52,7 @@ The enhanced statusline provides a streamlined command-line interface for:
 
 ```bash
 $ ./statusline.sh --help
-Claude Code Statusline (Refactored v2.0.6)
+Claude Code Statusline v2.9.0
 ==========================================
 
 USAGE:
@@ -91,7 +91,7 @@ THEMES:
 
 ```bash
 $ ./statusline.sh --version
-Claude Code Statusline v2.0.6
+Claude Code Statusline v2.9.0
 Architecture: 2.0.0-refactored (modular refactor)
 Compatible with original v1.3.0
 Modules loaded: 9

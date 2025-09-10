@@ -1,10 +1,10 @@
-# ⚙️ Single Source Configuration Guide (v2.8.2)
+# ⚙️ Single Source Configuration Guide (v2.9.0)
 
 **Complete guide to the revolutionary single source configuration system - ONE Config.toml with all 227 settings.**
 
 Transform your terminal with the **most significant configuration simplification** ever - no more hunting for parameter names across multiple files!
 
-> 🎯 **Single Source Revolution**: The configuration system has been completely simplified and is **100% operational** (v2.8.2). Gone are 13 example files + hardcoded defaults + jq fallbacks. Now there's ONE comprehensive Config.toml with all 227 settings pre-filled. Users just edit values, not search for parameter names.
+> 🎯 **Single Source Revolution**: The configuration system has been completely simplified and is **100% operational** (v2.9.0). Gone are 13 example files + hardcoded defaults + jq fallbacks. Now there's ONE comprehensive Config.toml with all 227 settings pre-filled. Users just edit values, not search for parameter names. Combined with the revolutionary 3-tier download system, installation and configuration are now bulletproof.
 
 ## 🚀 **Ultra-Simple Getting Started**
 
