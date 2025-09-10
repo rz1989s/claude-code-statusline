@@ -116,9 +116,9 @@ display.line3.components = ["mcp_status"]
 display.lines = 5
 display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
 display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
-display.line3.components = ["mcp_status"]
-display.line4.components = ["reset_timer"]
-display.line5.components = ["prayer_times"]
+display.line3.components = ["prayer_times"]
+display.line4.components = ["mcp_status"]
+display.line5.components = ["reset_timer"]
 ```
 
 ### Atomic Components (separate git data)

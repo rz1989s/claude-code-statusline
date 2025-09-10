@@ -371,13 +371,13 @@ display.line2.components = ["model_info", "cost_session", "cost_period", "cost_l
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
-# Line 3: MCP Server Status
-display.line3.components = ["mcp_status"]
+# Line 3: Islamic Prayer Times (high priority - user-facing)
+display.line3.components = ["prayer_times"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: Islamic Prayer Times (high priority - user-facing)
-display.line4.components = ["prayer_times"]
+# Line 4: MCP Server Status
+display.line4.components = ["mcp_status"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 

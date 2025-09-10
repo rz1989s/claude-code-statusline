@@ -420,7 +420,7 @@ ENV_CONFIG_SHOW_VERSION=false ./statusline.sh        # Hide version information
 ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh           # Show only 3 lines
 ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" ./statusline.sh              # Custom line 1
 ENV_CONFIG_LINE2_COMPONENTS="cost_monthly,cost_weekly,cost_daily" ./statusline.sh  # Atomic costs on line 2
-ENV_CONFIG_LINE3_COMPONENTS="mcp_status" ./statusline.sh         # MCP status on line 3
+ENV_CONFIG_LINE4_COMPONENTS="mcp_status" ./statusline.sh         # MCP status on line 4
 
 # === ATOMIC COMPONENT TOGGLES ===
 ENV_CONFIG_COMPONENTS_COMMITS_ENABLED=false ./statusline.sh      # Hide commit count

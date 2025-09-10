@@ -351,26 +351,9 @@ init_default_config() {
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
 
-    # Line configuration defaults
-    CONFIG_DISPLAY_LINES="$DEFAULT_CONFIG_DISPLAY_LINES"
-    CONFIG_LINE1_COMPONENTS="$DEFAULT_CONFIG_LINE1_COMPONENTS"
-    CONFIG_LINE2_COMPONENTS="$DEFAULT_CONFIG_LINE2_COMPONENTS"
-    CONFIG_LINE3_COMPONENTS="$DEFAULT_CONFIG_LINE3_COMPONENTS"
-    CONFIG_LINE4_COMPONENTS="$DEFAULT_CONFIG_LINE4_COMPONENTS"
-    CONFIG_LINE5_COMPONENTS="$DEFAULT_CONFIG_LINE5_COMPONENTS"
-    CONFIG_LINE6_COMPONENTS="$DEFAULT_CONFIG_LINE6_COMPONENTS"
-    CONFIG_LINE7_COMPONENTS="$DEFAULT_CONFIG_LINE7_COMPONENTS"
-    CONFIG_LINE8_COMPONENTS="$DEFAULT_CONFIG_LINE8_COMPONENTS"
-    CONFIG_LINE9_COMPONENTS="$DEFAULT_CONFIG_LINE9_COMPONENTS"
-    
-    # Set separators for all lines
-    for i in {1..9}; do
-        declare -n line_separator="CONFIG_LINE${i}_SEPARATOR"
-        line_separator="$DEFAULT_CONFIG_LINE_SEPARATOR"
-        
-        declare -n show_when_empty="CONFIG_LINE${i}_SHOW_WHEN_EMPTY"
-        show_when_empty="$DEFAULT_CONFIG_LINE_SHOW_WHEN_EMPTY"
-    done
+    # Line configuration defaults removed in v2.8.1 single source architecture
+    # All configuration now loaded exclusively from Config.toml via auto-regeneration
+    # No hardcoded defaults needed - auto_regenerate_config() ensures Config.toml always exists
 
     debug_log "Default configuration initialized" "INFO"
 }
