@@ -2,7 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status (v2.9.0)
+## Project Status (v2.9.0-nightly-20250911)
+
+**🌙 NIGHTLY BRANCH: Experimental Features & Bleeding-Edge Development** - Access cutting-edge features before they hit stable releases! This branch contains the latest experimental developments and revolutionary improvements.
+
+**🚀 NIGHTLY BRANCH FEATURES**:
+- **Experimental Development** - Latest features in active development
+- **Bleeding-Edge Testing** - Community access to upcoming improvements
+- **Rapid Iteration** - Features evolve quickly before stabilization
+- **Advanced User Focus** - Perfect for power users and contributors
+- **Pre-Release Validation** - Help test features before official release
 
 **🎯 CURRENT: Revolutionary 3-Tier Download System OPERATIONAL** - Major installer enhancement achieves **100% download guarantee** and eliminates GitHub rate limits! Complete architectural overhaul ensures reliable, fast installation regardless of GitHub API availability.
 
@@ -263,11 +272,32 @@ ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh  # Feature toggles
 
 **Branch-Aware Development:**
 ```bash
-# 1. Test dev2 branch changes before PR
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev2/install.sh | bash -s -- --branch=dev2
+# 1. Nightly branch (experimental features) - USE WITH CAUTION
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 
-# 2. Production deployment (after PR merge)
+# 2. Development branch (stable development)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+
+# 3. Production deployment (stable releases)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+```
+
+**🌙 Nightly Branch Workflow:**
+```bash
+# Switch to nightly for experimental features
+git checkout nightly
+
+# Update nightly version for new experimental features
+echo "2.9.0-nightly-$(date +%Y%m%d)" > version.txt
+git add version.txt
+git commit -m "feat: experimental nightly v2.9.0-nightly-$(date +%Y%m%d)"
+
+# Push experimental features to nightly
+git push origin nightly
+
+# When features are stable, merge to dev
+git checkout dev
+git merge nightly --no-ff -m "feat: integrate experimental features from nightly"
 ```
 
 ## Configuration Deep Dive
