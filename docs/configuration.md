@@ -38,23 +38,25 @@ The statusline now uses an **atomic component architecture** where each componen
 
 **Core Components (11):**
 - `repo_info` - Repository directory and git status  
-- `git_stats` - Combined git statistics (legacy)
+- `commits` - Commit count only (pure atomic)
+- `submodules` - Submodule status only (pure atomic)
 - `version_info` - Claude Code version display
 - `time_display` - Current time formatting
 - `model_info` - Claude model with emoji
 - `cost_session` - Repository session cost
-- `cost_period` - Combined cost periods (legacy)
+- `cost_monthly` - 30-day costs only (pure atomic)
+- `cost_weekly` - 7-day costs only (pure atomic)
+- `cost_daily` - Daily costs only (pure atomic)
 - `cost_live` - Live block cost tracking
 - `mcp_status` - MCP server health monitoring
 - `reset_timer` - Block reset countdown
 - `prayer_times` - Islamic prayer times integration
 
 **Atomic Components (5 - NEW!):**
-- `commits` - Shows only commit count (split from git_stats)
-- `submodules` - Shows only submodule status (split from git_stats)  
-- `cost_monthly` - Shows only 30-day costs (split from cost_period)
-- `cost_weekly` - Shows only 7-day costs (split from cost_period)
-- `cost_daily` - Shows only daily costs (split from cost_period)
+- `burn_rate` - Token consumption rate and cost per hour
+- `token_usage` - Total tokens consumed in current block
+- `cache_efficiency` - Cache hit percentage for optimization
+- `block_projection` - Projected cost and tokens for current block
 
 ### Modular Display Configuration
 
@@ -194,8 +196,11 @@ components.reset_timer.enabled = true
 components.prayer_times.enabled = true
 
 # === LEGACY COMPONENTS (Backward Compatibility) ===
-components.git_stats.enabled = true
-components.cost_period.enabled = true
+components.commits.enabled = true
+components.submodules.enabled = true
+components.cost_monthly.enabled = true
+components.cost_weekly.enabled = true
+components.cost_daily.enabled = true
 
 # === CORE FEATURE TOGGLES ===
 features.show_commits = true          # Show today's commit count

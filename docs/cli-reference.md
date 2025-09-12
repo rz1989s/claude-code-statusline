@@ -181,7 +181,7 @@ STATUSLINE_DEBUG=true ./statusline.sh --modules   # Debug component loading
 ```
 
 **Output**:
-- Lists all 20 components across 6 categories
+- Lists all 18 components across 6 categories
 - Shows component registration status
 - Displays component dependencies
 - Identifies any failed component loads

@@ -72,7 +72,7 @@ ENV_CONFIG_LINE4_COMPONENTS="prayer_times" \
 ./statusline.sh  # 4-line atomic layout
 
 # Compare legacy vs atomic (same data, different components)
-ENV_CONFIG_LINE1_COMPONENTS="git_stats" ./statusline.sh           # Legacy: combined commits+submodules
+ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Pure atomic: separated components
 ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic: separated components
 
 # Component availability testing
@@ -165,7 +165,7 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 - `lib/cache.sh` - Intelligent caching system
 - `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
 - `lib/prayer/*.sh` - Modular prayer system (location, calculation, display)
-- `lib/components/*.sh` - **ATOMIC** Individual component modules (20 components)
+- `lib/components/*.sh` - **ATOMIC** Individual component modules (18 components)
 
 **Atomic Component Architecture (v2.7.0):**
 Each component follows a standardized interface:
@@ -183,7 +183,8 @@ Each component follows a standardized interface:
 - `repo_info.sh` - Repository directory and git branch/status
 - `commits.sh` - Commit count for current repository
 - `submodules.sh` - Submodule status and count
-- `git_stats.sh` - Combined commits + submodules (legacy format)
+- `commits.sh` - Commit count only (pure atomic)
+- `submodules.sh` - Submodule status only (pure atomic)
 - `version_info.sh` - Claude Code version display
 
 **Model & Session Components (4):**
@@ -196,7 +197,9 @@ Each component follows a standardized interface:
 - `cost_monthly.sh` - 30-day cost summary
 - `cost_weekly.sh` - 7-day cost summary
 - `cost_daily.sh` - Daily cost summary
-- `cost_period.sh` - Combined 30day/7day/daily costs (legacy format)
+- `cost_monthly.sh` - 30-day costs only (pure atomic)
+- `cost_weekly.sh` - 7-day costs only (pure atomic)
+- `cost_daily.sh` - Daily costs only (pure atomic)
 
 **Block Metrics Components (4):**
 - `burn_rate.sh` - Token consumption rate (🔥3.5k/min $2.10/hr)
@@ -475,7 +478,7 @@ ENV_CONFIG_LABELS_VERSION_PREFIX="v" ./statusline.sh
 **🎯 ONE Config.toml - All 227 Settings:**
 - `theme.name = "catppuccin"` - Theme selection (classic/garden/catppuccin/custom)
 - `display.lines = 5` - Number of statusline lines (1-9)
-- `display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]` - Component arrangement
+- `display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]` - Component arrangement
 - `features.show_mcp_status = true` - Feature toggles
 - `timeouts.mcp = "10s"` - Performance tuning
 - `cache.isolation.mode = "repository"` - Cache isolation settings

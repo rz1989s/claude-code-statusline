@@ -207,18 +207,18 @@ labels.commits = "Commits:"            # Display labels
 
 **🎯 ULTIMATE CUSTOMIZATION: ATOMIC COMPONENT BREAKTHROUGH**
 
-Transform your statusline with **20 atomic components** that eliminate separator issues and provide maximum control:
+Transform your statusline with **18 atomic components** that eliminate separator issues and provide maximum control:
 
-- **🔬 Atomic Components (NEW)** - Split complex components into single-purpose units:
-  - `commits` (atomic from git_stats) - Shows ONLY commit count
-  - `submodules` (atomic from git_stats) - Shows ONLY submodule status  
-  - `cost_monthly` (atomic from cost_period) - Shows ONLY 30-day costs
-  - `cost_weekly` (atomic from cost_period) - Shows ONLY 7-day costs
-  - `cost_daily` (atomic from cost_period) - Shows ONLY daily costs
+- **🔬 Atomic Components** - Single-purpose units for maximum control:
+  - `commits` - Shows ONLY commit count (pure atomic)
+  - `submodules` - Shows ONLY submodule status (pure atomic)
+  - `cost_monthly` - Shows ONLY 30-day costs (pure atomic)
+  - `cost_weekly` - Shows ONLY 7-day costs (pure atomic)
+  - `cost_daily` - Shows ONLY daily costs (pure atomic)
 
 - **🎨 Clean Visual Separation** - No more `30DAY $660.87 7DAY $9.31 DAY $36.10`! Now: `30DAY $660.87 │ 7DAY $9.31 │ DAY $36.10`
 - **🧩 Maximum Control** - Want only commits without submodules? Use `commits` component only
-- **🔄 Backward Compatible** - Legacy `git_stats` and `cost_period` components still work perfectly
+- **⚙️ Pure Atomic Architecture** - No legacy bundled components, each component shows unique data only
 - **📋 8 Example Configs** - Including new `Config.modular-atomic.toml` showcase
 
 **⚛️ ATOMIC CONFIGURATION EXAMPLES**
@@ -229,8 +229,8 @@ display.line1.components = ["repo_info", "commits", "version_info"]
 # Custom cost tracking - pick exactly what you need
 display.line2.components = ["cost_monthly", "cost_daily"]
 
-# Mix atomic and legacy components
-display.line3.components = ["git_stats", "cost_weekly", "mcp_status"]
+# Pure atomic components
+display.line3.components = ["commits", "cost_weekly", "mcp_status"]
 ```
 
 ---
@@ -248,12 +248,15 @@ display.line3.components = ["git_stats", "cost_weekly", "mcp_status"]
 **🧩 INDIVIDUAL COMPONENT MODULES**
 
 - **`repo_info.sh`** - Repository directory and git status display
-- **`git_stats.sh`** - Commits count and submodule tracking  
+- **`commits.sh`** - Commit count (pure atomic)
+- **`submodules.sh`** - Submodule tracking (pure atomic)
 - **`version_info.sh`** - Claude Code version with intelligent caching
 - **`time_display.sh`** - Current time formatting and display
 - **`model_info.sh`** - Claude model identification with emoji indicators
 - **`cost_session.sh`** - Repository session cost tracking
-- **`cost_period.sh`** - 30day/7day/daily cost summaries
+- **`cost_monthly.sh`** - 30-day costs (pure atomic)
+- **`cost_weekly.sh`** - 7-day costs (pure atomic)
+- **`cost_daily.sh`** - Daily costs (pure atomic)
 - **`cost_live.sh`** - Live billing block cost monitoring
 - **`mcp_status.sh`** - MCP server health and connection status
 - **`reset_timer.sh`** - Block reset countdown and timer management
@@ -264,7 +267,7 @@ display.line3.components = ["git_stats", "cost_weekly", "mcp_status"]
 ```toml
 # Compact 3-line layout
 display.lines = 3
-display.line1.components = ["repo_info", "git_stats"]
+display.line1.components = ["repo_info", "commits", "submodules"]
 display.line2.components = ["model_info", "cost_session"] 
 display.line3.components = ["mcp_status"]
 
@@ -480,14 +483,14 @@ display.lines = 6
 display.line1.components = ["mcp_status", "version_info"]      # MCP first!
 display.line2.components = ["prayer_times", "time_display"]    # Prayer times priority
 display.line3.components = ["repo_info", "model_info"]         # Repository info
-display.line4.components = ["git_stats"]                       # Git stats isolated
-display.line5.components = ["cost_session", "cost_period", "cost_live"]  # All costs together
+display.line4.components = ["commits", "submodules"]               # Atomic git stats
+display.line5.components = ["cost_session", "cost_monthly", "cost_live"]  # All costs together
 display.line6.components = ["reset_timer"]                     # Timer when active
 ```
 
 **📋 Default 5-Line Layout (Customizable):**
 
-**Line 1: Repository & Environment** *(Components: `repo_info`, `git_stats`, `version_info`, `time_display`)*
+**Line 1: Repository & Environment** *(Components: `repo_info`, `commits`, `submodules`, `version_info`, `time_display`)*
 - Working directory with elegant `~` notation
 - Git branch with clean/dirty status indicators  
 - Today's commit count tracking
@@ -497,7 +500,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 
 ![Cost Tracking Integration](assets/screenshots/ccusage-info.png)
 
-**Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_session`, `cost_period`, `cost_live`)*
+**Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_session`, `cost_monthly`, `cost_weekly`, `cost_daily`, `cost_live`)*
 - Current Claude model with emoji indicators
 - Repository session costs
 - 30-day, 7-day, and daily spending totals
@@ -528,12 +531,15 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 
 **Available Components:**
 - `repo_info` - Directory path and git status
-- `git_stats` - Commits count and submodules
+- `commits` - Commit count (atomic)
+- `submodules` - Submodule status (atomic)
 - `version_info` - Claude Code version
 - `time_display` - Current time
 - `model_info` - Claude model with emoji
 - `cost_session` - Repository session cost
-- `cost_period` - 30day/7day/daily costs
+- `cost_monthly` - 30-day costs (atomic)
+- `cost_weekly` - 7-day costs (atomic)
+- `cost_daily` - Daily costs (atomic)
 - `cost_live` - Live block cost
 - `mcp_status` - MCP server health
 - `reset_timer` - Block reset countdown
@@ -543,7 +549,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 ```toml
 # Compact 3-line layout
 display.lines = 3
-display.line1.components = ["repo_info", "git_stats"]
+display.line1.components = ["repo_info", "commits", "submodules"]
 display.line2.components = ["model_info", "cost_session"] 
 display.line3.components = ["mcp_status"]
 
@@ -1346,8 +1352,8 @@ ENV_CONFIG_LINE3_COMPONENTS="mcp_status" ./statusline.sh
 
 # Standard Familiar (5-line) - Default comprehensive layout
 ENV_CONFIG_DISPLAY_LINES=5 \
-ENV_CONFIG_LINE1_COMPONENTS="repo_info,git_stats,version_info,time_display" \
-ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_period,cost_live" \
+ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,submodules,version_info,time_display" \
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_monthly,cost_live" \
 ENV_CONFIG_LINE3_COMPONENTS="mcp_status" \
 ENV_CONFIG_LINE4_COMPONENTS="reset_timer" \
 ENV_CONFIG_LINE5_COMPONENTS="prayer_times" ./statusline.sh
@@ -1467,7 +1473,7 @@ theme.name = "catppuccin"  # Options: classic, garden, catppuccin, custom
 
 # === MODULAR DISPLAY CONFIGURATION ===
 display.lines = 5  # Number of lines (1-9)
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
@@ -1624,10 +1630,10 @@ display.lines = 7
 display.line1.components = ["prayer_times"]
 
 # Lines 2-7: Strategic component arrangement
-display.line2.components = ["repo_info", "git_stats"]
+display.line2.components = ["repo_info", "commits", "submodules"]
 display.line3.components = ["model_info", "version_info", "time_display"]
 display.line4.components = ["cost_session", "cost_live"]
-display.line5.components = ["cost_period"]
+display.line5.components = ["cost_monthly", "cost_weekly", "cost_daily"]
 display.line6.components = ["mcp_status"]
 display.line7.components = ["reset_timer"]
 ```

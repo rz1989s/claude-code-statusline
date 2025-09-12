@@ -358,8 +358,8 @@ hijri.show_weekday = true              # Include day of week in display
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components
 
-# Number of lines to display (1-9) - SHOWCASING ALL 20 COMPONENTS!
-display.lines = 8
+# Number of lines to display (1-9) - SHOWCASING ALL 18 ATOMIC COMPONENTS!
+display.lines = 5
 
 # Line 1: Repository Core (atomic git components + info)
 display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
@@ -387,14 +387,14 @@ display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
 # Line 6: Legacy Git Display (for comparison with atomic components)
-display.line6.components = ["git_stats"]
+display.line6.components = []
 display.line6.separator = " │ "
-display.line6.show_when_empty = true
+display.line6.show_when_empty = false
 
 # Line 7: Legacy Cost Period (for comparison with atomic components)
-display.line7.components = ["cost_period"]
+display.line7.components = []
 display.line7.separator = " │ "
-display.line7.show_when_empty = true
+display.line7.show_when_empty = false
 
 # Line 8: Available for future expansion
 display.line8.components = []

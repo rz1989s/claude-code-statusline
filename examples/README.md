@@ -58,7 +58,7 @@ theme.name = "catppuccin"  # classic, garden, catppuccin, custom
 
 # === MODULAR DISPLAY CONFIGURATION ===
 display.lines = 5                      # Number of lines (1-9)
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
@@ -114,8 +114,8 @@ display.line3.components = ["mcp_status"]
 ### Standard Familiar (5-line) - Default
 ```toml
 display.lines = 5
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
-display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
+display.line2.components = ["model_info", "cost_session", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line3.components = ["prayer_times"]
 display.line4.components = ["mcp_status"]
 display.line5.components = ["reset_timer"]
@@ -162,7 +162,7 @@ ENV_CONFIG_THEME_NAME=garden ./statusline.sh
 ENV_CONFIG_THEME_NAME=classic ./statusline.sh
 
 # Test atomic vs legacy components
-ENV_CONFIG_LINE1_COMPONENTS="git_stats" ./statusline.sh           # Legacy combined
+ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Pure atomic separated
 ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separated
 ```
 
@@ -170,13 +170,14 @@ ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separ
 
 ## 🧩 **Available Components**
 
-Your Config.toml can use any of these 20 components:
+Your Config.toml can use any of these 18 components:
 
 ### Repository & Git Components (5)
 - `repo_info` - Repository directory and git branch/status
 - `commits` - Commit count for current repository
 - `submodules` - Submodule status and count
-- `git_stats` - Combined commits + submodules (legacy format)
+- `commits` - Commit count only (pure atomic)
+- `submodules` - Submodule status only (pure atomic)
 - `version_info` - Claude Code version display
 
 ### Model & Session Components (4)
@@ -189,7 +190,9 @@ Your Config.toml can use any of these 20 components:
 - `cost_monthly` - 30-day cost summary
 - `cost_weekly` - 7-day cost summary
 - `cost_daily` - Daily cost summary
-- `cost_period` - Combined 30day/7day/daily costs (legacy format)
+- `cost_monthly` - 30-day costs only (pure atomic)
+- `cost_weekly` - 7-day costs only (pure atomic)
+- `cost_daily` - Daily costs only (pure atomic)
 
 ### Block Metrics Components (4) - NEW v2.10.0
 - `burn_rate` - Token consumption rate (🔥3.5k/min $2.10/hr)

@@ -526,7 +526,7 @@ download_directory_comprehensive() {
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
@@ -794,16 +794,16 @@ download_lib_fallback() {
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
-    # Component modules (lib/components/) - all 20 components
+    # Component modules (lib/components/) - all 18 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
-        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 510-517 arrays)
+        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
     # Combine all modules for comprehensive download
