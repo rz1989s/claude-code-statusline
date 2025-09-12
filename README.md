@@ -28,7 +28,13 @@
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 [![GitHub stars](https://img.shields.io/github/stars/rz1989s/claude-code-statusline?style=social)](https://github.com/rz1989s/claude-code-statusline/stargazers)
 
-![Hero Screenshot](assets/screenshots/catppuccin-mocha-theme.png)
+## 🎥 Live Demo & Screenshots
+
+![Statusline Demo](assets/screenshots/statusline-demo.gif)
+
+**🎨 Catppuccin Mocha Theme in VS Code Terminal**
+
+![Beautiful Terminal](assets/screenshots/catppuccin-mocha-theme.png)
 
 </div>
 
