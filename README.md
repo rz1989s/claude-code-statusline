@@ -30,9 +30,7 @@
 
 ## 🎥 Live Demo
 
-![Statusline Demo Video](assets/screenshots/statusline-demo.mp4)
-
-> **⚡ Pro Tip:** GitHub will automatically convert this to a playable video player when you view the README!
+![Statusline Demo](assets/screenshots/statusline-demo.gif)
 
 </div>
 
