@@ -6,6 +6,21 @@
 **Fast updates (<1min):** Git branch/status (30s), costs (30s-2min)  
 **Slow updates (>1hr):** Weekly/monthly costs, Claude version (15min), MCP servers (5min)
 
+## Instance-Aware Caching (v2.1.0+)
+
+**Cache Isolation Modes:**
+- **Repository-aware**: Each working directory gets isolated cache keys
+- **Instance-aware**: Each process gets separate cache files
+- **Shared**: Legacy behavior (no isolation)
+
+**Configurable per data type:**
+```toml
+cache.isolation.mcp = "repository"      # MCP servers per repository
+cache.isolation.git = "repository"      # Git data per repository  
+cache.isolation.session = "repository"  # Session costs per project
+cache.isolation.cost = "shared"         # Total costs user-wide
+```
+
 ---
 
 This document details all time-related constants and update frequencies for information displayed in the Claude Code statusline.

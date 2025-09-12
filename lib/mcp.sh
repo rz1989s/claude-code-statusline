@@ -49,15 +49,19 @@ execute_mcp_list() {
         return 1
     fi
     
-    # Use universal caching system (5-minute cache - MCP servers don't disconnect frequently)
+    # Use universal caching system with repository-aware cache keys
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        # Generate repository-aware cache key to prevent cross-contamination
+        local cache_key
+        cache_key=$(generate_typed_cache_key "claude_mcp_list" "mcp")
+        
         # Use direct command instead of function call for cache compatibility
         if command_exists timeout; then
-            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
-            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
         else
-            cache_external_command "claude_mcp_list" "$CACHE_DURATION_MEDIUM" "validate_command_output" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
         _execute_mcp_list_direct "$timeout_duration"
@@ -417,7 +421,10 @@ get_cached_mcp_status() {
     
     # Use universal caching system if available
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
-        cache_external_command "mcp_status" "$cache_duration" "validate_command_output" bash -c 'get_mcp_status'
+        # Generate repository-aware cache key for MCP status
+        local cache_key
+        cache_key=$(generate_typed_cache_key "mcp_status" "mcp")
+        cache_external_command "$cache_key" "$cache_duration" "validate_command_output" bash -c 'get_mcp_status'
     else
         # Fallback to direct execution
         get_mcp_status

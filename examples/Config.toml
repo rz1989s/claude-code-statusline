@@ -6,13 +6,10 @@
 # It uses simplified flat TOML format for reliable parsing across all platforms.
 # All settings use dot notation instead of nested sections.
 #
-# Configuration Precedence (highest to lowest):
-# 1. Environment variables (ENV_CONFIG_*)
-# 2. ./Config.toml (project-specific)
-# 3. ~/.claude/statusline/Config.toml (user installation - THIS FILE)
-# 4. ~/.config/claude-code-statusline/Config.toml (XDG standard)
-# 5. ~/.claude-statusline.toml (legacy fallback)
-# 6. Inline script defaults (fallback)
+# Configuration Order (simplified single source of truth):
+# 1. Environment variables (ENV_CONFIG_*) - Temporary overrides
+# 2. ~/.claude/statusline/Config.toml - Your configuration (THIS FILE)
+# 3. Inline script defaults - Fallback when config missing
 #
 # ============================================================================
 
@@ -62,6 +59,8 @@ features.show_mcp_status = true
 features.show_cost_tracking = true
 features.show_reset_info = true
 features.show_session_info = true
+features.show_prayer_times = true
+features.show_hijri_date = true
 
 # === MODEL EMOJIS ===
 # Emojis displayed for different Claude models
@@ -79,6 +78,383 @@ emojis.live_block = "🔥"
 timeouts.mcp = "10s"
 timeouts.version = "10s"
 timeouts.ccusage = "10s"
+timeouts.prayer = "10s"
+
+# === PRAYER TIMES AUTO-CONFIGURATION ===
+# Islamic prayer times with intelligent worldwide auto-detection
+# 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!
+
+# === AUTO-DETECTION MODES ===
+# Choose how the statusline determines your location and prayer method:
+
+prayer.enabled = true
+prayer.location_mode = "auto"           # ⭐ RECOMMENDED: Comprehensive auto-detection
+
+# LOCATION MODE OPTIONS:
+# • "auto"     - Smart multi-tier detection (IP → Cache → Timezone → Locale)
+# • "ip_based" - Force IP geolocation only (requires internet)  
+# • "manual"   - Use coordinates below (disable auto-detection)
+
+# === AUTO-DETECTION PROCESS ===
+# When location_mode = "auto" (RECOMMENDED):
+#
+# 🌐 Tier 1: IP Geolocation (Online)
+#   • Uses free ip-api.com service (45 req/min, no key required)
+#   • Detects: Country, City, Coordinates, Timezone
+#   • Maps country → prayer method automatically
+#   • Caches results for 7 days
+#
+# 💾 Tier 2: Cached Location (Offline)
+#   • Uses cached IP geolocation data (7-day expiry)
+#   • No network required
+#
+# 🕐 Tier 3: System Timezone Mapping (Offline)
+#   • Maps system timezone → country → prayer method
+#   • Covers 98% of global Muslim population
+#   • Provides region-specific coordinates
+#
+# 🌏 Tier 4: System Locale Fallback
+#   • Uses system locale as location hint
+#   • Safe fallback for unknown regions
+
+# === WORLDWIDE COVERAGE ===
+# Auto-detection supports:
+# ✅ 28 major Islamic countries (2+ billion Muslims)
+# ✅ All Middle Eastern countries  
+# ✅ Major Muslim communities in Europe/Americas
+# ✅ Comprehensive timezone mapping (100+ regions)
+# ✅ Country code mapping (80+ countries)
+
+# === MANUAL OVERRIDE (Optional) ===
+# Leave these empty for auto-detection, or set for manual control:
+
+prayer.calculation_method = ""          # Auto-detected from location
+prayer.madhab = "2"                     # Hanafi (Indonesian default) - 1=Shafi, 2=Hanafi
+prayer.latitude = ""                    # Auto-detected from IP/timezone  
+prayer.longitude = ""                   # Auto-detected from IP/timezone
+prayer.timezone = ""                    # Auto-detected from system
+
+# === PRAYER DISPLAY SETTINGS ===
+prayer.show_completed_indicator = true  # Show ✓ for completed prayers
+prayer.highlight_next_prayer = true     # Highlight next upcoming prayer
+prayer.show_countdown = false           # Show countdown to next prayer
+prayer.time_format = "24h"             # 12h or 24h format
+prayer.show_time_remaining = true       # Show time remaining for next prayer (e.g., "3h 29m")
+prayer.use_legacy_indicator = false     # Use "(next)" instead of time remaining
+prayer.next_prayer_color_enabled = true # Apply color highlighting to next prayer
+prayer.next_prayer_color = "bright_green" # Color for next prayer: green, bright_green, teal
+
+# === CALCULATION METHODS WORLDWIDE ===
+# Choose the method used in your country/region:
+#
+# WORLDWIDE ORGANIZATIONS:
+#  0 = Shia Ithna-Ashari
+#  3 = Muslim World League (MWL) - Europe, Far East, parts of USA
+# 15 = Moonsighting Committee Worldwide
+#
+# MIDDLE EAST & AFRICA:
+#  4 = Umm al-Qura, Makkah - Saudi Arabia
+#  5 = Egyptian General Authority - Egypt, Africa, Middle East  
+#  8 = Gulf Region - Kuwait, Saudi Arabia (old method)
+#  9 = Kuwait
+# 10 = Qatar
+# 16 = Dubai (UAE)
+# 21 = Tunisia
+# 22 = Algeria
+# 23 = Morocco
+#
+# ASIA:
+#  1 = University of Islamic Sciences, Karachi - Pakistan, Afghanistan, India
+#  7 = Institute of Geophysics, Tehran - Iran
+# 11 = Majlis Ugama Islam Singapura (MUIS) - Singapore
+# 17 = Jabatan Kemajuan Islam Malaysia (JAKIM) - Malaysia
+# 20 = Kementerian Agama RI (KEMENAG) - Indonesia ✓ DEFAULT
+#
+# EUROPE & AMERICA:
+#  2 = Islamic Society of North America (ISNA) - USA, Canada
+# 12 = Union of Islamic Organizations of France (UOIF) - France
+# 13 = Diyanet İşleri Başkanlığı - Turkey
+# 14 = Spiritual Administration of Muslims - Russia
+#
+# CUSTOM:
+# 99 = Custom (provide parameters in method_settings)
+
+# === AUTO-DETECTION COVERAGE ===
+# Countries automatically detected with correct prayer methods:
+
+# 🌏 SOUTHEAST ASIA (450M Muslims) - Auto-detected ✅
+# Indonesia (231M)    → KEMENAG (20)      → Asia/Jakarta timezone
+# Malaysia (20M)      → JAKIM (17)        → Asia/Kuala_Lumpur timezone
+# Singapore (0.9M)    → MUIS (11)         → Asia/Singapore timezone
+# Brunei (0.4M)       → JAKIM (17)        → Asia/Brunei timezone
+
+# 🕌 SOUTH ASIA (620M Muslims) - Auto-detected ✅  
+# Pakistan (225M)     → Karachi (1)       → Asia/Karachi timezone
+# Bangladesh (153M)   → Karachi (1)       → Asia/Dhaka timezone
+# India (195M)        → Karachi (1)       → Asia/Kolkata|Delhi|Mumbai timezone
+# Afghanistan (38M)   → Karachi (1)       → Asia/Kabul timezone
+# Sri Lanka (2M)      → Karachi (1)       → Asia/Colombo timezone
+# Maldives (0.5M)     → Karachi (1)       → Indian/Maldives timezone
+
+# 🏜️ MIDDLE EAST & GULF (120M Muslims) - Auto-detected ✅
+# Saudi Arabia (31M)  → Umm al-Qura (4)  → Asia/Riyadh timezone
+# UAE (7M)           → Dubai (16)         → Asia/Dubai timezone  
+# Kuwait (3M)        → Kuwait (9)         → Asia/Kuwait timezone
+# Qatar (2M)         → Qatar (10)         → Asia/Qatar timezone
+# Bahrain (1M)       → Umm al-Qura (4)   → Asia/Bahrain timezone
+# Oman (4M)          → Umm al-Qura (4)   → Asia/Muscat timezone
+# Iraq (38M)         → Kuwait (9)         → Asia/Baghdad timezone
+# Iran (82M)         → Tehran (7)         → Asia/Tehran timezone
+# Turkey (79M)       → Diyanet (13)       → Europe/Istanbul timezone
+# Yemen (28M)        → Umm al-Qura (4)   → Asia/Aden timezone
+
+# 🌍 NORTH AFRICA (280M Muslims) - Auto-detected ✅
+# Egypt (87M)        → Egyptian (5)       → Africa/Cairo timezone
+# Nigeria (99M)      → Egyptian (5)       → Africa/Lagos timezone
+# Algeria (43M)      → Algeria (22)       → Africa/Algiers timezone
+# Morocco (37M)      → Morocco (23)       → Africa/Casablanca timezone
+# Sudan (39M)        → Egyptian (5)       → Africa/Khartoum timezone
+# Tunisia (12M)      → Tunisia (21)       → Africa/Tunis timezone
+# Libya (7M)         → Egyptian (5)       → Africa/Tripoli timezone
+# Somalia (11M)      → Egyptian (5)       → Africa/Mogadishu timezone
+
+# 🌍 SUB-SAHARAN AFRICA (200M Muslims) - Auto-detected ✅
+# Senegal (16M)      → MWL (3)           → Africa/Dakar timezone
+# Mali (18M)         → MWL (3)           → Africa/Bamako timezone
+# Niger (21M)        → MWL (3)           → Africa/Niamey timezone
+# Chad (8M)          → MWL (3)           → Africa/Ndjamena timezone
+# Ethiopia (35M)     → Egyptian (5)       → Africa/Addis_Ababa timezone
+# Kenya (5M)         → Egyptian (5)       → Africa/Nairobi timezone
+# Tanzania (20M)     → Egyptian (5)       → Africa/Dar_es_Salaam timezone
+
+# 🌍 EUROPE (60M Muslims) - Auto-detected ✅
+# Russia (20M)       → Spiritual Admin (14) → Europe/Moscow timezone
+# France (6M)        → UOIF (12)          → Europe/Paris timezone
+# UK (3M)            → MWL (3)            → Europe/London timezone
+# Germany (5M)       → MWL (3)            → Europe/Berlin timezone
+# Bosnia (2M)        → MWL (3)            → Europe/Sarajevo timezone
+# Albania (2M)       → MWL (3)            → Europe/Tirana timezone
+# Kosovo (2M)        → MWL (3)            → Europe/Pristina timezone
+
+# 🌎 AMERICAS & OCEANIA (15M Muslims) - Auto-detected ✅
+# USA (3.5M)         → ISNA (2)           → America/New_York|Chicago|Los_Angeles timezone
+# Canada (1.5M)      → ISNA (2)           → America/Toronto|Vancouver timezone
+# Australia (0.6M)   → MWL (3)            → Australia/Sydney|Melbourne timezone
+# Brazil (1M)        → MWL (3)            → America/Sao_Paulo timezone
+
+# 🎯 TOTAL COVERAGE: 2+ billion Muslims (98% of global Muslim population)
+
+# === REGIONAL CONFIGURATION EXAMPLES ===
+# Manual configuration examples (only needed if auto-detection fails)
+# Find your region below, uncomment and adjust coordinates for your city
+# To find coordinates: Google "latitude longitude [your city name]"
+
+# --- INDONESIA (DEFAULT - Active above) ---
+# Major Indonesian cities coordinates:
+# Jakarta:    -6.2088, 106.8456
+# Surabaya:   -7.2504, 112.7688  
+# Bandung:    -6.9147, 107.6098
+# Medan:      3.5952, 98.6722
+# Makassar:   -5.1477, 119.4327
+# Bekasi:     -6.2349, 106.9896
+
+# --- SAUDI ARABIA (Umm al-Qura Method) ---
+# prayer.calculation_method = "4"   # Umm al-Qura
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "21.4225"       # Makkah
+# prayer.longitude = "39.8262"
+# prayer.timezone = "Asia/Riyadh"
+# Major cities:
+# Riyadh:     24.7136, 46.6753
+# Jeddah:     21.5433, 39.1728
+# Dammam:     26.3927, 49.9777
+
+# --- USA/CANADA (ISNA Method) ---
+# prayer.calculation_method = "2"   # ISNA
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "40.7128"       # New York
+# prayer.longitude = "-74.0060"
+# prayer.timezone = "America/New_York"
+# Major cities:
+# Los Angeles: 34.0522, -118.2437
+# Chicago:     41.8781, -87.6298
+# Toronto:     43.6532, -79.3832
+
+# --- MALAYSIA (JAKIM Method) ---
+# prayer.calculation_method = "17"  # JAKIM
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "3.1390"        # Kuala Lumpur
+# prayer.longitude = "101.6869"
+# prayer.timezone = "Asia/Kuala_Lumpur"
+
+# --- TURKEY (Diyanet Method) ---
+# prayer.calculation_method = "13"  # Diyanet
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "41.0082"       # Istanbul
+# prayer.longitude = "28.9784"
+# prayer.timezone = "Europe/Istanbul"
+# Major cities:
+# Ankara:     39.9334, 32.8597
+# Izmir:      38.4192, 27.1287
+
+# --- UK/EUROPE (Muslim World League) ---
+# prayer.calculation_method = "3"   # Muslim World League
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "51.5074"       # London
+# prayer.longitude = "-0.1278"
+# prayer.timezone = "Europe/London"
+# Major cities:
+# Paris:      48.8566, 2.3522
+# Berlin:     52.5200, 13.4050
+# Rome:       41.9028, 12.4964
+
+# --- EGYPT/MIDDLE EAST (Egyptian Authority) ---
+# prayer.calculation_method = "5"   # Egyptian Authority
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "30.0444"       # Cairo
+# prayer.longitude = "31.2357"
+# prayer.timezone = "Africa/Cairo"
+# Major cities:
+# Dubai:      25.2048, 55.2708
+# Baghdad:    33.3152, 44.3661
+# Damascus:   33.5138, 36.2765
+
+# --- PAKISTAN/INDIA (Karachi Method) ---
+# prayer.calculation_method = "1"   # Karachi University
+# prayer.madhab = "2"               # Hanafi
+# prayer.latitude = "24.8607"       # Karachi
+# prayer.longitude = "67.0011"
+# prayer.timezone = "Asia/Karachi"
+# Major cities:
+# Delhi:      28.6139, 77.2090
+# Mumbai:     19.0760, 72.8777
+# Islamabad:  33.6844, 73.0479
+
+# --- HIGH LATITUDE (Scandinavia, Northern Canada) ---
+# Special handling for extreme latitudes where sun may not set
+# prayer.calculation_method = "3"   # MWL (handles high latitude well)
+# prayer.madhab = "1"               # Shafi
+# prayer.latitude = "59.3293"       # Stockholm
+# prayer.longitude = "18.0686"
+# prayer.timezone = "Europe/Stockholm"
+# prayer.high_latitude_method = "1" # Angle-based adjustment for extreme latitudes
+
+# === HIJRI CALENDAR CONFIGURATION ===
+# Islamic calendar display with proper Maghrib-based day changes
+
+# Hijri calculation settings
+hijri.enabled = true
+hijri.calculation_method = "umm_alqura" # umm_alqura, kuwait, qatar, singapore
+hijri.adjustment_days = 0              # Manual adjustment for moon sighting differences
+hijri.show_arabic = false              # Display Arabic month names instead of English
+hijri.highlight_friday = true          # Special formatting for Jumu'ah (Friday)
+hijri.show_maghrib_indicator = true    # Show 🌙 when Islamic day changes at Maghrib
+
+# Hijri display format
+hijri.display_format = "short"         # short, full, with_weekday
+hijri.show_weekday = true              # Include day of week in display
+
+# === MODULAR DISPLAY CONFIGURATION ===
+# Configure 1-9 line statusline with atomic component system
+# Each line can contain any combination of available components
+
+# Number of lines to display (1-9) - SHOWCASING ALL 18 ATOMIC COMPONENTS!
+display.lines = 5
+
+# Line 1: Repository Core (atomic git components + info)
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
+display.line1.separator = " │ "
+display.line1.show_when_empty = true
+
+# Line 2: Model + Cost Analytics (all cost components)
+display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
+display.line2.separator = " │ "
+display.line2.show_when_empty = true
+
+# Line 3: Block Metrics (v2.10.0 features - no icons)
+display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection"]
+display.line3.separator = " │ "
+display.line3.show_when_empty = true
+
+# Line 4: System Status & Timer
+display.line4.components = ["mcp_status", "reset_timer"]
+display.line4.separator = " │ "
+display.line4.show_when_empty = true
+
+# Line 5: Islamic Prayer Times (spiritual context)
+display.line5.components = ["prayer_times"]
+display.line5.separator = " │ "
+display.line5.show_when_empty = true
+
+# Line 6: Legacy Git Display (for comparison with atomic components)
+display.line6.components = []
+display.line6.separator = " │ "
+display.line6.show_when_empty = false
+
+# Line 7: Legacy Cost Period (for comparison with atomic components)
+display.line7.components = []
+display.line7.separator = " │ "
+display.line7.show_when_empty = false
+
+# Line 8: Available for future expansion
+display.line8.components = []
+display.line8.separator = " │ "
+display.line8.show_when_empty = false
+
+# Line 9: Available for future expansion
+display.line9.components = []
+display.line9.separator = " │ "
+display.line9.show_when_empty = false
+
+# === AVAILABLE COMPONENTS REFERENCE ===
+# 🔄 SYNC WARNING: This section MUST be kept synchronized with CLAUDE.md
+# When updating component counts, descriptions, or categories here, update CLAUDE.md too!
+# ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
+#
+# === LOGICAL COMPONENT CATEGORIES (20 Total) ===
+#
+# Repository & Git Components (5):
+# - "repo_info"      - Repository directory and git branch/status
+# - "commits"        - Commit count for current repository
+# - "submodules"     - Submodule status and count
+# - "git_stats"      - Combined commits + submodules (legacy format)
+# - "version_info"   - Claude Code version display
+#
+# Model & Session Components (4):
+# - "model_info"     - Claude model name with emoji
+# - "cost_repo"      - Repository cost tracking
+# - "cost_live"      - Live block cost monitoring
+# - "reset_timer"    - Block reset countdown timer
+#
+# Cost Analytics Components (4):
+# - "cost_monthly"   - 30-day cost summary
+# - "cost_weekly"    - 7-day cost summary  
+# - "cost_daily"     - Daily cost summary
+# - "cost_period"    - Combined 30day/7day/daily costs (legacy format)
+#
+# Block Metrics Components (4):
+# - "burn_rate"        - Token consumption rate (🔥3.5k/min $2.10/hr)
+# - "token_usage"      - Total tokens in current 5-hour block (📊9.5M)
+# - "cache_efficiency" - Cache hit percentage for optimization (💾91% hit)
+# - "block_projection" - Projected cost and tokens (📈$8.25 10.5M)
+#
+# System Components (2):
+# - "mcp_status"     - MCP server health and connection status
+# - "time_display"   - Current time formatting
+#
+# Spiritual Components (1):
+# - "prayer_times"   - Islamic prayer times integration
+#
+# Example Component Configurations:
+# display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data
+# display.line2.components = ["model_info", "cost_monthly", "cost_weekly", "cost_daily"]  # Separate cost data
+# display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection"]  # Block metrics
+# display.line4.components = ["cost_repo", "cost_live", "prayer_times"]  # Mixed components
+#
+# Environment Override Examples:
+# ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
+# ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info" ./statusline.sh
+# ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_monthly,cost_daily" ./statusline.sh
 
 # === DISPLAY LABELS ===
 # Text labels used throughout the statusline
@@ -113,6 +489,9 @@ cache.durations.git_branches = 30
 cache.durations.git_status = 10
 cache.durations.git_current_branch = 10
 cache.durations.mcp_server_list = 120
+cache.durations.prayer_data = 3600
+cache.durations.hijri_date = 3600
+cache.durations.location_data = 604800
 cache.durations.directory_info = 5
 cache.durations.file_operations = 2
 
@@ -130,6 +509,16 @@ cache.security.enable_checksums = true
 cache.security.validate_on_read = true
 cache.security.secure_temp_files = true
 cache.security.instance_isolation = true
+
+# Instance isolation settings - prevent cache contamination between repositories
+# Options: "repository" (isolate by working directory), "instance" (by process), "shared" (no isolation)
+cache.isolation.mode = "repository"          # Default isolation mode for all cache types
+cache.isolation.mcp = "repository"           # MCP server status (prevents showing wrong servers)
+cache.isolation.git = "repository"           # Git operations (already repository-aware by design)
+cache.isolation.cost = "shared"              # Cost tracking (user-wide, should be shared)
+cache.isolation.session = "repository"       # Session costs (isolate per project)
+cache.isolation.prayer = "shared"            # Prayer times (user-wide, location-based)
+cache.isolation.hijri = "shared"             # Hijri dates (user-wide, location-based)
 
 # Legacy compatibility settings
 cache.legacy.version_duration = 3600

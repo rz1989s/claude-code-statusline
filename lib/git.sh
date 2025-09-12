@@ -229,7 +229,14 @@ get_total_commit_count() {
         return 1
     fi
     
-    git rev-list --count HEAD 2>/dev/null || echo "0"
+    # Use caching for expensive commit counting operation
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cache_key
+        cache_key=$(generate_typed_cache_key "total_commit_count" "git")
+        cache_git_operation "$cache_key" "$CACHE_DURATION_MEDIUM" git rev-list --count HEAD
+    else
+        git rev-list --count HEAD 2>/dev/null || echo "0"
+    fi
 }
 
 # Get commits count since a specific date
@@ -246,7 +253,16 @@ get_commits_since() {
         return 1
     fi
     
-    git log --since="$since_date" --oneline 2>/dev/null | wc -l | tr -d ' '
+    # Use caching for date-based commit counting with date in cache key
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cache_key
+        local sanitized_date="${since_date// /_}"  # Replace spaces with underscores
+        sanitized_date="${sanitized_date//:/_}"    # Replace colons with underscores
+        cache_key=$(generate_typed_cache_key "commits_since_${sanitized_date}" "git")
+        cache_git_operation "$cache_key" "$CACHE_DURATION_SHORT" bash -c "git log --since='$since_date' --oneline 2>/dev/null | wc -l | tr -d ' '"
+    else
+        git log --since="$since_date" --oneline 2>/dev/null | wc -l | tr -d ' '
+    fi
 }
 
 # Get commits today
@@ -285,7 +301,16 @@ get_last_commit_info() {
 
 # Check if repository has submodules
 has_submodules() {
-    [[ -f .gitmodules ]]
+    # Use caching for submodule detection (rarely changes)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cache_key
+        cache_key=$(generate_typed_cache_key "has_submodules" "git")
+        local result
+        result=$(cache_git_operation "$cache_key" "$CACHE_DURATION_LONG" bash -c '[[ -f .gitmodules ]] && echo "true" || echo "false"')
+        [[ "$result" == "true" ]]
+    else
+        [[ -f .gitmodules ]]
+    fi
 }
 
 # Get submodule count
@@ -295,7 +320,14 @@ get_submodule_count() {
         return 0
     fi
     
-    grep -c "^\[submodule " .gitmodules 2>/dev/null || echo "0"
+    # Use caching for submodule count (rarely changes)
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cache_key
+        cache_key=$(generate_typed_cache_key "submodule_count" "git")
+        cache_git_operation "$cache_key" "$CACHE_DURATION_LONG" bash -c 'grep -c "^\[submodule " .gitmodules 2>/dev/null || echo "0"'
+    else
+        grep -c "^\[submodule " .gitmodules 2>/dev/null || echo "0"
+    fi
 }
 
 # Get submodule status
@@ -326,7 +358,14 @@ get_detailed_submodule_info() {
         return 1
     fi
     
-    git submodule status 2>/dev/null
+    # Use caching for expensive submodule status operation
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cache_key
+        cache_key=$(generate_typed_cache_key "submodule_info" "git")
+        cache_git_operation "$cache_key" "$CACHE_DURATION_SHORT" git submodule status
+    else
+        git submodule status 2>/dev/null
+    fi
 }
 
 # Check if submodules are up to date

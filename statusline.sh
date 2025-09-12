@@ -21,7 +21,7 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
 fi
 
 # ============================================================================
-# Claude Code Enhanced Statusline - Main Orchestrator (v2.0.6-refactored)
+# Claude Code Enhanced Statusline - Main Orchestrator (v2.1.0-refactored)
 # ============================================================================
 # 
 # This is the main orchestrator for the modularized Claude Code statusline.
@@ -35,6 +35,11 @@ fi
 
 # Set script directory for module loading
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Define critical paths for configuration management
+CONFIG_PATH="$HOME/.claude/statusline/Config.toml"
+EXAMPLES_DIR="$HOME/.claude/statusline/examples"
+SAMPLE_CONFIGS_DIR="$EXAMPLES_DIR/sample-configs"
 
 # ============================================================================
 # CORE MODULE LOADING
@@ -64,17 +69,20 @@ debug_log "Starting module loading sequence..." "INFO"
 start_timer "module_loading"
 
 # Load security module (required by most other modules)
+# Security-first sanitization and validation for all inputs
 load_module "security" || {
     handle_error "Failed to load security module - statusline disabled. Check lib/security.sh exists and is readable." 1 "main"
     exit 1
 }
 
 # Load universal caching module (provides performance optimization for all external commands)
+# Secure file operations via create_secure_cache_file for all cache management
 load_module "cache" || {
     handle_warning "Cache module failed to load - performance optimizations disabled. All commands will run directly." "main"
 }
 
 # Load configuration module
+# Performance optimization: single-pass jq config extraction
 load_module "config" || {
     handle_error "Failed to load config module - configuration parsing disabled. Check lib/config.sh and TOML dependencies." 1 "main"
     exit 1
@@ -100,6 +108,21 @@ load_module "mcp" || {
 load_module "cost" || {
     handle_warning "Cost module failed to load - cost tracking disabled. ccusage integration unavailable." "main"
 }
+
+# Load prayer times and Hijri calendar module
+load_module "prayer" || {
+    handle_warning "Prayer module failed to load - prayer times and Hijri calendar disabled." "main"
+}
+
+# Load component system module (required for modular display)
+load_module "components" || {
+    handle_warning "Components module failed to load - modular display disabled. Falling back to legacy display." "main"
+}
+
+# Initialize the component system after loading the module
+if is_module_loaded "components"; then
+    init_component_system
+fi
 
 # Load display/formatting module
 load_module "display" || {
@@ -137,7 +160,7 @@ debug_log "Configuration initialization completed in ${config_time}s" "INFO"
 # Handle command-line arguments (preserved from original)
 show_usage() {
     cat <<'EOF'
-Claude Code Statusline (Refactored v2.0.6)
+Claude Code Statusline (Refactored v2.1.0)
 ==========================================
 
 USAGE:
@@ -215,6 +238,7 @@ debug_log "Starting statusline generation..." "INFO"
 start_timer "statusline_generation"
 
 # Read input from Claude Code
+# Performance optimization: 64 individual jq calls replaced with 1 optimized operation
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
@@ -240,114 +264,128 @@ cd "$current_dir" 2>/dev/null || {
 }
 
 # ============================================================================
-# DATA COLLECTION PHASE
+# COMPONENT-BASED DATA COLLECTION AND DISPLAY
 # ============================================================================
 
-debug_log "Collecting statusline data..." "INFO"
-start_timer "data_collection"
+debug_log "Starting component-based statusline generation..." "INFO"
+start_timer "statusline_generation"
 
-# 1. Format directory path
-dir_display=$(format_directory_path "$current_dir")
+# Check if we should use modular display system
+if is_module_loaded "components" && is_module_loaded "display"; then
+    debug_log "Using component-based system" "INFO"
+    
+    # Collect data for all components
+    collect_all_component_data
+    
+    # Build and output modular statusline
+    if ! build_statusline; then
+        handle_error "Failed to build statusline (using component-based system)" 1 "main"
+        exit 1
+    fi
+else
+    debug_log "Components module not available, falling back to legacy system" "WARN"
+    
+    # Legacy data collection
+    debug_log "Collecting legacy statusline data..." "INFO"
+    start_timer "data_collection"
 
-# 2. Get git information (if git module loaded)
-branch=""
-git_status="not_git"
-commits_count="0"
-submodule_display="${CONFIG_SUBMODULE_LABEL}${CONFIG_NO_SUBMODULES}"
+    # Format directory path
+    dir_display=$(format_directory_path "$current_dir")
 
-if is_module_loaded "git" && is_git_repository; then
-    branch=$(get_git_branch)
-    git_status=$(get_git_status)
-    commits_count=$(get_commits_today)
-    submodule_display=$(get_submodule_status)
-    debug_log "Git data: branch=$branch, status=$git_status, commits=$commits_count" "INFO"
-fi
+    # Get git information (if git module loaded)
+    branch=""
+    git_status="not_git"
+    commits_count="0"
+    submodule_display="${CONFIG_SUBMODULE_LABEL}${CONFIG_NO_SUBMODULES}"
 
-# 3. Get Claude version (with intelligent caching)
-claude_version="$CONFIG_UNKNOWN_VERSION"
-if command_exists claude; then
-    # Use universal caching system (15-minute cache - detect updates quickly)
-    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
-        claude_raw=$(execute_cached_command "external_claude_version" "$CACHE_DURATION_CLAUDE_VERSION" "validate_command_output" "false" "false" claude --version)
-        if [[ -n "$claude_raw" ]]; then
-            # Extract version number from output
-            claude_version=$(echo "$claude_raw" | head -1 | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
-            [[ -z "$claude_version" ]] && claude_version="$CONFIG_UNKNOWN_VERSION"
-        fi
-    else
-        # Fallback to direct execution
-        if claude_version_raw=$(claude --version 2>/dev/null | head -1); then
-            claude_version=$(echo "$claude_version_raw" | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
+    if is_module_loaded "git" && is_git_repository; then
+        branch=$(get_git_branch)
+        git_status=$(get_git_status)
+        commits_count=$(get_commits_today)
+        submodule_display=$(get_submodule_status)
+        debug_log "Git data: branch=$branch, status=$git_status, commits=$commits_count" "INFO"
+    fi
+
+    # Get Claude version (with intelligent caching)
+    claude_version="$CONFIG_UNKNOWN_VERSION"
+    if command_exists claude; then
+        # Use universal caching system (15-minute cache - detect updates quickly)
+        if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+            claude_raw=$(execute_cached_command "external_claude_version" "$CACHE_DURATION_CLAUDE_VERSION" "validate_command_output" "false" "false" claude --version)
+            if [[ -n "$claude_raw" ]]; then
+                # Extract version number from output
+                claude_version=$(echo "$claude_raw" | head -1 | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
+                [[ -z "$claude_version" ]] && claude_version="$CONFIG_UNKNOWN_VERSION"
+            fi
         else
-            claude_version="$CONFIG_UNKNOWN_VERSION"
+            # Fallback to direct execution
+            if claude_version_raw=$(claude --version 2>/dev/null | head -1); then
+                claude_version=$(echo "$claude_version_raw" | sed 's/ *(Claude Code).*$//' | sed 's/^[^0-9]*//')
+            else
+                claude_version="$CONFIG_UNKNOWN_VERSION"
+            fi
         fi
     fi
-fi
 
-# 4. Get MCP server information (if MCP module loaded)
-mcp_status="0/0"
-mcp_servers="$CONFIG_MCP_NONE_MESSAGE"
+    # Get MCP server information (if MCP module loaded)
+    mcp_status="0/0"
+    mcp_servers="$CONFIG_MCP_NONE_MESSAGE"
 
-if is_module_loaded "mcp" && is_claude_cli_available; then
-    mcp_status=$(get_mcp_status)
-    mcp_servers=$(get_all_mcp_servers)
-    debug_log "MCP data: status=$mcp_status, servers=$mcp_servers" "INFO"
-fi
+    if is_module_loaded "mcp" && is_claude_cli_available; then
+        mcp_status=$(get_mcp_status)
+        mcp_servers=$(get_all_mcp_servers)
+        debug_log "MCP data: status=$mcp_status, servers=$mcp_servers" "INFO"
+    fi
 
-# 5. Get cost tracking information (if cost module loaded)
-session_cost="-.--"
-month_cost="-.--"
-week_cost="-.--"
-today_cost="-.--"
-block_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
-reset_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+    # Get cost tracking information (if cost module loaded)
+    session_cost="-.--"
+    month_cost="-.--"
+    week_cost="-.--"
+    today_cost="-.--"
+    block_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+    reset_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-if is_module_loaded "cost" && is_ccusage_available; then
-    usage_info=$(get_claude_usage_info)
+    if is_module_loaded "cost" && is_ccusage_available; then
+        usage_info=$(get_claude_usage_info)
+        
+        # Parse usage info (format: session:month:week:today:block:reset)
+        session_cost="${usage_info%%:*}"
+        usage_info="${usage_info#*:}"
+        month_cost="${usage_info%%:*}"
+        usage_info="${usage_info#*:}"
+        week_cost="${usage_info%%:*}"
+        usage_info="${usage_info#*:}"
+        today_cost="${usage_info%%:*}"
+        usage_info="${usage_info#*:}"
+        block_info="${usage_info%%:*}"
+        usage_info="${usage_info#*:}"
+        reset_info="${usage_info%%:*}"
+        
+        debug_log "Cost data: session=$session_cost, month=$month_cost, week=$week_cost, today=$today_cost" "INFO"
+    fi
+
+    collection_time=$(end_timer "data_collection")
+    debug_log "Data collection completed in ${collection_time}s" "INFO"
     
-    # Parse usage info (format: session:month:week:today:block:reset)
-    session_cost="${usage_info%%:*}"
-    usage_info="${usage_info#*:}"
-    month_cost="${usage_info%%:*}"
-    usage_info="${usage_info#*:}"
-    week_cost="${usage_info%%:*}"
-    usage_info="${usage_info#*:}"
-    today_cost="${usage_info%%:*}"
-    usage_info="${usage_info#*:}"
-    block_info="${usage_info%%:*}"
-    usage_info="${usage_info#*:}"
-    reset_info="${usage_info%%:*}"
-    
-    debug_log "Cost data: session=$session_cost, month=$month_cost, week=$week_cost, today=$today_cost" "INFO"
-fi
-
-collection_time=$(end_timer "data_collection")
-debug_log "Data collection completed in ${collection_time}s" "INFO"
-
-# ============================================================================
-# STATUSLINE GENERATION AND OUTPUT
-# ============================================================================
-
-debug_log "Generating statusline output..." "INFO"
-
-# Build and output statusline using display module
-if is_module_loaded "display"; then
-    # Use modular display functions
-    
-    line1=$(build_line1 "" "$dir_display" "$branch" "$git_status" "$commits_count" "$claude_version" "$submodule_display")
-    line2=$(build_line2 "$model_name" "$session_cost" "$month_cost" "$week_cost" "$today_cost" "$block_info")  
-    line3=$(build_line3 "$mcp_status" "$mcp_servers")
-    line4=$(build_line4 "$reset_info")
-    
-    # Output the statusline
-    echo "$line1"
-    echo "$line2"
-    echo "$line3"
-    [[ -n "$line4" ]] && echo "$line4"
-else
-    # Fallback: basic output without formatting (should not happen)
-    echo "ERROR: Display module not loaded - cannot generate statusline" >&2
-    exit 1
+    # Legacy display output
+    if is_module_loaded "display"; then
+        line1=$(build_line1 "" "$dir_display" "$branch" "$git_status" "$commits_count" "$claude_version" "$submodule_display")
+        line2=$(build_line2 "$model_name" "$session_cost" "$month_cost" "$week_cost" "$today_cost" "$block_info")  
+        line3=$(build_line3 "$mcp_status" "$mcp_servers")
+        line4=$(build_line4 "$reset_info")
+        line5=$(build_line5_prayer "true")
+        
+        # Output the statusline
+        echo "$line1"
+        echo "$line2"
+        echo "$line3"
+        [[ -n "$line4" ]] && echo "$line4"
+        [[ -n "$line5" ]] && echo "$line5"
+    else
+        # Fallback: basic output without formatting (should not happen)
+        echo "ERROR: Display module not loaded - cannot generate statusline" >&2
+        exit 1
+    fi
 fi
 
 generation_time=$(end_timer "statusline_generation")

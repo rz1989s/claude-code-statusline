@@ -317,7 +317,20 @@ get_session_cost_data() {
     fi
     
     calculate_cost_dates
-    execute_ccusage_with_cache "$SESSION_CACHE_FILE" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
+    
+    # Use repository-aware session cache file to prevent cross-contamination
+    local session_cache_file
+    if [[ "${CACHE_CONFIG_SESSION_ISOLATION:-}" == "repository" ]]; then
+        local repo_id
+        repo_id=$(get_repo_identifier "$PWD" "path")
+        session_cache_file="$COST_CACHE_DIR/session_${repo_id}.json"
+        debug_log "Using repository-aware session cache: $(basename "$session_cache_file")" "INFO"
+    else
+        session_cache_file="$SESSION_CACHE_FILE"
+        debug_log "Using shared session cache: $(basename "$session_cache_file")" "INFO"
+    fi
+    
+    execute_ccusage_with_cache "$session_cache_file" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
 }
 
 # Get daily cost data (7 days)
@@ -602,6 +615,117 @@ clear_cost_cache() {
 }
 
 # ============================================================================
+# UNIFIED BLOCK METRICS DATA COLLECTION (v2.10.0)
+# ============================================================================
+
+# Format tokens for display (compact format)
+format_tokens_compact() {
+    local tokens="$1"
+    
+    if [[ -z "$tokens" || "$tokens" == "null" || "$tokens" == "0" ]]; then
+        echo "0"
+        return 0
+    fi
+    
+    # Convert to millions/thousands with appropriate suffix
+    # Use awk for all arithmetic to handle floating point properly
+    local result
+    result=$(awk "BEGIN {
+        tokens = $tokens;
+        if (tokens >= 1000000) {
+            printf \"%.1fM\", tokens / 1000000;
+        } else if (tokens >= 1000) {
+            printf \"%.1fk\", tokens / 1000;
+        } else {
+            printf \"%.0f\", tokens;
+        }
+    }" 2>/dev/null)
+    
+    if [[ -n "$result" ]]; then
+        echo "$result"
+    else
+        # Fallback for very old awk versions
+        echo "$tokens"
+    fi
+}
+
+# Format tokens for burn rate (per minute format)
+format_tokens_per_minute() {
+    local tokens_per_min="$1"
+    
+    if [[ -z "$tokens_per_min" || "$tokens_per_min" == "null" || "$tokens_per_min" == "0" ]]; then
+        echo "0/min"
+        return 0
+    fi
+    
+    local formatted=$(format_tokens_compact "$tokens_per_min")
+    echo "${formatted}/min"
+}
+
+# Get unified block metrics - ONE ccusage call for ALL components
+get_unified_block_metrics() {
+    debug_log "Getting unified block metrics..." "INFO"
+    
+    # Check if ccusage is available
+    if ! is_ccusage_available; then
+        # Return default values for all metrics (colon-separated)
+        echo "0:0:0:0:0:0:0"
+        return 1
+    fi
+    
+    # Use cache with 30s TTL for rapidly changing block data
+    local cache_file="$COST_CACHE_DIR/unified_block_metrics.cache"
+    
+    # Check cache first
+    if [[ -f "$cache_file" ]] && is_cache_fresh "$cache_file" 30; then
+        local cached_data=$(cat "$cache_file" 2>/dev/null)
+        if [[ -n "$cached_data" ]]; then
+            debug_log "Using cached unified block metrics" "INFO"
+            echo "$cached_data"
+            return 0
+        fi
+    fi
+    
+    # Get fresh block data using existing function
+    local block_data
+    block_data=$(get_active_blocks_data)
+    
+    if [[ -z "$block_data" ]] || ! echo "$block_data" | jq empty 2>/dev/null; then
+        debug_log "No valid block data available" "WARN"
+        echo "0:0:0:0:0:0:0"
+        return 1
+    fi
+    
+    # Parse ALL metrics at once from the block data
+    local burn_rate cost_per_hour total_tokens cache_read cache_creation proj_cost proj_tokens
+    
+    # Extract burn rate metrics
+    burn_rate=$(echo "$block_data" | jq -r '.blocks[0].burnRate.tokensPerMinute // 0' 2>/dev/null)
+    cost_per_hour=$(echo "$block_data" | jq -r '.blocks[0].burnRate.costPerHour // 0' 2>/dev/null)
+    
+    # Extract token usage
+    total_tokens=$(echo "$block_data" | jq -r '.blocks[0].totalTokens // 0' 2>/dev/null)
+    
+    # Extract cache metrics
+    cache_read=$(echo "$block_data" | jq -r '.blocks[0].tokenCounts.cacheReadInputTokens // 0' 2>/dev/null)
+    cache_creation=$(echo "$block_data" | jq -r '.blocks[0].tokenCounts.cacheCreationInputTokens // 0' 2>/dev/null)
+    
+    # Extract projection metrics
+    proj_cost=$(echo "$block_data" | jq -r '.blocks[0].projection.totalCost // 0' 2>/dev/null)
+    proj_tokens=$(echo "$block_data" | jq -r '.blocks[0].projection.totalTokens // 0' 2>/dev/null)
+    
+    # Format the unified metrics string (colon-separated)
+    local unified_metrics="${burn_rate}:${cost_per_hour}:${total_tokens}:${cache_read}:${cache_creation}:${proj_cost}:${proj_tokens}"
+    
+    # Cache the results for 30 seconds
+    echo "$unified_metrics" > "$cache_file" 2>/dev/null
+    
+    debug_log "Unified block metrics cached: burn_rate=${burn_rate}, tokens=${total_tokens}" "INFO"
+    echo "$unified_metrics"
+    return 0
+}
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 
@@ -643,3 +767,5 @@ export -f get_daily_cost_data get_monthly_cost_data
 export -f extract_session_cost extract_today_cost extract_weekly_cost extract_monthly_cost
 export -f process_active_blocks get_claude_usage_info
 export -f format_cost get_cost_trend clear_cost_cache
+# Export unified block metrics functions (v2.10.0)
+export -f format_tokens_compact format_tokens_per_minute get_unified_block_metrics

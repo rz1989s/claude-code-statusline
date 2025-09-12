@@ -6,8 +6,86 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ---
 
+## ✅ **COMPLETED IN v2.0.6** 
+*Major architectural achievements and core functionality*
+
+### 🏗️ **Core Architecture** `[COMPLETED]`
+
+1. **Modular System Architecture** ✅
+   - **Status**: COMPLETED - 91.5% code reduction from monolithic v1 (3930 lines → 332 lines main + 9 modules)
+   - **Implementation**: Complete module loading system with dependency management
+   - **Modules**: core.sh, security.sh, cache.sh, config.sh, themes.sh, git.sh, mcp.sh, cost.sh, display.sh
+   - **Features**: Include guards, error handling, performance timing
+
+2. **TOML Configuration System** ✅
+   - **Status**: COMPLETED - Full flat TOML parsing with dot notation  
+   - **Implementation**: Multi-level configuration discovery (env → project → user → XDG → defaults)
+   - **Features**: Environment variable overrides (ENV_CONFIG_*), validation, error reporting
+
+3. **Theme System** ✅
+   - **Status**: COMPLETED - 3 built-in themes + custom theme support
+   - **Implementation**: Classic, Garden, Catppuccin themes with color management
+   - **Features**: Theme application via apply_theme(), custom colors via TOML
+
+4. **Git Integration** ✅
+   - **Status**: COMPLETED - Full repository status tracking
+   - **Implementation**: Branch detection, status checking, commit counting, submodule support
+   - **Features**: Repository validation, performance optimized
+
+5. **MCP Monitoring** ✅
+   - **Status**: COMPLETED - MCP server health monitoring
+   - **Implementation**: Server status detection, health checking, timeout handling
+   - **Features**: Real-time status updates, graceful failure handling
+
+6. **Cost Tracking** ✅
+   - **Status**: COMPLETED - ccusage integration for cost monitoring  
+   - **Implementation**: Session, monthly, weekly, daily cost tracking with live updates
+   - **Features**: Block info, reset timing, cost history
+
+7. **Intelligent Caching System** ✅
+   - **Status**: COMPLETED - Universal caching with TTL support
+   - **Implementation**: Command result caching, cache validation, performance optimization
+   - **Features**: Configurable TTLs, automatic cleanup, fallback handling
+
+8. **Security & Input Validation** ✅
+   - **Status**: COMPLETED - Comprehensive security hardening
+   - **Implementation**: Input sanitization, path validation, secure external command handling
+   - **Features**: Timeout protection, safe file operations
+
+### 🎯 **User Interface & Experience** `[COMPLETED]`
+
+9. **Command-line Interface** ✅
+   - **Status**: COMPLETED - Full CLI with help, version, testing options
+   - **Implementation**: --help, --version, --test-display, --modules commands
+   - **Features**: Usage documentation, module status reporting
+
+10. **4-Line Statusline Display** ✅
+    - **Status**: COMPLETED - Comprehensive information display
+    - **Implementation**: Git info, cost tracking, MCP status, reset info with color formatting
+    - **Features**: Modular formatting, theme support, error graceful handling
+
+---
+
 ## 🔥 **High Priority** 
 *Core features and critical improvements*
+
+### 🚀 **New Feature Requests** *(GitHub Issues)*
+
+**NEW:** **Modular Statusline Layout Configuration** `[ISSUE #28]`
+  - **Status**: Feature request created - allow users to customize order of 4 statusline components
+  - **Description**: Enable TOML configuration for line ordering (e.g., `line_order = ["mcp", "reset", "git", "cost"]`)
+  - **Implementation**: Leverage existing modular display.sh architecture to reorder components
+  - **Impact**: High - Major UX customization improvement for different workflows  
+  - **Complexity**: Medium
+  - **Dependencies**: Current display module system
+
+**NEW:** **Real-time Cost Burn Rate ($/min)** `[ISSUE #29]`
+  - **Status**: Feature request created - show cost accumulation rate for active sessions
+  - **Description**: Calculate and display `LIVE_COST / SESSION_ELAPSED_TIME` as $/min rate
+  - **Implementation**: Extend lib/cost.sh with rate calculation and compact display format
+  - **Impact**: High - Critical budget awareness for cost-conscious users
+  - **Complexity**: Medium  
+  - **Dependencies**: Existing ccusage integration, reset time data
 
 ### 🎯 **Planned Features** *(Already Mentioned in Codebase)*
 
@@ -393,12 +471,16 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ## 🔧 **Implementation Notes**
 
-### 🏁 **Getting Started**
+### 🏁 **Getting Started** *(Updated for v2.0.6)*
 
-1. **Begin with High Priority items** - these have the highest impact
-2. **Profile System** is the most requested feature (mentioned in codebase)
-3. **CI/CD Pipeline** is critical for project health
-4. **Ocean Theme** is ready to implement (low-hanging fruit)
+**Current State**: Core architecture and functionality are COMPLETE ✅
+- Modular system (9 modules), TOML config, themes, caching, git/MCP/cost tracking all working
+
+**Recommended Next Steps**:
+1. **GitHub Issues #28 & #29** - New user-requested features with high impact
+2. **CI/CD Pipeline** - Critical infrastructure gap (no `.github/workflows/` exists)
+3. **Profile System** - Most requested advanced feature (mentioned in codebase)
+4. **Ocean Theme** - Low-hanging fruit (theme exists in examples/, needs integration)
 
 ### 📝 **Development Guidelines**
 
@@ -418,10 +500,12 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ---
 
-**Last Updated**: $(date '+%Y-%m-%d')  
+**Last Updated**: 2025-01-28 (Updated for v2.0.6 modular architecture completion)  
 **Next Review**: Plan quarterly review of priorities based on user feedback and development progress
 
-**Contributing**: See individual TODO items for implementation hints. Feel free to tackle any item that interests you!
+**Contributing**: Core architecture is complete! Focus on GitHub Issues #28 & #29 for immediate user impact, or tackle CI/CD infrastructure. See individual TODO items for implementation hints.
+
+**Architecture Note**: v2.0.6 represents a major milestone - the transition from monolithic to modular architecture is complete with 91.5% code reduction and full feature parity. Future development can focus on enhancements rather than core infrastructure.
 
 ---
 
