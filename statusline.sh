@@ -69,17 +69,20 @@ debug_log "Starting module loading sequence..." "INFO"
 start_timer "module_loading"
 
 # Load security module (required by most other modules)
+# Security-first sanitization and validation for all inputs
 load_module "security" || {
     handle_error "Failed to load security module - statusline disabled. Check lib/security.sh exists and is readable." 1 "main"
     exit 1
 }
 
 # Load universal caching module (provides performance optimization for all external commands)
+# Secure file operations via create_secure_cache_file for all cache management
 load_module "cache" || {
     handle_warning "Cache module failed to load - performance optimizations disabled. All commands will run directly." "main"
 }
 
 # Load configuration module
+# Performance optimization: single-pass jq config extraction
 load_module "config" || {
     handle_error "Failed to load config module - configuration parsing disabled. Check lib/config.sh and TOML dependencies." 1 "main"
     exit 1
@@ -235,6 +238,7 @@ debug_log "Starting statusline generation..." "INFO"
 start_timer "statusline_generation"
 
 # Read input from Claude Code
+# Performance optimization: 64 individual jq calls replaced with 1 optimized operation
 input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')

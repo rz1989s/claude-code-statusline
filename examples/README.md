@@ -58,7 +58,7 @@ theme.name = "catppuccin"  # classic, garden, catppuccin, custom
 
 # === MODULAR DISPLAY CONFIGURATION ===
 display.lines = 5                      # Number of lines (1-9)
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
@@ -107,15 +107,15 @@ display.line1.components = ["repo_info", "model_info"]
 ```toml
 display.lines = 3
 display.line1.components = ["repo_info", "commits", "version_info"]
-display.line2.components = ["model_info", "cost_session", "cost_live"]
+display.line2.components = ["model_info", "cost_repo", "cost_live"]
 display.line3.components = ["mcp_status"]
 ```
 
 ### Standard Familiar (5-line) - Default
 ```toml
 display.lines = 5
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
-display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
+display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line3.components = ["prayer_times"]
 display.line4.components = ["mcp_status"]
 display.line5.components = ["reset_timer"]
@@ -134,7 +134,7 @@ display.line1.components = ["prayer_times"]
 display.line2.components = ["repo_info"]
 display.line3.components = ["commits", "submodules"]
 display.line4.components = ["model_info", "version_info"]
-display.line5.components = ["cost_session", "cost_live"]
+display.line5.components = ["cost_repo", "cost_live"]
 display.line6.components = ["cost_monthly", "cost_weekly", "cost_daily"]
 display.line7.components = ["mcp_status"]
 display.line8.components = ["reset_timer"]
@@ -162,7 +162,7 @@ ENV_CONFIG_THEME_NAME=garden ./statusline.sh
 ENV_CONFIG_THEME_NAME=classic ./statusline.sh
 
 # Test atomic vs legacy components
-ENV_CONFIG_LINE1_COMPONENTS="git_stats" ./statusline.sh           # Legacy combined
+ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Pure atomic separated
 ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separated
 ```
 
@@ -170,29 +170,42 @@ ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separ
 
 ## 🧩 **Available Components**
 
-Your Config.toml can use any of these 16 components:
+Your Config.toml can use any of these 18 components:
 
-### Core Components (11)
-- `repo_info` - Repository directory and git status
+### Repository & Git Components (5)
+- `repo_info` - Repository directory and git branch/status
+- `commits` - Commit count for current repository
+- `submodules` - Submodule status and count
+- `commits` - Commit count only (pure atomic)
+- `submodules` - Submodule status only (pure atomic)
 - `version_info` - Claude Code version display
-- `time_display` - Current time formatting
+
+### Model & Session Components (4)
 - `model_info` - Claude model name with emoji
-- `cost_session` - Repository session cost tracking
+- `cost_repo` - Repository cost tracking
 - `cost_live` - Live block cost monitoring
-- `mcp_status` - MCP server health and connection status
 - `reset_timer` - Block reset countdown timer
+
+### Cost Analytics Components (4)
+- `cost_monthly` - 30-day cost summary
+- `cost_weekly` - 7-day cost summary
+- `cost_daily` - Daily cost summary
+- `cost_monthly` - 30-day costs only (pure atomic)
+- `cost_weekly` - 7-day costs only (pure atomic)
+- `cost_daily` - Daily costs only (pure atomic)
+
+### Block Metrics Components (4) - NEW v2.10.0
+- `burn_rate` - Token consumption rate (🔥3.5k/min $2.10/hr)
+- `token_usage` - Total tokens in current 5-hour block (📊9.5M)
+- `cache_efficiency` - Cache hit percentage for optimization (💾91% hit)
+- `block_projection` - Projected cost and tokens (📈$8.25 10.5M)
+
+### System Components (2)
+- `mcp_status` - MCP server health and connection status
+- `time_display` - Current time formatting
+
+### Spiritual Components (1)
 - `prayer_times` - Islamic prayer times integration
-
-### Legacy Components (2) - Backward Compatibility
-- `git_stats` - Combined commits + submodules (legacy)
-- `cost_period` - Combined 30day/7day/daily costs (legacy)
-
-### Atomic Components (5) - NEW v2.7.0
-- `commits` - Shows ONLY commit count (atomic from git_stats)
-- `submodules` - Shows ONLY submodule status (atomic from git_stats)
-- `cost_monthly` - Shows ONLY 30-day costs (atomic from cost_period)
-- `cost_weekly` - Shows ONLY 7-day costs (atomic from cost_period)
-- `cost_daily` - Shows ONLY daily costs (atomic from cost_period)
 
 ---
 

@@ -2,6 +2,7 @@
 
 # Claude Code Enhanced Statusline - Automated Installation Script
 # This script downloads and configures the statusline for Claude Code
+# Updated: cost_session → cost_repo component rename
 
 set -euo pipefail
 
@@ -518,17 +519,18 @@ download_directory_comprehensive() {
     )
     
     local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
     )
     
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh"
+        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
+        "components/cache_efficiency.sh" "components/block_projection.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -685,6 +687,13 @@ download_statusline() {
     # Download main orchestrator script
     if curl -fsSL "$REPO_URL" -o "$STATUSLINE_PATH"; then
         print_success "Downloaded main statusline.sh to $STATUSLINE_PATH"
+        
+        # Make executable immediately after download for zero user interaction
+        if chmod +x "$STATUSLINE_PATH"; then
+            print_status "✓ Made statusline.sh executable (zero interaction required)"
+        else
+            print_warning "⚠️ Could not set executable permissions immediately"
+        fi
     else
         print_error "Failed to download statusline.sh"
         exit 1
@@ -789,19 +798,20 @@ download_lib_fallback() {
     
     # Prayer system modules (lib/prayer/)
     local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
-    # Component modules (lib/components/) - all 16 components
+    # Component modules (lib/components/) - all 18 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
+        "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh"
-        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 510-517 arrays)
+        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
+        "components/cache_efficiency.sh" "components/block_projection.sh"
+        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
     # Combine all modules for comprehensive download
@@ -867,31 +877,10 @@ download_lib_fallback() {
     fi
 }
 
-# Function to backup existing examples directory
-backup_existing_examples() {
-    if [[ -d "$EXAMPLES_DIR" ]]; then
-        local backup_path="${EXAMPLES_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
-        print_status "📄 Existing examples directory found, creating backup..."
-        if cp -r "$EXAMPLES_DIR" "$backup_path"; then
-            print_success "✅ Backup created: $backup_path"
-            print_status "💡 Your custom configurations have been preserved"
-            return 0
-        else
-            print_warning "⚠️ Failed to create backup, continuing anyway..."
-            return 1
-        fi
-    else
-        print_status "No existing examples directory found"
-        return 1
-    fi
-}
 
 # Function to download all example configurations
 download_examples() {
     print_status "📚 Downloading example configurations..."
-    
-    # Backup existing examples if present
-    backup_existing_examples || true
     
     # Create examples directory structure
     print_status "Creating examples directory structure..."
@@ -995,11 +984,31 @@ check_bash_compatibility() {
     fi
 }
 
-# Function to make statusline executable
+# Function to make statusline executable with error handling
 make_executable() {
     print_status "Making statusline.sh executable..."
-    chmod +x "$STATUSLINE_PATH"
-    print_success "Made statusline.sh executable"
+    
+    # Check if file exists first
+    if [[ ! -f "$STATUSLINE_PATH" ]]; then
+        print_error "Cannot make executable: $STATUSLINE_PATH does not exist"
+        return 1
+    fi
+    
+    # Make executable with error handling
+    if chmod +x "$STATUSLINE_PATH"; then
+        print_success "Made statusline.sh executable"
+        
+        # Verify it's actually executable
+        if [[ -x "$STATUSLINE_PATH" ]]; then
+            print_status "✓ Verified: statusline.sh has executable permissions"
+        else
+            print_warning "⚠️ chmod succeeded but file may not be executable"
+        fi
+    else
+        print_error "Failed to make statusline.sh executable"
+        print_status "💡 You may need to run manually: chmod +x $STATUSLINE_PATH"
+        return 1
+    fi
 }
 
 # Function to configure settings.json
@@ -1059,61 +1068,35 @@ EOF
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
-# Function to migrate existing installation
-migrate_existing_installation() {
-    local old_statusline_path="$CLAUDE_DIR/statusline.sh"
-    
-    if [ -f "$old_statusline_path" ]; then
-        print_status "🔄 Detected existing installation, migrating to new structure..."
+# Simplified backup function - backup entire statusline folder if exists
+backup_existing_installation() {
+    if [ -d "$STATUSLINE_DIR" ]; then
+        local backup_path="${STATUSLINE_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "🔄 Existing statusline installation found, creating backup..."
         
-        # Create backup
-        local backup_path="${old_statusline_path}.backup.$(date +%Y%m%d_%H%M%S)"
-        cp "$old_statusline_path" "$backup_path"
-        print_status "Created backup: $backup_path"
-        
-        # Move to new location
-        mv "$old_statusline_path" "$STATUSLINE_PATH"
-        print_success "✅ Migrated statusline.sh to new location"
-        
-        # Update settings.json if it exists
-        if [ -f "$SETTINGS_PATH" ]; then
-            if jq -e '.statusLine.command' "$SETTINGS_PATH" >/dev/null 2>&1; then
-                local temp_settings=$(mktemp)
-                if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
-                   '.statusLine.command = $cmd' \
-                   "$SETTINGS_PATH" > "$temp_settings"; then
-                    mv "$temp_settings" "$SETTINGS_PATH"
-                    print_success "Updated settings.json command path"
-                else
-                    rm -f "$temp_settings"
-                    print_warning "Could not update settings.json automatically"
-                fi
-            fi
+        if cp -r "$STATUSLINE_DIR" "$backup_path"; then
+            print_success "✅ Backup created: $backup_path"
+            print_status "💡 Your entire statusline configuration has been preserved"
+            
+            # Remove old installation after successful backup
+            rm -rf "$STATUSLINE_DIR"
+            print_status "🧹 Removed old installation for clean install"
+            return 0
+        else
+            print_error "❌ Failed to create backup - installation aborted"
+            exit 1
         fi
-        
-        return 0
     else
-        print_status "No existing installation found"
+        print_status "No existing statusline installation found"
         return 1
     fi
 }
 
-# Function to generate flat Config.toml with backup support
+# Function to download Config.toml template (simplified - no individual backup)
 download_config_template() {
     print_status "Setting up comprehensive TOML configuration..."
     
-    # Create backup of existing config if present
-    if [[ -f "$CONFIG_PATH" ]]; then
-        local backup_path="${CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-        print_status "📄 Existing Config.toml found, creating backup..."
-        if cp "$CONFIG_PATH" "$backup_path"; then
-            print_success "✅ Backup created: $backup_path"
-        else
-            print_warning "⚠️ Failed to create backup, continuing..."
-        fi
-    fi
-    
-    # Download comprehensive config template from repository
+    # Download comprehensive config template from repository  
     local config_template_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/Config.toml"
     print_status "🔧 Downloading comprehensive Config.toml template..."
     
@@ -1210,7 +1193,7 @@ verify_installation() {
         if [ -d "$LIB_DIR/prayer" ]; then
             prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Prayer modules: $prayer_count files"
-            [[ $prayer_count -lt 4 ]] && print_warning "    Expected ≥4 prayer modules"
+            [[ $prayer_count -lt 5 ]] && print_warning "    Expected ≥5 prayer modules"
         else
             print_warning "  • Prayer directory missing"
         fi
@@ -1218,7 +1201,7 @@ verify_installation() {
         if [ -d "$LIB_DIR/components" ]; then
             component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Component modules: $component_count files"
-            [[ $component_count -lt 16 ]] && print_warning "    Expected 16 component modules"
+            [[ $component_count -lt 20 ]] && print_warning "    Expected 20 component modules"
         else
             print_warning "  • Components directory missing"
         fi
@@ -1323,7 +1306,7 @@ show_enhanced_completion() {
     echo "  • Dynamic discovery with comprehensive fallback"
     echo "  • ALL modules downloaded (retry mechanism ensures 100% success)"
     echo "  • Single comprehensive Config.toml (227 settings)" 
-    echo "  • All 16 statusline components + prayer system available"
+    echo "  • All 18 statusline components + prayer system available"
     echo "  • Zero missing functionality - full feature set guaranteed"
     echo "  • Browse: ls $EXAMPLES_DIR"
     echo "  • Customize: edit $CONFIG_PATH"
@@ -1424,7 +1407,7 @@ main() {
     fi
     
     create_claude_directory
-    migrate_existing_installation || true  # Don't fail if no existing installation
+    backup_existing_installation || true  # Don't fail if no existing installation
     download_statusline
     download_examples  # Download all example configurations
     check_bash_compatibility
