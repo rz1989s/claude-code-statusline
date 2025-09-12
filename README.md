@@ -28,7 +28,12 @@
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 [![GitHub stars](https://img.shields.io/github/stars/rz1989s/claude-code-statusline?style=social)](https://github.com/rz1989s/claude-code-statusline/stargazers)
 
-![Hero Screenshot](assets/screenshots/catppuccin-mocha-theme.png)
+## 🎥 Live Demo
+
+<video width="100%" controls>
+  <source src="assets/screenshots/statusline-demo.mp4" type="video/mp4">
+  Your browser does not support the video tag. <a href="assets/screenshots/statusline-demo.mp4">Click here to download the demo video</a>.
+</video>
 
 </div>
 
