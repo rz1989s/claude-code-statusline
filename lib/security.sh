@@ -71,23 +71,28 @@ sanitize_path_secure() {
     while [[ "$sanitized" != "$prev_sanitized" ]] && [[ $iteration_count -lt $MAX_SANITIZATION_ITERATIONS ]]; do
         prev_sanitized="$sanitized"
 
-        # Remove various path traversal patterns
-        sanitized=$(echo "$sanitized" | /usr/bin/sed -e 's|\\.\\./||g' -e 's|\\./||g' -e 's|//|/|g')
+        # Remove various path traversal patterns - using safe parameter expansion
+        sanitized="${sanitized//..\/}"    # Remove ../
+        sanitized="${sanitized//.\/}"     # Remove ./  
+        sanitized="${sanitized//\/\///}"  # Remove double slashes -> single slash
 
         ((iteration_count++))
     done
 
     # Final cleanup: remove any remaining .. sequences completely
-    sanitized=$(echo "$sanitized" | /usr/bin/sed 's|\\.\\.|removed-dotdot|g')
+    sanitized="${sanitized//../removed-dotdot}"
 
-    # Remove any remaining suspicious patterns
-    sanitized=$(echo "$sanitized" | /usr/bin/sed -e 's|\\.\\.||g' -e 's|\\~||g' -e 's|\\$||g')
+    # Remove any remaining suspicious patterns using safe parameter expansion
+    sanitized="${sanitized//..}"       # Remove any remaining ..
+    sanitized="${sanitized//\~}"       # Remove ~
+    sanitized="${sanitized//\$}"       # Remove $
 
-    # Replace slashes with hyphens
-    sanitized=$(echo "$sanitized" | /usr/bin/sed 's|/|-|g')
+    # Replace slashes with hyphens using safe parameter expansion  
+    sanitized="${sanitized//\//-}"
 
     # Remove potentially dangerous characters, keep only safe ones (no dots for cache key compatibility)
-    sanitized=$(echo "$sanitized" | /usr/bin/tr -cd '[:alnum:]-_')
+    # Using printf to avoid echo vulnerabilities with tr
+    sanitized=$(printf '%s' "$sanitized" | /usr/bin/tr -cd '[:alnum:]-_')
 
     # Ensure result is not empty
     if [[ -z "$sanitized" ]]; then
