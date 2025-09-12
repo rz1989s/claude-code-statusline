@@ -137,8 +137,8 @@ echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Te
 - **4 NEW Block Metrics Components** - Real-time ccusage monitoring with 75% resource reduction
 - **Unified Data Collection** - Single API call feeds all metrics (burn rate, tokens, cache efficiency, projections)  
 - **Burn Rate Monitoring** - Critical token consumption tracking (🔥3.5k/min $2.10/hr)
-- **Cache Efficiency** - Performance optimization insights (💾Cache: 91% hit)
-- **Cost Projections** - Budget planning and limit avoidance (📈Proj: $8.25)
+- **Cache Efficiency** - Performance optimization insights (Cache: 94% hit)
+- **Cost Projections** - Budget planning and limit avoidance (Proj: $16.48)
 - **Resource Optimized** - Minimal background processes, smart 30s caching
 
 ---

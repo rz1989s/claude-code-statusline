@@ -198,9 +198,9 @@ Each component follows a standardized interface:
 
 **Block Metrics Components (4):**
 - `burn_rate.sh` - Token consumption rate (🔥3.5k/min $2.10/hr)
-- `token_usage.sh` - Total tokens in current 5-hour block (📊9.5M)
-- `cache_efficiency.sh` - Cache hit percentage for optimization (💾91% hit)
-- `block_projection.sh` - Projected cost and tokens (📈$8.25 10.5M)
+- `token_usage.sh` - Total tokens in current 5-hour block (15.4M tokens)
+- `cache_efficiency.sh` - Cache hit percentage for optimization (Cache: 94% hit)
+- `block_projection.sh` - Projected cost and tokens (Proj: $16.48 (33.9M))
 
 **System Components (2):**
 - `mcp_status.sh` - MCP server health and connection status

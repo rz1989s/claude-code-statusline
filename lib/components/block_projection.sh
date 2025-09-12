@@ -39,9 +39,9 @@ collect_block_projection_data() {
                 local formatted_cost formatted_tokens
                 formatted_cost=$(printf "%.2f" "$proj_cost" 2>/dev/null || echo "0.00")
                 formatted_tokens=$(format_tokens_compact "$proj_tokens")
-                COMPONENT_BLOCK_PROJECTION_INFO="📈Proj: \$${formatted_cost} (${formatted_tokens})"
+                COMPONENT_BLOCK_PROJECTION_INFO="Proj: \$${formatted_cost} (${formatted_tokens})"
             else
-                COMPONENT_BLOCK_PROJECTION_INFO="📈No projections"
+                COMPONENT_BLOCK_PROJECTION_INFO="No projections"
             fi
         else
             COMPONENT_BLOCK_PROJECTION_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"

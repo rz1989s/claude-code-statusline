@@ -46,18 +46,18 @@ collect_cache_efficiency_data() {
                     else
                         efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total_cache_tokens}" 2>/dev/null || echo "0")
                     fi
-                    COMPONENT_CACHE_EFFICIENCY_INFO="💾Cache: ${efficiency}% hit"
+                    COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${efficiency}% hit"
                 else
-                    COMPONENT_CACHE_EFFICIENCY_INFO="💾No cache data"
+                    COMPONENT_CACHE_EFFICIENCY_INFO="No cache data"
                 fi
             elif [[ "$cache_read" != "0" && "$cache_creation" == "0" ]]; then
                 # All cache hits (100% efficiency)
-                COMPONENT_CACHE_EFFICIENCY_INFO="💾Cache: 100% hit"
+                COMPONENT_CACHE_EFFICIENCY_INFO="Cache: 100% hit"
             elif [[ "$cache_read" == "0" && "$cache_creation" != "0" ]]; then
                 # No cache hits (0% efficiency)
-                COMPONENT_CACHE_EFFICIENCY_INFO="💾Cache: 0% hit"
+                COMPONENT_CACHE_EFFICIENCY_INFO="Cache: 0% hit"
             else
-                COMPONENT_CACHE_EFFICIENCY_INFO="💾No cache used"
+                COMPONENT_CACHE_EFFICIENCY_INFO="No cache used"
             fi
         else
             COMPONENT_CACHE_EFFICIENCY_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"

@@ -37,9 +37,9 @@ collect_token_usage_data() {
             if [[ "$total_tokens" != "0" && "$total_tokens" != "null" ]]; then
                 local formatted_tokens
                 formatted_tokens=$(format_tokens_compact "$total_tokens")
-                COMPONENT_TOKEN_USAGE_INFO="📊${formatted_tokens} tokens"
+                COMPONENT_TOKEN_USAGE_INFO="${formatted_tokens} tokens"
             else
-                COMPONENT_TOKEN_USAGE_INFO="📊No tokens used"
+                COMPONENT_TOKEN_USAGE_INFO="No tokens used"
             fi
         else
             COMPONENT_TOKEN_USAGE_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
