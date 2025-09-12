@@ -518,7 +518,7 @@ download_directory_comprehensive() {
     )
     
     local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
     )
     
@@ -686,6 +686,13 @@ download_statusline() {
     # Download main orchestrator script
     if curl -fsSL "$REPO_URL" -o "$STATUSLINE_PATH"; then
         print_success "Downloaded main statusline.sh to $STATUSLINE_PATH"
+        
+        # Make executable immediately after download for zero user interaction
+        if chmod +x "$STATUSLINE_PATH"; then
+            print_status "✓ Made statusline.sh executable (zero interaction required)"
+        else
+            print_warning "⚠️ Could not set executable permissions immediately"
+        fi
     else
         print_error "Failed to download statusline.sh"
         exit 1
@@ -790,7 +797,7 @@ download_lib_fallback() {
     
     # Prayer system modules (lib/prayer/)
     local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/timezone.sh"
+        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
@@ -997,11 +1004,31 @@ check_bash_compatibility() {
     fi
 }
 
-# Function to make statusline executable
+# Function to make statusline executable with error handling
 make_executable() {
     print_status "Making statusline.sh executable..."
-    chmod +x "$STATUSLINE_PATH"
-    print_success "Made statusline.sh executable"
+    
+    # Check if file exists first
+    if [[ ! -f "$STATUSLINE_PATH" ]]; then
+        print_error "Cannot make executable: $STATUSLINE_PATH does not exist"
+        return 1
+    fi
+    
+    # Make executable with error handling
+    if chmod +x "$STATUSLINE_PATH"; then
+        print_success "Made statusline.sh executable"
+        
+        # Verify it's actually executable
+        if [[ -x "$STATUSLINE_PATH" ]]; then
+            print_status "✓ Verified: statusline.sh has executable permissions"
+        else
+            print_warning "⚠️ chmod succeeded but file may not be executable"
+        fi
+    else
+        print_error "Failed to make statusline.sh executable"
+        print_status "💡 You may need to run manually: chmod +x $STATUSLINE_PATH"
+        return 1
+    fi
 }
 
 # Function to configure settings.json
@@ -1212,7 +1239,7 @@ verify_installation() {
         if [ -d "$LIB_DIR/prayer" ]; then
             prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Prayer modules: $prayer_count files"
-            [[ $prayer_count -lt 4 ]] && print_warning "    Expected ≥4 prayer modules"
+            [[ $prayer_count -lt 5 ]] && print_warning "    Expected ≥5 prayer modules"
         else
             print_warning "  • Prayer directory missing"
         fi
