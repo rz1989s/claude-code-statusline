@@ -30,10 +30,9 @@
 
 ## 🎥 Live Demo
 
-<video width="100%" controls>
-  <source src="assets/screenshots/statusline-demo.mp4" type="video/mp4">
-  Your browser does not support the video tag. <a href="assets/screenshots/statusline-demo.mp4">Click here to download the demo video</a>.
-</video>
+![Statusline Demo Video](assets/screenshots/statusline-demo.mp4)
+
+> **⚡ Pro Tip:** GitHub will automatically convert this to a playable video player when you view the README!
 
 </div>
 
