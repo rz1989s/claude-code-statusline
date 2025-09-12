@@ -2,6 +2,7 @@
 
 # Claude Code Enhanced Statusline - Automated Installation Script
 # This script downloads and configures the statusline for Claude Code
+# Updated: cost_session → cost_repo component rename
 
 set -euo pipefail
 
