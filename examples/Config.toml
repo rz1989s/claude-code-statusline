@@ -358,79 +358,98 @@ hijri.show_weekday = true              # Include day of week in display
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components
 
-# Number of lines to display (1-9)
-display.lines = 5
+# Number of lines to display (1-9) - SHOWCASING ALL 20 COMPONENTS!
+display.lines = 8
 
-# Line 1: Repository and Development Info
-display.line1.components = ["repo_info", "git_stats", "version_info", "time_display"]
+# Line 1: Repository Core (atomic git components + info)
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
-# Line 2: Model and Cost Tracking
-display.line2.components = ["model_info", "cost_session", "cost_period", "cost_live"]
+# Line 2: Model + NEW Block Metrics (v2.10.0 features!)
+display.line2.components = ["model_info", "burn_rate", "token_usage", "cache_efficiency", "block_projection"]
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
-# Line 3: Islamic Prayer Times (high priority - user-facing)
-display.line3.components = ["prayer_times"]
+# Line 3: Cost Analytics (atomic cost breakdown)
+display.line3.components = ["cost_session", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: MCP Server Status
-display.line4.components = ["mcp_status"]
+# Line 4: System Status & Timer
+display.line4.components = ["mcp_status", "reset_timer"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
-# Line 5: Reset Timer (operational info - lower priority)
-display.line5.components = ["reset_timer"]
+# Line 5: Islamic Prayer Times (spiritual context)
+display.line5.components = ["prayer_times"]
 display.line5.separator = " │ "
-display.line5.show_when_empty = false
+display.line5.show_when_empty = true
 
-# Line 6-9: Additional lines (empty by default)
-# Uncomment and configure for custom layouts up to 9 lines
-display.line6.components = []
+# Line 6: Legacy Git Display (for comparison with atomic components)
+display.line6.components = ["git_stats"]
 display.line6.separator = " │ "
-display.line6.show_when_empty = false
+display.line6.show_when_empty = true
 
-display.line7.components = []
+# Line 7: Legacy Cost Period (for comparison with atomic components)
+display.line7.components = ["cost_period"]
 display.line7.separator = " │ "
-display.line7.show_when_empty = false
+display.line7.show_when_empty = true
 
+# Line 8: Available for future expansion
 display.line8.components = []
 display.line8.separator = " │ "
 display.line8.show_when_empty = false
 
+# Line 9: Available for future expansion
 display.line9.components = []
 display.line9.separator = " │ "
 display.line9.show_when_empty = false
 
 # === AVAILABLE COMPONENTS REFERENCE ===
-# Core Components (9):
+# 🔄 SYNC WARNING: This section MUST be kept synchronized with CLAUDE.md
+# When updating component counts, descriptions, or categories here, update CLAUDE.md too!
+# ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
+#
+# === LOGICAL COMPONENT CATEGORIES (20 Total) ===
+#
+# Repository & Git Components (5):
 # - "repo_info"      - Repository directory and git branch/status
+# - "commits"        - Commit count for current repository
+# - "submodules"     - Submodule status and count
+# - "git_stats"      - Combined commits + submodules (legacy format)
 # - "version_info"   - Claude Code version display
-# - "time_display"   - Current time formatting
+#
+# Model & Session Components (4):
 # - "model_info"     - Claude model name with emoji
 # - "cost_session"   - Repository session cost tracking
 # - "cost_live"      - Live block cost monitoring
-# - "mcp_status"     - MCP server health and connection status
 # - "reset_timer"    - Block reset countdown timer
+#
+# Cost Analytics Components (4):
+# - "cost_monthly"   - 30-day cost summary
+# - "cost_weekly"    - 7-day cost summary  
+# - "cost_daily"     - Daily cost summary
+# - "cost_period"    - Combined 30day/7day/daily costs (legacy format)
+#
+# Block Metrics Components (4):
+# - "burn_rate"        - Token consumption rate (🔥3.5k/min $2.10/hr)
+# - "token_usage"      - Total tokens in current 5-hour block (📊9.5M)
+# - "cache_efficiency" - Cache hit percentage for optimization (💾91% hit)
+# - "block_projection" - Projected cost and tokens (📈$8.25 10.5M)
+#
+# System Components (2):
+# - "mcp_status"     - MCP server health and connection status
+# - "time_display"   - Current time formatting
+#
+# Spiritual Components (1):
 # - "prayer_times"   - Islamic prayer times integration
 #
-# Legacy Components (2) - Backward Compatibility:
-# - "git_stats"      - Combined commits + submodules (legacy)
-# - "cost_period"    - Combined 30day/7day/daily costs (legacy)
-#
-# Atomic Components (5) - NEW v2.7.0:
-# - "commits"        - Shows ONLY commit count (atomic from git_stats)
-# - "submodules"     - Shows ONLY submodule status (atomic from git_stats)
-# - "cost_monthly"   - Shows ONLY 30-day costs (atomic from cost_period)
-# - "cost_weekly"    - Shows ONLY 7-day costs (atomic from cost_period)
-# - "cost_daily"     - Shows ONLY daily costs (atomic from cost_period)
-#
-# Example Atomic Component Configurations:
+# Example Component Configurations:
 # display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data
 # display.line2.components = ["model_info", "cost_monthly", "cost_weekly", "cost_daily"]  # Separate cost data
-# display.line3.components = ["cost_session", "cost_live", "prayer_times"]  # Mixed components
+# display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection"]  # Block metrics
+# display.line4.components = ["cost_session", "cost_live", "prayer_times"]  # Mixed components
 #
 # Environment Override Examples:
 # ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh

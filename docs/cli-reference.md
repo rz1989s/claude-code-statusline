@@ -4,7 +4,7 @@
 
 The statusline provides a focused set of commands for essential operations with automatic configuration discovery and intelligent defaults.
 
-> 🏗️ **Atomic Component Architecture**: The CLI is powered by the atomic component system (v2.7.0) with 16 configurable components arranged on 1-9 customizable lines. The main script orchestrates specialized modules in the `lib/` directory with standardized component interfaces.
+> 🏗️ **Atomic Component Architecture**: The CLI is powered by the atomic component system (v2.7.0) with 20 configurable components arranged on 1-9 customizable lines. The main script orchestrates specialized modules in the `lib/` directory with standardized component interfaces.
 
 ## 🚀 **Overview**
 
@@ -161,7 +161,7 @@ Loaded modules:
   ✓ mcp
   ✓ cost
   ✓ display
-  ✓ components (16 atomic components registered)
+  ✓ components (20 atomic components registered)
 ```
 
 ---
@@ -172,7 +172,7 @@ The atomic component system provides specialized testing commands for component 
 
 ### Component Status Check
 
-**Purpose**: Display all 16 component registration status and availability.
+**Purpose**: Display all 20 component registration status and availability.
 
 **Syntax**:
 ```bash
@@ -181,7 +181,7 @@ STATUSLINE_DEBUG=true ./statusline.sh --modules   # Debug component loading
 ```
 
 **Output**:
-- Lists all 16 components (11 core + 5 atomic)
+- Lists all 20 components across 6 categories
 - Shows component registration status
 - Displays component dependencies
 - Identifies any failed component loads
@@ -296,7 +296,7 @@ For normal use, simply run without arguments:
 The statusline will:
 1. Automatically discover and load configuration
 2. Apply the configured theme (or default to catppuccin) 
-3. Initialize all 16 atomic components and collect data
+3. Initialize all 20 atomic components and collect data
 4. Build modular display with configured line arrangements
 5. Generate beautiful output with perfect component separation for Claude Code
 

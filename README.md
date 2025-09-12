@@ -18,8 +18,8 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with 16 atomic components across 1-9 configurable lines**  
-*Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
+**🎨 Transform your terminal with 20 atomic components across 1-9 configurable lines**  
+*Block metrics • Burn rate monitoring • Cache efficiency • Cost projections • Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
@@ -131,7 +131,19 @@ echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Te
 
 ## 🆕 Recent Updates
 
-### v2.9.0 - Revolutionary 3-Tier Download System 🚀⚡ **LATEST**
+### v2.10.0 - Advanced Block Metrics Integration 🔥📊 **LATEST**
+
+**🚀 REVOLUTIONARY BLOCK METRICS SYSTEM**
+- **4 NEW Block Metrics Components** - Real-time ccusage monitoring with 75% resource reduction
+- **Unified Data Collection** - Single API call feeds all metrics (burn rate, tokens, cache efficiency, projections)  
+- **Burn Rate Monitoring** - Critical token consumption tracking (🔥3.5k/min $2.10/hr)
+- **Cache Efficiency** - Performance optimization insights (💾Cache: 91% hit)
+- **Cost Projections** - Budget planning and limit avoidance (📈Proj: $8.25)
+- **Resource Optimized** - Minimal background processes, smart 30s caching
+
+---
+
+### v2.9.0 - Revolutionary 3-Tier Download System 🚀⚡
 
 **🚀 REVOLUTIONARY INSTALLER OVERHAUL**
 
@@ -195,7 +207,7 @@ labels.commits = "Commits:"            # Display labels
 
 **🎯 ULTIMATE CUSTOMIZATION: ATOMIC COMPONENT BREAKTHROUGH**
 
-Transform your statusline with **16 atomic components** that eliminate separator issues and provide maximum control:
+Transform your statusline with **20 atomic components** that eliminate separator issues and provide maximum control:
 
 - **🔬 Atomic Components (NEW)** - Split complex components into single-purpose units:
   - `commits` (atomic from git_stats) - Shows ONLY commit count

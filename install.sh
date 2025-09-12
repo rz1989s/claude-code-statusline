@@ -528,7 +528,8 @@ download_directory_comprehensive() {
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
         "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh"
+        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
+        "components/cache_efficiency.sh" "components/block_projection.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -793,14 +794,15 @@ download_lib_fallback() {
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
-    # Component modules (lib/components/) - all 16 components
+    # Component modules (lib/components/) - all 20 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
         "components/git_stats.sh" "components/cost_period.sh" "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh"
+        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
+        "components/cache_efficiency.sh" "components/block_projection.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 510-517 arrays)
     )
     
@@ -1218,7 +1220,7 @@ verify_installation() {
         if [ -d "$LIB_DIR/components" ]; then
             component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Component modules: $component_count files"
-            [[ $component_count -lt 16 ]] && print_warning "    Expected 16 component modules"
+            [[ $component_count -lt 20 ]] && print_warning "    Expected 20 component modules"
         else
             print_warning "  • Components directory missing"
         fi
@@ -1323,7 +1325,7 @@ show_enhanced_completion() {
     echo "  • Dynamic discovery with comprehensive fallback"
     echo "  • ALL modules downloaded (retry mechanism ensures 100% success)"
     echo "  • Single comprehensive Config.toml (227 settings)" 
-    echo "  • All 16 statusline components + prayer system available"
+    echo "  • All 20 statusline components + prayer system available"
     echo "  • Zero missing functionality - full feature set guaranteed"
     echo "  • Browse: ls $EXAMPLES_DIR"
     echo "  • Customize: edit $CONFIG_PATH"
