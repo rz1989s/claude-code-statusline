@@ -1325,7 +1325,7 @@ show_enhanced_completion() {
     echo "  • Dynamic discovery with comprehensive fallback"
     echo "  • ALL modules downloaded (retry mechanism ensures 100% success)"
     echo "  • Single comprehensive Config.toml (227 settings)" 
-    echo "  • All 20 statusline components + prayer system available"
+    echo "  • All 18 statusline components + prayer system available"
     echo "  • Zero missing functionality - full feature set guaranteed"
     echo "  • Browse: ls $EXAMPLES_DIR"
     echo "  • Customize: edit $CONFIG_PATH"
