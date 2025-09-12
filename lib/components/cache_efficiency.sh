@@ -40,12 +40,8 @@ collect_cache_efficiency_data() {
                 total_cache_tokens=$((cache_read + cache_creation))
                 
                 if [[ "$total_cache_tokens" -gt 0 ]]; then
-                    # Calculate percentage with proper arithmetic
-                    if command_exists bc; then
-                        efficiency=$(echo "scale=0; $cache_read * 100 / $total_cache_tokens" | bc -l 2>/dev/null || echo "0")
-                    else
-                        efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total_cache_tokens}" 2>/dev/null || echo "0")
-                    fi
+                    # Calculate percentage using awk for consistency and portability
+                    efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total_cache_tokens}" 2>/dev/null || echo "0")
                     COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${efficiency}% hit"
                 else
                     COMPONENT_CACHE_EFFICIENCY_INFO="No cache data"
