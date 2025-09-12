@@ -35,7 +35,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Essential Commands:**
 ```bash
-npm test                              # Run all 246 tests across 17 files
+npm test                              # Run all 254 tests across 17 files
 npm run lint:all                     # Lint everything 
 npm run dev                          # Clean + test cycle
 npm run ci                           # Full CI pipeline
@@ -152,7 +152,7 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 ## Project Architecture
 
 **Modular System (91.5% code reduction from monolithic v1):**
-- `statusline.sh` (368 lines) - Main orchestrator, loads modules via `load_module()`
+- `statusline.sh` (399 lines) - Main orchestrator, loads modules via `load_module()`
 - `lib/core.sh` - Base utilities, error handling, performance timing
 - `lib/security.sh` - Input sanitization, path validation
 - `lib/config.sh` - TOML parsing via `load_toml_configuration()`, **NEW** modular line configuration
@@ -164,7 +164,7 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 - `lib/display.sh` - Output formatting, **NEW** 1-9 line modular building system
 - `lib/cache.sh` - Intelligent caching system
 - `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
-- `lib/prayer/*.sh` - Modular prayer system (location, calculation, display)
+- `lib/prayer/*.sh` - Modular prayer system (location, calculation, display, timezone, core)
 - `lib/components/*.sh` - **ATOMIC** Individual component modules (18 components)
 
 **Atomic Component Architecture (v2.7.0):**
@@ -173,18 +173,16 @@ Each component follows a standardized interface:
 - `render_${component_name}()` - Format display output
 - `get_${component_name}_config()` - Get component configuration
 
-**Available Components (20 Total):**
+**Available Components (18 Total):**
 
 <!-- 🔄 SYNC WARNING: This section MUST be kept synchronized with examples/Config.toml -->
 <!-- When reading/updating component info here, verify examples/Config.toml matches! -->
 <!-- ⚠️  SOURCE OF TRUTH: examples/Config.toml - In case of discrepancy, Config.toml is authoritative -->
 
-**Repository & Git Components (5):**
+**Repository & Git Components (4):**
 - `repo_info.sh` - Repository directory and git branch/status
 - `commits.sh` - Commit count for current repository
 - `submodules.sh` - Submodule status and count
-- `commits.sh` - Commit count only (pure atomic)
-- `submodules.sh` - Submodule status only (pure atomic)
 - `version_info.sh` - Claude Code version display
 
 **Model & Session Components (4):**
@@ -193,13 +191,10 @@ Each component follows a standardized interface:
 - `cost_live.sh` - Live block cost monitoring
 - `reset_timer.sh` - Block reset countdown timer
 
-**Cost Analytics Components (4):**
+**Cost Analytics Components (3):**
 - `cost_monthly.sh` - 30-day cost summary
 - `cost_weekly.sh` - 7-day cost summary
 - `cost_daily.sh` - Daily cost summary
-- `cost_monthly.sh` - 30-day costs only (pure atomic)
-- `cost_weekly.sh` - 7-day costs only (pure atomic)
-- `cost_daily.sh` - Daily costs only (pure atomic)
 
 **Block Metrics Components (4):**
 - `burn_rate.sh` - Token consumption rate (🔥3.5k/min $2.10/hr)
@@ -220,7 +215,7 @@ Each component follows a standardized interface:
 3. Atomic line building → 1-9 line dynamic output with clean visual separation
 
 **Key v2.10.0 Achievements:**
-- ✅ **20-Component System** - 9 core + 2 legacy + 5 atomic + 4 block metrics components
+- ✅ **18-Component System** - Pure atomic architecture with specialized components
 - ✅ **Unified ccusage Integration** - Single API call reduces resource usage by 75%
 - ✅ **Block Metrics Monitoring** - Real-time burn rate, tokens, cache efficiency, projections
 - ✅ **Optimized Performance** - Cached 30s block data shared across all metric components
@@ -564,7 +559,7 @@ cache.isolation.session = "repository"  # Session costs per project
 
 ## Testing Architecture
 
-**246-Test Comprehensive Suite (17 files):**
+**254-Test Comprehensive Suite (17 files):**
 - `tests/unit/` - Function-level testing with mocked dependencies
 - `tests/integration/` - End-to-end statusline functionality  
 - `tests/benchmarks/` - Performance regression prevention
@@ -597,7 +592,7 @@ tests/benchmarks/*.bats       # Performance regression tests (2 files)
 tests/race-conditions/        # Multi-instance concurrency tests
 ```
 
-**Current Test Files (17 total, 246 test cases):**
+**Current Test Files (17 total, 254 test cases):**
 ```bash
 # Unit Tests (9 files)
 tests/unit/test_cache_enhancements.bats
@@ -715,10 +710,10 @@ rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
 - ✅ **Prayer Time Calculation FIXED**: Exact match times show "(0m)" instead of "24h 0m"
 - ✅ **Environment Overrides WORKING**: ENV_CONFIG_DISPLAY_LINES=3 shows 3 lines  
 - ✅ **Component Overrides WORKING**: ENV_CONFIG_LINE1_COMPONENTS="time_display" shows only time
-- ✅ **5-Line Modular Display**: Perfect statusline with all 16 components operational
+- ✅ **5-Line Modular Display**: Perfect statusline with all 18 components operational
 - ✅ **All Critical Functionality**: Labels, commits, costs, MCP, prayer times, git status
 - ✅ **Zero Critical Errors**: Clean, stable operation with comprehensive data display
-- ✅ **Version Display**: Correct v2.9.0 version reporting in all contexts
+- ✅ **Version Display**: Correct v2.10.0 version reporting in all contexts
 
 ## Key Implementation Notes
 
