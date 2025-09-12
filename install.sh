@@ -524,7 +524,7 @@ download_directory_comprehensive() {
     
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
         "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
@@ -804,7 +804,7 @@ download_lib_fallback() {
     # Component modules (lib/components/) - all 18 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_session.sh" "components/cost_live.sh"
+        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
         "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
         "components/commits.sh"
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
@@ -876,31 +876,10 @@ download_lib_fallback() {
     fi
 }
 
-# Function to backup existing examples directory
-backup_existing_examples() {
-    if [[ -d "$EXAMPLES_DIR" ]]; then
-        local backup_path="${EXAMPLES_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
-        print_status "📄 Existing examples directory found, creating backup..."
-        if cp -r "$EXAMPLES_DIR" "$backup_path"; then
-            print_success "✅ Backup created: $backup_path"
-            print_status "💡 Your custom configurations have been preserved"
-            return 0
-        else
-            print_warning "⚠️ Failed to create backup, continuing anyway..."
-            return 1
-        fi
-    else
-        print_status "No existing examples directory found"
-        return 1
-    fi
-}
 
 # Function to download all example configurations
 download_examples() {
     print_status "📚 Downloading example configurations..."
-    
-    # Backup existing examples if present
-    backup_existing_examples || true
     
     # Create examples directory structure
     print_status "Creating examples directory structure..."
@@ -1088,61 +1067,35 @@ EOF
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
-# Function to migrate existing installation
-migrate_existing_installation() {
-    local old_statusline_path="$CLAUDE_DIR/statusline.sh"
-    
-    if [ -f "$old_statusline_path" ]; then
-        print_status "🔄 Detected existing installation, migrating to new structure..."
+# Simplified backup function - backup entire statusline folder if exists
+backup_existing_installation() {
+    if [ -d "$STATUSLINE_DIR" ]; then
+        local backup_path="${STATUSLINE_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
+        print_status "🔄 Existing statusline installation found, creating backup..."
         
-        # Create backup
-        local backup_path="${old_statusline_path}.backup.$(date +%Y%m%d_%H%M%S)"
-        cp "$old_statusline_path" "$backup_path"
-        print_status "Created backup: $backup_path"
-        
-        # Move to new location
-        mv "$old_statusline_path" "$STATUSLINE_PATH"
-        print_success "✅ Migrated statusline.sh to new location"
-        
-        # Update settings.json if it exists
-        if [ -f "$SETTINGS_PATH" ]; then
-            if jq -e '.statusLine.command' "$SETTINGS_PATH" >/dev/null 2>&1; then
-                local temp_settings=$(mktemp)
-                if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
-                   '.statusLine.command = $cmd' \
-                   "$SETTINGS_PATH" > "$temp_settings"; then
-                    mv "$temp_settings" "$SETTINGS_PATH"
-                    print_success "Updated settings.json command path"
-                else
-                    rm -f "$temp_settings"
-                    print_warning "Could not update settings.json automatically"
-                fi
-            fi
+        if cp -r "$STATUSLINE_DIR" "$backup_path"; then
+            print_success "✅ Backup created: $backup_path"
+            print_status "💡 Your entire statusline configuration has been preserved"
+            
+            # Remove old installation after successful backup
+            rm -rf "$STATUSLINE_DIR"
+            print_status "🧹 Removed old installation for clean install"
+            return 0
+        else
+            print_error "❌ Failed to create backup - installation aborted"
+            exit 1
         fi
-        
-        return 0
     else
-        print_status "No existing installation found"
+        print_status "No existing statusline installation found"
         return 1
     fi
 }
 
-# Function to generate flat Config.toml with backup support
+# Function to download Config.toml template (simplified - no individual backup)
 download_config_template() {
     print_status "Setting up comprehensive TOML configuration..."
     
-    # Create backup of existing config if present
-    if [[ -f "$CONFIG_PATH" ]]; then
-        local backup_path="${CONFIG_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-        print_status "📄 Existing Config.toml found, creating backup..."
-        if cp "$CONFIG_PATH" "$backup_path"; then
-            print_success "✅ Backup created: $backup_path"
-        else
-            print_warning "⚠️ Failed to create backup, continuing..."
-        fi
-    fi
-    
-    # Download comprehensive config template from repository
+    # Download comprehensive config template from repository  
     local config_template_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/Config.toml"
     print_status "🔧 Downloading comprehensive Config.toml template..."
     
@@ -1453,7 +1406,7 @@ main() {
     fi
     
     create_claude_directory
-    migrate_existing_installation || true  # Don't fail if no existing installation
+    backup_existing_installation || true  # Don't fail if no existing installation
     download_statusline
     download_examples  # Download all example configurations
     check_bash_compatibility
