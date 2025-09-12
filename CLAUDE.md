@@ -187,7 +187,7 @@ Each component follows a standardized interface:
 
 **Model & Session Components (4):**
 - `model_info.sh` - Claude model name with emoji
-- `cost_session.sh` - Repository session cost tracking
+- `cost_repo.sh` - Repository cost tracking
 - `cost_live.sh` - Live block cost monitoring
 - `reset_timer.sh` - Block reset countdown timer
 

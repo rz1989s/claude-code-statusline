@@ -253,7 +253,7 @@ display.line3.components = ["commits", "cost_weekly", "mcp_status"]
 - **`version_info.sh`** - Claude Code version with intelligent caching
 - **`time_display.sh`** - Current time formatting and display
 - **`model_info.sh`** - Claude model identification with emoji indicators
-- **`cost_session.sh`** - Repository session cost tracking
+- **`cost_repo.sh`** - Repository session cost tracking
 - **`cost_monthly.sh`** - 30-day costs (pure atomic)
 - **`cost_weekly.sh`** - 7-day costs (pure atomic)
 - **`cost_daily.sh`** - Daily costs (pure atomic)
@@ -268,7 +268,7 @@ display.line3.components = ["commits", "cost_weekly", "mcp_status"]
 # Compact 3-line layout
 display.lines = 3
 display.line1.components = ["repo_info", "commits", "submodules"]
-display.line2.components = ["model_info", "cost_session"] 
+display.line2.components = ["model_info", "cost_repo"] 
 display.line3.components = ["mcp_status"]
 
 # Custom reordering - prioritize what matters to you!
@@ -474,7 +474,7 @@ Transform your statusline from a fixed layout to a completely personalized infor
 ```toml
 display.lines = 2
 display.line1.components = ["repo_info", "model_info"]
-display.line2.components = ["cost_session"]
+display.line2.components = ["cost_repo"]
 ```
 
 **Creative Reordering (6-line):**
@@ -484,7 +484,7 @@ display.line1.components = ["mcp_status", "version_info"]      # MCP first!
 display.line2.components = ["prayer_times", "time_display"]    # Prayer times priority
 display.line3.components = ["repo_info", "model_info"]         # Repository info
 display.line4.components = ["commits", "submodules"]               # Atomic git stats
-display.line5.components = ["cost_session", "cost_monthly", "cost_live"]  # All costs together
+display.line5.components = ["cost_repo", "cost_monthly", "cost_live"]  # All costs together
 display.line6.components = ["reset_timer"]                     # Timer when active
 ```
 
@@ -500,7 +500,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 
 ![Cost Tracking Integration](assets/screenshots/ccusage-info.png)
 
-**Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_session`, `cost_monthly`, `cost_weekly`, `cost_daily`, `cost_live`)*
+**Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_repo`, `cost_monthly`, `cost_weekly`, `cost_daily`, `cost_live`)*
 - Current Claude model with emoji indicators
 - Repository session costs
 - 30-day, 7-day, and daily spending totals
@@ -536,7 +536,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 - `version_info` - Claude Code version
 - `time_display` - Current time
 - `model_info` - Claude model with emoji
-- `cost_session` - Repository session cost
+- `cost_repo` - Repository session cost
 - `cost_monthly` - 30-day costs (atomic)
 - `cost_weekly` - 7-day costs (atomic)
 - `cost_daily` - Daily costs (atomic)
@@ -550,7 +550,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 # Compact 3-line layout
 display.lines = 3
 display.line1.components = ["repo_info", "commits", "submodules"]
-display.line2.components = ["model_info", "cost_session"] 
+display.line2.components = ["model_info", "cost_repo"] 
 display.line3.components = ["mcp_status"]
 
 # Custom reordering - MCP first!
@@ -1347,13 +1347,13 @@ ENV_CONFIG_LINE1_COMPONENTS="repo_info,model_info" ./statusline.sh
 # Essential Compact (3-line) - Clean and focused
 ENV_CONFIG_DISPLAY_LINES=3 \
 ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info" \
-ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_live" \
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_repo,cost_live" \
 ENV_CONFIG_LINE3_COMPONENTS="mcp_status" ./statusline.sh
 
 # Standard Familiar (5-line) - Default comprehensive layout
 ENV_CONFIG_DISPLAY_LINES=5 \
 ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits,submodules,version_info,time_display" \
-ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session,cost_monthly,cost_live" \
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_repo,cost_monthly,cost_live" \
 ENV_CONFIG_LINE3_COMPONENTS="mcp_status" \
 ENV_CONFIG_LINE4_COMPONENTS="reset_timer" \
 ENV_CONFIG_LINE5_COMPONENTS="prayer_times" ./statusline.sh
@@ -1394,7 +1394,7 @@ cp ~/.claude/statusline/examples/Config.modular-custom.toml ~/.claude/statusline
 # Use environment variables for instant testing
 ENV_CONFIG_DISPLAY_LINES=3 \
 ENV_CONFIG_LINE1_COMPONENTS="repo_info,git_stats" \
-ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_session" \
+ENV_CONFIG_LINE2_COMPONENTS="model_info,cost_repo" \
 ENV_CONFIG_LINE3_COMPONENTS="mcp_status" \
 ./statusline.sh
 ```
@@ -1607,12 +1607,12 @@ display.lines = 2
 display.line1.components = ["repo_info", "model_info"]
 
 # Line 2: Session Cost Only  
-display.line2.components = ["cost_session"]
+display.line2.components = ["cost_repo"]
 
 # Only essentials enabled
 components.repo_info.enabled = true
 components.model_info.enabled = true
-components.cost_session.enabled = true
+components.cost_repo.enabled = true
 ```
 
 #### Comprehensive Configuration (7-line)
@@ -1632,7 +1632,7 @@ display.line1.components = ["prayer_times"]
 # Lines 2-7: Strategic component arrangement
 display.line2.components = ["repo_info", "commits", "submodules"]
 display.line3.components = ["model_info", "version_info", "time_display"]
-display.line4.components = ["cost_session", "cost_live"]
+display.line4.components = ["cost_repo", "cost_live"]
 display.line5.components = ["cost_monthly", "cost_weekly", "cost_daily"]
 display.line6.components = ["mcp_status"]
 display.line7.components = ["reset_timer"]

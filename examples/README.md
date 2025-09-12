@@ -107,7 +107,7 @@ display.line1.components = ["repo_info", "model_info"]
 ```toml
 display.lines = 3
 display.line1.components = ["repo_info", "commits", "version_info"]
-display.line2.components = ["model_info", "cost_session", "cost_live"]
+display.line2.components = ["model_info", "cost_repo", "cost_live"]
 display.line3.components = ["mcp_status"]
 ```
 
@@ -115,7 +115,7 @@ display.line3.components = ["mcp_status"]
 ```toml
 display.lines = 5
 display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
-display.line2.components = ["model_info", "cost_session", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
+display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line3.components = ["prayer_times"]
 display.line4.components = ["mcp_status"]
 display.line5.components = ["reset_timer"]
@@ -134,7 +134,7 @@ display.line1.components = ["prayer_times"]
 display.line2.components = ["repo_info"]
 display.line3.components = ["commits", "submodules"]
 display.line4.components = ["model_info", "version_info"]
-display.line5.components = ["cost_session", "cost_live"]
+display.line5.components = ["cost_repo", "cost_live"]
 display.line6.components = ["cost_monthly", "cost_weekly", "cost_daily"]
 display.line7.components = ["mcp_status"]
 display.line8.components = ["reset_timer"]
@@ -182,7 +182,7 @@ Your Config.toml can use any of these 18 components:
 
 ### Model & Session Components (4)
 - `model_info` - Claude model name with emoji
-- `cost_session` - Repository session cost tracking
+- `cost_repo` - Repository cost tracking
 - `cost_live` - Live block cost monitoring
 - `reset_timer` - Block reset countdown timer
 

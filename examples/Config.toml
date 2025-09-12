@@ -367,7 +367,7 @@ display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
 # Line 2: Model + Cost Analytics (all cost components)
-display.line2.components = ["model_info", "cost_session", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
+display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
@@ -422,7 +422,7 @@ display.line9.show_when_empty = false
 #
 # Model & Session Components (4):
 # - "model_info"     - Claude model name with emoji
-# - "cost_session"   - Repository session cost tracking
+# - "cost_repo"      - Repository cost tracking
 # - "cost_live"      - Live block cost monitoring
 # - "reset_timer"    - Block reset countdown timer
 #
@@ -449,7 +449,7 @@ display.line9.show_when_empty = false
 # display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data
 # display.line2.components = ["model_info", "cost_monthly", "cost_weekly", "cost_daily"]  # Separate cost data
 # display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection"]  # Block metrics
-# display.line4.components = ["cost_session", "cost_live", "prayer_times"]  # Mixed components
+# display.line4.components = ["cost_repo", "cost_live", "prayer_times"]  # Mixed components
 #
 # Environment Override Examples:
 # ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
