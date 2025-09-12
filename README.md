@@ -63,6 +63,12 @@ bash install.sh
 - Uses `curl` with proper GitHub raw URLs
 - No network calls to external domains
 
+### Option 1b: One-Line Install (Trust the Repo)
+```bash
+# Direct install without inspection (for trusted users)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+```
+
 ### Option 2: Manual Install (No script required)
 ```bash
 # 1. Create directory structure
