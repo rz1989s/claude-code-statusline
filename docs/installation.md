@@ -43,6 +43,47 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 
 # Full experience - analysis + choices
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+
+# Preserve existing settings.json (skip Claude Code configuration)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+```
+
+### Development Branch Installation
+
+```bash
+# 🚀 DEV6 (Current Development - Enhanced Settings.json Management)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+
+# Dev6 with existing settings.json preservation
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+
+# 🌙 NIGHTLY (Experimental - Advanced Users Only)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+
+# 🛠️ DEV (Stable Development)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+```
+
+### Enhanced Settings.json Management (Dev6)
+
+**New --preserve-statusline Flag:**
+- **Purpose**: Skip Claude Code settings.json configuration entirely
+- **Use Case**: When you have existing statusline configurations or want manual control
+- **Behavior**: Installs statusline files but doesn't modify settings.json
+- **Safety**: Still creates backup with format: `settings.json.backup.YYYYMMDD_HHMMSS`
+
+**Unified Backup Strategy:**
+- **Always Backup**: Creates timestamped backup if settings.json exists
+- **Canonical Command**: Sets `"command": "bash ~/.claude/statusline/statusline.sh"` within the statusLine object
+- **Predictable**: Simple backup-then-replace behavior every installation
+- **Safe**: Complete file backup provides 100% rollback capability
+
+```bash
+# Install with settings.json preservation (new in dev6)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+
+# Standard dev6 installation with settings.json backup and configuration
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 ```
 
 ### Download & Inspect First

@@ -171,6 +171,56 @@ chmod +x ~/.claude/statusline.sh
 
 ---
 
+## 🚀 **Dev6 Branch Issues**
+
+### Enhanced Settings.json Management
+
+**New in Dev6**: The `--preserve-statusline` flag allows installation without modifying Claude Code settings.json.
+
+#### Installation Options
+
+```bash
+# Standard dev6 installation (configures settings.json)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+
+# Preserve existing settings.json (skip Claude Code configuration)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+```
+
+#### Settings.json Issues
+
+**Problem**: Installation modifies settings.json unexpectedly.
+
+**Solutions**:
+1. **Use preserve flag during installation**:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+   ```
+
+2. **Restore from automatic backup**:
+   ```bash
+   # Dev6 creates timestamped backups automatically
+   ls ~/.claude/settings.json.backup.*
+   cp ~/.claude/settings.json.backup.YYYYMMDD_HHMMSS ~/.claude/settings.json
+   ```
+
+3. **Manual settings.json configuration**:
+   ```json
+   {
+     "statusLine": "bash ~/.claude/statusline/statusline.sh"
+   }
+   ```
+
+**Problem**: Backup files accumulating over multiple installations.
+
+**Solution**: Dev6 creates timestamped backups to prevent overwriting previous backups.
+```bash
+# Clean old backups if needed (optional)
+find ~/.claude -name "settings.json.backup.*" -mtime +30 -delete
+```
+
+---
+
 ## 📋 **TOML Configuration Issues**
 
 > **Note**: The examples below use `./statusline.sh` for project directory usage. If you're using the installed statusline, replace with `~/.claude/statusline.sh`.
