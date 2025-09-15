@@ -362,7 +362,7 @@ hijri.show_weekday = true              # Include day of week in display
 display.lines = 5
 
 # Line 1: Repository Core (atomic git components + info)
-display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "context_window", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
