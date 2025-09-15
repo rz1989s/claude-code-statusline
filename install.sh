@@ -395,6 +395,7 @@ parse_arguments() {
     MINIMAL_MODE=false
     SKIP_DEPS=false
     SHOW_HELP=false
+    PRESERVE_STATUSLINE=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -422,6 +423,10 @@ parse_arguments() {
                 INSTALL_BRANCH="${1#*=}"
                 shift
                 ;;
+            --preserve-statusline)
+                PRESERVE_STATUSLINE=true
+                shift
+                ;;
             --help|-h)
                 SHOW_HELP=true
                 shift
@@ -446,6 +451,7 @@ show_help() {
     echo "  --interactive       Show user choice menu for installation approach"
     echo "  --minimal           Only check critical dependencies (curl, jq)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
+    echo "  --preserve-statusline  Skip settings.json configuration entirely"
     echo "  --help, -h          Show this help message"
     echo
     echo "Examples:"
@@ -453,6 +459,7 @@ show_help() {
     echo "  $0 --check-all-deps         # Show full dependency analysis"
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
+    echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
     echo
     echo "Rate Limit Optimization:"
     echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"
@@ -1014,36 +1021,31 @@ make_executable() {
 # Function to configure settings.json
 configure_settings() {
     print_status "Configuring Claude Code settings..."
-    
-    local temp_settings=$(mktemp)
-    
-    # Check if settings.json exists
+
+    # Skip if user wants to preserve existing settings
+    if [ "$PRESERVE_STATUSLINE" = "true" ]; then
+        print_status "Preserving existing settings (--preserve-statusline)"
+        return 0
+    fi
+
+    # Always backup settings.json if it exists (same format as statusline backup)
     if [ -f "$SETTINGS_PATH" ]; then
-        print_status "Found existing settings.json, updating configuration..."
-        
-        # Create new settings with statusLine configuration
-        if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
-           '.statusLine = {"type": "command", "command": $cmd}' \
-           "$SETTINGS_PATH" > "$temp_settings"; then
-            
-            # Validate the JSON is properly formatted
-            if jq . "$temp_settings" >/dev/null 2>&1; then
-                mv "$temp_settings" "$SETTINGS_PATH"
-                print_success "Updated existing settings.json with statusline configuration"
-            else
-                print_error "Generated invalid JSON, keeping original settings.json"
-                rm -f "$temp_settings"
-                exit 1
-            fi
-        else
-            print_error "Failed to update settings.json"
-            rm -f "$temp_settings"
-            exit 1
-        fi
+        local backup_path="${SETTINGS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+        cp "$SETTINGS_PATH" "$backup_path"
+        print_success "Backed up settings.json to $backup_path"
+    fi
+
+    local temp_settings=$(mktemp)
+
+    # Always set canonical statusline command
+    if [ -f "$SETTINGS_PATH" ]; then
+        # Update existing file - preserve everything, only replace statusLine
+        print_status "Updating existing settings.json with statusline configuration..."
+        jq '.statusLine = {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}' \
+           "$SETTINGS_PATH" > "$temp_settings"
     else
+        # Create new file
         print_status "Creating new settings.json file..."
-        
-        # Create minimal settings.json with statusline configuration
         cat > "$temp_settings" << 'EOF'
 {
   "statusLine": {
@@ -1052,18 +1054,18 @@ configure_settings() {
   }
 }
 EOF
-        
-        # Validate the JSON
-        if jq . "$temp_settings" >/dev/null 2>&1; then
-            mv "$temp_settings" "$SETTINGS_PATH"
-            print_success "Created new settings.json with statusline configuration"
-        else
-            print_error "Failed to create valid settings.json"
-            rm -f "$temp_settings"
-            exit 1
-        fi
     fi
-    
+
+    # Validate and apply
+    if jq . "$temp_settings" >/dev/null 2>&1; then
+        mv "$temp_settings" "$SETTINGS_PATH"
+        print_success "Configured settings.json with statusline"
+    else
+        print_error "Failed to configure settings.json"
+        rm -f "$temp_settings"
+        exit 1
+    fi
+
     # Clean up temp file if it still exists
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
