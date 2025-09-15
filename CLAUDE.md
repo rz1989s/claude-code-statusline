@@ -2,18 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Status (v2.10.0)
+## Project Status (dev6)
 
-**🚀 PRODUCTION READY: Advanced Block Metrics Integration** - Latest stable release with comprehensive ccusage integration! This version includes revolutionary block metrics components and optimized resource usage.
+**🚀 CURRENT DEVELOPMENT: Enhanced Settings.json Management** - Dev6 branch focusing on improved installer reliability and user experience with comprehensive settings.json handling.
 
-**🚀 v2.10.0 NEW FEATURES**:
-- **Block Metrics Components** - 4 new atomic components for ccusage integration
-- **Unified Data Collection** - Single ccusage call reduces resource usage by 75%
-- **Burn Rate Monitoring** - Real-time token consumption tracking
-- **Cache Efficiency** - Performance optimization insights
-- **Cost Projections** - Budget planning and limit avoidance
+**🚀 dev6 NEW FEATURES**:
+- **Enhanced Settings.json Handling** - Unified backup strategy with automatic timestamped backups
+- **--preserve-statusline Option** - Skip settings.json configuration entirely when needed
+- **Simplified Logic Flow** - Clean, predictable installation behavior
+- **Zero Data Loss** - Complete safety net with timestamped backups
+- **Canonical Command Setting** - Always sets correct statusline command path
 
-**🎯 CURRENT: Revolutionary 3-Tier Download System OPERATIONAL** - Major installer enhancement achieves **100% download guarantee** and eliminates GitHub rate limits! Complete architectural overhaul ensures reliable, fast installation regardless of GitHub API availability.
+**🎯 CURRENT: Building on Revolutionary 3-Tier Download System** - Leveraging the proven download architecture from nightly branch while adding focused installer improvements for better user experience.
 
 **🚀 REVOLUTIONARY v2.9.0 BREAKTHROUGH**: Implemented 3-tier download architecture with direct raw URLs (unlimited), GitHub API fallback (5,000/hour), and comprehensive retry mechanisms. Zero intervention needed for 99% of installations.
 
@@ -255,6 +255,24 @@ Each component follows a standardized interface:
 
 ## Development Workflow
 
+**🚀 dev6 Branch Development (Current):**
+```bash
+# 1. Enhanced Settings.json Management Development
+git checkout -b dev6 nightly    # Branch from nightly baseline
+# ... implement settings.json improvements from dev5 ...
+git commit -m "feat: enhance settings.json handling with unified backup strategy"
+git push origin dev6
+
+# 2. Feature Testing and Validation
+./install.sh --preserve-statusline   # Test new preserve option
+./install.sh                         # Test enhanced backup behavior
+# ... validate improvements ...
+
+# 3. Ready for Integration (When Complete)
+# Merge back to dev for stable integration
+# Eventually promote through nightly → main pipeline
+```
+
 **🌙 Nightly Branch Development (v2.9.0+):**
 ```bash
 # 1. Feature Development (Existing Pattern)
@@ -283,11 +301,30 @@ git commit -am "release: v2.10.0 stable release"
 git push origin main
 ```
 
-**🎯 Branch Strategy (Updated v2.9.0+):**
+**🎯 Branch Strategy (Updated with dev6):**
 ```
-dev1, dev2, dev99 → dev → nightly → main
-                     ↑      ↑        ↑
-               stable dev  experimental  production
+dev1, dev2, dev6, dev99 → dev → nightly → main
+                          ↑      ↑        ↑
+                    stable dev  experimental  production
+
+Current Focus: dev6 (settings.json enhancements from nightly baseline)
+```
+
+**🚀 dev6 Installation Testing (Current Development):**
+```bash
+# Test dev6 enhanced settings.json handling
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+
+# Test new --preserve-statusline option
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+
+# Validate enhanced backup behavior
+ls ~/.claude/settings.json.backup.*  # Check for timestamped backups
+cat ~/.claude/settings.json          # Verify canonical command setting
+
+# Test statusline functionality with 18 components
+~/.claude/statusline/statusline.sh --modules  # Should show all modules loaded
+echo '{"workspace":{"current_dir":"$(pwd)"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
 ```
 
 **🚀 Nightly Installation Testing:**
@@ -305,10 +342,18 @@ ENV_CONFIG_THEME=garden ~/.claude/statusline/statusline.sh --version
 ENV_CONFIG_DISPLAY_LINES=3 echo '{...}' | ~/.claude/statusline/statusline.sh
 ```
 
-**🔧 Config.toml Backup Behavior:**
+**🔧 Enhanced Backup Behavior (dev6):**
+
+**Settings.json Backup (NEW in dev6):**
+- **Automatic Backup**: Creates timestamped backup (settings.json.backup.YYYYMMDD_HHMMSS) before any changes
+- **Preserve Option**: Use `--preserve-statusline` to skip settings.json configuration entirely
+- **Canonical Command**: Always sets `"bash ~/.claude/statusline/statusline.sh"` when updating
+- **Zero Data Loss**: Complete safety net with full file backup before modifications
+
+**Config.toml Backup:**
 - **BACKUP AND REPLACE**: Creates timestamped backup (Config.toml.backup.YYYYMMDD_HHMMSS)
 - **Preserves customizations**: Your settings saved in backup file
-- **Fresh template**: Downloads latest nightly template with new features
+- **Fresh template**: Downloads latest template with new features
 - **Zero data loss**: Restore from backup anytime
 
 **Module Development Patterns:**
@@ -338,23 +383,31 @@ ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh  # Feature toggles
 # Config is automatically validated during loading - errors reported in real-time
 ```
 
-**🎯 Three-Tier Installation Strategy:**
+**🎯 Four-Tier Installation Strategy (Including dev6):**
 ```bash
-# 1. 🌙 NIGHTLY (Experimental - Advanced Users Only)
+# 1. 🚀 DEV6 (Current Development - Settings.json Enhancement)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+# Version: dev6-based
+# Purpose: Enhanced settings.json handling, unified backup strategy
+# Features: --preserve-statusline option, automatic backups, canonical command setting
+# Audience: Contributors testing installer improvements
+
+# 2. 🌙 NIGHTLY (Experimental - Advanced Users Only)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 # Version: v2.9.0-nightly-YYYYMMDD
 # Purpose: Bleeding-edge features, community testing, pre-release validation
 # Audience: Power users, contributors, beta testers
 # Update: Manual experimental feature pushes
 
-# 2. 🛠️ DEV (Stable Development)
+# 3. 🛠️ DEV (Stable Development)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
 # Version: v2.9.0+ (stable dev)
 # Purpose: Stable development features before production
 # Audience: Contributors, early adopters
 # Update: Feature merges from dev branches
 
-# 3. 📦 MAIN (Production - Most Users)
+# 4. 📦 MAIN (Production - Most Users)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 # Version: v2.9.0 (stable releases)
 # Purpose: Rock-solid production releases

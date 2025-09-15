@@ -172,10 +172,8 @@ ENV_CONFIG_LINE1_COMPONENTS="commits,submodules" ./statusline.sh  # Atomic separ
 
 Your Config.toml can use any of these 18 components:
 
-### Repository & Git Components (5)
-- `repo_info` - Repository directory and git branch/status
-- `commits` - Commit count for current repository
-- `submodules` - Submodule status and count
+### Repository & Git Components (4)
+- `repo_info` - Repository directory and git status
 - `commits` - Commit count only (pure atomic)
 - `submodules` - Submodule status only (pure atomic)
 - `version_info` - Claude Code version display
@@ -186,15 +184,12 @@ Your Config.toml can use any of these 18 components:
 - `cost_live` - Live block cost monitoring
 - `reset_timer` - Block reset countdown timer
 
-### Cost Analytics Components (4)
-- `cost_monthly` - 30-day cost summary
-- `cost_weekly` - 7-day cost summary
-- `cost_daily` - Daily cost summary
+### Cost Analytics Components (3)
 - `cost_monthly` - 30-day costs only (pure atomic)
 - `cost_weekly` - 7-day costs only (pure atomic)
 - `cost_daily` - Daily costs only (pure atomic)
 
-### Block Metrics Components (4) - NEW v2.10.0
+### Block Metrics Components (4)
 - `burn_rate` - Token consumption rate (🔥3.5k/min $2.10/hr)
 - `token_usage` - Total tokens in current 5-hour block (📊9.5M)
 - `cache_efficiency` - Cache hit percentage for optimization (💾91% hit)

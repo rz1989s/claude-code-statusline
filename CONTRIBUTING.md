@@ -172,18 +172,34 @@ We welcome contributions in many forms! Choose what resonates with your skills a
 
 ### 🌿 **Branching Strategy**
 
+**Current Active Branches:**
+- **`main`** - Stable production releases
+- **`nightly`** - Experimental features for community testing
+- **`dev`** - Stable development integration
+- **`dev6`** - Current development: Enhanced settings.json management
+
 ```bash
-# Start from the main branch
-git checkout dev
+# Start from the appropriate base branch
+git checkout dev6          # For current development features
+git pull upstream dev6
+
+# Alternative: Start from stable dev for general contributions
+git checkout dev           # For general development
 git pull upstream dev
 
 # Create a feature branch
 git checkout -b feature/your-feature-name
 # or
 git checkout -b fix/bug-description
-# or  
+# or
 git checkout -b docs/documentation-improvement
 ```
+
+**Branch Selection Guide:**
+- **Contributing to settings.json features?** → Base on `dev6`
+- **General bug fixes or features?** → Base on `dev`
+- **Experimental features?** → Consider `nightly` branch
+- **Documentation updates?** → Any branch, prefer `dev6` for current docs
 
 ### 🔄 **Development Cycle**
 
@@ -215,10 +231,20 @@ git checkout -b docs/documentation-improvement
    # Test with different configurations
    ENV_CONFIG_THEME=garden ./statusline.sh
    ENV_CONFIG_THEME=catppuccin ./statusline.sh
-   
+
    # Test configuration generation
    cp examples/Config.toml ./Config.toml
    ./statusline.sh --validate-config
+
+   # For dev6 contributors: Test enhanced settings.json features
+   # Test standard installation (modifies settings.json)
+   ./install.sh --branch=dev6
+
+   # Test preserve functionality (skips settings.json)
+   ./install.sh --branch=dev6 --preserve-statusline
+
+   # Verify backup creation
+   ls ~/.claude/settings.json.backup.*
    ```
 
 ### 📝 **Commit Guidelines**
