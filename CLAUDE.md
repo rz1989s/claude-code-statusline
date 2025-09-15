@@ -633,7 +633,25 @@ bats tests/benchmarks/test_performance.bats      # Performance benchmarks
 tests/race-conditions/test-concurrent-access.sh  # Concurrency testing
 ```
 
-## Recent Fixes & Major Improvements (v2.9.0)
+## Recent Fixes & Major Improvements (v2.10.0)
+
+**🎯 SIMPLIFIED SETTINGS.JSON HANDLING (commit 662c7f0):**
+```bash
+# Unified Backup Strategy - Settings.json treated like statusline/ folder
+# ✅ Always backup entire settings.json if exists (settings.json.backup.YYYYMMDD_HHMMSS)
+# ✅ Always set canonical command: "bash ~/.claude/statusline/statusline.sh"
+# ✅ No complex validation, no user prompts, no merge logic
+# ✅ Simple and predictable: backup then replace statusLine section
+# ✅ 100% backward compatibility via complete file backup
+# ✅ Consistent behavior with statusline folder backup pattern
+
+# Benefits:
+# - Simplified installer code (~150 lines removed)
+# - Predictable behavior every installation run
+# - Complete safety net for users (full file backup)
+# - No more complex validation edge cases
+# - Single canonical command format enforced
+```
 
 **🚀 REVOLUTIONARY v2.9.0 INSTALLER OVERHAUL (commit 8e5c35f):**
 ```bash
