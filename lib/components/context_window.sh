@@ -33,13 +33,14 @@ collect_context_window_data() {
     if command -v claude >/dev/null 2>&1; then
         context_data=$(execute_cached_command "claude_context" "claude /context 2>/dev/null" 30)
 
-        # Parse the main context line: "59k/200k tokens (30%)"
+        # Parse the main context line: "34k/200k tokens (17%)"
         if [[ -n "$context_data" ]]; then
-            # Extract using regex pattern matching
-            if [[ "$context_data" =~ ([0-9]+)k/([0-9]+)k\ tokens\ \(([0-9]+)%\) ]]; then
-                current_tokens="${BASH_REMATCH[1]}k"
-                max_tokens="${BASH_REMATCH[2]}k"
-                percentage="${BASH_REMATCH[3]}%"
+            # Extract using more reliable pattern matching
+            if [[ "$context_data" =~ [0-9]+k/[0-9]+k.*\([0-9]+%\) ]]; then
+                # Extract components using grep
+                current_tokens="$(echo "$context_data" | grep -o '^[0-9]\+')k"
+                max_tokens="$(echo "$context_data" | grep -o '/[0-9]\+k' | sed 's|/||')"
+                percentage="$(echo "$context_data" | grep -o '[0-9]\+%')"
                 COMPONENT_CONTEXT_WINDOW_AVAILABLE="true"
             fi
         fi
