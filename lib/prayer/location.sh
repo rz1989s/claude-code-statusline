@@ -247,6 +247,30 @@ apply_location_config() {
 }
 
 # ============================================================================
+# ENHANCED LOCATION DATA EXPORT
+# ============================================================================
+
+# Export location data for external components (e.g., location_display)
+export_location_data() {
+    local coordinates="$1"
+    local method="$2"
+    local vpn_status="$3"
+
+    if [[ -n "$coordinates" ]]; then
+        export STATUSLINE_DETECTED_COORDINATES="$coordinates"
+        export STATUSLINE_DETECTION_METHOD="$method"
+        export STATUSLINE_VPN_STATUS="${vpn_status:-NO_VPN}"
+
+        debug_log "Exported location data: coords=$coordinates, method=$method, vpn=$vpn_status" "INFO"
+    fi
+}
+
+# Get exported location data (for component consumption)
+get_exported_location_data() {
+    echo "${STATUSLINE_DETECTED_COORDINATES:-},${STATUSLINE_DETECTION_METHOD:-unknown},${STATUSLINE_VPN_STATUS:-NO_VPN}"
+}
+
+# ============================================================================
 # COORDINATE RESOLUTION
 # ============================================================================
 
@@ -257,7 +281,9 @@ get_location_coordinates() {
     case "$CONFIG_PRAYER_LOCATION_MODE" in
         "manual")
             if [[ -n "$CONFIG_PRAYER_LATITUDE" && -n "$CONFIG_PRAYER_LONGITUDE" ]]; then
-                echo "$CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE"
+                local coordinates="$CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE"
+                export_location_data "$coordinates" "manual" "NO_VPN"
+                echo "$coordinates"
                 debug_log "Using manual coordinates: $CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE" "INFO"
                 return 0
             else
@@ -284,7 +310,9 @@ get_location_coordinates() {
                     # Extract and return coordinates
                     local latitude=$(echo "$location_data" | jq -r '.latitude' 2>/dev/null)
                     local longitude=$(echo "$location_data" | jq -r '.longitude' 2>/dev/null)
-                    echo "$latitude,$longitude"
+                    local coordinates="$latitude,$longitude"
+                    export_location_data "$coordinates" "ip_geolocation" "NO_VPN"
+                    echo "$coordinates"
                     return 0
                 fi
             fi
@@ -293,25 +321,28 @@ get_location_coordinates() {
             
             # Fallback: Use timezone to guess coordinates
             local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
+            local coordinates
             case "$system_tz" in
                 # Major city coordinates for common timezones
-                Asia/Jakarta|Asia/Pontianak|Asia/Makassar|Asia/Jayapura) echo "-6.2088,106.8456" ;;  # Jakarta
-                Asia/Kuala_Lumpur|Asia/Kuching) echo "3.1390,101.6869" ;;                             # Kuala Lumpur
-                Asia/Singapore) echo "1.3521,103.8198" ;;                                             # Singapore
-                Asia/Karachi) echo "24.8607,67.0011" ;;                                               # Karachi
-                Asia/Dhaka) echo "23.8103,90.4125" ;;                                                 # Dhaka
-                Asia/Kolkata|Asia/Delhi|Asia/Mumbai|Asia/Chennai|Asia/Bangalore) echo "28.6139,77.2090" ;; # Delhi
-                Asia/Riyadh) echo "24.7136,46.6753" ;;                                                # Riyadh
-                Asia/Kuwait) echo "29.3117,47.4818" ;;                                                # Kuwait City
-                Asia/Dubai) echo "25.2048,55.2708" ;;                                                 # Dubai
-                Asia/Tehran) echo "35.6892,51.3890" ;;                                                # Tehran
-                Asia/Istanbul|Europe/Istanbul) echo "41.0082,28.9784" ;;                              # Istanbul
-                Africa/Cairo) echo "30.0444,31.2357" ;;                                               # Cairo
-                Africa/Lagos) echo "6.5244,3.3792" ;;                                                 # Lagos
+                Asia/Jakarta|Asia/Pontianak|Asia/Makassar|Asia/Jayapura) coordinates="-6.2088,106.8456" ;;  # Jakarta
+                Asia/Kuala_Lumpur|Asia/Kuching) coordinates="3.1390,101.6869" ;;                             # Kuala Lumpur
+                Asia/Singapore) coordinates="1.3521,103.8198" ;;                                             # Singapore
+                Asia/Karachi) coordinates="24.8607,67.0011" ;;                                               # Karachi
+                Asia/Dhaka) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
+                Asia/Kolkata|Asia/Delhi|Asia/Mumbai|Asia/Chennai|Asia/Bangalore) coordinates="28.6139,77.2090" ;; # Delhi
+                Asia/Riyadh) coordinates="24.7136,46.6753" ;;                                                # Riyadh
+                Asia/Kuwait) coordinates="29.3117,47.4818" ;;                                                # Kuwait City
+                Asia/Dubai) coordinates="25.2048,55.2708" ;;                                                 # Dubai
+                Asia/Tehran) coordinates="35.6892,51.3890" ;;                                                # Tehran
+                Asia/Istanbul|Europe/Istanbul) coordinates="41.0082,28.9784" ;;                              # Istanbul
+                Africa/Cairo) coordinates="30.0444,31.2357" ;;                                               # Cairo
+                Africa/Lagos) coordinates="6.5244,3.3792" ;;                                                 # Lagos
                 # Ultimate fallback (Indonesian coordinates)
-                *) echo "-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
+                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
             esac
-            
+
+            export_location_data "$coordinates" "timezone_fallback" "POSSIBLE_VPN"
+            echo "$coordinates"
             debug_log "Auto-detection completed successfully in fallback mode" "INFO"
             return 0
             ;;

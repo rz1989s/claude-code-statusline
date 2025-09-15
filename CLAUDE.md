@@ -35,15 +35,15 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nigh
 
 **Core Modules** (11): core → security → config → themes → cache → git → mcp → cost → prayer → components → display
 
-**Atomic Components** (18):
+**Atomic Components** (21):
 - **Repository & Git** (4): repo_info, commits, submodules, version_info
 - **Model & Session** (4): model_info, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
 - **Block Metrics** (4): burn_rate, token_usage, cache_efficiency, block_projection
 - **System** (2): mcp_status, time_display
-- **Spiritual** (1): prayer_times
+- **Spiritual** (2): prayer_times, location_display
 
-**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output
+**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 6-line with VPN-aware location display)
 
 **Key Functions**:
 - `load_module()` - Module loading with dependency checking
@@ -80,8 +80,9 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 ```toml
 # Theme and Display
 theme.name = "catppuccin"            # classic/garden/catppuccin/custom
-display.lines = 5                    # 1-9 lines supported
+display.lines = 6                    # 1-9 lines supported (now includes location display)
 display.line1.components = ["repo_info", "commits", "version_info", "time_display"]
+display.line6.components = ["location_display"]  # NEW: VPN-aware location transparency
 
 # Features
 features.show_mcp_status = true
@@ -96,6 +97,11 @@ prayer.enabled = true
 prayer.calculation_method = 5        # Indonesian/Malaysian method
 prayer.location.auto_detect = true
 
+# Location Display (NEW)
+location.enabled = true              # VPN-aware location detection
+location.format = "short"            # short: "Bekasi", full: "Bekasi, West Java, Indonesia"
+location.show_vpn_indicator = true   # Show VPN detection indicator
+
 # Labels
 labels.commits = "Commits:"
 labels.repo = "REPO"
@@ -107,6 +113,8 @@ labels.monthly = "30DAY"
 ENV_CONFIG_THEME_NAME=garden ./statusline.sh
 ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
 ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh
+ENV_CONFIG_LOCATION_SHOW_VPN_INDICATOR=false ./statusline.sh
+ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 ```
 
 ## Testing & Debugging
@@ -131,6 +139,11 @@ bats tests/benchmarks/test_cache_performance.bats
 # Prayer System Testing
 bats tests/unit/test_prayer_functions.bats
 ENV_CONFIG_PRAYER_ENABLED=true ./statusline.sh
+
+# VPN & Location Testing (NEW)
+ENV_CONFIG_LOCATION_ENABLED=true ./statusline.sh      # Test location display
+ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh       # Test full format display
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "vpn\|location\|coordinates"  # Debug VPN detection
 ```
 
 ## Cache System
