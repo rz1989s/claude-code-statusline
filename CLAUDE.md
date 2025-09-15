@@ -165,7 +165,7 @@ ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES=true ./statusline.sh  # Test prayer displa
 - `lib/cache.sh` - Intelligent caching system
 - `lib/prayer.sh` - Islamic prayer times & Hijri calendar integration
 - `lib/prayer/*.sh` - Modular prayer system (location, calculation, display, timezone, core)
-- `lib/components/*.sh` - **ATOMIC** Individual component modules (18 components)
+- `lib/components/*.sh` - **ATOMIC** Individual component modules (19 components)
 
 **Atomic Component Architecture (v2.7.0):**
 Each component follows a standardized interface:
@@ -173,7 +173,7 @@ Each component follows a standardized interface:
 - `render_${component_name}()` - Format display output
 - `get_${component_name}_config()` - Get component configuration
 
-**Available Components (18 Total):**
+**Available Components (19 Total):**
 
 <!-- 🔄 SYNC WARNING: This section MUST be kept synchronized with examples/Config.toml -->
 <!-- When reading/updating component info here, verify examples/Config.toml matches! -->
@@ -215,7 +215,7 @@ Each component follows a standardized interface:
 3. Atomic line building → 1-9 line dynamic output with clean visual separation
 
 **Key v2.10.0 Achievements:**
-- ✅ **18-Component System** - Pure atomic architecture with specialized components
+- ✅ **19-Component System** - Pure atomic architecture with specialized components
 - ✅ **Unified ccusage Integration** - Single API call reduces resource usage by 75%
 - ✅ **Block Metrics Monitoring** - Real-time burn rate, tokens, cache efficiency, projections
 - ✅ **Optimized Performance** - Cached 30s block data shared across all metric components
@@ -223,6 +223,13 @@ Each component follows a standardized interface:
 - ✅ **Backward Compatible** - All existing components continue to work seamlessly
 - ✅ **1-9 Line Configurability** - Dynamic layouts with advanced block metrics precision
 - ✅ **Environment Override Support** - All components configurable via `ENV_CONFIG_*`
+
+**Latest Component Addition (dev5):**
+- 📊 **Context Window Component** - Real-time Claude Code context usage display
+  - Extracts token counts and percentage from `/context` command
+  - Display formats: `📊 30%` (percentage), `📊 CTX: 30%` (compact), `📊 CTX: 59k/200k (30%)` (full)
+  - 30-second caching with graceful fallback when `/context` unavailable
+  - Environment configuration via `CONFIG_CONTEXT_WINDOW_*` variables
 
 **Atomic Component Benefits:**
 - 🎯 **Single Responsibility** - Each component does one thing perfectly
@@ -710,7 +717,7 @@ rm -rf ~/.cache/claude-code-statusline/git_commits_since_*
 - ✅ **Prayer Time Calculation FIXED**: Exact match times show "(0m)" instead of "24h 0m"
 - ✅ **Environment Overrides WORKING**: ENV_CONFIG_DISPLAY_LINES=3 shows 3 lines  
 - ✅ **Component Overrides WORKING**: ENV_CONFIG_LINE1_COMPONENTS="time_display" shows only time
-- ✅ **5-Line Modular Display**: Perfect statusline with all 18 components operational
+- ✅ **5-Line Modular Display**: Perfect statusline with all 19 components operational
 - ✅ **All Critical Functionality**: Labels, commits, costs, MCP, prayer times, git status
 - ✅ **Zero Critical Errors**: Clean, stable operation with comprehensive data display
 - ✅ **Version Display**: Correct v2.10.0 version reporting in all contexts
