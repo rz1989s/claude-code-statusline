@@ -18,7 +18,7 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with 19 atomic components across 1-9 configurable lines**  
+**🎨 Transform your terminal with 18 atomic components across 1-9 configurable lines**  
 *Block metrics • Burn rate monitoring • Cache efficiency • Cost projections • Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -219,7 +219,7 @@ labels.commits = "Commits:"            # Display labels
 
 **🎯 ULTIMATE CUSTOMIZATION: ATOMIC COMPONENT BREAKTHROUGH**
 
-Transform your statusline with **19 atomic components** that eliminate separator issues and provide maximum control:
+Transform your statusline with **18 atomic components** that eliminate separator issues and provide maximum control:
 
 - **🔬 Atomic Components** - Single-purpose units for maximum control:
   - `commits` - Shows ONLY commit count (pure atomic)
@@ -241,8 +241,8 @@ display.line1.components = ["repo_info", "commits", "version_info"]
 # Custom cost tracking - pick exactly what you need
 display.line2.components = ["cost_monthly", "cost_daily"]
 
-# Pure atomic components with context monitoring
-display.line3.components = ["commits", "cost_weekly", "context_window", "mcp_status"]
+# Pure atomic components with system monitoring
+display.line3.components = ["commits", "cost_weekly", "mcp_status"]
 ```
 
 ---
@@ -251,7 +251,7 @@ display.line3.components = ["commits", "cost_weekly", "context_window", "mcp_sta
 
 **🎯 MAJOR ARCHITECTURAL BREAKTHROUGH: MODULAR COMPONENT SYSTEM**
 
-- **Complete Component Architecture** - 19 individual component modules with standardized interfaces (`collect_data()`, `render()`, `get_config()`)
+- **Complete Component Architecture** - 18 individual component modules with standardized interfaces (`collect_data()`, `render()`, `get_config()`)
 - **Configurable 1-9 Line Display** - Flexible line layouts from minimal 1-line to comprehensive 9-line configurations
 - **Component Registry System** - Advanced component management with dependency tracking and enablement states
 - **Mix & Match Flexibility** - Arrange any component on any line position (MCP on line 1, prayer times on line 2, etc.)
@@ -475,7 +475,7 @@ Transform your statusline from a fixed layout to a completely personalized infor
 
 **🌟 Key Modular Features:**
 - **📐 1-9 Line Flexibility** - From ultra-minimal 1-line to comprehensive 9-line displays
-- **🧩 19 Individual Components** - Mix, match, and reorder any component on any line
+- **🧩 18 Individual Components** - Mix, match, and reorder any component on any line
 - **🎛️ Component Registry** - Advanced management with dependency tracking
 - **⚡ Real-time Reconfiguration** - Change layouts instantly with environment variables
 - **🔄 Backward Compatible** - Legacy 5-line system preserved as fallback
