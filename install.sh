@@ -395,6 +395,8 @@ parse_arguments() {
     MINIMAL_MODE=false
     SKIP_DEPS=false
     SHOW_HELP=false
+    FORCE_UPDATE=false
+    PRESERVE_STATUSLINE=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -422,6 +424,14 @@ parse_arguments() {
                 INSTALL_BRANCH="${1#*=}"
                 shift
                 ;;
+            --force)
+                FORCE_UPDATE=true
+                shift
+                ;;
+            --preserve-statusline)
+                PRESERVE_STATUSLINE=true
+                shift
+                ;;
             --help|-h)
                 SHOW_HELP=true
                 shift
@@ -446,6 +456,8 @@ show_help() {
     echo "  --interactive       Show user choice menu for installation approach"
     echo "  --minimal           Only check critical dependencies (curl, jq)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
+    echo "  --force             Skip confirmation prompts, replace different statuslines"
+    echo "  --preserve-statusline  Skip settings.json configuration entirely"
     echo "  --help, -h          Show this help message"
     echo
     echo "Examples:"
@@ -453,6 +465,8 @@ show_help() {
     echo "  $0 --check-all-deps         # Show full dependency analysis"
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
+    echo "  $0 --force                  # Skip prompts, replace existing statuslines"
+    echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
     echo
     echo "Rate Limit Optimization:"
     echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"
@@ -1013,48 +1027,147 @@ make_executable() {
     fi
 }
 
+# Helper function to check if command points to our statusline
+is_valid_statusline_command() {
+    local cmd="$1"
+
+    # Accept various valid formats for our statusline
+    if [[ "$cmd" =~ statusline\.sh$ ]] || \
+       [[ "$cmd" =~ statusline/statusline\.sh$ ]] || \
+       [[ "$cmd" == "bash ~/.claude/statusline.sh" ]] || \
+       [[ "$cmd" == "bash ~/.claude/statusline/statusline.sh" ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Helper function to determine if statusline should be updated
+should_update_statusline() {
+    local current_cmd="$1"
+
+    # Check if it's already our statusline (various formats)
+    if is_valid_statusline_command "$current_cmd"; then
+        print_success "StatusLine already configured correctly: $current_cmd"
+        return 1  # Don't update
+    fi
+
+    # Check if it's a different statusline tool
+    if [[ "$current_cmd" =~ statusline|powerline|starship|oh-my-posh ]]; then
+        print_warning "Different statusline detected: $current_cmd"
+
+        if [ "$FORCE_UPDATE" != "true" ]; then
+            echo -e "${YELLOW}You have a different statusline configured.${NC}"
+            read -p "Replace with Claude Code Statusline? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                print_status "Keeping existing statusline configuration"
+                return 1  # Don't update
+            fi
+        else
+            print_status "Force mode: replacing existing statusline"
+        fi
+    fi
+
+    return 0  # Proceed with update
+}
+
 # Function to configure settings.json
 configure_settings() {
     print_status "Configuring Claude Code settings..."
-    
+
+    # Skip if user wants to preserve existing statusline config
+    if [ "$PRESERVE_STATUSLINE" = "true" ]; then
+        print_status "Preserving existing statusline configuration (--preserve-statusline)"
+        return 0
+    fi
+
+    # File locking mechanism
+    local lock_file="${SETTINGS_PATH}.lock"
+    local lock_acquired=false
+
+    # Try to acquire lock (with timeout)
+    for i in {1..10}; do
+        if mkdir "$lock_file" 2>/dev/null; then
+            lock_acquired=true
+            break
+        fi
+        print_status "Waiting for settings.json lock... (attempt $i/10)"
+        sleep 0.5
+    done
+
+    if [ "$lock_acquired" != "true" ]; then
+        print_error "Could not acquire lock on settings.json (concurrent update?)"
+        return 1
+    fi
+
+    # Ensure lock is released on exit
+    trap "rm -rf '$lock_file' 2>/dev/null || true" EXIT
+
     local temp_settings=$(mktemp)
-    
-    # Check if settings.json exists
+
     if [ -f "$SETTINGS_PATH" ]; then
-        print_status "Found existing settings.json, updating configuration..."
-        
-        # Create new settings with statusLine configuration
+        print_status "Found existing settings.json, checking configuration..."
+
+        # Check current statusLine configuration
+        local has_statusline=$(jq -e '.statusLine' "$SETTINGS_PATH" 2>/dev/null && echo "true" || echo "false")
+
+        if [[ "$has_statusline" == "true" ]]; then
+            local current_cmd=$(jq -r '.statusLine.command // ""' "$SETTINGS_PATH")
+            local current_type=$(jq -r '.statusLine.type // ""' "$SETTINGS_PATH")
+
+            print_status "Current statusLine command: $current_cmd"
+
+            # Check if update is needed using our helper function
+            if ! should_update_statusline "$current_cmd"; then
+                rm -rf "$lock_file" 2>/dev/null || true
+                trap - EXIT
+                return 0  # Skip update
+            fi
+
+            # Backup statusLine section before modifying
+            local backup_file="${SETTINGS_PATH}.statusline.backup.$(date +%Y%m%d_%H%M%S)"
+            jq '.statusLine' "$SETTINGS_PATH" > "$backup_file" 2>/dev/null || true
+            print_status "Backed up existing statusLine config to $backup_file"
+        fi
+
+        # MERGE instead of REPLACE - preserve existing properties
+        print_status "Merging statusline configuration (preserving custom properties)..."
         if jq --arg cmd "bash ~/.claude/statusline/statusline.sh" \
-           '.statusLine = {"type": "command", "command": $cmd}' \
+           '.statusLine = (.statusLine // {}) + {"type": "command", "command": $cmd}' \
            "$SETTINGS_PATH" > "$temp_settings"; then
-            
+
             # Validate the JSON is properly formatted
             if jq . "$temp_settings" >/dev/null 2>&1; then
                 mv "$temp_settings" "$SETTINGS_PATH"
-                print_success "Updated existing settings.json with statusline configuration"
+                print_success "Updated settings.json (preserved custom properties)"
             else
                 print_error "Generated invalid JSON, keeping original settings.json"
                 rm -f "$temp_settings"
+                rm -rf "$lock_file" 2>/dev/null || true
+                trap - EXIT
                 exit 1
             fi
         else
-            print_error "Failed to update settings.json"
+            print_error "Failed to merge settings.json"
             rm -f "$temp_settings"
+            rm -rf "$lock_file" 2>/dev/null || true
+            trap - EXIT
             exit 1
         fi
     else
         print_status "Creating new settings.json file..."
-        
+
         # Create minimal settings.json with statusline configuration
         cat > "$temp_settings" << 'EOF'
 {
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline/statusline.sh"
+    "command": "bash ~/.claude/statusline/statusline.sh",
+    "enabled": true
   }
 }
 EOF
-        
+
         # Validate the JSON
         if jq . "$temp_settings" >/dev/null 2>&1; then
             mv "$temp_settings" "$SETTINGS_PATH"
@@ -1062,12 +1175,16 @@ EOF
         else
             print_error "Failed to create valid settings.json"
             rm -f "$temp_settings"
+            rm -rf "$lock_file" 2>/dev/null || true
+            trap - EXIT
             exit 1
         fi
     fi
-    
-    # Clean up temp file if it still exists
+
+    # Clean up
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
+    rm -rf "$lock_file" 2>/dev/null || true
+    trap - EXIT
 }
 
 # Simplified backup function - backup entire statusline folder if exists
