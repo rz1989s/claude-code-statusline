@@ -144,6 +144,12 @@ ENV_CONFIG_PRAYER_ENABLED=true ./statusline.sh
 ENV_CONFIG_LOCATION_ENABLED=true ./statusline.sh      # Test location display
 ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh       # Test full format display
 STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "vpn\|location\|coordinates"  # Debug VPN detection
+
+# Global City Detection Testing
+source lib/components/location_display.sh
+get_city_from_coordinates 24.7136 46.6753    # Should detect "Riyadh"
+get_city_from_coordinates 41.0082 28.9784     # Should detect "Istanbul"
+get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 ```
 
 ## Cache System
@@ -205,3 +211,25 @@ ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh  # Manual coordinat
 ```
 
 **Caching**: Prayer times cached 24h, location cached 7 days
+
+## Global Location Detection
+
+**VPN-Aware Coverage**: Supports 2+ billion Muslims worldwide with automatic city detection
+
+**Supported Regions**:
+- **Southeast Asia** (450M): Jakarta, Bekasi, Surabaya, Kuala Lumpur, Singapore
+- **South Asia** (620M): Karachi, Lahore, Delhi, Mumbai, Dhaka, Islamabad
+- **Middle East** (120M): Riyadh, Dubai, Istanbul, Tehran, Baghdad, Amman
+- **North Africa** (280M): Cairo, Casablanca, Algiers, Tunis, Khartoum, Lagos
+- **Europe** (60M): London, Paris, Berlin, Moscow, Sarajevo, Tirana
+- **Americas** (15M): New York, Toronto, Los Angeles, São Paulo, Montreal
+
+**VPN Detection**: Automatically detects Cloudflare, NordVPN, ExpressVPN, and datacenter proxies
+
+**Example Outputs**:
+```bash
+📍 Loc: Jakarta (VPN detected)      # Indonesia with VPN
+📍 Loc: Istanbul                    # Turkey direct connection
+📍 Loc: Middle East (VPN)           # Regional fallback with VPN
+📍 Loc: Southeast Asia              # Regional fallback
+```
