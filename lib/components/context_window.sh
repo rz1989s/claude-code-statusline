@@ -35,10 +35,11 @@ collect_context_window_data() {
 
         # Parse the main context line: "34k/200k tokens (17%)"
         if [[ -n "$context_data" ]]; then
-            # Extract using more reliable pattern matching
+            # Extract using more reliable pattern matching for actual Claude Code format
+            # Format: "claude-sonnet-4-20250514 • 139k/200k tokens (70%)"
             if [[ "$context_data" =~ [0-9]+k/[0-9]+k.*\([0-9]+%\) ]]; then
-                # Extract components using grep
-                current_tokens="$(echo "$context_data" | grep -o '^[0-9]\+')k"
+                # Extract components using grep - handle format with text prefix
+                current_tokens="$(echo "$context_data" | grep -o '[0-9]\+k/' | sed 's|/||')"
                 max_tokens="$(echo "$context_data" | grep -o '/[0-9]\+k' | sed 's|/||')"
                 percentage="$(echo "$context_data" | grep -o '[0-9]\+%')"
                 COMPONENT_CONTEXT_WINDOW_AVAILABLE="true"
