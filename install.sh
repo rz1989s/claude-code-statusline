@@ -1032,7 +1032,7 @@ configure_settings() {
     if [ -f "$SETTINGS_PATH" ]; then
         local backup_path="${SETTINGS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
         cp "$SETTINGS_PATH" "$backup_path"
-        print_success "Backed up settings.json to $backup_path"
+        print_success "Backed up settings.json to $backup_path (restore: cp \"$backup_path\" \"$SETTINGS_PATH\")"
     fi
 
     local temp_settings=$(mktemp)

@@ -74,7 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/
 
 **Unified Backup Strategy:**
 - **Always Backup**: Creates timestamped backup if settings.json exists
-- **Canonical Command**: Sets `"statusLine": "bash ~/.claude/statusline/statusline.sh"`
+- **Canonical Command**: Sets `"command": "bash ~/.claude/statusline/statusline.sh"` within the statusLine object
 - **Predictable**: Simple backup-then-replace behavior every installation
 - **Safe**: Complete file backup provides 100% rollback capability
 
