@@ -22,6 +22,15 @@ nano ~/.claude/statusline/Config.toml
 ~/.claude/statusline.sh
 ```
 
+**Dev6 Installation (Enhanced Settings.json Management):**
+```bash
+# Install dev6 with enhanced settings.json handling
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+
+# Install dev6 with existing settings.json preservation
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+```
+
 **🎯 No More Configuration Hunting!**
 - ✅ All 227 settings in ONE file
 - ✅ Parameters pre-filled with sensible defaults
@@ -34,29 +43,37 @@ nano ~/.claude/statusline/Config.toml
 
 The statusline now uses an **atomic component architecture** where each component serves a single purpose, giving you maximum customization flexibility.
 
-### 16 Available Components
+### 18 Available Components
 
-**Core Components (11):**
-- `repo_info` - Repository directory and git status  
+**Repository & Git Components (4):**
+- `repo_info` - Repository directory and git status
 - `commits` - Commit count only (pure atomic)
 - `submodules` - Submodule status only (pure atomic)
 - `version_info` - Claude Code version display
-- `time_display` - Current time formatting
+
+**Model & Session Components (4):**
 - `model_info` - Claude model with emoji
-- `cost_session` - Repository session cost
+- `cost_repo` - Repository cost tracking
+- `cost_live` - Live block cost monitoring
+- `reset_timer` - Block reset countdown timer
+
+**Cost Analytics Components (3):**
 - `cost_monthly` - 30-day costs only (pure atomic)
 - `cost_weekly` - 7-day costs only (pure atomic)
 - `cost_daily` - Daily costs only (pure atomic)
-- `cost_live` - Live block cost tracking
-- `mcp_status` - MCP server health monitoring
-- `reset_timer` - Block reset countdown
-- `prayer_times` - Islamic prayer times integration
 
-**Atomic Components (5 - NEW!):**
+**Block Metrics Components (4):**
 - `burn_rate` - Token consumption rate and cost per hour
 - `token_usage` - Total tokens consumed in current block
 - `cache_efficiency` - Cache hit percentage for optimization
 - `block_projection` - Projected cost and tokens for current block
+
+**System Components (2):**
+- `mcp_status` - MCP server health monitoring
+- `time_display` - Current time formatting
+
+**Spiritual Components (1):**
+- `prayer_times` - Islamic prayer times integration
 
 ### Modular Display Configuration
 

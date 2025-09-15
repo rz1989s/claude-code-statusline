@@ -1097,13 +1097,18 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 # 🛠️ DEVELOPMENT (Stable Development Features)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
 
+# 🚀 DEV6 (Current Development - Settings.json Enhancement)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+
 # 🌙 NIGHTLY (⚠️ Experimental - Advanced Users Only)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 ```
 
 **🔍 Branch Descriptions:**
 - **📦 main**: Stable releases (v2.9.0) - Perfect for production use
-- **🛠️ dev**: Stable development features - Early access to tested improvements  
+- **🛠️ dev**: Stable development features - Early access to tested improvements
+- **🚀 dev6**: Enhanced settings.json handling with unified backup strategy and `--preserve-statusline` option
 - **🌙 nightly**: Bleeding-edge experimental features (v2.9.0-nightly-YYYYMMDD) - Community testing platform
 
 ⚠️ **Nightly Warning**: Use only if you want access to experimental features before they become stable. Perfect for contributors and power users who want to help test upcoming improvements.
@@ -1118,6 +1123,9 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 
 # Full analysis with user menu
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+
+# Skip settings.json configuration (dev6 feature)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
 <details>

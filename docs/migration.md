@@ -73,7 +73,27 @@ grep -n "CONFIG_" ~/.claude/statusline/statusline.sh | head -20
 echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' | ~/.claude/statusline/statusline.sh
 ```
 
-#### Step 1.2: Backup Your Current Configuration
+#### Step 1.2: Consider Dev6 Installation for Enhanced Migration
+
+**New Option**: Dev6 branch offers enhanced settings.json management during migration:
+
+```bash
+# Option 1: Migrate with settings.json preservation (recommended for existing setups)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+
+# Option 2: Standard dev6 installation with automatic settings.json backup
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+
+# Option 3: Traditional main branch (if you prefer stable release)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+```
+
+**Dev6 Benefits for Migration**:
+- **Automatic Backup**: Creates timestamped settings.json backups (format: `settings.json.backup.YYYYMMDD_HHMMSS`)
+- **Preserve Option**: `--preserve-statusline` skips settings.json modification entirely
+- **Safe Rollback**: Easy restoration from automatic backups if needed
+
+#### Step 1.3: Backup Your Current Configuration
 
 ```bash
 # Create backup directory
