@@ -353,7 +353,7 @@ detect_vpn_status() {
     # Method 1: Check for known VPN providers via IP info
     if command_exists curl && check_internet_connection; then
         local ip_info
-        ip_info=$(curl -s --max-time 5 "http://ip-api.com/json/?fields=isp,org,hosting,proxy" 2>/dev/null)
+        ip_info=$(curl -s --max-time 5 "http://ip-api.com/json/?fields=isp,org,hosting,proxy,countryCode" 2>/dev/null)
 
         if [[ -n "$ip_info" ]] && command_exists jq; then
             local isp=$(echo "$ip_info" | jq -r '.isp // "unknown"' 2>/dev/null)
