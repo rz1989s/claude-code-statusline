@@ -538,6 +538,7 @@ download_directory_comprehensive() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -818,6 +819,7 @@ download_lib_fallback() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
@@ -1158,7 +1160,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=31  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=32  # 🆕 UPDATE THIS COUNT when adding new modules!
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================
