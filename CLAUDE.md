@@ -27,8 +27,12 @@ ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" ./statusline.sh
 rm -rf ~/.cache/claude-code-statusline/
 STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep "cache"
 
-# Installation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+# Installation with Auto-Install
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly --auto-install
+
+# Dependency Testing
+./install.sh --check-all-deps          # Check dependency status
+./install.sh --auto-install --interactive  # Test auto-install with choices
 ```
 
 ## Architecture
@@ -169,12 +173,19 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 ## Technical Implementation
 
 **Dependencies**:
-- **Required**: jq (JSON parsing), git (repository integration)
-- **Prayer System**: curl (API calls), date (time calculations)
-- **GPS Location (Recommended)**:
+- **Critical (auto-installed)**: curl, jq, git
+- **Important (auto-installed)**: bun/bunx (cost tracking), bc (calculations), python3 (TOML features)
+- **Helpful (auto-installed)**: timeout/gtimeout (network protection)
+- **GPS Location (optional auto-install)**:
   - macOS: CoreLocationCLI (`brew install corelocationcli`)
   - Linux: geoclue2 (`sudo apt install geoclue-2-demo`)
-- **Optional**: ccusage (cost tracking), timeout/gtimeout (platform-specific)
+  - WSL: GPS not available (IP fallback only)
+
+**Auto-Install System**:
+- **Platform Support**: macOS (Homebrew), Linux (apt/yum/dnf/pacman), WSL (Linux packages)
+- **Zero Configuration**: Detects platform, package manager, installs dependencies automatically
+- **Permissions**: Handles sudo requirements intelligently (macOS uses brew without sudo)
+- **Verification**: Confirms successful installation before proceeding
 
 **Security**: Input sanitization via lib/security.sh, timeout protection, secure path handling
 
@@ -192,14 +203,18 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 
 **Installation Commands**:
 ```bash
-# Production (main branch)
+# Recommended: Auto-install all dependencies
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+
+# Auto-install with GPS choice (interactive)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
+
+# Production (main branch, manual dependencies)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# Nightly (experimental)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
-
-# Development (dev6 with settings.json enhancements)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+# Platform-specific auto-install examples
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly --auto-install
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --auto-install --preserve-statusline
 ```
 
 ## Prayer System Integration

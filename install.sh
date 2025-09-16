@@ -62,20 +62,41 @@ detect_system_capabilities() {
     # OS and Architecture Detection
     OS_TYPE=$(uname -s)
     OS_ARCH=$(uname -m)
-    
-    # Detailed OS classification
+
+    # Detailed OS classification with WSL detection
     case "$OS_TYPE" in
-        "Darwin") OS_PLATFORM="macOS" ;;
-        "Linux") 
-            if [ -f /etc/os-release ]; then
+        "Darwin")
+            OS_PLATFORM="macOS"
+            IS_WSL=false
+            ;;
+        "Linux")
+            # Detect WSL (Windows Subsystem for Linux)
+            if [[ -f /proc/version ]] && grep -qi "microsoft" /proc/version; then
+                OS_PLATFORM="WSL"
+                IS_WSL=true
+                # Detect WSL version
+                if [[ -f /proc/version ]] && grep -qi "WSL2" /proc/version; then
+                    WSL_VERSION="2"
+                else
+                    WSL_VERSION="1"
+                fi
+            elif [ -f /etc/os-release ]; then
                 . /etc/os-release
                 OS_PLATFORM="$NAME"
+                IS_WSL=false
             else
                 OS_PLATFORM="Linux"
+                IS_WSL=false
             fi
             ;;
-        "CYGWIN"*|"MINGW"*|"MSYS"*) OS_PLATFORM="Windows" ;;
-        *) OS_PLATFORM="Unknown" ;;
+        "CYGWIN"*|"MINGW"*|"MSYS"*)
+            OS_PLATFORM="Windows"
+            IS_WSL=false
+            ;;
+        *)
+            OS_PLATFORM="Unknown"
+            IS_WSL=false
+            ;;
     esac
     
     # Package Manager Detection (in priority order)
@@ -107,6 +128,9 @@ detect_system_capabilities() {
     
     print_status "🔍 System Analysis:"
     print_status "  • OS: $OS_PLATFORM ($OS_ARCH)"
+    if [[ "$IS_WSL" == "true" ]]; then
+        print_status "  • WSL Version: $WSL_VERSION"
+    fi
     print_status "  • Package Manager: $PKG_MGR"
 }
 
@@ -116,7 +140,7 @@ check_all_dependencies() {
     echo
     
     # Dependency categories and their impact
-    local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing")
+    local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing" "git:Repository integration")
     local important_deps=("bunx:Cost tracking with ccusage")
     local helpful_deps=("bc:Precise cost calculations" "python3:Advanced TOML features & date parsing")
     local optional_deps=("timeout:Network operation protection (gtimeout on macOS)" "CoreLocationCLI:GPS location for prayer times (macOS)" "geoclue:GPS location for prayer times (Linux)")
@@ -417,6 +441,402 @@ show_user_choice_menu() {
     done
 }
 
+# ============================================================================
+# AUTO-INSTALL DEPENDENCY SYSTEM
+# ============================================================================
+
+# Check if user has sudo privileges (for non-macOS systems)
+check_sudo_privileges() {
+    if [[ "$OS_PLATFORM" == "macOS" ]]; then
+        return 0  # macOS typically uses brew without sudo
+    fi
+
+    if sudo -n true 2>/dev/null; then
+        return 0
+    else
+        print_status "🔐 Some dependencies require sudo privileges for installation"
+        print_status "💡 You may be prompted for your password during auto-install"
+        return 0
+    fi
+}
+
+# Install dependencies on macOS using brew
+auto_install_macos() {
+    local deps_to_install=("$@")
+
+    if [[ ${#deps_to_install[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    print_status "🍺 Installing dependencies on macOS using Homebrew..."
+
+    # Check if brew is installed
+    if ! command_exists brew; then
+        print_status "🔧 Homebrew not found, installing Homebrew first..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        # Add Homebrew to PATH for the current session
+        if [[ -f "/opt/homebrew/bin/brew" ]]; then
+            export PATH="/opt/homebrew/bin:$PATH"
+        elif [[ -f "/usr/local/bin/brew" ]]; then
+            export PATH="/usr/local/bin:$PATH"
+        fi
+    fi
+
+    # Map dependency names for macOS
+    local brew_deps=()
+    for dep in "${deps_to_install[@]}"; do
+        case "$dep" in
+            "bunx") brew_deps+=("bun") ;;
+            "timeout") brew_deps+=("coreutils") ;;
+            "CoreLocationCLI") brew_deps+=("corelocationcli") ;;
+            *) brew_deps+=("$dep") ;;
+        esac
+    done
+
+    # Install each dependency
+    for dep in "${brew_deps[@]}"; do
+        print_status "📦 Installing $dep..."
+        if brew install "$dep"; then
+            print_success "✅ Installed $dep"
+        else
+            print_warning "⚠️ Failed to install $dep (continuing anyway)"
+        fi
+    done
+}
+
+# Install dependencies on Linux using package manager
+auto_install_linux() {
+    local deps_to_install=("$@")
+
+    if [[ ${#deps_to_install[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    print_status "🐧 Installing dependencies on Linux using $PKG_MGR..."
+
+    # Map dependency names for Linux
+    local linux_deps=()
+    for dep in "${deps_to_install[@]}"; do
+        case "$dep" in
+            "bunx")
+                print_status "📦 Installing bun (JavaScript runtime)..."
+                curl -fsSL https://bun.sh/install | bash
+                export PATH="$HOME/.bun/bin:$PATH"
+                ;;
+            "timeout")
+                linux_deps+=("coreutils")
+                ;;
+            "geoclue"|"CoreLocationCLI")
+                if [[ "$PKG_MGR" == "apt" ]]; then
+                    linux_deps+=("geoclue-2.0-dev")
+                else
+                    linux_deps+=("geoclue2")
+                fi
+                ;;
+            *) linux_deps+=("$dep") ;;
+        esac
+    done
+
+    # Update package lists first
+    case "$PKG_MGR" in
+        "apt")
+            print_status "🔄 Updating package lists..."
+            sudo apt update
+            ;;
+        "yum"|"dnf")
+            print_status "🔄 Updating package cache..."
+            sudo $PKG_MGR makecache
+            ;;
+    esac
+
+    # Install each dependency
+    for dep in "${linux_deps[@]}"; do
+        print_status "📦 Installing $dep..."
+        case "$PKG_MGR" in
+            "apt")
+                if sudo apt install -y "$dep"; then
+                    print_success "✅ Installed $dep"
+                else
+                    print_warning "⚠️ Failed to install $dep (continuing anyway)"
+                fi
+                ;;
+            "yum"|"dnf")
+                if sudo $PKG_MGR install -y "$dep"; then
+                    print_success "✅ Installed $dep"
+                else
+                    print_warning "⚠️ Failed to install $dep (continuing anyway)"
+                fi
+                ;;
+            "pacman")
+                if sudo pacman -S --noconfirm "$dep"; then
+                    print_success "✅ Installed $dep"
+                else
+                    print_warning "⚠️ Failed to install $dep (continuing anyway)"
+                fi
+                ;;
+            *)
+                print_warning "⚠️ Unsupported package manager for auto-install: $PKG_MGR"
+                ;;
+        esac
+    done
+}
+
+# Install dependencies on WSL
+auto_install_wsl() {
+    local deps_to_install=("$@")
+
+    if [[ ${#deps_to_install[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    print_status "🪟 Installing dependencies on WSL $WSL_VERSION..."
+    print_status "💡 WSL uses Linux package managers but may have special considerations"
+
+    # For WSL, use Linux installation but with some modifications
+    local wsl_deps=()
+    for dep in "${deps_to_install[@]}"; do
+        case "$dep" in
+            "CoreLocationCLI"|"geoclue")
+                print_warning "⚠️ GPS location services not available in WSL, skipping $dep"
+                ;;
+            *) wsl_deps+=("$dep") ;;
+        esac
+    done
+
+    # Call Linux installation with filtered dependencies
+    if [[ ${#wsl_deps[@]} -gt 0 ]]; then
+        auto_install_linux "${wsl_deps[@]}"
+    fi
+}
+
+# Main auto-install orchestrator
+auto_install_dependencies() {
+    local critical_missing=("$@")
+
+    if [[ ${#critical_missing[@]} -eq 0 ]]; then
+        print_success "🎉 All dependencies are already installed!"
+        return 0
+    fi
+
+    print_status "🤖 AUTO-INSTALL: Starting automatic dependency installation..."
+    echo
+    print_status "📦 Dependencies to install: ${critical_missing[*]}"
+    echo
+
+    # Check permissions
+    check_sudo_privileges
+    echo
+
+    # Platform-specific installation
+    case "$OS_PLATFORM" in
+        "macOS")
+            auto_install_macos "${critical_missing[@]}"
+            ;;
+        "WSL")
+            auto_install_wsl "${critical_missing[@]}"
+            ;;
+        *Linux*|"Ubuntu"*|"Debian"*|"CentOS"*|"RHEL"*|"Fedora"*|"Arch"*|"openSUSE"*)
+            auto_install_linux "${critical_missing[@]}"
+            ;;
+        *)
+            print_error "❌ Auto-install not supported on $OS_PLATFORM"
+            print_status "💡 Please install dependencies manually:"
+            for dep in "${critical_missing[@]}"; do
+                print_status "  • $dep"
+            done
+            return 1
+            ;;
+    esac
+
+    echo
+    print_status "🔄 Verifying installation..."
+
+    # Verify installations
+    local still_missing=()
+    for dep in "${critical_missing[@]}"; do
+        case "$dep" in
+            "bunx")
+                if command_exists bun || command_exists bunx; then
+                    print_success "✅ $dep is now available"
+                else
+                    still_missing+=("$dep")
+                fi
+                ;;
+            "timeout")
+                if command_exists timeout || command_exists gtimeout; then
+                    print_success "✅ timeout is now available"
+                else
+                    still_missing+=("timeout")
+                fi
+                ;;
+            "CoreLocationCLI")
+                if command_exists CoreLocationCLI; then
+                    print_success "✅ CoreLocationCLI is now available"
+                else
+                    still_missing+=("CoreLocationCLI")
+                fi
+                ;;
+            *)
+                if command_exists "$dep"; then
+                    print_success "✅ $dep is now available"
+                else
+                    still_missing+=("$dep")
+                fi
+                ;;
+        esac
+    done
+
+    if [[ ${#still_missing[@]} -eq 0 ]]; then
+        print_success "🎉 All dependencies successfully installed!"
+        return 0
+    else
+        print_warning "⚠️ Some dependencies still missing: ${still_missing[*]}"
+        print_status "💡 Statusline will work with reduced functionality"
+        return 2
+    fi
+}
+
+# Enhanced dependency checking with auto-install integration
+check_dependencies_with_auto_install() {
+    print_status "🔍 Comprehensive dependency analysis with auto-install..."
+    echo
+
+    # Define comprehensive dependency matrix
+    local critical_deps=("curl" "jq" "git")
+    local important_deps=("bun" "bc" "python3")
+    local helpful_deps=("timeout")
+    local platform_deps=()
+
+    # Add platform-specific dependencies
+    case "$OS_PLATFORM" in
+        "macOS")
+            platform_deps+=("CoreLocationCLI")
+            ;;
+        "WSL")
+            # Skip GPS deps for WSL
+            ;;
+        *Linux*)
+            platform_deps+=("geoclue")
+            ;;
+    esac
+
+    # Check what's missing
+    local missing_critical=()
+    local missing_important=()
+    local missing_helpful=()
+    local missing_platform=()
+
+    # Check critical dependencies
+    for dep in "${critical_deps[@]}"; do
+        if command_exists "$dep"; then
+            print_success "✅ $dep (critical)"
+        else
+            print_error "❌ $dep (critical - required)"
+            missing_critical+=("$dep")
+        fi
+    done
+
+    # Check important dependencies
+    for dep in "${important_deps[@]}"; do
+        local check_cmd="$dep"
+        [[ "$dep" == "bun" ]] && check_cmd="bunx"
+
+        if command_exists "$check_cmd"; then
+            print_success "✅ $dep (important)"
+        else
+            print_warning "⚠️ $dep (important - recommended)"
+            missing_important+=("$dep")
+        fi
+    done
+
+    # Check helpful dependencies
+    for dep in "${helpful_deps[@]}"; do
+        local found=false
+        case "$dep" in
+            "timeout")
+                if command_exists timeout || command_exists gtimeout; then
+                    print_success "✅ timeout (helpful)"
+                    found=true
+                fi
+                ;;
+            *)
+                if command_exists "$dep"; then
+                    print_success "✅ $dep (helpful)"
+                    found=true
+                fi
+                ;;
+        esac
+
+        if [[ "$found" == "false" ]]; then
+            print_status "📋 $dep (helpful - optional)"
+            missing_helpful+=("$dep")
+        fi
+    done
+
+    # Check platform-specific dependencies
+    for dep in "${platform_deps[@]}"; do
+        if command_exists "$dep"; then
+            print_success "✅ $dep (GPS location)"
+        else
+            print_status "📍 $dep (GPS location - optional)"
+            missing_platform+=("$dep")
+        fi
+    done
+
+    echo
+
+    # Determine auto-install strategy
+    local auto_install_deps=()
+
+    # Always auto-install critical dependencies
+    auto_install_deps+=("${missing_critical[@]}")
+
+    # Auto-install important dependencies
+    auto_install_deps+=("${missing_important[@]}")
+
+    # Auto-install helpful dependencies
+    auto_install_deps+=("${missing_helpful[@]}")
+
+    # Ask about platform dependencies
+    if [[ ${#missing_platform[@]} -gt 0 ]]; then
+        echo
+        print_status "🤔 Optional GPS location dependencies available:"
+        for dep in "${missing_platform[@]}"; do
+            print_status "  • $dep (provides VPN-independent location detection)"
+        done
+        echo
+
+        if [[ "$INTERACTIVE_MODE" == "true" ]]; then
+            read -p "Install GPS location dependencies? [y/N]: " install_gps
+            if [[ "$install_gps" =~ ^[Yy]$ ]]; then
+                auto_install_deps+=("${missing_platform[@]}")
+            fi
+        else
+            print_status "💡 Use --interactive to choose GPS dependencies, or install manually later"
+        fi
+    fi
+
+    # Perform auto-installation
+    if [[ ${#auto_install_deps[@]} -gt 0 ]]; then
+        echo
+        auto_install_dependencies "${auto_install_deps[@]}"
+        local install_result=$?
+
+        # Return appropriate status
+        if [[ $install_result -eq 0 ]]; then
+            return 0  # All good
+        elif [[ $install_result -eq 2 ]]; then
+            return 2  # Some missing but continue
+        else
+            return 1  # Critical failure
+        fi
+    else
+        print_success "🎉 All dependencies are already installed!"
+        return 0
+    fi
+}
+
 # Parse command line arguments
 parse_arguments() {
     ENHANCED_MODE=false
@@ -425,6 +845,7 @@ parse_arguments() {
     SKIP_DEPS=false
     SHOW_HELP=false
     PRESERVE_STATUSLINE=false
+    AUTO_INSTALL=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -442,6 +863,10 @@ parse_arguments() {
                 ;;
             --skip-deps)
                 SKIP_DEPS=true
+                shift
+                ;;
+            --auto-install)
+                AUTO_INSTALL=true
                 shift
                 ;;
             --branch)
@@ -476,18 +901,20 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo
     echo "Options:"
-    echo "  --check-all-deps    Use enhanced dependency checking (shows all 6 dependencies)"
+    echo "  --check-all-deps    Use enhanced dependency checking (shows all dependencies)"
     echo "  --interactive       Show user choice menu for installation approach"
-    echo "  --minimal           Only check critical dependencies (curl, jq)"
+    echo "  --auto-install      Automatically install missing dependencies (recommended)"
+    echo "  --minimal           Only check critical dependencies (curl, jq, git)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
     echo "  --preserve-statusline  Skip settings.json configuration entirely"
     echo "  --help, -h          Show this help message"
     echo
     echo "Examples:"
     echo "  $0                           # Standard installation (minimal deps)"
+    echo "  $0 --auto-install           # Auto-install all missing dependencies (recommended)"
+    echo "  $0 --auto-install --interactive  # Auto-install with GPS choice menu"
     echo "  $0 --check-all-deps         # Show full dependency analysis"
     echo "  $0 --interactive            # Interactive mode with user choices"
-    echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
     echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
     echo
     echo "Rate Limit Optimization:"
@@ -1440,6 +1867,23 @@ main() {
     # Choose dependency checking approach based on flags
     if [ "$SKIP_DEPS" = true ]; then
         print_status "Skipping all dependency checks (--skip-deps mode)"
+        echo
+    elif [ "$AUTO_INSTALL" = true ]; then
+        # Auto-install mode: comprehensive dependency installation
+        detect_system_capabilities
+        echo
+
+        check_dependencies_with_auto_install
+        local auto_install_status=$?
+
+        if [ $auto_install_status -eq 1 ]; then
+            print_error "Critical auto-install failure - cannot continue"
+            exit 1
+        elif [ $auto_install_status -eq 2 ]; then
+            print_warning "Some dependencies missing but continuing with reduced functionality"
+        else
+            print_success "All dependencies ready - proceeding with full functionality installation"
+        fi
         echo
     elif [ "$ENHANCED_MODE" = true ] || [ "$INTERACTIVE_MODE" = true ]; then
         # Enhanced mode: full dependency analysis

@@ -8,23 +8,35 @@ Comprehensive troubleshooting for installation, TOML configuration, themes, perf
 
 ## 🔧 Installation Issues
 
-### `jq: command not found`
+### `jq: command not found` or Missing Dependencies
 
-**Problem**: The `jq` JSON processor is not installed.
+**Problem**: The `jq` JSON processor or other dependencies are not installed.
 
-**Solutions**:
+**🤖 Recommended Solution (Auto-Install)**:
+```bash
+# Auto-install all missing dependencies
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+
+# Check what dependencies are missing
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+```
+
+**Manual Solutions** (if auto-install doesn't work):
 ```bash
 # macOS
-brew install jq
+brew install jq git curl bun bc python3 coreutils
 
 # Ubuntu/Debian
-sudo apt update && sudo apt install jq
+sudo apt update && sudo apt install jq git curl bc python3 coreutils
+curl -fsSL https://bun.sh/install | bash
 
 # RHEL/CentOS/Fedora
-sudo yum install jq  # or sudo dnf install jq
+sudo yum install jq git curl bc python3 coreutils  # or sudo dnf install
+curl -fsSL https://bun.sh/install | bash
 
 # Arch Linux
-sudo pacman -S jq
+sudo pacman -S jq git curl bc python3 coreutils
+curl -fsSL https://bun.sh/install | bash
 ```
 
 **Verification**:

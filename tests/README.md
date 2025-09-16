@@ -35,21 +35,34 @@ tests/
 
 ### Prerequisites
 
-1. **Install Bats** (if not already installed):
+1. **Auto-Install Dependencies** (Recommended):
    ```bash
-   # macOS with Homebrew
+   # 🤖 Auto-install all testing dependencies
+   curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+
+   # This automatically installs: jq, git, curl, bun, bc, python3, timeout, etc.
+   ```
+
+2. **Install Bats Testing Framework**:
+   ```bash
+   # macOS with Homebrew (auto-installed by --auto-install)
    brew install bats-core
-   
+
    # Ubuntu/Debian
-   apt-get install bats
-   
+   sudo apt install bats
+
    # Or install via npm
    npm install -g bats
    ```
 
-2. **Install dependencies**:
+3. **Manual Dependencies** (if not using auto-install):
    ```bash
-   npm install
+   # macOS
+   brew install jq git curl bun bc python3 coreutils bats-core
+
+   # Linux
+   sudo apt install jq git curl bc python3 coreutils bats
+   curl -fsSL https://bun.sh/install | bash
    ```
 
 ### Running All Tests
@@ -107,6 +120,28 @@ Test complete statusline functionality with realistic scenarios:
 - **Full Statusline**: End-to-end output testing with various configurations
 - **Error Handling**: Network timeouts, missing dependencies, malformed input
 - **Performance**: Response time testing, concurrent execution
+
+### Auto-Install Testing
+
+Test the automatic dependency installation system:
+
+- **Platform Detection**: OS and package manager detection accuracy
+- **Dependency Installation**: Auto-install success across platforms
+- **Permission Handling**: Sudo management and brew compatibility
+- **GPS Dependencies**: Optional CoreLocationCLI/geoclue2 installation
+- **Verification**: Post-install dependency validation
+- **Fallback Scenarios**: Graceful handling of installation failures
+
+```bash
+# Test auto-install system
+bats tests/unit/test_auto_install.bats
+
+# Test dependency detection
+./install.sh --check-all-deps
+
+# Test platform-specific installation
+./install.sh --auto-install --interactive
+```
 
 ### Fixtures and Mocking
 
@@ -186,10 +221,11 @@ create_mock_command_from_file "claude" "$TEST_FIXTURES_DIR/sample_outputs/claude
 ### Error Handling Test Cases
 
 - ❌ Network timeouts for external services
-- ❌ Missing dependencies (bc, python3, bunx)
+- ❌ Missing dependencies (bc, python3, bunx) - now auto-installed
 - ❌ Malformed JSON responses
 - ❌ Invalid git repositories
 - ❌ Corrupted cache files
+- ❌ Auto-install failures and fallback behavior
 
 ### Edge Cases
 

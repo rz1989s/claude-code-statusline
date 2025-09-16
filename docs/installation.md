@@ -6,24 +6,24 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 ## 🎯 Platform Support Matrix
 
-| Platform | Status | Package Manager | Dependencies (Auto-Detected) |
-|----------|---------|-----------------|------------------------------|
-| macOS (All Configurations) | ✅ **Universal Support** | Any (Homebrew/MacPorts/Custom) | `curl` `jq` `bun` `bc` `python3` |
-| Linux (Ubuntu/Debian) | ✅ Full Support | apt | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
-| Linux (RHEL/CentOS/Fedora) | ✅ Full Support | yum/dnf | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
-| Linux (Arch) | ✅ Full Support | pacman | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
-| Alpine Linux | ✅ Full Support | apk | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
-| FreeBSD | ✅ Full Support | pkg | `curl` `jq` `bc` `python3` `coreutils` + bun via curl |
-| Windows WSL | ✅ Full Support | apt/WSL | Same as Linux distributions |
-| Windows Native | ❌ Not Supported | N/A | Bash script incompatible |
+| Platform | Auto-Install | Package Manager | Dependencies (Auto-Installed) |
+|----------|--------------|-----------------|-------------------------------|
+| macOS (All Configurations) | ✅ **Full Auto-Install** | Homebrew (auto-installs if missing) | `curl` `jq` `git` `bun` `bc` `python3` `coreutils` |
+| Linux (Ubuntu/Debian) | ✅ **Full Auto-Install** | apt (auto-detected) | `curl` `jq` `git` `bc` `python3` `coreutils` + bun via script |
+| Linux (RHEL/CentOS/Fedora) | ✅ **Full Auto-Install** | yum/dnf (auto-detected) | `curl` `jq` `git` `bc` `python3` `coreutils` + bun via script |
+| Linux (Arch) | ✅ **Full Auto-Install** | pacman (auto-detected) | `curl` `jq` `git` `bc` `python3` `coreutils` + bun via script |
+| Alpine Linux | ✅ **Full Auto-Install** | apk (auto-detected) | `curl` `jq` `git` `bc` `python3` `coreutils` + bun via script |
+| FreeBSD | ✅ **Full Auto-Install** | pkg (auto-detected) | `curl` `jq` `git` `bc` `python3` `coreutils` + bun via script |
+| Windows WSL | ✅ **Full Auto-Install** | Linux packages + WSL detection | Same as Linux + IP-based location fallback |
+| Windows Native | ❌ Not Supported | N/A | Use WSL for best experience |
 
-**🚀 Universal macOS Compatibility**: Runtime bash detection works across all Mac configurations (Apple Silicon + Homebrew, Intel + Homebrew, MacPorts, custom installations) with zero manual configuration required.
+**🤖 Revolutionary Auto-Install**: Zero manual dependency installation required! Our enhanced installer detects your platform and package manager, then installs everything automatically with intelligent permission handling.
 
-**Dependency Impact:**
-- **Critical:** `curl` (installation) + `jq` (configuration) → 100% required
-- **Important:** `bun/bunx` (cost tracking with ccusage) → 83% functionality without
-- **Helpful:** `bc` (precise calculations) + `python3` (advanced TOML) → 67% functionality without  
-- **Optional:** `timeout/gtimeout` (network protection) → 50% functionality without
+**Auto-Install Coverage:**
+- **Critical (always installed):** `curl` `jq` `git` → 100% functionality
+- **Important (auto-installed):** `bun/bunx` `bc` `python3` → Full cost tracking + calculations
+- **Helpful (auto-installed):** `timeout/gtimeout` `coreutils` → Network protection + compatibility
+- **GPS (optional auto-install):** `CoreLocationCLI` (macOS), `geoclue2` (Linux) → VPN-independent location
 
 ## 🚀 Revolutionary 3-Tier Download System (Recommended) - v2.9.0
 
@@ -32,21 +32,32 @@ Get up and running with beautiful statuslines and powerful configuration managem
 ### Quick Installation
 
 ```bash
-# Standard installation (backward compatible)
+# 🤖 RECOMMENDED: Auto-install all dependencies (NEW!)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+
+# 🎯 Auto-install with GPS choice menu
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
+
+# Standard installation (manual dependencies - legacy)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Enhanced mode - comprehensive dependency analysis
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
 
-# Interactive mode - user choice menu
+# Interactive mode - user choice menu (manual deps)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
 
-# Full experience - analysis + choices
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
-
-# Preserve existing settings.json (skip Claude Code configuration)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+# Preserve existing settings.json + auto-install
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --preserve-statusline
 ```
+
+**🎯 What Auto-Install Does:**
+- **Detects Platform**: macOS, Linux, WSL automatically
+- **Finds Package Manager**: brew, apt, yum, dnf, pacman
+- **Installs Dependencies**: curl, jq, git, bun, bc, python3, timeout
+- **Handles GPS**: Optional CoreLocationCLI (macOS), geoclue2 (Linux)
+- **Manages Permissions**: Sudo for Linux, brew without sudo for macOS
+- **Verifies Success**: Confirms installation before proceeding
 
 ### Development Branch Installation
 

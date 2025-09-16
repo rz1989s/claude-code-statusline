@@ -38,65 +38,78 @@
 
 </div>
 
-## 🚀 Installation (2 minutes)
+## 🚀 Installation (1 minute)
 
-**📋 Before Installing**: This tool requires `jq` and `curl`
-- **macOS**: `brew install jq` 
-- **Linux**: `sudo apt install jq curl` or `sudo yum install jq curl`
-- **Windows**: Use WSL or install via package manager
+**🤖 NEW: Automatic Dependency Installation**
+The installer now automatically detects and installs all required dependencies on macOS, Linux, and WSL! No manual setup required.
+
+**🎯 Supported Platforms**:
+- **macOS**: Auto-installs via Homebrew (installs Homebrew if missing)
+- **Linux**: Auto-installs via apt/yum/dnf/pacman (Ubuntu, CentOS, Fedora, Arch, etc.)
+- **WSL**: Full Linux support with Windows-specific optimizations
+- **All Platforms**: Automatically handles sudo permissions when needed
 
 **Choose your preferred installation method:**
 
-### Option 1: Quick Install (Recommended)
+### Option 1: Auto-Install (Recommended) 🌟
 ```bash
-# Download and inspect the installer (strongly recommended)
+# 🤖 Installs ALL dependencies automatically + statusline
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+
+# 🎯 Interactive mode (choose GPS location dependencies)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
+```
+
+**📦 What gets auto-installed:**
+- **Critical**: curl, jq, git (required for basic functionality)
+- **Important**: bun/bunx (cost tracking), bc (calculations), python3 (TOML features)
+- **Helpful**: timeout/gtimeout (network protection)
+- **GPS (optional)**: CoreLocationCLI (macOS), geoclue2 (Linux) for VPN-independent location
+
+### Option 2: Inspect First (Security-Conscious)
+```bash
+# Download and inspect the installer (strongly recommended for security)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh -o install.sh
 
 # Review what it does - look for:
 # ✓ Only creates files in ~/.claude/statusline/
 # ✓ Downloads from this GitHub repo
-# ✓ No sudo or system modifications
-less install.sh  
+# ✓ Uses official package managers (brew/apt/yum)
+# ✓ Handles sudo transparently when needed
+less install.sh
 
-# Run when you're satisfied it's safe
-bash install.sh
+# Run with auto-install when satisfied
+bash install.sh --auto-install
 ```
 
-**🔍 Quick Security Check**: Open `install.sh` and verify it only:
-- Creates directories in `~/.claude/`
-- Downloads files from `raw.githubusercontent.com/rz1989s/claude-code-statusline`
-- Doesn't use `sudo` or modify system files
-- Uses `curl` with proper GitHub raw URLs
-- No network calls to external domains
-
-### Option 1b: One-Line Install (Trust the Repo)
+### Option 3: Manual Dependencies + Auto-Install
 ```bash
-# Direct install without inspection (for trusted users)
+# If you prefer to install some dependencies manually first
+brew install jq git curl  # macOS
+# or
+sudo apt install jq git curl  # Linux
+
+# Then run installer (skips already installed deps)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 ```
 
-### Option 2: Manual Install (No script required)
+### 🔍 Check Dependencies (Optional)
 ```bash
-# 1. Create directory structure
-mkdir -p ~/.claude/statusline/{lib,examples}
+# Check what dependencies are already installed
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
 
-# 2. Download core files
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/statusline.sh -o ~/.claude/statusline/statusline.sh
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/examples/Config.toml -o ~/.claude/statusline/Config.toml
-
-# 3. Download library modules (automated)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --modules-only
-
-# 4. Make executable and test
-chmod +x ~/.claude/statusline/statusline.sh
-~/.claude/statusline/statusline.sh --version
+# See detailed platform and package manager info
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
 ```
 
 ### ✅ Verify Installation Success
 ```bash
 # Confirm installation success
 ~/.claude/statusline/statusline.sh --version
-ls -la ~/.claude/statusline/lib/  # Should show 10+ module files
+ls -la ~/.claude/statusline/lib/  # Should show 35+ module files
+
+# Test dependency availability
+which jq git curl bunx bc python3  # Should show paths to all binaries
 
 # Test with sample input
 echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Test"}}' | ~/.claude/statusline/statusline.sh
@@ -1045,41 +1058,45 @@ For users who want additional installation options, development features, or spe
 
 ### 📋 Prerequisites
 
-Choose your platform and install the required dependencies:
+🤖 **Recommended**: Use `--auto-install` instead of manual setup!
+
+For manual dependency management (not recommended for most users):
 
 <details>
-<summary><strong>🍎 macOS</strong></summary>
+<summary><strong>🍎 macOS (Manual Installation)</strong></summary>
 
 ```bash
-# Install dependencies via Homebrew
-brew install jq coreutils
+# Auto-install is recommended instead:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# Install optional but recommended tools
-npm install -g bunx ccusage
+# Manual installation (if you insist):
+brew install jq git curl bun bc python3 coreutils corelocationcli
 ```
 </details>
 
 <details>
-<summary><strong>🐧 Linux (Ubuntu/Debian)</strong></summary>
+<summary><strong>🐧 Linux (Manual Installation)</strong></summary>
 
 ```bash
-# Install required dependencies
-sudo apt update && sudo apt install jq
+# Auto-install is recommended instead:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# Install optional but recommended tools  
-npm install -g bunx ccusage
+# Manual installation (if you insist):
+sudo apt update && sudo apt install jq git curl bc python3 coreutils geoclue-2.0-dev
+curl -fsSL https://bun.sh/install | bash  # Install bun
 ```
 </details>
 
 <details>
-<summary><strong>🪟 Windows (WSL)</strong></summary>
+<summary><strong>🪟 WSL (Manual Installation)</strong></summary>
 
 ```bash
-# Install required dependencies
-sudo apt update && sudo apt install jq
+# Auto-install is recommended instead:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# Install optional but recommended tools
-npm install -g bunx ccusage
+# Manual installation (if you insist):
+sudo apt update && sudo apt install jq git curl bc python3 coreutils
+curl -fsSL https://bun.sh/install | bash  # Install bun (GPS not available in WSL)
 ```
 </details>
 
@@ -1834,55 +1851,51 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 
 ### ✅ **Platform Compatibility**
 
-We support all major Unix-like systems with comprehensive testing and optimization:
+🤖 **Auto-Install Revolution**: All dependencies are now automatically installed! Just run `--auto-install` and we handle everything.
 
-| Platform | Support Level | Core Dependencies | Optional Tools |
-|----------|---------------|-------------------|----------------|
-| 🍎 **macOS** | ✅ **Full Support** | `jq` `coreutils` | `bunx` `ccusage` |
-| 🐧 **Linux** | ✅ **Full Support** | `jq` | `bunx` `ccusage` |
-| 🪟 **Windows WSL** | ✅ **Full Support** | `jq` | `bunx` `ccusage` |
-| 🪟 **Windows Native** | ❌ **Not Supported** | N/A | *Bash incompatible* |
+| Platform | Auto-Install Support | Package Manager | GPS Location |
+|----------|---------------------|-----------------|--------------|
+| 🍎 **macOS** | ✅ **Full Auto-Install** | Homebrew (auto-installs if missing) | CoreLocationCLI (optional) |
+| 🐧 **Linux** | ✅ **Full Auto-Install** | apt/yum/dnf/pacman (auto-detected) | geoclue2 (optional) |
+| 🪟 **WSL** | ✅ **Full Auto-Install** | Linux packages + WSL optimizations | IP-based fallback |
+| 🪟 **Windows Native** | ❌ **Not Supported** | Use WSL for best experience | Not supported |
 
-### 🛠️ **Required Dependencies**
+**🎯 Zero Manual Configuration** - Our enhanced installer:
+- Detects your OS and package manager automatically
+- Installs missing dependencies with one command
+- Handles sudo permissions intelligently
+- Verifies successful installation before proceeding
 
-#### Core Requirements
-- **`jq`** - JSON processing and data parsing
-  - macOS: `brew install jq`
-  - Linux: `sudo apt install jq` or `sudo yum install jq`
-  - Purpose: Parse Claude Code JSON data and MCP server responses
+### 🤖 **Auto-Installed Dependencies**
 
-#### System Tools *(Usually Pre-installed)*
-- **`bash`** - Shell execution environment (v3.2+ with automatic upgrade to modern bash)
-- **`git`** - Version control integration
-- **`grep`**, **`sed`**, **`date`** - Text processing and utilities
-- **`timeout`** / **`gtimeout`** - Command timeout management
+#### Critical (Always Auto-Installed)
+- **`curl`** - File downloads and API calls (auto-installed)
+- **`jq`** - JSON processing and configuration parsing (auto-installed)
+- **`git`** - Repository integration and version control (auto-installed)
 
-**🚀 Revolutionary Bash Compatibility:**
-- **Runtime Detection**: Automatically finds and uses modern bash (4.0+) if available
-- **Compatibility Mode**: Falls back gracefully for old bash versions
-- **Universal Support**: Works across all system configurations without manual intervention
+#### Important (Auto-Installed)
+- **`bun/bunx`** - JavaScript runtime for cost tracking via ccusage (auto-installed)
+- **`bc`** - Precise floating-point calculations for cost metrics (auto-installed)
+- **`python3`** - Advanced TOML processing and date calculations (auto-installed)
 
-### 🚀 **Recommended Enhancements**
+#### Helpful (Auto-Installed)
+- **`timeout/gtimeout`** - Network operation timeout protection (auto-installed)
+- **`coreutils`** - Enhanced system utilities, includes gtimeout on macOS (auto-installed)
 
-#### Cost Tracking Integration
-- **`bunx`** - Bun package runner for ccusage execution
-  - Install: `npm install -g bunx`
-- **`ccusage`** - Claude Code usage and cost monitoring
-  - Install: `npm install -g ccusage`
-  - Purpose: Real-time cost tracking and billing information
+#### GPS Location (Optional Auto-Install)
+- **`CoreLocationCLI`** (macOS) - VPN-independent GPS location detection
+  - Auto-install: `./install.sh --auto-install --interactive` (choose yes for GPS)
+  - Manual: `brew install corelocationcli`
+- **`geoclue2`** (Linux) - System GPS location service
+  - Auto-install: `./install.sh --auto-install --interactive` (choose yes for GPS)
+  - Manual: `sudo apt install geoclue-2.0-dev`
 
-#### Performance Optimizations
-- **GNU Coreutils** (macOS) - Enhanced command compatibility
-  - Install: `brew install coreutils`
-  - Provides `gtimeout` and other GNU-style commands
-
-#### GPS Location Detection (Prayer Times)
-- **CoreLocationCLI** (macOS) - High-precision GPS coordinates
-  - Install: `brew install corelocationcli`
-  - Purpose: Real-time device location for accurate prayer times
-- **geoclue2** (Linux) - System location service
-  - Install: `sudo apt install geoclue-2.0-dev` or `sudo yum install geoclue2-devel`
-  - Purpose: GPS-based location detection independent of network/VPN
+**🎯 Revolutionary Auto-Install:**
+- **Platform Detection**: Automatically detects macOS, Linux, WSL
+- **Package Manager**: Auto-uses brew/apt/yum/dnf/pacman as appropriate
+- **Permission Handling**: Manages sudo intelligently (brew doesn't need sudo)
+- **Verification**: Confirms successful installation before proceeding
+- **Rollback Safe**: Never breaks existing installations
 
 ### ⚙️ **Version Requirements**
 
