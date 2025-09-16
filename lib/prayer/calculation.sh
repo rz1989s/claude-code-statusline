@@ -223,78 +223,169 @@ get_current_hijri_date_with_maghrib() {
 }
 
 # ============================================================================
+# CACHE VALIDATION
+# ============================================================================
+
+# Validate cached prayer data to ensure it's properly formatted
+validate_prayer_cache() {
+    local cache_file="$1"
+
+    # Basic cache validation
+    if ! validate_basic_cache "$cache_file"; then
+        return 1
+    fi
+
+    # Read cache content
+    local cache_content
+    cache_content="$(cat "$cache_file" 2>/dev/null)" || return 1
+
+    # Check for tab-delimited format (prayer_times\tprayer_statuses\thijri_date\tcurrent_time)
+    if [[ ! "$cache_content" =~ $'\t' ]]; then
+        debug_log "Prayer cache validation failed: missing tab delimiters" "WARN"
+        return 1
+    fi
+
+    # Parse and validate components
+    IFS=$'\t' read -r prayer_times prayer_statuses hijri_date current_time <<< "$cache_content"
+
+    # Validate prayer times format (should have 5 comma-separated times)
+    if [[ ! "$prayer_times" =~ ^[0-9]{2}:[0-9]{2}(,[0-9]{2}:[0-9]{2}){4}$ ]]; then
+        debug_log "Prayer cache validation failed: invalid prayer times format" "WARN"
+        return 1
+    fi
+
+    # Validate prayer statuses (should contain status info)
+    if [[ -z "$prayer_statuses" ]]; then
+        debug_log "Prayer cache validation failed: missing prayer statuses" "WARN"
+        return 1
+    fi
+
+    # Validate hijri date (should have comma-separated components)
+    if [[ ! "$hijri_date" =~ ^[0-9]+(,[^,]+){3}$ ]]; then
+        debug_log "Prayer cache validation failed: invalid hijri date format" "WARN"
+        return 1
+    fi
+
+    # Validate current time format
+    if [[ ! "$current_time" =~ ^[0-9]{2}:[0-9]{2}$ ]]; then
+        debug_log "Prayer cache validation failed: invalid current time format" "WARN"
+        return 1
+    fi
+
+    debug_log "Prayer cache validation passed" "INFO"
+    return 0
+}
+
+# ============================================================================
 # MAIN PRAYER DATA RETRIEVAL
 # ============================================================================
 
-# Get comprehensive prayer times and Hijri date data  
-get_prayer_times_and_hijri() {
-    debug_log "Retrieving comprehensive prayer and Hijri data..." "INFO"
-    
+# Internal function to fetch prayer data without caching (for execute_cached_command)
+_get_prayer_times_and_hijri_uncached() {
+    debug_log "Retrieving comprehensive prayer and Hijri data (uncached)..." "INFO"
+
     # Get current location coordinates
     local coordinates
     coordinates=$(get_location_coordinates)
-    
+
     if [[ $? -ne 0 || -z "$coordinates" ]]; then
         debug_log "Failed to get location coordinates" "ERROR"
         return 1
     fi
-    
+
     local latitude="${coordinates%%,*}"
     local longitude="${coordinates##*,}"
     local current_date=$(get_current_date)
-    
+
     debug_log "Using coordinates: $latitude,$longitude for date: $current_date" "INFO"
-    
+
     # Fetch prayer data from API with retry logic
     local api_response
     api_response=$(fetch_prayer_data_with_retry "$current_date" "$latitude" "$longitude")
-    
+
     if [[ $? -ne 0 || -z "$api_response" ]]; then
         debug_log "Failed to fetch prayer data from API" "ERROR"
         return 1
     fi
-    
+
     # Extract prayer times
     local prayer_times
     prayer_times=$(extract_prayer_times "$api_response")
-    
+
     if [[ $? -ne 0 || -z "$prayer_times" ]]; then
         debug_log "Failed to extract prayer times" "ERROR"
         return 1
     fi
-    
+
     # Extract Hijri date
     local hijri_date
     hijri_date=$(extract_hijri_date "$api_response")
-    
+
     if [[ $? -ne 0 || -z "$hijri_date" ]]; then
         debug_log "Failed to extract Hijri date" "ERROR"
         return 1
     fi
-    
+
     # Calculate prayer statuses
     local current_time=$(get_current_time)
     local prayer_statuses
     prayer_statuses=$(calculate_prayer_statuses "$current_time" "$prayer_times")
-    
+
     if [[ $? -ne 0 || -z "$prayer_statuses" ]]; then
         debug_log "Failed to calculate prayer statuses" "ERROR"
         return 1
     fi
-    
+
     # Get Maghrib time for Hijri day calculation
     local maghrib_time
     IFS=',' read -r fajr dhuhr asr maghrib isha <<< "$prayer_times"
     maghrib_time="$maghrib"
-    
+
     # Adjust Hijri date based on Maghrib
     local adjusted_hijri
     adjusted_hijri=$(get_current_hijri_date_with_maghrib "$current_time" "$maghrib_time" "$hijri_date")
-    
+
     # Combine all data using tab delimiter (less likely to conflict)
     # Format: prayer_times\tprayer_statuses\thijri_date\tcurrent_time
     echo -e "$prayer_times\t$prayer_statuses\t$adjusted_hijri\t$current_time"
-    
+
     debug_log "Successfully retrieved and processed all prayer data" "INFO"
     return 0
+}
+
+# Get comprehensive prayer times and Hijri date data with travel-friendly caching
+get_prayer_times_and_hijri() {
+    debug_log "Retrieving prayer data with travel-friendly caching..." "INFO"
+
+    # Get current coordinates for cache key generation (to detect location changes)
+    local coordinates
+    coordinates=$(get_location_coordinates)
+
+    if [[ $? -ne 0 || -z "$coordinates" ]]; then
+        debug_log "Failed to get location coordinates for cache key" "ERROR"
+        return 1
+    fi
+
+    local latitude="${coordinates%%,*}"
+    local longitude="${coordinates##*,}"
+    local current_date=$(get_current_date)
+
+    # Generate location-aware cache key to detect travel/location changes
+    # Include date, coordinates, and method for cache isolation
+    # Use safe alphanumeric format to avoid bash arithmetic interpretation
+    local safe_date="${current_date//-/}"  # Remove all dashes
+    local safe_lat="${latitude//[.-]/}"    # Remove dots and minus signs
+    local safe_lng="${longitude//[.-]/}"   # Remove dots and minus signs
+    local cache_key="prayer_${safe_date}_${safe_lat}_${safe_lng}_${CONFIG_PRAYER_CALCULATION_METHOD}"
+
+    debug_log "Using travel-aware cache key: $cache_key" "INFO"
+
+    # Use travel-friendly cache duration (1 hour instead of 24 hours)
+    execute_cached_command \
+        "$cache_key" \
+        "$CACHE_DURATION_PRAYER_TIMES" \
+        "validate_prayer_cache" \
+        "true" \
+        "false" \
+        _get_prayer_times_and_hijri_uncached
 }
