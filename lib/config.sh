@@ -353,7 +353,7 @@ init_default_config() {
 
     # Prayer configuration defaults
     CONFIG_PRAYER_ENABLED="true"
-    CONFIG_PRAYER_LOCATION_MODE="auto"
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
     CONFIG_PRAYER_LATITUDE=""
     CONFIG_PRAYER_LONGITUDE=""
     CONFIG_PRAYER_CALCULATION_METHOD=""

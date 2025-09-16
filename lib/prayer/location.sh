@@ -271,18 +271,99 @@ get_exported_location_data() {
 }
 
 # ============================================================================
+# LOCAL SYSTEM GPS DETECTION
+# ============================================================================
+
+# Get fresh coordinates from local system GPS/location services
+get_local_system_coordinates() {
+    debug_log "Attempting to get fresh coordinates from local system..." "INFO"
+
+    local platform=$(uname)
+    local coordinates=""
+
+    case "$platform" in
+        "Darwin")  # macOS
+            debug_log "Detected macOS, trying CoreLocationCLI..." "INFO"
+            if command_exists CoreLocationCLI; then
+                local result
+                if result=$(timeout 10 CoreLocationCLI --format "%latitude %longitude" 2>/dev/null); then
+                    if [[ "$result" =~ ^-?[0-9]+\.[0-9]+\ -?[0-9]+\.[0-9]+$ ]]; then
+                        coordinates="$result"
+                        coordinates="${coordinates// /,}"  # Replace space with comma
+                        debug_log "CoreLocationCLI successful: $coordinates" "INFO"
+                    else
+                        debug_log "CoreLocationCLI returned invalid format: $result" "WARN"
+                    fi
+                else
+                    debug_log "CoreLocationCLI failed or timed out" "WARN"
+                fi
+            else
+                debug_log "CoreLocationCLI not available, install with: brew install corelocationcli" "INFO"
+            fi
+            ;;
+        "Linux")   # Linux
+            debug_log "Detected Linux, trying geoclue2..." "INFO"
+            if [[ -x "/usr/lib/geoclue-2.0/demos/where-am-i" ]]; then
+                local result
+                if result=$(timeout 15 /usr/lib/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
+                    local latitude=$(echo "$result" | grep "Latitude:" | awk '{print $2}' | sed 's/°//')
+                    local longitude=$(echo "$result" | grep "Longitude:" | awk '{print $2}' | sed 's/°//')
+
+                    if [[ -n "$latitude" && -n "$longitude" && "$latitude" != "0.000000" && "$longitude" != "0.000000" ]]; then
+                        coordinates="$latitude,$longitude"
+                        debug_log "geoclue2 successful: $coordinates" "INFO"
+                    else
+                        debug_log "geoclue2 returned invalid coordinates: lat=$latitude lng=$longitude" "WARN"
+                    fi
+                else
+                    debug_log "geoclue2 failed or timed out" "WARN"
+                fi
+            elif [[ -x "/usr/libexec/geoclue-2.0/demos/where-am-i" ]]; then
+                # Alternative path for some distributions
+                local result
+                if result=$(timeout 15 /usr/libexec/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
+                    local latitude=$(echo "$result" | grep "Latitude:" | awk '{print $2}' | sed 's/°//')
+                    local longitude=$(echo "$result" | grep "Longitude:" | awk '{print $2}' | sed 's/°//')
+
+                    if [[ -n "$latitude" && -n "$longitude" && "$latitude" != "0.000000" && "$longitude" != "0.000000" ]]; then
+                        coordinates="$latitude,$longitude"
+                        debug_log "geoclue2 (libexec) successful: $coordinates" "INFO"
+                    else
+                        debug_log "geoclue2 (libexec) returned invalid coordinates: lat=$latitude lng=$longitude" "WARN"
+                    fi
+                else
+                    debug_log "geoclue2 (libexec) failed or timed out" "WARN"
+                fi
+            else
+                debug_log "geoclue2 not available, install with: sudo apt install geoclue-2-demo" "INFO"
+            fi
+            ;;
+        *)         # Windows/Other
+            debug_log "Platform $platform not supported for local GPS detection" "INFO"
+            ;;
+    esac
+
+    if [[ -n "$coordinates" ]]; then
+        echo "$coordinates"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# ============================================================================
 # COORDINATE RESOLUTION
 # ============================================================================
 
-# Get location coordinates (latitude, longitude)
+# Get location coordinates (latitude, longitude) - NEW VPN-INDEPENDENT LOGIC
 get_location_coordinates() {
-    debug_log "Determining location coordinates..." "INFO"
-    
+    debug_log "Starting VPN-independent location detection..." "INFO"
+
     case "$CONFIG_PRAYER_LOCATION_MODE" in
         "manual")
             if [[ -n "$CONFIG_PRAYER_LATITUDE" && -n "$CONFIG_PRAYER_LONGITUDE" ]]; then
                 local coordinates="$CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE"
-                export_location_data "$coordinates" "manual" "NO_VPN"
+                export_location_data "$coordinates" "manual" "MANUAL_CONFIG"
                 echo "$coordinates"
                 debug_log "Using manual coordinates: $CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE" "INFO"
                 return 0
@@ -292,10 +373,75 @@ get_location_coordinates() {
             fi
             ;;
             
+        "local_gps")
+            # NEW: Local system GPS detection mode
+            debug_log "Local GPS detection mode enabled" "INFO"
+
+            # Try local system GPS first
+            if coordinates=$(get_local_system_coordinates); then
+                export_location_data "$coordinates" "local_gps" "GPS_DEVICE"
+                echo "$coordinates"
+                debug_log "Local GPS successful: $coordinates" "INFO"
+                return 0
+            fi
+
+            debug_log "Local GPS failed, falling back to IP geolocation..." "WARN"
+
+            # Fallback to IP geolocation
+            if check_internet_connection; then
+                debug_log "Attempting IP geolocation fallback..." "INFO"
+                local location_data
+                if location_data=$(get_ip_location); then
+                    # Cache the location data
+                    cache_location_data "$location_data"
+
+                    # Apply to configuration
+                    apply_location_config "$location_data"
+
+                    # Extract and return coordinates
+                    local latitude=$(echo "$location_data" | jq -r '.latitude' 2>/dev/null)
+                    local longitude=$(echo "$location_data" | jq -r '.longitude' 2>/dev/null)
+                    local coordinates="$latitude,$longitude"
+                    export_location_data "$coordinates" "ip_geolocation_fallback" "NETWORK_BASED"
+                    echo "$coordinates"
+                    return 0
+                fi
+            fi
+
+            debug_log "Both local GPS and IP geolocation failed, using timezone fallback..." "WARN"
+
+            # Ultimate fallback: Use timezone to guess coordinates
+            local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
+            local coordinates
+            case "$system_tz" in
+                # Major city coordinates for common timezones
+                Asia/Jakarta|Asia/Pontianak|Asia/Makassar|Asia/Jayapura) coordinates="-6.2088,106.8456" ;;  # Jakarta
+                Asia/Kuala_Lumpur|Asia/Kuching) coordinates="3.1390,101.6869" ;;                             # Kuala Lumpur
+                Asia/Singapore) coordinates="1.3521,103.8198" ;;                                             # Singapore
+                Asia/Karachi) coordinates="24.8607,67.0011" ;;                                               # Karachi
+                Asia/Dhaka) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
+                Asia/Kolkata|Asia/Delhi|Asia/Mumbai|Asia/Chennai|Asia/Bangalore) coordinates="28.6139,77.2090" ;; # Delhi
+                Asia/Riyadh) coordinates="24.7136,46.6753" ;;                                                # Riyadh
+                Asia/Kuwait) coordinates="29.3117,47.4818" ;;                                                # Kuwait City
+                Asia/Dubai) coordinates="25.2048,55.2708" ;;                                                 # Dubai
+                Asia/Tehran) coordinates="35.6892,51.3890" ;;                                                # Tehran
+                Asia/Istanbul|Europe/Istanbul) coordinates="41.0082,28.9784" ;;                              # Istanbul
+                Africa/Cairo) coordinates="30.0444,31.2357" ;;                                               # Cairo
+                Africa/Lagos) coordinates="6.5244,3.3792" ;;                                                 # Lagos
+                # Ultimate fallback (Indonesian coordinates)
+                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
+            esac
+
+            export_location_data "$coordinates" "timezone_fallback" "REGIONAL_ESTIMATE"
+            echo "$coordinates"
+            debug_log "Local GPS mode timezone fallback: $coordinates" "INFO"
+            return 0
+            ;;
+
         "ip_based")
-            # Pure IP-based detection with fallback coordinates
+            # Legacy IP-based detection mode
             debug_log "IP-based location detection mode enabled" "INFO"
-            
+
             # Try IP geolocation first
             if check_internet_connection; then
                 debug_log "Attempting IP geolocation..." "INFO"
@@ -303,15 +449,15 @@ get_location_coordinates() {
                 if location_data=$(get_ip_location); then
                     # Cache the location data
                     cache_location_data "$location_data"
-                    
+
                     # Apply to configuration
                     apply_location_config "$location_data"
-                    
+
                     # Extract and return coordinates
                     local latitude=$(echo "$location_data" | jq -r '.latitude' 2>/dev/null)
                     local longitude=$(echo "$location_data" | jq -r '.longitude' 2>/dev/null)
                     local coordinates="$latitude,$longitude"
-                    export_location_data "$coordinates" "ip_geolocation" "NO_VPN"
+                    export_location_data "$coordinates" "ip_geolocation" "NETWORK_BASED"
                     echo "$coordinates"
                     return 0
                 fi
@@ -348,78 +494,96 @@ get_location_coordinates() {
             ;;
             
         "auto"|*)
-            # Enhanced multi-tier automatic location detection
-            debug_log "Starting comprehensive automatic location detection..." "INFO"
-            
-            # Tier 1: Try IP geolocation (if online and not already attempted)
-            if [[ "$CONFIG_PRAYER_LOCATION_MODE" != "ip_based" ]] && check_internet_connection; then
-                debug_log "Tier 1: Attempting IP geolocation..." "INFO"
+            # NEW: VPN-Independent Multi-Tier Location Detection
+            debug_log "Starting VPN-independent automatic location detection..." "INFO"
+
+            # Tier 1: Try Local System GPS (Most Accurate)
+            debug_log "Tier 1: Attempting local system GPS..." "INFO"
+            if coordinates=$(get_local_system_coordinates); then
+                export_location_data "$coordinates" "local_gps" "GPS_DEVICE"
+                echo "$coordinates"
+                debug_log "Local GPS successful: $coordinates" "INFO"
+                return 0
+            else
+                debug_log "Tier 1 failed: Local GPS unsuccessful" "WARN"
+            fi
+
+            # Tier 2: Try IP geolocation (Network Fallback)
+            if check_internet_connection; then
+                debug_log "Tier 2: Attempting IP geolocation..." "INFO"
                 local location_data
                 if location_data=$(get_ip_location); then
                     # Cache the successful location data
                     cache_location_data "$location_data"
-                    
+
                     # Apply to configuration
                     apply_location_config "$location_data"
-                    
+
                     # Extract and return coordinates
                     local latitude=$(echo "$location_data" | jq -r '.latitude' 2>/dev/null)
                     local longitude=$(echo "$location_data" | jq -r '.longitude' 2>/dev/null)
-                    echo "$latitude,$longitude"
-                    debug_log "IP geolocation successful: $latitude,$longitude" "INFO"
+                    local coordinates="$latitude,$longitude"
+                    export_location_data "$coordinates" "ip_geolocation" "NETWORK_BASED"
+                    echo "$coordinates"
+                    debug_log "IP geolocation successful: $coordinates" "INFO"
                     return 0
                 else
-                    debug_log "Tier 1 failed: IP geolocation unsuccessful" "WARN"
+                    debug_log "Tier 2 failed: IP geolocation unsuccessful" "WARN"
                 fi
             else
-                debug_log "Tier 1 skipped: No internet connection" "INFO"
+                debug_log "Tier 2 skipped: No internet connection" "INFO"
             fi
-            
-            # Tier 2: Try cached location data
-            debug_log "Tier 2: Attempting to load cached location..." "INFO"
+
+            # Tier 3: Try cached location data
+            debug_log "Tier 3: Attempting to load cached location..." "INFO"
             local cached_location
             if cached_location=$(load_cached_location); then
                 # Apply cached data to configuration
                 apply_location_config "$cached_location"
-                
+
                 # Extract and return coordinates
                 local latitude=$(echo "$cached_location" | jq -r '.latitude' 2>/dev/null)
                 local longitude=$(echo "$cached_location" | jq -r '.longitude' 2>/dev/null)
-                echo "$latitude,$longitude"
-                debug_log "Using cached location: $latitude,$longitude" "INFO"
+                local coordinates="$latitude,$longitude"
+                export_location_data "$coordinates" "cached_location" "CACHED_DATA"
+                echo "$coordinates"
+                debug_log "Using cached location: $coordinates" "INFO"
                 return 0
             else
-                debug_log "Tier 2 failed: No valid cached location" "WARN"
+                debug_log "Tier 3 failed: No valid cached location" "WARN"
             fi
-            
-            # Tier 3: Timezone-based geographic estimation
-            debug_log "Tier 3: Using timezone-based coordinate estimation..." "INFO"
+
+            # Tier 4: Timezone-based geographic estimation (Ultimate Fallback)
+            debug_log "Tier 4: Using timezone-based coordinate estimation..." "INFO"
             local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||')
             if [[ -n "$system_tz" ]]; then
                 local detected_method=$(get_prayer_method_from_timezone "$system_tz")
                 CONFIG_PRAYER_CALCULATION_METHOD="$detected_method"
             fi
             
+            local coordinates
             case "$system_tz" in
                 # Major Islamic population centers
-                Asia/Jakarta*|Asia/Pontianak*|Asia/Makassar*|Asia/Jayapura*) echo "-6.2088,106.8456" ;; # Jakarta
-                Asia/Kuala_Lumpur*|Asia/Kuching*) echo "3.1390,101.6869" ;;                            # Kuala Lumpur
-                Asia/Singapore*) echo "1.3521,103.8198" ;;                                             # Singapore  
-                Asia/Karachi*) echo "24.8607,67.0011" ;;                                               # Karachi
-                Asia/Dhaka*) echo "23.8103,90.4125" ;;                                                 # Dhaka
-                Asia/Kolkata*|Asia/Delhi*|Asia/Mumbai*) echo "28.6139,77.2090" ;;                      # Delhi
-                Asia/Riyadh*) echo "24.7136,46.6753" ;;                                                # Riyadh
-                Asia/Istanbul*|Europe/Istanbul*) echo "41.0082,28.9784" ;;                             # Istanbul
-                Africa/Cairo*) echo "30.0444,31.2357" ;;                                               # Cairo
-                Europe/*) echo "48.8566,2.3522" ;;      # Default to Paris for Europe
-                America/*) echo "40.7128,-74.0060" ;;   # Default to New York for Americas
-                Australia/*) echo "-33.8688,151.2093" ;; # Default to Sydney for Oceania
-                
+                Asia/Jakarta*|Asia/Pontianak*|Asia/Makassar*|Asia/Jayapura*) coordinates="-6.2088,106.8456" ;; # Jakarta
+                Asia/Kuala_Lumpur*|Asia/Kuching*) coordinates="3.1390,101.6869" ;;                            # Kuala Lumpur
+                Asia/Singapore*) coordinates="1.3521,103.8198" ;;                                             # Singapore
+                Asia/Karachi*) coordinates="24.8607,67.0011" ;;                                               # Karachi
+                Asia/Dhaka*) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
+                Asia/Kolkata*|Asia/Delhi*|Asia/Mumbai*) coordinates="28.6139,77.2090" ;;                      # Delhi
+                Asia/Riyadh*) coordinates="24.7136,46.6753" ;;                                                # Riyadh
+                Asia/Istanbul*|Europe/Istanbul*) coordinates="41.0082,28.9784" ;;                             # Istanbul
+                Africa/Cairo*) coordinates="30.0444,31.2357" ;;                                               # Cairo
+                Europe/*) coordinates="48.8566,2.3522" ;;      # Default to Paris for Europe
+                America/*) coordinates="40.7128,-74.0060" ;;   # Default to New York for Americas
+                Australia/*) coordinates="-33.8688,151.2093" ;; # Default to Sydney for Oceania
+
                 # Ultimate fallback (Indonesian coordinates)
-                *) echo "-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
+                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
             esac
-            
-            debug_log "Auto-detection completed successfully" "INFO"
+
+            export_location_data "$coordinates" "timezone_fallback" "REGIONAL_ESTIMATE"
+            echo "$coordinates"
+            debug_log "Auto-detection completed with timezone fallback: $coordinates" "INFO"
             return 0
             ;;
     esac

@@ -52,8 +52,8 @@ teardown() {
     assert_output "40.7128,-74.0060"
 }
 
-@test "get_location_coordinates should fall back to default for auto mode" {
-    export CONFIG_PRAYER_LOCATION_MODE="auto"
+@test "get_location_coordinates should fall back to default for local_gps mode" {
+    export CONFIG_PRAYER_LOCATION_MODE="local_gps"
     
     run get_location_coordinates
     assert_success

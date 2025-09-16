@@ -13,7 +13,7 @@
 # Component data storage
 COMPONENT_LOCATION_DISPLAY_CITY=""
 COMPONENT_LOCATION_DISPLAY_METHOD=""
-COMPONENT_LOCATION_DISPLAY_VPN_STATUS=""
+# REMOVED: VPN status tracking no longer needed
 COMPONENT_LOCATION_DISPLAY_CONFIDENCE=""
 COMPONENT_LOCATION_DISPLAY_COORDINATES=""
 
@@ -343,81 +343,35 @@ get_city_from_coordinates() {
 }
 
 # ============================================================================
-# VPN DETECTION
+# LOCATION DATA INTEGRATION
 # ============================================================================
 
-# Detect if user is using VPN
-detect_vpn_status() {
-    debug_log "Detecting VPN status..." "INFO"
+# Get location data from prayer location system
+get_location_data_from_prayer_system() {
+    debug_log "Getting location data from prayer location system..." "INFO"
 
-    # Method 1: Check for known VPN providers via IP info
-    if command_exists curl && check_internet_connection; then
-        local ip_info
-        ip_info=$(curl -s --max-time 5 "http://ip-api.com/json/?fields=isp,org,hosting,proxy,countryCode" 2>/dev/null)
+    # Use the prayer system's exported location data if available
+    if [[ -n "${STATUSLINE_DETECTED_COORDINATES:-}" ]]; then
+        local coordinates="${STATUSLINE_DETECTED_COORDINATES}"
+        local method="${STATUSLINE_DETECTION_METHOD:-unknown}"
+        local source="${STATUSLINE_VPN_STATUS:-UNKNOWN}"
 
-        if [[ -n "$ip_info" ]] && command_exists jq; then
-            local isp=$(echo "$ip_info" | jq -r '.isp // "unknown"' 2>/dev/null)
-            local org=$(echo "$ip_info" | jq -r '.org // "unknown"' 2>/dev/null)
-            local is_hosting=$(echo "$ip_info" | jq -r '.hosting // false' 2>/dev/null)
-            local is_proxy=$(echo "$ip_info" | jq -r '.proxy // false' 2>/dev/null)
-
-            # Check for Cloudflare (1.1.1.1)
-            if [[ "$isp" =~ "Cloudflare" ]] || [[ "$org" =~ "Cloudflare" ]]; then
-                echo "VPN_CLOUDFLARE"
-                return 0
-            fi
-
-            # Check for other VPN indicators
-            if [[ "$is_hosting" == "true" ]] || [[ "$is_proxy" == "true" ]]; then
-                echo "VPN_DATACENTER"
-                return 0
-            fi
-
-            # Check for common VPN providers
-            case "$isp" in
-                *"NordVPN"*|*"ExpressVPN"*|*"ProtonVPN"*|*"Surfshark"*)
-                    echo "VPN_COMMERCIAL"
-                    return 0
-                    ;;
-                *"DigitalOcean"*|*"AWS"*|*"Google Cloud"*|*"Azure"*)
-                    echo "VPN_CLOUD"
-                    return 0
-                    ;;
-            esac
-        fi
+        debug_log "Using prayer system location: $coordinates via $method ($source)" "INFO"
+        echo "$coordinates,$method,$source"
+        return 0
     fi
 
-    # Method 2: IP/Timezone mismatch detection
-    local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
-
-    if [[ -n "$ip_info" ]] && command_exists jq; then
-        local ip_country=$(echo "$ip_info" | jq -r '.countryCode // "XX"' 2>/dev/null)
-        local tz_country=""
-
-        # Map timezone to country
-        case "$system_tz" in
-            Asia/Jakarta*) tz_country="ID" ;;
-            Asia/Kuala_Lumpur*) tz_country="MY" ;;
-            Asia/Singapore*) tz_country="SG" ;;
-            Asia/Karachi*) tz_country="PK" ;;
-            Asia/Dhaka*) tz_country="BD" ;;
-            Asia/Kolkata*|Asia/Delhi*) tz_country="IN" ;;
-            Asia/Riyadh*) tz_country="SA" ;;
-            Asia/Dubai*) tz_country="AE" ;;
-            Asia/Istanbul*|Europe/Istanbul*) tz_country="TR" ;;
-            Africa/Cairo*) tz_country="EG" ;;
-            America/*) tz_country="US" ;;
-            Europe/*) tz_country="GB" ;;
-            *) tz_country="XX" ;;
-        esac
-
-        if [[ "$ip_country" != "$tz_country" && "$tz_country" != "XX" ]]; then
-            echo "VPN_MISMATCH"
+    # Fallback: Try to get fresh coordinates using prayer location functions
+    if type get_location_coordinates &>/dev/null; then
+        local coordinates
+        if coordinates=$(get_location_coordinates); then
+            debug_log "Got fresh coordinates from prayer system: $coordinates" "INFO"
+            echo "$coordinates,direct_call,FRESH_DATA"
             return 0
         fi
     fi
 
-    echo "NO_VPN"
+    debug_log "No location data available from prayer system" "WARN"
     return 1
 }
 
@@ -425,54 +379,46 @@ detect_vpn_status() {
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect location display data
+# Collect location display data - SIMPLIFIED (No VPN Detection)
 collect_location_display_data() {
     debug_log "Collecting location_display component data" "INFO"
 
-    # Get VPN status
-    COMPONENT_LOCATION_DISPLAY_VPN_STATUS=$(detect_vpn_status)
+    # Get location data from the prayer system (uses fresh GPS/local coordinates)
+    local location_data
+    if location_data=$(get_location_data_from_prayer_system); then
+        # Parse the returned data: coordinates,method,source
+        local coordinates=$(echo "$location_data" | cut -d',' -f1-2)
+        local method=$(echo "$location_data" | cut -d',' -f3)
+        local source=$(echo "$location_data" | cut -d',' -f4)
 
-    # Get location coordinates with VPN awareness
-    local coordinates
-    if [[ "$COMPONENT_LOCATION_DISPLAY_VPN_STATUS" =~ ^VPN_ ]]; then
-        debug_log "VPN detected, using VPN-aware location detection" "INFO"
-        # Use timezone-based location for VPN users
-        local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
-        case "$system_tz" in
-            Asia/Jakarta*) coordinates="-6.2088,106.8456" ;;  # Jakarta center
-            Asia/Kuala_Lumpur*) coordinates="3.1390,101.6869" ;;
-            Asia/Singapore*) coordinates="1.3521,103.8198" ;;
-            Asia/Karachi*) coordinates="24.8607,67.0011" ;;
-            Asia/Dhaka*) coordinates="23.8103,90.4125" ;;
-            Asia/Kolkata*) coordinates="28.6139,77.2090" ;;
-            Asia/Riyadh*) coordinates="24.7136,46.6753" ;;
-            Asia/Dubai*) coordinates="25.2048,55.2708" ;;
-            *) coordinates="-6.2088,106.8456" ;;  # Default to Jakarta
+        COMPONENT_LOCATION_DISPLAY_COORDINATES="$coordinates"
+        COMPONENT_LOCATION_DISPLAY_METHOD="$method"
+
+        # Set confidence based on method
+        case "$method" in
+            "local_gps") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="95" ;;
+            "manual") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="100" ;;
+            "ip_geolocation"|"direct_call") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="85" ;;
+            "cached_location") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="80" ;;
+            "timezone_fallback") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="70" ;;
+            *) COMPONENT_LOCATION_DISPLAY_CONFIDENCE="60" ;;
         esac
-        COMPONENT_LOCATION_DISPLAY_METHOD="timezone_fallback"
-        COMPONENT_LOCATION_DISPLAY_CONFIDENCE="75"
-    else
-        # Use IP geolocation for non-VPN users
-        if type get_location_coordinates &>/dev/null; then
-            coordinates=$(get_location_coordinates)
-            COMPONENT_LOCATION_DISPLAY_METHOD="ip_geolocation"
-            COMPONENT_LOCATION_DISPLAY_CONFIDENCE="90"
-        else
-            # Fallback to Jakarta
-            coordinates="-6.2088,106.8456"
-            COMPONENT_LOCATION_DISPLAY_METHOD="fallback"
-            COMPONENT_LOCATION_DISPLAY_CONFIDENCE="50"
-        fi
-    fi
 
-    COMPONENT_LOCATION_DISPLAY_COORDINATES="$coordinates"
+        debug_log "Using coordinates from prayer system: $coordinates via $method (confidence: ${COMPONENT_LOCATION_DISPLAY_CONFIDENCE}%)" "INFO"
+    else
+        # Ultimate fallback to Jakarta if prayer system fails
+        debug_log "Prayer system location unavailable, using Jakarta fallback" "WARN"
+        COMPONENT_LOCATION_DISPLAY_COORDINATES="-6.2088,106.8456"
+        COMPONENT_LOCATION_DISPLAY_METHOD="ultimate_fallback"
+        COMPONENT_LOCATION_DISPLAY_CONFIDENCE="50"
+    fi
 
     # Extract city from coordinates
     local latitude="${coordinates%%,*}"
     local longitude="${coordinates##*,}"
     COMPONENT_LOCATION_DISPLAY_CITY=$(get_city_from_coordinates "$latitude" "$longitude")
 
-    debug_log "location_display data: city=$COMPONENT_LOCATION_DISPLAY_CITY, method=$COMPONENT_LOCATION_DISPLAY_METHOD, vpn=$COMPONENT_LOCATION_DISPLAY_VPN_STATUS, confidence=$COMPONENT_LOCATION_DISPLAY_CONFIDENCE" "INFO"
+    debug_log "location_display data: city=$COMPONENT_LOCATION_DISPLAY_CITY, method=$COMPONENT_LOCATION_DISPLAY_METHOD, confidence=$COMPONENT_LOCATION_DISPLAY_CONFIDENCE" "INFO"
     return 0
 }
 
@@ -485,8 +431,7 @@ render_location_display() {
     local display_format
     display_format=$(get_location_display_config "format" "short")
 
-    local show_vpn_indicator
-    show_vpn_indicator=$(get_location_display_config "show_vpn_indicator" "true")
+    # REMOVED: VPN indicator no longer needed with fresh GPS coordinates
 
     local show_confidence
     show_confidence=$(get_location_display_config "show_confidence" "false")
@@ -510,16 +455,7 @@ render_location_display() {
             ;;
     esac
 
-    # Add VPN indicator
-    if [[ "$show_vpn_indicator" == "true" && "$COMPONENT_LOCATION_DISPLAY_VPN_STATUS" =~ ^VPN_ ]]; then
-        case "$COMPONENT_LOCATION_DISPLAY_VPN_STATUS" in
-            "VPN_CLOUDFLARE") location_text="${location_text} (VPN)" ;;
-            "VPN_COMMERCIAL") location_text="${location_text} (VPN)" ;;
-            "VPN_DATACENTER") location_text="${location_text} (Proxy)" ;;
-            "VPN_MISMATCH") location_text="${location_text} (VPN detected)" ;;
-            *) location_text="${location_text} (VPN)" ;;
-        esac
-    fi
+    # REMOVED: VPN indicator - no longer needed with local GPS coordinates
 
     # Add confidence indicator
     if [[ "$show_confidence" == "true" ]]; then
@@ -552,8 +488,9 @@ get_location_display_config() {
             # short, full
             get_component_config "location_display" "format" "${default_value:-short}"
             ;;
+        # REMOVED: show_vpn_indicator config option no longer needed
         "show_vpn_indicator")
-            get_component_config "location_display" "show_vpn_indicator" "${default_value:-true}"
+            echo "false"  # Always false - VPN detection removed
             ;;
         "show_confidence")
             get_component_config "location_display" "show_confidence" "${default_value:-false}"
