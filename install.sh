@@ -1125,6 +1125,40 @@ backup_existing_installation() {
     fi
 }
 
+# Function to clean cache directories for fresh installation
+clean_cache_directories() {
+    print_status "🧹 Cleaning cache directories for fresh installation..."
+
+    # Cache directories to clean (both primary and fallback locations)
+    local cache_dirs=(
+        "$HOME/.cache/claude-code-statusline"
+        "$HOME/.local/share/claude-code-statusline"
+    )
+
+    local cleaned_count=0
+
+    for cache_dir in "${cache_dirs[@]}"; do
+        if [ -d "$cache_dir" ]; then
+            print_status "  🗑️ Removing old cache: $cache_dir"
+            if rm -rf "$cache_dir"; then
+                print_success "  ✅ Cache cleared: $cache_dir"
+                ((cleaned_count++))
+            else
+                print_warning "  ⚠️ Failed to clear cache: $cache_dir"
+            fi
+        fi
+    done
+
+    if [ $cleaned_count -gt 0 ]; then
+        print_success "🎉 Cache cleanup complete: $cleaned_count directories cleared"
+        print_status "💡 Cache will rebuild automatically with correct format on first run"
+    else
+        print_status "✓ No existing cache found - starting with clean slate"
+    fi
+
+    return 0
+}
+
 # Function to download Config.toml template (simplified - no individual backup)
 download_config_template() {
     print_status "Setting up comprehensive TOML configuration..."
@@ -1441,6 +1475,7 @@ main() {
     
     create_claude_directory
     backup_existing_installation || true  # Don't fail if no existing installation
+    clean_cache_directories  # Clear cache for fresh installation with correct format
     download_statusline
     download_examples  # Download all example configurations
     check_bash_compatibility
