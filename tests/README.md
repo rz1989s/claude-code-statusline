@@ -128,7 +128,7 @@ Test the automatic dependency installation system:
 - **Platform Detection**: OS and package manager detection accuracy
 - **Dependency Installation**: Auto-install success across platforms
 - **Permission Handling**: Sudo management and brew compatibility
-- **GPS Dependencies**: Optional CoreLocationCLI/geoclue2 installation
+- **Location Detection**: Privacy-friendly IP geolocation testing
 - **Verification**: Post-install dependency validation
 - **Fallback Scenarios**: Graceful handling of installation failures
 

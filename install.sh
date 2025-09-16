@@ -143,7 +143,7 @@ check_all_dependencies() {
     local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing" "git:Repository integration")
     local important_deps=("bunx:Cost tracking with ccusage")
     local helpful_deps=("bc:Precise cost calculations" "python3:Advanced TOML features & date parsing")
-    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)" "CoreLocationCLI:GPS location for prayer times (macOS)" "geoclue:GPS location for prayer times (Linux)")
+    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)")
     
     local missing_critical=()
     local missing_important=()
@@ -202,30 +202,6 @@ check_all_dependencies() {
         missing_optional+=("timeout")
     fi
 
-    # Check GPS location tools (platform-specific)
-    case "$OS_TYPE" in
-        "Darwin")
-            if command_exists "CoreLocationCLI"; then
-                printf "  ✅ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (macOS)"
-                ((available_features++))
-            else
-                printf "  ⚠️ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (brew install corelocationcli)"
-                missing_optional+=("CoreLocationCLI")
-            fi
-            ;;
-        "Linux")
-            if [[ -x "/usr/lib/geoclue-2.0/demos/where-am-i" ]] || command_exists "geoclue"; then
-                printf "  ✅ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (Linux)"
-                ((available_features++))
-            else
-                printf "  ⚠️ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (apt install geoclue-2.0-dev)"
-                missing_optional+=("geoclue")
-            fi
-            ;;
-        *)
-            printf "  ⚠️ %-8s → %s\\n" "GPS" "GPS location not supported on this platform"
-            ;;
-    esac
     
     echo
     local percentage=$((available_features * 100 / total_features))
@@ -303,10 +279,6 @@ generate_install_commands() {
             all_missing+=("coreutils")  # Contains gtimeout on macOS
         elif [[ "$dep" == "timeout" ]]; then
             all_missing+=("coreutils")
-        elif [[ "$dep" == "CoreLocationCLI" ]]; then
-            all_missing+=("corelocationcli")  # macOS GPS tool
-        elif [[ "$dep" == "geoclue" ]]; then
-            all_missing+=("geoclue-2.0-dev")  # Linux GPS tool
         fi
     done
     
@@ -489,7 +461,6 @@ auto_install_macos() {
         case "$dep" in
             "bunx") brew_deps+=("bun") ;;
             "timeout") brew_deps+=("coreutils") ;;
-            "CoreLocationCLI") brew_deps+=("corelocationcli") ;;
             *) brew_deps+=("$dep") ;;
         esac
     done
@@ -526,13 +497,6 @@ auto_install_linux() {
                 ;;
             "timeout")
                 linux_deps+=("coreutils")
-                ;;
-            "geoclue"|"CoreLocationCLI")
-                if [[ "$PKG_MGR" == "apt" ]]; then
-                    linux_deps+=("geoclue-2.0-dev")
-                else
-                    linux_deps+=("geoclue2")
-                fi
                 ;;
             *) linux_deps+=("$dep") ;;
         esac
@@ -597,9 +561,6 @@ auto_install_wsl() {
     local wsl_deps=()
     for dep in "${deps_to_install[@]}"; do
         case "$dep" in
-            "CoreLocationCLI"|"geoclue")
-                print_warning "⚠️ GPS location services not available in WSL, skipping $dep"
-                ;;
             *) wsl_deps+=("$dep") ;;
         esac
     done
@@ -670,13 +631,6 @@ auto_install_dependencies() {
                     still_missing+=("timeout")
                 fi
                 ;;
-            "CoreLocationCLI")
-                if command_exists CoreLocationCLI; then
-                    print_success "✅ CoreLocationCLI is now available"
-                else
-                    still_missing+=("CoreLocationCLI")
-                fi
-                ;;
             *)
                 if command_exists "$dep"; then
                     print_success "✅ $dep is now available"
@@ -709,17 +663,7 @@ check_dependencies_with_auto_install() {
     local platform_deps=()
 
     # Add platform-specific dependencies
-    case "$OS_PLATFORM" in
-        "macOS")
-            platform_deps+=("CoreLocationCLI")
-            ;;
-        "WSL")
-            # Skip GPS deps for WSL
-            ;;
-        *Linux*)
-            platform_deps+=("geoclue")
-            ;;
-    esac
+    # No platform-specific dependencies needed
 
     # Check what's missing
     local missing_critical=()
@@ -775,14 +719,7 @@ check_dependencies_with_auto_install() {
     done
 
     # Check platform-specific dependencies
-    for dep in "${platform_deps[@]}"; do
-        if command_exists "$dep"; then
-            print_success "✅ $dep (GPS location)"
-        else
-            print_status "📍 $dep (GPS location - optional)"
-            missing_platform+=("$dep")
-        fi
-    done
+    # All required dependencies are cross-platform
 
     echo
 
@@ -799,23 +736,7 @@ check_dependencies_with_auto_install() {
     auto_install_deps+=("${missing_helpful[@]}")
 
     # Ask about platform dependencies
-    if [[ ${#missing_platform[@]} -gt 0 ]]; then
-        echo
-        print_status "🤔 Optional GPS location dependencies available:"
-        for dep in "${missing_platform[@]}"; do
-            print_status "  • $dep (provides VPN-independent location detection)"
-        done
-        echo
-
-        if [[ "$INTERACTIVE_MODE" == "true" ]]; then
-            read -p "Install GPS location dependencies? [y/N]: " install_gps
-            if [[ "$install_gps" =~ ^[Yy]$ ]]; then
-                auto_install_deps+=("${missing_platform[@]}")
-            fi
-        else
-            print_status "💡 Use --interactive to choose GPS dependencies, or install manually later"
-        fi
-    fi
+    # Privacy-friendly: IP geolocation with manual coordinate override
 
     # Perform auto-installation
     if [[ ${#auto_install_deps[@]} -gt 0 ]]; then
@@ -912,7 +833,7 @@ show_help() {
     echo "Examples:"
     echo "  $0                           # Standard installation (minimal deps)"
     echo "  $0 --auto-install           # Auto-install all missing dependencies (recommended)"
-    echo "  $0 --auto-install --interactive  # Auto-install with GPS choice menu"
+    echo "  $0 --auto-install --interactive  # Auto-install with interactive confirmation"
     echo "  $0 --check-all-deps         # Show full dependency analysis"
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"

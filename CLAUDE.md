@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.11.0 with GPS-first prayer location detection and 18-component atomic architecture
+**Current**: v2.11.0 with privacy-friendly prayer location detection and 18-component atomic architecture
 **Branch Strategy**: dev6 (settings.json) → dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular system (91.5% code reduction from v1)
-**Key Features**: 5-line statusline, Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation
+**Key Features**: 5-line statusline, Islamic prayer times (IP-based + manual override), cost tracking, MCP monitoring, cache isolation
 
 ## Essential Commands
 
@@ -47,7 +47,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nigh
 - **System** (2): mcp_status, time_display
 - **Spiritual** (2): prayer_times, location_display
 
-**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 6-line with GPS-accurate location display)
+**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 6-line with privacy-friendly location display)
 
 **Key Functions**:
 - `load_module()` - Module loading with dependency checking
@@ -86,7 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 theme.name = "catppuccin"            # classic/garden/catppuccin/custom
 display.lines = 6                    # 1-9 lines supported (now includes location display)
 display.line1.components = ["repo_info", "commits", "version_info", "time_display"]
-display.line6.components = ["location_display"]  # GPS-accurate location display
+display.line6.components = ["location_display"]  # Privacy-friendly location display
 
 # Features
 features.show_mcp_status = true
@@ -101,8 +101,8 @@ prayer.enabled = true
 prayer.calculation_method = 5        # Indonesian/Malaysian method
 prayer.location.auto_detect = true
 
-# Location Display (GPS-Accurate)
-location.enabled = true              # GPS-first location detection
+# Location Display (Privacy-Friendly)
+location.enabled = true              # IP-based with manual override
 location.format = "short"            # short: "Bekasi", full: "Bekasi, West Java, Indonesia"
 
 # Labels
@@ -116,7 +116,7 @@ labels.monthly = "30DAY"
 ENV_CONFIG_THEME_NAME=garden ./statusline.sh
 ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
 ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh
-ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh
+ENV_CONFIG_PRAYER_LOCATION_MODE=auto ./statusline.sh
 ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 ```
 
@@ -143,10 +143,10 @@ bats tests/benchmarks/test_cache_performance.bats
 bats tests/unit/test_prayer_functions.bats
 ENV_CONFIG_PRAYER_ENABLED=true ./statusline.sh
 
-# GPS & Location Testing (NEW)
-ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh  # Test GPS-first mode
+# Location Testing (Privacy-Friendly)
+ENV_CONFIG_PRAYER_LOCATION_MODE=auto ./statusline.sh       # Test IP-based mode
 ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh            # Test full format display
-STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "gps\|location\|coordinates"  # Debug GPS detection
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "location\|coordinates"  # Debug location detection
 
 # Global City Detection Testing
 source lib/components/location_display.sh
@@ -176,10 +176,7 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 - **Critical (auto-installed)**: curl, jq, git
 - **Important (auto-installed)**: bun/bunx (cost tracking), bc (calculations), python3 (TOML features)
 - **Helpful (auto-installed)**: timeout/gtimeout (network protection)
-- **GPS Location (optional auto-install)**:
-  - macOS: CoreLocationCLI (`brew install corelocationcli`)
-  - Linux: geoclue2 (`sudo apt install geoclue-2-demo`)
-  - WSL: GPS not available (IP fallback only)
+- **Location Detection**: IP geolocation with manual coordinate override for privacy
 
 **Auto-Install System**:
 - **Platform Support**: macOS (Homebrew), Linux (apt/yum/dnf/pacman), WSL (Linux packages)
@@ -206,7 +203,7 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 # Recommended: Auto-install all dependencies
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# Auto-install with GPS choice (interactive)
+# Auto-install with interactive confirmation
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
 
 # Production (main branch, manual dependencies)
@@ -223,25 +220,22 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/
 
 **Configuration**:
 ```bash
-ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh      # GPS-first mode
+ENV_CONFIG_PRAYER_LOCATION_MODE=auto ./statusline.sh           # IP-based with fallbacks
 ENV_CONFIG_PRAYER_CALCULATION_METHOD=5 ./statusline.sh         # Indonesian/Malaysian
 ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh   # Manual coordinates
 ```
 
-**Caching**: Prayer times cached 24h, GPS coordinates cached fresh
+**Caching**: Prayer times cached 24h, IP location cached 30min
 
-## GPS-Accurate Location Detection
+## Privacy-Friendly Location Detection
 
-**Fresh GPS Coverage**: Supports 2+ billion Muslims worldwide with device-accurate coordinates
+**Privacy-First Approach**: No GPS permissions required - uses IP geolocation with manual coordinate override
 
 **Location Detection Hierarchy**:
-1. **Local System GPS** (95% accuracy) - Fresh device coordinates (VPN-independent)
-   - macOS: CoreLocationCLI integration
-   - Linux: geoclue2 system integration
-   - Windows: Native Location API (future)
-2. **IP Geolocation** (85% accuracy) - Network-based fallback
+1. **Manual Coordinates** (100% accuracy) - User-specified coordinates (privacy-friendly)
+2. **IP Geolocation** (85% accuracy) - Network-based detection (VPN-aware)
 3. **Timezone Mapping** (70% accuracy) - Regional estimation
-4. **Manual Override** (100% accuracy) - User-specified coordinates
+4. **Cache Fallback** (80% accuracy) - Previously detected location
 
 **Supported Regions**:
 - **Southeast Asia** (450M): Jakarta, Bekasi, Surabaya, Kuala Lumpur, Singapore
@@ -251,10 +245,17 @@ ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh   # Manual coordina
 - **Europe** (60M): London, Paris, Berlin, Moscow, Sarajevo, Tirana
 - **Americas** (15M): New York, Toronto, Los Angeles, São Paulo, Montreal
 
-**Example Outputs**:
+**VPN Behavior (Expected)**:
 ```bash
-📍 Loc: Jakarta                     # GPS-accurate location
-📍 Loc: Istanbul                    # Fresh coordinates from device
-📍 Loc: Riyadh                      # Local system GPS detection
-📍 Loc: Southeast Asia              # Regional fallback when GPS unavailable
+# Without VPN
+📍 Loc: Bekasi                      # Accurate via IP geolocation
+🕌 Fajr 04:28 (Bekasi time)         # Accurate prayer times
+
+# With VPN (shows VPN location)
+📍 Loc: Jakarta                     # Expected: Shows VPN server location
+🕌 Fajr 04:18 (Jakarta time)        # Expected: VPN server prayer times
+
+# Manual Override (VPN-independent)
+📍 Loc: Bekasi                      # Accurate: Manual coordinates
+🕌 Fajr 04:28 (Bekasi time)         # Accurate: Manual coordinates
 ```

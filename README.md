@@ -56,7 +56,7 @@ The installer now automatically detects and installs all required dependencies o
 # 🤖 Installs ALL dependencies automatically + statusline
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# 🎯 Interactive mode (choose GPS location dependencies)
+# 🎯 Interactive mode (confirmation prompts)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
 ```
 
@@ -64,7 +64,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 - **Critical**: curl, jq, git (required for basic functionality)
 - **Important**: bun/bunx (cost tracking), bc (calculations), python3 (TOML features)
 - **Helpful**: timeout/gtimeout (network protection)
-- **GPS (optional)**: CoreLocationCLI (macOS), geoclue2 (Linux) for VPN-independent location
+- **Location**: IP geolocation with manual coordinate override (privacy-friendly)
 
 ### Option 2: Inspect First (Security-Conscious)
 ```bash
@@ -1082,7 +1082,7 @@ brew install jq git curl bun bc python3 coreutils corelocationcli
 # curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
 # Manual installation (if you insist):
-sudo apt update && sudo apt install jq git curl bc python3 coreutils geoclue-2.0-dev
+sudo apt update && sudo apt install jq git curl bc python3 coreutils
 curl -fsSL https://bun.sh/install | bash  # Install bun
 ```
 </details>
@@ -1096,7 +1096,7 @@ curl -fsSL https://bun.sh/install | bash  # Install bun
 
 # Manual installation (if you insist):
 sudo apt update && sudo apt install jq git curl bc python3 coreutils
-curl -fsSL https://bun.sh/install | bash  # Install bun (GPS not available in WSL)
+curl -fsSL https://bun.sh/install | bash  # Install bun
 ```
 </details>
 
@@ -1853,12 +1853,12 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 
 🤖 **Auto-Install Revolution**: All dependencies are now automatically installed! Just run `--auto-install` and we handle everything.
 
-| Platform | Auto-Install Support | Package Manager | GPS Location |
-|----------|---------------------|-----------------|--------------|
-| 🍎 **macOS** | ✅ **Full Auto-Install** | Homebrew (auto-installs if missing) | CoreLocationCLI (optional) |
-| 🐧 **Linux** | ✅ **Full Auto-Install** | apt/yum/dnf/pacman (auto-detected) | geoclue2 (optional) |
-| 🪟 **WSL** | ✅ **Full Auto-Install** | Linux packages + WSL optimizations | IP-based fallback |
-| 🪟 **Windows Native** | ❌ **Not Supported** | Use WSL for best experience | Not supported |
+| Platform | Auto-Install Support | Package Manager | Location Detection |
+|----------|---------------------|-----------------|-------------------|
+| 🍎 **macOS** | ✅ **Full Auto-Install** | Homebrew (auto-installs if missing) | IP + Manual Override |
+| 🐧 **Linux** | ✅ **Full Auto-Install** | apt/yum/dnf/pacman (auto-detected) | IP + Manual Override |
+| 🪟 **WSL** | ✅ **Full Auto-Install** | Linux packages + WSL optimizations | IP + Manual Override |
+| 🪟 **Windows Native** | ❌ **Not Supported** | Use WSL for best experience | IP + Manual Override |
 
 **🎯 Zero Manual Configuration** - Our enhanced installer:
 - Detects your OS and package manager automatically
@@ -1882,13 +1882,11 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 - **`timeout/gtimeout`** - Network operation timeout protection (auto-installed)
 - **`coreutils`** - Enhanced system utilities, includes gtimeout on macOS (auto-installed)
 
-#### GPS Location (Optional Auto-Install)
-- **`CoreLocationCLI`** (macOS) - VPN-independent GPS location detection
-  - Auto-install: `./install.sh --auto-install --interactive` (choose yes for GPS)
-  - Manual: `brew install corelocationcli`
-- **`geoclue2`** (Linux) - System GPS location service
-  - Auto-install: `./install.sh --auto-install --interactive` (choose yes for GPS)
-  - Manual: `sudo apt install geoclue-2.0-dev`
+#### Location Detection (Privacy-Friendly)
+- **IP Geolocation** - Network-based location detection (no permissions required)
+- **Manual Override** - Set exact coordinates for 100% accuracy
+- **Timezone Fallback** - Regional estimation when network unavailable
+- **VPN Aware** - Displays VPN server location when VPN is active
 
 **🎯 Revolutionary Auto-Install:**
 - **Platform Detection**: Automatically detects macOS, Linux, WSL
@@ -1926,9 +1924,8 @@ git --version && echo "✅ Git OK" || echo "❌ Git missing"
 bunx --version && echo "✅ bunx OK" || echo "⚠️ bunx missing (install with: npm install -g bunx)"
 ccusage --version && echo "✅ ccusage OK" || echo "⚠️ ccusage missing (install with: npm install -g ccusage)"
 
-# Check GPS location tools
-CoreLocationCLI --version && echo "✅ CoreLocationCLI OK" || echo "⚠️ CoreLocationCLI missing (macOS: brew install corelocationcli)"
-whereis geoclue-2.0 && echo "✅ geoclue2 OK" || echo "⚠️ geoclue2 missing (Linux: sudo apt install geoclue-2.0-dev)"
+# Check location detection (privacy-friendly IP-based)
+echo "📍 Location: IP geolocation + manual override (no GPS permissions required)"
 ```
 
 ## 📖 Documentation

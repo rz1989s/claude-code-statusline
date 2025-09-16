@@ -5,7 +5,7 @@
 # ============================================================================
 #
 # This component displays detected location for prayer time calculations
-# with VPN-aware detection and transparency indicators.
+# using privacy-friendly IP geolocation with manual coordinate override.
 #
 # Dependencies: display.sh, prayer/location.sh, prayer/core.sh
 # ============================================================================
@@ -383,7 +383,7 @@ get_location_data_from_prayer_system() {
 collect_location_display_data() {
     debug_log "Collecting location_display component data" "INFO"
 
-    # Get location data from the prayer system (uses fresh GPS/local coordinates)
+    # Get location data from the prayer system (uses IP geolocation or manual coordinates)
     local location_data
     if location_data=$(get_location_data_from_prayer_system); then
         # Parse the returned data: coordinates,method,source
@@ -396,7 +396,7 @@ collect_location_display_data() {
 
         # Set confidence based on method
         case "$method" in
-            "local_gps") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="95" ;;
+            "ip_geolocation") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="85" ;;
             "manual") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="100" ;;
             "ip_geolocation"|"direct_call") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="85" ;;
             "cached_location") COMPONENT_LOCATION_DISPLAY_CONFIDENCE="80" ;;
@@ -431,7 +431,7 @@ render_location_display() {
     local display_format
     display_format=$(get_location_display_config "format" "short")
 
-    # REMOVED: VPN indicator no longer needed with fresh GPS coordinates
+    # Note: VPN usage will affect IP-based location accuracy
 
     local show_confidence
     show_confidence=$(get_location_display_config "show_confidence" "false")
@@ -455,7 +455,7 @@ render_location_display() {
             ;;
     esac
 
-    # REMOVED: VPN indicator - no longer needed with local GPS coordinates
+    # Note: Manual coordinates provide the highest accuracy
 
     # Add confidence indicator
     if [[ "$show_confidence" == "true" ]]; then

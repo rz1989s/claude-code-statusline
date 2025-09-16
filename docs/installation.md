@@ -23,7 +23,7 @@ Get up and running with beautiful statuslines and powerful configuration managem
 - **Critical (always installed):** `curl` `jq` `git` → 100% functionality
 - **Important (auto-installed):** `bun/bunx` `bc` `python3` → Full cost tracking + calculations
 - **Helpful (auto-installed):** `timeout/gtimeout` `coreutils` → Network protection + compatibility
-- **GPS (optional auto-install):** `CoreLocationCLI` (macOS), `geoclue2` (Linux) → VPN-independent location
+- **Location Detection:** IP geolocation + manual coordinate override (privacy-friendly)
 
 ## 🚀 Revolutionary 3-Tier Download System (Recommended) - v2.9.0
 
@@ -35,7 +35,7 @@ Get up and running with beautiful statuslines and powerful configuration managem
 # 🤖 RECOMMENDED: Auto-install all dependencies (NEW!)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
 
-# 🎯 Auto-install with GPS choice menu
+# 🎯 Auto-install with interactive confirmation
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
 
 # Standard installation (manual dependencies - legacy)
@@ -55,7 +55,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 - **Detects Platform**: macOS, Linux, WSL automatically
 - **Finds Package Manager**: brew, apt, yum, dnf, pacman
 - **Installs Dependencies**: curl, jq, git, bun, bc, python3, timeout
-- **Handles GPS**: Optional CoreLocationCLI (macOS), geoclue2 (Linux)
+- **Location Detection**: Privacy-friendly IP geolocation with manual override
 - **Manages Permissions**: Sudo for Linux, brew without sudo for macOS
 - **Verifies Success**: Confirms installation before proceeding
 
