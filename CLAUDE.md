@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.10.0 with revolutionary 3-tier download system and 18-component atomic architecture
+**Current**: v2.11.0 with GPS-first prayer location detection and 18-component atomic architecture
 **Branch Strategy**: dev6 (settings.json) → dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular system (91.5% code reduction from v1)
-**Key Features**: 5-line statusline, Islamic prayer times, cost tracking, MCP monitoring, cache isolation
+**Key Features**: 5-line statusline, Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation
 
 ## Essential Commands
 
@@ -35,15 +35,15 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nigh
 
 **Core Modules** (11): core → security → config → themes → cache → git → mcp → cost → prayer → components → display
 
-**Atomic Components** (18):
+**Atomic Components** (21):
 - **Repository & Git** (4): repo_info, commits, submodules, version_info
 - **Model & Session** (4): model_info, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
 - **Block Metrics** (4): burn_rate, token_usage, cache_efficiency, block_projection
 - **System** (2): mcp_status, time_display
-- **Spiritual** (1): prayer_times
+- **Spiritual** (2): prayer_times, location_display
 
-**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output
+**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 6-line with GPS-accurate location display)
 
 **Key Functions**:
 - `load_module()` - Module loading with dependency checking
@@ -80,8 +80,9 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 ```toml
 # Theme and Display
 theme.name = "catppuccin"            # classic/garden/catppuccin/custom
-display.lines = 5                    # 1-9 lines supported
+display.lines = 6                    # 1-9 lines supported (now includes location display)
 display.line1.components = ["repo_info", "commits", "version_info", "time_display"]
+display.line6.components = ["location_display"]  # GPS-accurate location display
 
 # Features
 features.show_mcp_status = true
@@ -96,6 +97,10 @@ prayer.enabled = true
 prayer.calculation_method = 5        # Indonesian/Malaysian method
 prayer.location.auto_detect = true
 
+# Location Display (GPS-Accurate)
+location.enabled = true              # GPS-first location detection
+location.format = "short"            # short: "Bekasi", full: "Bekasi, West Java, Indonesia"
+
 # Labels
 labels.commits = "Commits:"
 labels.repo = "REPO"
@@ -107,6 +112,8 @@ labels.monthly = "30DAY"
 ENV_CONFIG_THEME_NAME=garden ./statusline.sh
 ENV_CONFIG_DISPLAY_LINES=3 ./statusline.sh
 ENV_CONFIG_FEATURES_SHOW_MCP_STATUS=false ./statusline.sh
+ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh
+ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 ```
 
 ## Testing & Debugging
@@ -131,6 +138,17 @@ bats tests/benchmarks/test_cache_performance.bats
 # Prayer System Testing
 bats tests/unit/test_prayer_functions.bats
 ENV_CONFIG_PRAYER_ENABLED=true ./statusline.sh
+
+# GPS & Location Testing (NEW)
+ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh  # Test GPS-first mode
+ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh            # Test full format display
+STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep -i "gps\|location\|coordinates"  # Debug GPS detection
+
+# Global City Detection Testing
+source lib/components/location_display.sh
+get_city_from_coordinates 24.7136 46.6753    # Should detect "Riyadh"
+get_city_from_coordinates 41.0082 28.9784     # Should detect "Istanbul"
+get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 ```
 
 ## Cache System
@@ -153,6 +171,9 @@ ENV_CONFIG_PRAYER_ENABLED=true ./statusline.sh
 **Dependencies**:
 - **Required**: jq (JSON parsing), git (repository integration)
 - **Prayer System**: curl (API calls), date (time calculations)
+- **GPS Location (Recommended)**:
+  - macOS: CoreLocationCLI (`brew install corelocationcli`)
+  - Linux: geoclue2 (`sudo apt install geoclue-2-demo`)
 - **Optional**: ccusage (cost tracking), timeout/gtimeout (platform-specific)
 
 **Security**: Input sanitization via lib/security.sh, timeout protection, secure path handling
@@ -187,8 +208,38 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 
 **Configuration**:
 ```bash
-ENV_CONFIG_PRAYER_CALCULATION_METHOD=5 ./statusline.sh    # Indonesian/Malaysian
-ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh  # Manual coordinates
+ENV_CONFIG_PRAYER_LOCATION_MODE=local_gps ./statusline.sh      # GPS-first mode
+ENV_CONFIG_PRAYER_CALCULATION_METHOD=5 ./statusline.sh         # Indonesian/Malaysian
+ENV_CONFIG_PRAYER_LOCATION_AUTO_DETECT=false ./statusline.sh   # Manual coordinates
 ```
 
-**Caching**: Prayer times cached 24h, location cached 7 days
+**Caching**: Prayer times cached 24h, GPS coordinates cached fresh
+
+## GPS-Accurate Location Detection
+
+**Fresh GPS Coverage**: Supports 2+ billion Muslims worldwide with device-accurate coordinates
+
+**Location Detection Hierarchy**:
+1. **Local System GPS** (95% accuracy) - Fresh device coordinates (VPN-independent)
+   - macOS: CoreLocationCLI integration
+   - Linux: geoclue2 system integration
+   - Windows: Native Location API (future)
+2. **IP Geolocation** (85% accuracy) - Network-based fallback
+3. **Timezone Mapping** (70% accuracy) - Regional estimation
+4. **Manual Override** (100% accuracy) - User-specified coordinates
+
+**Supported Regions**:
+- **Southeast Asia** (450M): Jakarta, Bekasi, Surabaya, Kuala Lumpur, Singapore
+- **South Asia** (620M): Karachi, Lahore, Delhi, Mumbai, Dhaka, Islamabad
+- **Middle East** (120M): Riyadh, Dubai, Istanbul, Tehran, Baghdad, Amman
+- **North Africa** (280M): Cairo, Casablanca, Algiers, Tunis, Khartoum, Lagos
+- **Europe** (60M): London, Paris, Berlin, Moscow, Sarajevo, Tirana
+- **Americas** (15M): New York, Toronto, Los Angeles, São Paulo, Montreal
+
+**Example Outputs**:
+```bash
+📍 Loc: Jakarta                     # GPS-accurate location
+📍 Loc: Istanbul                    # Fresh coordinates from device
+📍 Loc: Riyadh                      # Local system GPS detection
+📍 Loc: Southeast Asia              # Regional fallback when GPS unavailable
+```

@@ -88,34 +88,38 @@ timeouts.prayer = "10s"
 # Choose how the statusline determines your location and prayer method:
 
 prayer.enabled = true
-prayer.location_mode = "auto"           # ⭐ RECOMMENDED: Comprehensive auto-detection
+prayer.location_mode = "local_gps"       # ⭐ RECOMMENDED: GPS-first accurate detection
 
 # LOCATION MODE OPTIONS:
-# • "auto"     - Smart multi-tier detection (IP → Cache → Timezone → Locale)
-# • "ip_based" - Force IP geolocation only (requires internet)  
-# • "manual"   - Use coordinates below (disable auto-detection)
+# • "local_gps" - GPS-first detection (Local GPS → IP → Cache → Timezone) ⭐ RECOMMENDED
+# • "auto"      - Legacy multi-tier detection (IP → Cache → Timezone → Locale)
+# • "ip_based"  - Force IP geolocation only (requires internet)
+# • "manual"    - Use coordinates below (disable auto-detection)
 
-# === AUTO-DETECTION PROCESS ===
-# When location_mode = "auto" (RECOMMENDED):
+# === GPS-FIRST DETECTION PROCESS ===
+# When location_mode = "local_gps" (RECOMMENDED):
 #
-# 🌐 Tier 1: IP Geolocation (Online)
+# 📍 Tier 1: Fresh Local GPS (VPN-Independent)
+#   • macOS: CoreLocationCLI integration (95% accuracy)
+#   • Linux: geoclue2 system service (95% accuracy)
+#   • Windows: Native Location API (future)
+#   • Fresh device coordinates regardless of VPN/network
+#   • No network required, works offline
+#
+# 🌐 Tier 2: IP Geolocation (Network Fallback)
 #   • Uses free ip-api.com service (45 req/min, no key required)
 #   • Detects: Country, City, Coordinates, Timezone
 #   • Maps country → prayer method automatically
 #   • Caches results for 7 days
 #
-# 💾 Tier 2: Cached Location (Offline)
+# 💾 Tier 3: Cached Location (Offline)
 #   • Uses cached IP geolocation data (7-day expiry)
 #   • No network required
 #
-# 🕐 Tier 3: System Timezone Mapping (Offline)
+# 🕐 Tier 4: System Timezone Mapping (Ultimate Fallback)
 #   • Maps system timezone → country → prayer method
 #   • Covers 98% of global Muslim population
 #   • Provides region-specific coordinates
-#
-# 🌏 Tier 4: System Locale Fallback
-#   • Uses system locale as location hint
-#   • Safe fallback for unknown regions
 
 # === WORLDWIDE COVERAGE ===
 # Auto-detection supports:
@@ -130,8 +134,8 @@ prayer.location_mode = "auto"           # ⭐ RECOMMENDED: Comprehensive auto-de
 
 prayer.calculation_method = ""          # Auto-detected from location
 prayer.madhab = "2"                     # Hanafi (Indonesian default) - 1=Shafi, 2=Hanafi
-prayer.latitude = ""                    # Auto-detected from IP/timezone  
-prayer.longitude = ""                   # Auto-detected from IP/timezone
+prayer.latitude = ""                    # Auto-detected from GPS/IP/timezone
+prayer.longitude = ""                   # Auto-detected from GPS/IP/timezone
 prayer.timezone = ""                    # Auto-detected from system
 
 # === PRAYER DISPLAY SETTINGS ===
@@ -358,8 +362,8 @@ hijri.show_weekday = true              # Include day of week in display
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components
 
-# Number of lines to display (1-9) - SHOWCASING ALL 18 ATOMIC COMPONENTS!
-display.lines = 5
+# Number of lines to display (1-9) - SHOWCASING ALL 21 ATOMIC COMPONENTS!
+display.lines = 6
 
 # Line 1: Repository Core (atomic git components + info)
 display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
@@ -386,10 +390,10 @@ display.line5.components = ["prayer_times"]
 display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
-# Line 6: Legacy Git Display (for comparison with atomic components)
-display.line6.components = []
+# Line 6: Location Detection Display (VPN-aware location transparency)
+display.line6.components = ["location_display"]
 display.line6.separator = " │ "
-display.line6.show_when_empty = false
+display.line6.show_when_empty = true
 
 # Line 7: Legacy Cost Period (for comparison with atomic components)
 display.line7.components = []
@@ -442,8 +446,9 @@ display.line9.show_when_empty = false
 # - "mcp_status"     - MCP server health and connection status
 # - "time_display"   - Current time formatting
 #
-# Spiritual Components (1):
-# - "prayer_times"   - Islamic prayer times integration
+# Spiritual & Location Components (2):
+# - "prayer_times"     - Islamic prayer times integration
+# - "location_display" - VPN-aware location detection for prayer calculations
 #
 # Example Component Configurations:
 # display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data

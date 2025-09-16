@@ -119,7 +119,7 @@ check_all_dependencies() {
     local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing")
     local important_deps=("bunx:Cost tracking with ccusage")
     local helpful_deps=("bc:Precise cost calculations" "python3:Advanced TOML features & date parsing")
-    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)")
+    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)" "CoreLocationCLI:GPS location for prayer times (macOS)" "geoclue:GPS location for prayer times (Linux)")
     
     local missing_critical=()
     local missing_important=()
@@ -177,6 +177,31 @@ check_all_dependencies() {
         printf "  ⚠️ %-8s → %s\\n" "timeout" "Network operation protection"
         missing_optional+=("timeout")
     fi
+
+    # Check GPS location tools (platform-specific)
+    case "$OS_TYPE" in
+        "Darwin")
+            if command_exists "CoreLocationCLI"; then
+                printf "  ✅ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (macOS)"
+                ((available_features++))
+            else
+                printf "  ⚠️ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (brew install corelocationcli)"
+                missing_optional+=("CoreLocationCLI")
+            fi
+            ;;
+        "Linux")
+            if [[ -x "/usr/lib/geoclue-2.0/demos/where-am-i" ]] || command_exists "geoclue"; then
+                printf "  ✅ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (Linux)"
+                ((available_features++))
+            else
+                printf "  ⚠️ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (apt install geoclue-2.0-dev)"
+                missing_optional+=("geoclue")
+            fi
+            ;;
+        *)
+            printf "  ⚠️ %-8s → %s\\n" "GPS" "GPS location not supported on this platform"
+            ;;
+    esac
     
     echo
     local percentage=$((available_features * 100 / total_features))
@@ -254,6 +279,10 @@ generate_install_commands() {
             all_missing+=("coreutils")  # Contains gtimeout on macOS
         elif [[ "$dep" == "timeout" ]]; then
             all_missing+=("coreutils")
+        elif [[ "$dep" == "CoreLocationCLI" ]]; then
+            all_missing+=("corelocationcli")  # macOS GPS tool
+        elif [[ "$dep" == "geoclue" ]]; then
+            all_missing+=("geoclue-2.0-dev")  # Linux GPS tool
         fi
     done
     
@@ -538,6 +567,7 @@ download_directory_comprehensive() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -818,6 +848,7 @@ download_lib_fallback() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
@@ -1158,7 +1189,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=31  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=32  # 🆕 UPDATE THIS COUNT when adding new modules!
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================

@@ -1876,6 +1876,14 @@ We support all major Unix-like systems with comprehensive testing and optimizati
   - Install: `brew install coreutils`
   - Provides `gtimeout` and other GNU-style commands
 
+#### GPS Location Detection (Prayer Times)
+- **CoreLocationCLI** (macOS) - High-precision GPS coordinates
+  - Install: `brew install corelocationcli`
+  - Purpose: Real-time device location for accurate prayer times
+- **geoclue2** (Linux) - System location service
+  - Install: `sudo apt install geoclue-2.0-dev` or `sudo yum install geoclue2-devel`
+  - Purpose: GPS-based location detection independent of network/VPN
+
 ### ⚙️ **Version Requirements**
 
 | Tool | Minimum Version | Recommended | Notes |
@@ -1904,6 +1912,10 @@ git --version && echo "✅ Git OK" || echo "❌ Git missing"
 # Check optional tools
 bunx --version && echo "✅ bunx OK" || echo "⚠️ bunx missing (install with: npm install -g bunx)"
 ccusage --version && echo "✅ ccusage OK" || echo "⚠️ ccusage missing (install with: npm install -g ccusage)"
+
+# Check GPS location tools
+CoreLocationCLI --version && echo "✅ CoreLocationCLI OK" || echo "⚠️ CoreLocationCLI missing (macOS: brew install corelocationcli)"
+whereis geoclue-2.0 && echo "✅ geoclue2 OK" || echo "⚠️ geoclue2 missing (Linux: sudo apt install geoclue-2.0-dev)"
 ```
 
 ## 📖 Documentation
