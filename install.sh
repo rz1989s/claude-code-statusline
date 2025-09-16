@@ -423,7 +423,8 @@ check_sudo_privileges() {
         return 0  # macOS typically uses brew without sudo
     fi
 
-    if sudo -n true 2>/dev/null; then
+    # Use timeout to prevent hanging on sudo check
+    if timeout 5 sudo -n true 2>/dev/null; then
         return 0
     else
         print_status "🔐 Some dependencies require sudo privileges for installation"
@@ -492,8 +493,12 @@ auto_install_linux() {
         case "$dep" in
             "bunx")
                 print_status "📦 Installing bun (JavaScript runtime)..."
-                curl -fsSL https://bun.sh/install | bash
-                export PATH="$HOME/.bun/bin:$PATH"
+                if timeout 60 bash -c 'curl -fsSL https://bun.sh/install | bash'; then
+                    export PATH="$HOME/.bun/bin:$PATH"
+                    print_success "✅ Bun installed successfully"
+                else
+                    print_warning "⚠️ Bun installation timed out (continuing anyway)"
+                fi
                 ;;
             "timeout")
                 linux_deps+=("coreutils")
@@ -502,38 +507,38 @@ auto_install_linux() {
         esac
     done
 
-    # Update package lists first
+    # Update package lists first with timeout
     case "$PKG_MGR" in
         "apt")
             print_status "🔄 Updating package lists..."
-            sudo apt update
+            timeout 120 sudo apt update || print_warning "⚠️ Package update timed out"
             ;;
         "yum"|"dnf")
             print_status "🔄 Updating package cache..."
-            sudo $PKG_MGR makecache
+            timeout 120 sudo $PKG_MGR makecache || print_warning "⚠️ Cache update timed out"
             ;;
     esac
 
-    # Install each dependency
+    # Install each dependency with timeout
     for dep in "${linux_deps[@]}"; do
         print_status "📦 Installing $dep..."
         case "$PKG_MGR" in
             "apt")
-                if sudo apt install -y "$dep"; then
+                if timeout 180 sudo apt install -y "$dep"; then
                     print_success "✅ Installed $dep"
                 else
                     print_warning "⚠️ Failed to install $dep (continuing anyway)"
                 fi
                 ;;
             "yum"|"dnf")
-                if sudo $PKG_MGR install -y "$dep"; then
+                if timeout 180 sudo $PKG_MGR install -y "$dep"; then
                     print_success "✅ Installed $dep"
                 else
                     print_warning "⚠️ Failed to install $dep (continuing anyway)"
                 fi
                 ;;
             "pacman")
-                if sudo pacman -S --noconfirm "$dep"; then
+                if timeout 180 sudo pacman -S --noconfirm "$dep"; then
                     print_success "✅ Installed $dep"
                 else
                     print_warning "⚠️ Failed to install $dep (continuing anyway)"
@@ -738,10 +743,14 @@ check_dependencies_with_auto_install() {
     # Ask about platform dependencies
     # Privacy-friendly: IP geolocation with manual coordinate override
 
-    # Perform auto-installation
+    # Perform auto-installation with timeout
     if [[ ${#auto_install_deps[@]} -gt 0 ]]; then
         echo
-        auto_install_dependencies "${auto_install_deps[@]}"
+        print_status "⏱️ Auto-install timeout limit: 5 minutes (to prevent hanging)"
+        timeout 300 auto_install_dependencies "${auto_install_deps[@]}" || {
+            print_warning "⚠️ Auto-install timed out after 5 minutes - continuing with available dependencies"
+            return 2
+        }
         local install_result=$?
 
         # Return appropriate status
@@ -995,12 +1004,12 @@ download_directory_with_api_fallback() {
     # Create local directory
     mkdir -p "$local_path"
     
-    # Get directory contents with optional auth
+    # Get directory contents with optional auth and timeout
     local contents
     if [[ -n "$auth_header" ]]; then
-        contents=$(eval curl -fsSL $auth_header "$api_url" 2>/dev/null)
+        contents=$(timeout 30 bash -c "curl -fsSL $auth_header \"$api_url\"" 2>/dev/null)
     else
-        contents=$(curl -fsSL "$api_url" 2>/dev/null)
+        contents=$(timeout 30 curl -fsSL "$api_url" 2>/dev/null)
     fi
     
     if [[ -z "$contents" || "$contents" == "Not Found" || "$contents" == "null" ]]; then
