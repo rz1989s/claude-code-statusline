@@ -766,7 +766,7 @@ parse_arguments() {
     SKIP_DEPS=false
     SHOW_HELP=false
     PRESERVE_STATUSLINE=false
-    AUTO_INSTALL=false
+    AUTO_INSTALL=true
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -819,24 +819,27 @@ show_help() {
     echo -e "${BLUE}Claude Code Enhanced Statusline - Installer${NC}"
     echo "============================================"
     echo
-    echo "Usage: $0 [OPTIONS]"
+    echo -e "${GREEN}✨ SIMPLE INSTALLATION - Just run this command:${NC}"
+    echo "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
     echo
-    echo "Options:"
-    echo "  --check-all-deps    Use enhanced dependency checking (shows all dependencies)"
-    echo "  --interactive       Show user choice menu for installation approach"
-    echo "  --auto-install      Automatically install missing dependencies (recommended)"
-    echo "  --minimal           Only check critical dependencies (curl, jq, git)"
-    echo "  --skip-deps         Skip all dependency checks (install anyway)"
-    echo "  --preserve-statusline  Skip settings.json configuration entirely"
+    echo -e "${GREEN}What happens automatically:${NC}"
+    echo "  • Installs all dependencies (no manual setup needed)"
+    echo "  • Backs up existing setups (restore anytime from backup folders)"
+    echo "  • Force reinstalls for clean, fresh setup"
+    echo "  • Configures Claude Code settings"
+    echo
+    echo -e "${BLUE}Advanced Options (optional):${NC}"
+    echo "  --check-all-deps    Show detailed dependency analysis"
+    echo "  --interactive       Show user choice menu"
+    echo "  --minimal           Only install critical dependencies (curl, jq, git)"
+    echo "  --skip-deps         Skip dependency checks entirely"
+    echo "  --preserve-statusline  Keep existing settings.json unchanged"
     echo "  --help, -h          Show this help message"
     echo
-    echo "Examples:"
-    echo "  $0                           # Standard installation (minimal deps)"
-    echo "  $0 --auto-install           # Auto-install all missing dependencies (recommended)"
-    echo "  $0 --auto-install --interactive  # Auto-install with interactive confirmation"
-    echo "  $0 --check-all-deps         # Show full dependency analysis"
-    echo "  $0 --interactive            # Interactive mode with user choices"
-    echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
+    echo -e "${BLUE}Examples:${NC}"
+    echo "  curl ... | bash                         # Simple installation (recommended)"
+    echo "  curl ... | bash -s -- --minimal        # Minimal dependencies only"
+    echo "  curl ... | bash -s -- --branch=dev10   # Install from dev10 branch"
     echo
     echo "Rate Limit Optimization:"
     echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"

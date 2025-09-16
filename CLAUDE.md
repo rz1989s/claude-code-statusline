@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.11.0 with privacy-friendly prayer location detection and 18-component atomic architecture
+**Current**: v2.12.0 with simplified installation (auto-install default) and 18-component atomic architecture
 **Branch Strategy**: dev6 (settings.json) → dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular system (91.5% code reduction from v1)
 **Key Features**: 5-line statusline, Islamic prayer times (IP-based + manual override), cost tracking, MCP monitoring, cache isolation
@@ -27,12 +27,12 @@ ENV_CONFIG_LINE1_COMPONENTS="repo_info,commits" ./statusline.sh
 rm -rf ~/.cache/claude-code-statusline/
 STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep "cache"
 
-# Installation with Auto-Install
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly --auto-install
+# Simple Installation (auto-install is now default)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 
 # Dependency Testing
 ./install.sh --check-all-deps          # Check dependency status
-./install.sh --auto-install --interactive  # Test auto-install with choices
+./install.sh --interactive             # Test with interactive choices
 ```
 
 ## Architecture
@@ -200,18 +200,15 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 
 **Installation Commands**:
 ```bash
-# Recommended: Auto-install all dependencies
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
-
-# Auto-install with interactive confirmation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
-
-# Production (main branch, manual dependencies)
+# Simple installation (auto-install is now default!)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
-# Platform-specific auto-install examples
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly --auto-install
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --auto-install --preserve-statusline
+# Interactive confirmation
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+
+# Platform-specific examples
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --preserve-statusline
 ```
 
 ## Prayer System Integration

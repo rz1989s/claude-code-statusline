@@ -51,13 +51,13 @@ The installer now automatically detects and installs all required dependencies o
 
 **Choose your preferred installation method:**
 
-### Option 1: Auto-Install (Recommended) 🌟
+### Option 1: Simple Installation (Recommended) 🌟
 ```bash
-# 🤖 Installs ALL dependencies automatically + statusline
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+# 🤖 Installs ALL dependencies automatically + statusline (no flags needed!)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # 🎯 Interactive mode (confirmation prompts)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install --interactive
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
 ```
 
 **📦 What gets auto-installed:**
@@ -78,8 +78,8 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 # ✓ Handles sudo transparently when needed
 less install.sh
 
-# Run with auto-install when satisfied
-bash install.sh --auto-install
+# Run when satisfied (auto-install is now default)
+bash install.sh
 ```
 
 ### Option 3: Manual Dependencies + Auto-Install
@@ -89,7 +89,7 @@ brew install jq git curl  # macOS
 # or
 sudo apt install jq git curl  # Linux
 
-# Then run installer (skips already installed deps)
+# Then run installer (auto-detects and skips already installed deps)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 ```
 
@@ -1058,7 +1058,7 @@ For users who want additional installation options, development features, or spe
 
 ### 📋 Prerequisites
 
-🤖 **Recommended**: Use `--auto-install` instead of manual setup!
+🤖 **Recommended**: Auto-install is now the default! No flags needed.
 
 For manual dependency management (not recommended for most users):
 
@@ -1066,8 +1066,8 @@ For manual dependency management (not recommended for most users):
 <summary><strong>🍎 macOS (Manual Installation)</strong></summary>
 
 ```bash
-# Auto-install is recommended instead:
-# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+# Auto-install is now the default:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Manual installation (if you insist):
 brew install jq git curl bun bc python3 coreutils corelocationcli
@@ -1078,8 +1078,8 @@ brew install jq git curl bun bc python3 coreutils corelocationcli
 <summary><strong>🐧 Linux (Manual Installation)</strong></summary>
 
 ```bash
-# Auto-install is recommended instead:
-# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+# Auto-install is now the default:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Manual installation (if you insist):
 sudo apt update && sudo apt install jq git curl bc python3 coreutils
@@ -1091,8 +1091,8 @@ curl -fsSL https://bun.sh/install | bash  # Install bun
 <summary><strong>🪟 WSL (Manual Installation)</strong></summary>
 
 ```bash
-# Auto-install is recommended instead:
-# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --auto-install
+# Auto-install is now the default:
+# curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Manual installation (if you insist):
 sudo apt update && sudo apt install jq git curl bc python3 coreutils
@@ -1851,7 +1851,7 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 
 ### ✅ **Platform Compatibility**
 
-🤖 **Auto-Install Revolution**: All dependencies are now automatically installed! Just run `--auto-install` and we handle everything.
+🤖 **Auto-Install Revolution**: All dependencies are now automatically installed! No flags needed - just run the installer!
 
 | Platform | Auto-Install Support | Package Manager | Location Detection |
 |----------|---------------------|-----------------|-------------------|
