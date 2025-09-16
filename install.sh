@@ -1016,7 +1016,8 @@ download_directory_with_api_fallback() {
         if [[ $attempt -lt $max_attempts ]]; then
             print_warning "API request failed for $repo_path, retrying in $((attempt * 2)) seconds..."
             sleep $((attempt * 2))
-            return $(download_directory_with_api_fallback "$repo_path" "$local_path" "$depth" $((attempt + 1)))
+            download_directory_with_api_fallback "$repo_path" "$local_path" "$depth" $((attempt + 1))
+            return $?
         else
             print_error "Could not fetch directory contents after $max_attempts attempts: $repo_path"
             return 1
