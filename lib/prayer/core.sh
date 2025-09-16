@@ -58,6 +58,14 @@ load_prayer_config() {
     # Prayer settings
     CONFIG_PRAYER_CALCULATION_METHOD="${ENV_CONFIG_PRAYER_CALCULATION_METHOD:-${CONFIG_PRAYER_CALCULATION_METHOD:-$DEFAULT_CALCULATION_METHOD}}"
     CONFIG_PRAYER_MADHAB="${ENV_CONFIG_PRAYER_MADHAB:-${CONFIG_PRAYER_MADHAB:-$DEFAULT_MADHAB}}"
+    # Direct Config.toml fallback when main config system fails
+    if [[ -z "${CONFIG_PRAYER_LOCATION_MODE:-}" && -f "${HOME}/.claude/statusline/Config.toml" ]]; then
+        CONFIG_PRAYER_LOCATION_MODE=$(grep "^prayer.location_mode" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null || echo "auto")
+        CONFIG_PRAYER_LATITUDE=$(grep "^prayer.latitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+        CONFIG_PRAYER_LONGITUDE=$(grep "^prayer.longitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+        debug_log "Prayer config loaded directly from Config.toml: mode=$CONFIG_PRAYER_LOCATION_MODE lat=$CONFIG_PRAYER_LATITUDE lng=$CONFIG_PRAYER_LONGITUDE" "INFO"
+    fi
+
     CONFIG_PRAYER_LOCATION_MODE="${ENV_CONFIG_PRAYER_LOCATION_MODE:-${CONFIG_PRAYER_LOCATION_MODE:-auto}}"
     CONFIG_PRAYER_LATITUDE="${ENV_CONFIG_PRAYER_LATITUDE:-${CONFIG_PRAYER_LATITUDE:-}}"
     CONFIG_PRAYER_LONGITUDE="${ENV_CONFIG_PRAYER_LONGITUDE:-${CONFIG_PRAYER_LONGITUDE:-}}"

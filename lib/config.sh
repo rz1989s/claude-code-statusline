@@ -351,6 +351,15 @@ init_default_config() {
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
 
+    # Prayer configuration defaults
+    CONFIG_PRAYER_ENABLED="true"
+    CONFIG_PRAYER_LOCATION_MODE="auto"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+    CONFIG_PRAYER_CALCULATION_METHOD=""
+    CONFIG_PRAYER_MADHAB="2"
+    CONFIG_PRAYER_TIMEZONE=""
+
     # Line configuration defaults removed in v2.8.1+ single source architecture
     # All configuration now loaded exclusively from Config.toml via auto-regeneration
     # No hardcoded defaults needed - auto_regenerate_config() ensures Config.toml always exists
