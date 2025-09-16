@@ -494,9 +494,13 @@ cache.durations.git_branches = 30
 cache.durations.git_status = 10
 cache.durations.git_current_branch = 10
 cache.durations.mcp_server_list = 120
-cache.durations.prayer_data = 3600
-cache.durations.hijri_date = 3600
-cache.durations.location_data = 604800
+
+# Prayer & Location Cache - Travel-friendly durations for Muslim travelers
+# These shorter durations detect timezone/country changes quickly for accurate prayer times
+cache.durations.prayer_data = 3600        # 1 hour - prayer times refresh for travelers
+cache.durations.hijri_date = 3600          # 1 hour - hijri date cache
+cache.durations.location_data = 1800       # 30 minutes - location detection (was 7 days)
+
 cache.durations.directory_info = 5
 cache.durations.file_operations = 2
 

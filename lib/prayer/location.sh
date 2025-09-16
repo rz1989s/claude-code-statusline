@@ -154,7 +154,8 @@ cache_location_data() {
 load_cached_location() {
     local cache_dir="${STATUSLINE_CACHE_DIR:-${HOME}/.cache/claude-code-statusline}"
     local cache_file="$cache_dir/location_auto_detect.cache"
-    local cache_ttl=604800  # 7 days in seconds
+    # Use travel-friendly cache duration (30 minutes) instead of 7 days
+    local cache_ttl="${CACHE_DURATION_PRAYER_LOCATION:-1800}"  # 30 minutes for travelers
     
     if [[ ! -f "$cache_file" ]]; then
         debug_log "No cached location data found" "INFO"
