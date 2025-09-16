@@ -446,7 +446,7 @@ auto_install_macos() {
     # Check if brew is installed
     if ! command_exists brew; then
         print_status "🔧 Homebrew not found, installing Homebrew first..."
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        timeout 180 /bin/bash -c "$(curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
         # Add Homebrew to PATH for the current session
         if [[ -f "/opt/homebrew/bin/brew" ]]; then
@@ -493,7 +493,7 @@ auto_install_linux() {
         case "$dep" in
             "bunx")
                 print_status "📦 Installing bun (JavaScript runtime)..."
-                if timeout 60 bash -c 'curl -fsSL https://bun.sh/install | bash'; then
+                if timeout 60 bash -c 'curl -fsSL --connect-timeout 10 --max-time 45 https://bun.sh/install | bash'; then
                     export PATH="$HOME/.bun/bin:$PATH"
                     print_success "✅ Bun installed successfully"
                 else
@@ -947,7 +947,7 @@ download_directory_comprehensive() {
         
         # Try downloading each file up to 3 times
         for attempt in {1..3}; do
-            if curl -fsSL "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+            if curl -fsSL --connect-timeout 10 --max-time 30 "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $module"
                 ((files_downloaded++))
                 file_downloaded=true
@@ -965,13 +965,14 @@ download_directory_comprehensive() {
     
     # Report comprehensive results
     if [[ ${#failed_files[@]} -gt 0 ]]; then
-        print_error "❌ Failed to download ${#failed_files[@]} modules:"
+        print_error "❌ DOWNLOAD FAILURE: ${#failed_files[@]} modules failed to download:"
         for failed_file in "${failed_files[@]}"; do
             print_error "  • $failed_file"
         done
+        print_error "🚫 100% download rate is MANDATORY - installation cannot continue"
         return 1
     else
-        print_success "✅ Downloaded $files_downloaded/$total_files modules (100% success, no API limits used)"
+        print_success "✅ PERFECT DOWNLOAD: $files_downloaded/$total_files modules (100% success, no API limits used)"
         return 0
     fi
 }
@@ -1044,7 +1045,7 @@ download_directory_with_api_fallback() {
         
         # Try downloading each file up to 3 times
         for file_attempt in {1..3}; do
-            if curl -fsSL "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+            if curl -fsSL --connect-timeout 10 --max-time 30 "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $repo_path/$filename"
                 ((files_downloaded++))
                 file_downloaded=true
@@ -1060,15 +1061,16 @@ download_directory_with_api_fallback() {
         fi
     done < <(echo "$contents" | jq -r '.[] | select(.type=="file") | "\(.download_url)|\(.name)|\(.type)"' 2>/dev/null)
     
-    # Report results
+    # Report results - API fallback must also achieve 100%
     if [[ ${#failed_files[@]} -gt 0 ]]; then
-        print_error "Failed to download ${#failed_files[@]} files from $repo_path:"
+        print_error "❌ API FALLBACK FAILED: ${#failed_files[@]} files from $repo_path:"
         for failed_file in "${failed_files[@]}"; do
             print_error "  • $failed_file"
         done
+        print_error "🚫 100% success rate is MANDATORY - cannot continue"
         return 1
     elif [[ $files_downloaded -gt 0 ]]; then
-        print_success "Downloaded $files_downloaded/$total_files files from $repo_path via API"
+        print_success "✅ API SUCCESS: Downloaded $files_downloaded/$total_files files from $repo_path"
     fi
     
     return 0
@@ -1083,7 +1085,7 @@ download_statusline() {
     mkdir -p "$STATUSLINE_DIR"
     
     # Download main orchestrator script
-    if curl -fsSL "$REPO_URL" -o "$STATUSLINE_PATH"; then
+    if curl -fsSL --connect-timeout 10 --max-time 30 "$REPO_URL" -o "$STATUSLINE_PATH"; then
         print_success "Downloaded main statusline.sh to $STATUSLINE_PATH"
         
         # Make executable immediately after download for zero user interaction
@@ -1113,7 +1115,7 @@ download_statusline() {
     
     # Download latest version to temp location first
     local temp_version="/tmp/statusline_version_check.txt"
-    if curl -fsSL "$version_url" -o "$temp_version"; then
+    if curl -fsSL --connect-timeout 10 --max-time 30 "$version_url" -o "$temp_version"; then
         new_version=$(cat "$temp_version" 2>/dev/null | tr -d '[:space:]')
         
         # Compare versions and update if needed
@@ -1162,18 +1164,21 @@ download_statusline() {
         fi
     fi
     
-    # Final verification that we have adequate modules
+    # Final verification that we have ALL 35 modules - 100% REQUIRED
     local final_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
-    if [[ $final_count -lt 15 ]]; then
-        print_error "🚨 CRITICAL: Only $final_count modules downloaded - installation incomplete"
-        print_error "💡 All modules are required for proper functionality"
+    local required_count=35
+    if [[ $final_count -ne $required_count ]]; then
+        print_error "🚨 INSTALLATION FAILED: Only $final_count/$required_count modules downloaded"
+        print_error "💡 100% module download is MANDATORY - no exceptions"
+        print_error "🚫 Missing $(($required_count - $final_count)) modules - installation aborted"
         print_status "🔧 Troubleshooting:"
         print_status "  1. Check internet connection to GitHub"
-        print_status "  2. Verify branch '$INSTALL_BRANCH' exists"
+        print_status "  2. Verify branch '$INSTALL_BRANCH' exists and contains all modules"
         print_status "  3. For rate limit issues, set GITHUB_TOKEN environment variable"
+        print_status "  4. Try again - all $required_count modules must download successfully"
         exit 1
     else
-        print_success "🎉 Module download complete: $final_count modules ready (100% functionality guaranteed)"
+        print_success "🎉 PERFECT DOWNLOAD: $final_count/$required_count modules (100% complete - no compromises)"
     fi
 }
 
@@ -1233,7 +1238,7 @@ download_lib_fallback() {
         
         # Try downloading each module up to 3 times
         for attempt in {1..3}; do
-            if curl -fsSL "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
+            if curl -fsSL --connect-timeout 10 --max-time 30 "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
                 print_status "✓ Downloaded $module"
                 ((successful_downloads++))
                 module_downloaded=true
@@ -1256,22 +1261,23 @@ download_lib_fallback() {
     print_status "  • Success rate: $(( successful_downloads * 100 / total_modules ))%"
     
     if [[ ${#failed_modules[@]} -gt 0 ]]; then
-        print_error "❌ FALLBACK FAILED: Could not download ${#failed_modules[@]} modules:"
+        print_error "❌ TOTAL FAILURE: Could not download ${#failed_modules[@]} modules:"
         for failed_module in "${failed_modules[@]}"; do
             print_error "  • $failed_module"
         done
         echo
-        print_error "🚨 Installation cannot continue with incomplete module set"
-        print_error "💡 All modules are critical for proper functionality"
+        print_error "🚫 INSTALLATION TERMINATED: 100% download rate is NON-NEGOTIABLE"
+        print_error "💡 ALL $total_modules modules are MANDATORY for functionality"
         print_status "🔧 Troubleshooting steps:"
         print_status "  1. Check your internet connection"
         print_status "  2. Verify GitHub.com is accessible"
         print_status "  3. Try again in a few minutes"
         print_status "  4. If issue persists, check if branch '$INSTALL_BRANCH' exists"
+        print_status "  5. Consider using GITHUB_TOKEN for enhanced rate limits"
         exit 1
     else
-        print_success "🎉 FALLBACK SUCCESS: All $total_modules modules downloaded (100% complete)"
-        print_status "💡 Comprehensive fallback ensured full functionality"
+        print_success "🎉 PERFECT FALLBACK: All $total_modules modules downloaded (100% complete)"
+        print_status "💡 Comprehensive fallback achieved mandatory 100% success rate"
         return 0
     fi
 }
@@ -1306,7 +1312,7 @@ download_examples() {
         local config_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/$config"
         local config_path="$EXAMPLES_DIR/$config"
         
-        if curl -fsSL "$config_url" -o "$config_path"; then
+        if curl -fsSL --connect-timeout 10 --max-time 30 "$config_url" -o "$config_path"; then
             print_status "  ✓ Downloaded $config (reference template)"
             ((successful_downloads++))
         else
@@ -1321,7 +1327,7 @@ download_examples() {
     local readme_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/README.md"
     local readme_path="$EXAMPLES_DIR/README.md"
     
-    if curl -fsSL "$readme_url" -o "$readme_path"; then
+    if curl -fsSL --connect-timeout 10 --max-time 30 "$readme_url" -o "$readme_path"; then
         print_status "  ✓ Downloaded examples/README.md"
         ((successful_downloads++))
     else
@@ -1528,7 +1534,7 @@ download_config_template() {
     local config_template_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/examples/Config.toml"
     print_status "🔧 Downloading comprehensive Config.toml template..."
     
-    if curl -fsSL "$config_template_url" -o "$CONFIG_PATH"; then
+    if curl -fsSL --connect-timeout 10 --max-time 30 "$config_template_url" -o "$CONFIG_PATH"; then
         # Verify the downloaded file is valid
         if [[ -f "$CONFIG_PATH" ]] && [[ -s "$CONFIG_PATH" ]]; then
             local line_count=$(wc -l < "$CONFIG_PATH" 2>/dev/null || echo "0")
@@ -1584,7 +1590,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=32  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=35  # 🆕 UPDATE THIS COUNT when adding new modules!
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================
@@ -1638,16 +1644,13 @@ verify_installation() {
         if [[ ${#missing_critical_modules[@]} -gt 0 ]]; then
             print_error "❌ Missing essential modules: ${missing_critical_modules[*]}"
             return 1
-        elif [[ $total_modules -lt 15 ]]; then
-            print_error "❌ Insufficient modules: $total_modules found (expected ≥15 for full functionality)"
-            print_error "💡 This indicates an incomplete installation"
+        elif [[ $total_modules -ne $expected_modules ]]; then
+            print_error "❌ INCOMPLETE INSTALLATION: $total_modules modules found (expected exactly $expected_modules)"
+            print_error "💡 100% module download is REQUIRED - no negotiable"
+            print_error "🚨 Installation FAILED - missing $(($expected_modules - $total_modules)) modules"
             return 1
-        elif [[ $total_modules -lt $expected_modules ]]; then
-            print_warning "⚠️ Module count below optimal: $total_modules found (expected ~$expected_modules)"
-            print_warning "💡 Some advanced features may be unavailable"
-            print_success "✅ Core functionality verified ($total_modules modules)"
         else
-            print_success "✅ Complete installation verified: $total_modules modules (100% functionality)"
+            print_success "✅ PERFECT INSTALLATION: $total_modules modules (100% functionality guaranteed)"
         fi
     else
         print_error "❌ lib directory is missing - critical installation failure"
