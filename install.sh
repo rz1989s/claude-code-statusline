@@ -945,15 +945,46 @@ download_directory_comprehensive() {
         local file_path="$local_path/$module"
         local file_downloaded=false
         
-        # Try downloading each file up to 3 times
+        # Smart timeout strategy based on download position and attempts
         for attempt in {1..3}; do
-            if curl -fsSL --connect-timeout 10 --max-time 30 "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
-                print_status "  ✓ Downloaded $module"
+            local position=$((files_downloaded + 1))
+            local connect_timeout=10
+            local max_timeout=30
+            local retry_delay=1
+
+            # Position-based timeout increases for problematic late downloads
+            if [[ $position -gt 30 ]]; then
+                # Last 5 files: generous timeouts
+                connect_timeout=20
+                max_timeout=90
+                retry_delay=3
+            elif [[ $position -gt 25 ]]; then
+                # Files 26-30: moderate increase
+                connect_timeout=15
+                max_timeout=60
+                retry_delay=2
+            elif [[ $position -gt 15 ]]; then
+                # Files 16-25: slight increase
+                connect_timeout=12
+                max_timeout=45
+            fi
+
+            # Progressive timeout increase on retries
+            if [[ $attempt -gt 1 ]]; then
+                max_timeout=$((max_timeout + attempt * 15))  # +15s, +30s on retries
+                connect_timeout=$((connect_timeout + attempt * 5))  # +5s, +10s on retries
+            fi
+
+            if curl -fsSL --connect-timeout $connect_timeout --max-time $max_timeout "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+                print_status "  ✓ Downloaded $module (position $position, attempt $attempt, ${max_timeout}s timeout)"
                 ((files_downloaded++))
                 file_downloaded=true
                 break
             else
-                [[ $attempt -lt 3 ]] && sleep 1
+                if [[ $attempt -lt 3 ]]; then
+                    print_status "  ⚠ Retry $attempt failed for $module (position $position), waiting ${retry_delay}s..."
+                    sleep $retry_delay
+                fi
             fi
         done
         
@@ -1043,15 +1074,46 @@ download_directory_with_api_fallback() {
         local file_path="$local_path/$filename"
         local file_downloaded=false
         
-        # Try downloading each file up to 3 times
+        # Smart timeout strategy for API fallback downloads
         for file_attempt in {1..3}; do
-            if curl -fsSL --connect-timeout 10 --max-time 30 "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
-                print_status "  ✓ Downloaded $repo_path/$filename"
+            local position=$((files_downloaded + 1))
+            local connect_timeout=10
+            local max_timeout=30
+            local retry_delay=1
+
+            # Position-based timeout increases for problematic late downloads
+            if [[ $position -gt 30 ]]; then
+                # Last 5 files: generous timeouts
+                connect_timeout=20
+                max_timeout=90
+                retry_delay=3
+            elif [[ $position -gt 25 ]]; then
+                # Files 26-30: moderate increase
+                connect_timeout=15
+                max_timeout=60
+                retry_delay=2
+            elif [[ $position -gt 15 ]]; then
+                # Files 16-25: slight increase
+                connect_timeout=12
+                max_timeout=45
+            fi
+
+            # Progressive timeout increase on retries
+            if [[ $file_attempt -gt 1 ]]; then
+                max_timeout=$((max_timeout + file_attempt * 15))  # +15s, +30s on retries
+                connect_timeout=$((connect_timeout + file_attempt * 5))  # +5s, +10s on retries
+            fi
+
+            if curl -fsSL --connect-timeout $connect_timeout --max-time $max_timeout "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
+                print_status "  ✓ Downloaded $repo_path/$filename (API, position $position, attempt $file_attempt, ${max_timeout}s timeout)"
                 ((files_downloaded++))
                 file_downloaded=true
                 break
             else
-                [[ $file_attempt -lt 3 ]] && sleep 1
+                if [[ $file_attempt -lt 3 ]]; then
+                    print_status "  ⚠ API retry $file_attempt failed for $filename (position $position), waiting ${retry_delay}s..."
+                    sleep $retry_delay
+                fi
             fi
         done
         
@@ -1236,15 +1298,46 @@ download_lib_fallback() {
         local module_path="$LIB_DIR/$module"
         local module_downloaded=false
         
-        # Try downloading each module up to 3 times
+        # Smart timeout strategy for fallback downloads (same as main method)
         for attempt in {1..3}; do
-            if curl -fsSL --connect-timeout 10 --max-time 30 "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
-                print_status "✓ Downloaded $module"
+            local position=$((successful_downloads + 1))
+            local connect_timeout=10
+            local max_timeout=30
+            local retry_delay=1
+
+            # Position-based timeout increases for problematic late downloads
+            if [[ $position -gt 30 ]]; then
+                # Last 5 files: generous timeouts
+                connect_timeout=20
+                max_timeout=90
+                retry_delay=3
+            elif [[ $position -gt 25 ]]; then
+                # Files 26-30: moderate increase
+                connect_timeout=15
+                max_timeout=60
+                retry_delay=2
+            elif [[ $position -gt 15 ]]; then
+                # Files 16-25: slight increase
+                connect_timeout=12
+                max_timeout=45
+            fi
+
+            # Progressive timeout increase on retries
+            if [[ $attempt -gt 1 ]]; then
+                max_timeout=$((max_timeout + attempt * 15))  # +15s, +30s on retries
+                connect_timeout=$((connect_timeout + attempt * 5))  # +5s, +10s on retries
+            fi
+
+            if curl -fsSL --connect-timeout $connect_timeout --max-time $max_timeout "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
+                print_status "✓ Downloaded $module (fallback, position $position, attempt $attempt, ${max_timeout}s timeout)"
                 ((successful_downloads++))
                 module_downloaded=true
                 break
             else
-                [[ $attempt -lt 3 ]] && sleep 1
+                if [[ $attempt -lt 3 ]]; then
+                    print_status "  ⚠ Fallback retry $attempt failed for $module (position $position), waiting ${retry_delay}s..."
+                    sleep $retry_delay
+                fi
             fi
         done
         
