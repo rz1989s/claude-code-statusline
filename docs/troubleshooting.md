@@ -106,6 +106,9 @@ bash -n ~/.claude/lib/config.sh
 
 # Enable debug mode to see detailed loading errors
 STATUSLINE_DEBUG_MODE=true ~/.claude/statusline.sh --modules
+
+# Or use the new installation debug mode for install issues
+STATUSLINE_INSTALL_DEBUG=true ./install.sh --debug
 ```
 
 **Solutions**:
@@ -137,6 +140,50 @@ chmod +x ~/.claude/statusline.sh
 
 # Download all modules (see above module reinstallation commands)
 ```
+
+---
+
+## 🚨 Installation Hanging Issues
+
+### Installation Script Hangs During First Run
+
+**Problem**: Installation script hangs when an existing statusline directory and cache are present.
+
+**Symptoms**:
+- First installation attempt freezes after backup creation
+- Process appears stuck during cache cleanup or directory removal
+- Second installation run works normally after manual termination
+
+**Solution**:
+Use the new debug mode to trace installation flow:
+
+```bash
+# Enable debug mode for detailed installation tracing
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+
+# Or via environment variable
+STATUSLINE_INSTALL_DEBUG=true curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
+```
+
+**Manual Recovery** (if installation is stuck):
+```bash
+# 1. Kill any hanging processes
+pkill -f "install.sh"
+pkill -f "statusline.sh"
+
+# 2. Clean up manually
+rm -rf ~/.cache/claude-code-statusline/
+rm -rf ~/.local/share/claude-code-statusline/
+
+# 3. Retry with debug mode
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+```
+
+**Technical Details**: v2.11.1 fixes this issue by:
+- Reordering cache cleanup to occur before directory backup
+- Adding process termination safety checks
+- Implementing timeout protection for directory removal operations
+- Enhanced debugging with execution flow tracing
 
 ---
 

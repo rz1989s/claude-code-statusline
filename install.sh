@@ -35,21 +35,54 @@ EXAMPLES_DIR="$STATUSLINE_DIR/examples"
 CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
-# Function to print colored output
+# Debug mode flag (can be set via environment)
+DEBUG_MODE="${STATUSLINE_INSTALL_DEBUG:-false}"
+
+# Function to print colored output with enhanced debugging
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${BLUE}[INFO]${NC} ${timestamp}$1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${GREEN}[SUCCESS]${NC} ${timestamp}$1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${YELLOW}[WARNING]${NC} ${timestamp}$1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${RED}[ERROR]${NC} ${timestamp}$1"
+}
+
+# Debug-only output function
+print_debug() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        echo -e "${YELLOW}[DEBUG]${NC} $(date '+%H:%M:%S') $1"
+    fi
+}
+
+# Function to trace execution flow
+trace_execution() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        print_debug "🔍 Executing: $1"
+    fi
 }
 
 # Function to check if command exists
@@ -456,6 +489,10 @@ parse_arguments() {
                 PRESERVE_STATUSLINE=true
                 shift
                 ;;
+            --debug)
+                DEBUG_MODE=true
+                shift
+                ;;
             --help|-h)
                 SHOW_HELP=true
                 shift
@@ -481,6 +518,7 @@ show_help() {
     echo "  --minimal           Only check critical dependencies (curl, jq)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
     echo "  --preserve-statusline  Skip settings.json configuration entirely"
+    echo "  --debug             Enable detailed debug logging with timestamps"
     echo "  --help, -h          Show this help message"
     echo
     echo "Examples:"
@@ -489,6 +527,11 @@ show_help() {
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
     echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
+    echo "  $0 --debug                  # Enable debug logging to trace installation flow"
+    echo ""
+    echo "Debug Mode:"
+    echo "  STATUSLINE_INSTALL_DEBUG=true $0    # Enable debug via environment variable"
+    echo "  $0 --debug --interactive           # Debug mode with interactive choices"
     echo
     echo "Rate Limit Optimization:"
     echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"
@@ -1101,8 +1144,99 @@ EOF
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
+# Function to safely remove directory with timeout protection
+safe_remove_directory() {
+    trace_execution "safe_remove_directory $1"
+    local dir_path="$1"
+    local timeout_seconds="${2:-30}"  # Default 30 seconds timeout
+
+    if [[ ! -d "$dir_path" ]]; then
+        print_debug "Directory doesn't exist: $dir_path"
+        print_status "✓ Directory doesn't exist: $dir_path"
+        return 0
+    fi
+
+    print_debug "Starting directory removal with ${timeout_seconds}s timeout: $dir_path"
+    print_status "🗑️ Removing directory with timeout protection: $dir_path"
+
+    # Detect available timeout command (prefer gtimeout on macOS)
+    local timeout_cmd=""
+    if command_exists "gtimeout"; then
+        timeout_cmd="gtimeout"
+    elif command_exists "timeout"; then
+        timeout_cmd="timeout"
+    fi
+
+    # Remove directory with optional timeout protection
+    if [[ -n "$timeout_cmd" ]]; then
+        if $timeout_cmd "${timeout_seconds}s" rm -rf "$dir_path" 2>/dev/null; then
+            print_success "✅ Directory removed successfully: $dir_path"
+            return 0
+        else
+            local exit_code=$?
+            if [[ $exit_code -eq 124 ]]; then
+                print_error "❌ Directory removal timed out after ${timeout_seconds}s: $dir_path"
+            else
+                print_error "❌ Failed to remove directory: $dir_path (exit code: $exit_code)"
+            fi
+            return 1
+        fi
+    else
+        # Fallback to direct rm without timeout protection
+        print_warning "⚠️ No timeout command available, using direct rm"
+        if rm -rf "$dir_path" 2>/dev/null; then
+            print_success "✅ Directory removed successfully: $dir_path"
+            return 0
+        else
+            print_error "❌ Failed to remove directory: $dir_path"
+            return 1
+        fi
+    fi
+}
+
+# Function to safely terminate any running statusline processes
+terminate_statusline_processes() {
+    trace_execution "terminate_statusline_processes"
+    print_status "🔍 Checking for running statusline processes..."
+
+    # Find statusline processes (excluding grep itself)
+    local statusline_pids=$(pgrep -f "statusline.sh" 2>/dev/null | grep -v $$ || true)
+
+    if [[ -n "$statusline_pids" ]]; then
+        print_status "⚠️ Found running statusline processes: $(echo $statusline_pids | tr '\n' ' ')"
+
+        # Send TERM signal first for graceful shutdown
+        for pid in $statusline_pids; do
+            if kill -0 "$pid" 2>/dev/null; then
+                print_status "  📤 Sending TERM signal to process $pid"
+                kill -TERM "$pid" 2>/dev/null || true
+            fi
+        done
+
+        # Wait briefly for graceful shutdown
+        sleep 2
+
+        # Check if any processes are still running and force kill if needed
+        local remaining_pids=$(pgrep -f "statusline.sh" 2>/dev/null | grep -v $$ || true)
+        if [[ -n "$remaining_pids" ]]; then
+            print_warning "🔨 Force killing remaining statusline processes: $(echo $remaining_pids | tr '\n' ' ')"
+            for pid in $remaining_pids; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill -KILL "$pid" 2>/dev/null || true
+                fi
+            done
+            sleep 1
+        fi
+
+        print_success "✅ All statusline processes terminated"
+    else
+        print_status "✓ No running statusline processes found"
+    fi
+}
+
 # Simplified backup function - backup entire statusline folder if exists
 backup_existing_installation() {
+    trace_execution "backup_existing_installation"
     if [ -d "$STATUSLINE_DIR" ]; then
         local backup_path="${STATUSLINE_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "🔄 Existing statusline installation found, creating backup..."
@@ -1110,11 +1244,19 @@ backup_existing_installation() {
         if cp -r "$STATUSLINE_DIR" "$backup_path"; then
             print_success "✅ Backup created: $backup_path"
             print_status "💡 Your entire statusline configuration has been preserved"
-            
-            # Remove old installation after successful backup
-            rm -rf "$STATUSLINE_DIR"
-            print_status "🧹 Removed old installation for clean install"
-            return 0
+
+            # Terminate any running statusline processes before removal
+            terminate_statusline_processes
+
+            # Remove old installation after successful backup with timeout protection
+            if safe_remove_directory "$STATUSLINE_DIR" 30; then
+                print_status "🧹 Removed old installation for clean install"
+                return 0
+            else
+                print_error "❌ Failed to remove old installation - continuing anyway"
+                print_warning "💡 You may need to manually remove: $STATUSLINE_DIR"
+                return 0  # Continue installation even if removal fails
+            fi
         else
             print_error "❌ Failed to create backup - installation aborted"
             exit 1
@@ -1127,6 +1269,7 @@ backup_existing_installation() {
 
 # Function to clean cache directories for fresh installation
 clean_cache_directories() {
+    trace_execution "clean_cache_directories"
     print_status "🧹 Cleaning cache directories for fresh installation..."
 
     # Cache directories to clean (both primary and fallback locations)
@@ -1140,7 +1283,7 @@ clean_cache_directories() {
     for cache_dir in "${cache_dirs[@]}"; do
         if [ -d "$cache_dir" ]; then
             print_status "  🗑️ Removing old cache: $cache_dir"
-            if rm -rf "$cache_dir"; then
+            if safe_remove_directory "$cache_dir" 15; then
                 print_success "  ✅ Cache cleared: $cache_dir"
                 ((cleaned_count++))
             else
@@ -1473,14 +1616,33 @@ main() {
         echo
     fi
     
+    trace_execution "main installation flow"
+
+    print_debug "Step 1: Creating Claude directory"
     create_claude_directory
+
+    print_debug "Step 2: Cleaning cache directories (before backup)"
+    clean_cache_directories  # Clear cache BEFORE backup and removal to prevent hangs
+
+    print_debug "Step 3: Backing up existing installation"
     backup_existing_installation || true  # Don't fail if no existing installation
-    clean_cache_directories  # Clear cache for fresh installation with correct format
+
+    print_debug "Step 4: Downloading statusline"
     download_statusline
+
+    print_debug "Step 5: Downloading examples"
     download_examples  # Download all example configurations
+
+    print_debug "Step 6: Checking bash compatibility"
     check_bash_compatibility
+
+    print_debug "Step 7: Making executable"
     make_executable
+
+    print_debug "Step 8: Configuring settings"
     configure_settings
+
+    print_debug "Step 9: Downloading config template"
     download_config_template  # Fail installation if config template download fails
     
     echo

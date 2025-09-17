@@ -46,6 +46,9 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 
 # Preserve existing settings.json (skip Claude Code configuration)
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+
+# Debug mode - detailed installation tracing (troubleshooting)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 ```
 
 ### Development Branch Installation
@@ -592,6 +595,31 @@ brew install coreutils
 1. Check terminal color support: `echo $TERM`
 2. Try different theme: Edit `CONFIG_THEME="classic"` in script
 3. Use ANSI colors: Set `CONFIG_THEME="custom"` and modify color variables
+
+#### Installation Script Hangs During First Run
+
+**Problem**: Installation hangs when existing statusline directory and cache are present.
+
+**Solution**:
+```bash
+# Use debug mode to trace installation flow (v2.11.1+)
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+
+# Or enable via environment variable
+STATUSLINE_INSTALL_DEBUG=true curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
+```
+
+**Manual Recovery**:
+```bash
+# 1. Kill hanging processes
+pkill -f "install.sh" && pkill -f "statusline.sh"
+
+# 2. Clean up and retry
+rm -rf ~/.cache/claude-code-statusline/ ~/.local/share/claude-code-statusline/
+curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+```
+
+See [🐛 Troubleshooting Guide](troubleshooting.md#installation-hanging-issues) for complete details.
 
 #### Script hangs or is slow
 **Solutions**:
