@@ -927,7 +927,8 @@ download_directory_comprehensive() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
-        "components/location_display.sh"
+        "components/location/display.sh" "components/location/database.sh"
+        "components/location/detector.sh" "components/location/fallback.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -1226,9 +1227,9 @@ download_statusline() {
         fi
     fi
     
-    # Final verification that we have ALL 35 modules - 100% REQUIRED
+    # Final verification that we have ALL 39 modules - 100% REQUIRED
     local final_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
-    local required_count=35
+    local required_count=39
     if [[ $final_count -ne $required_count ]]; then
         print_error "🚨 INSTALLATION FAILED: Only $final_count/$required_count modules downloaded"
         print_error "💡 100% module download is MANDATORY - no exceptions"
@@ -1267,7 +1268,7 @@ download_lib_fallback() {
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
     
-    # Component modules (lib/components/) - all 18 components
+    # Component modules (lib/components/) - all 21 components (19 direct + 4 location modules)
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -1276,7 +1277,8 @@ download_lib_fallback() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
-        "components/location_display.sh"
+        "components/location/display.sh" "components/location/database.sh"
+        "components/location/detector.sh" "components/location/fallback.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
@@ -1291,6 +1293,7 @@ download_lib_fallback() {
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/components"
+    mkdir -p "$LIB_DIR/components/location"
     
     # Download each module with retry mechanism
     for module in "${all_modules[@]}"; do
@@ -1683,7 +1686,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=35  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=39  # 🆕 UPDATE THIS COUNT when adding new modules!
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================

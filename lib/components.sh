@@ -289,19 +289,20 @@ load_component_modules() {
     debug_log "Loading component modules from: $components_dir" "INFO"
     local loaded_count=0
     
-    # Load all .sh files in components directory
-    for component_file in "$components_dir"/*.sh; do
+    # Load all .sh files in components directory and subdirectories
+    for component_file in "$components_dir"/*.sh "$components_dir"/*/*.sh; do
         if [[ -f "$component_file" ]]; then
             local component_basename
             component_basename=$(basename "$component_file" .sh)
-            
-            debug_log "Loading component module: $component_basename" "INFO"
-            
+            local relative_path="${component_file#$components_dir/}"
+
+            debug_log "Loading component module: $relative_path" "INFO"
+
             if source "$component_file"; then
                 ((loaded_count++))
                 debug_log "Successfully loaded component: $component_basename" "INFO"
             else
-                handle_warning "Failed to load component: $component_basename" "load_component_modules"
+                handle_warning "Failed to load component: $relative_path" "load_component_modules"
             fi
         fi
     done
