@@ -28,7 +28,7 @@ rm -rf ~/.cache/claude-code-statusline/
 STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep "cache"
 
 # Installation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh)" -- --branch=nightly
 ```
 
 ## Architecture
@@ -69,7 +69,7 @@ bats tests/integration/test_*.bats    # Integration tests (6 files)
 bats tests/benchmarks/test_*.bats     # Performance tests (2 files)
 
 # Installation Testing
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 ```
 
 ## Configuration
@@ -193,13 +193,13 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 **Installation Commands**:
 ```bash
 # Production (main branch)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 
 # Nightly (experimental)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh)" -- --branch=nightly
 
 # Development (dev6 with settings.json enhancements)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 ```
 
 ## Prayer System Integration

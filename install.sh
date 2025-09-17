@@ -389,7 +389,7 @@ generate_install_commands() {
                 echo "brew install bun python3 bc jq coreutils"
                 echo
                 echo "Step 3: Re-run statusline installer"
-                echo "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
+                echo "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
             else
                 echo "⚠️ Manual installation required"
                 echo
@@ -433,7 +433,7 @@ show_user_choice_menu() {
                 generate_install_commands
                 echo
                 print_status "Copy the commands above, then re-run this installer:"
-                print_status "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
+                print_status "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
                 exit 0
                 ;;
             3)

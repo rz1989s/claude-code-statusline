@@ -33,38 +33,38 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 ```bash
 # Standard installation (backward compatible)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 
 # Enhanced mode - comprehensive dependency analysis
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps
 
 # Interactive mode - user choice menu
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --interactive
 
 # Full experience - analysis + choices
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps --interactive
 
 # Preserve existing settings.json (skip Claude Code configuration)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --preserve-statusline
 
 # Debug mode - detailed installation tracing (troubleshooting)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev --debug
 ```
 
 ### Development Branch Installation
 
 ```bash
 # 🚀 DEV6 (Current Development - Enhanced Settings.json Management)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
 
 # Dev6 with existing settings.json preservation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 
 # 🌙 NIGHTLY (Experimental - Advanced Users Only)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh)" -- --branch=nightly
 
 # 🛠️ DEV (Stable Development)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev
 ```
 
 ### Enhanced Settings.json Management (Dev6)
@@ -83,10 +83,10 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/
 
 ```bash
 # Install with settings.json preservation (new in dev6)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 
 # Standard dev6 installation with settings.json backup and configuration
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
 ```
 
 ### Download & Inspect First
@@ -603,10 +603,10 @@ brew install coreutils
 **Solution**:
 ```bash
 # Use debug mode to trace installation flow (v2.11.1+)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev --debug
 
 # Or enable via environment variable
-STATUSLINE_INSTALL_DEBUG=true curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
+STATUSLINE_INSTALL_DEBUG=true sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)"
 ```
 
 **Manual Recovery**:
@@ -616,7 +616,7 @@ pkill -f "install.sh" && pkill -f "statusline.sh"
 
 # 2. Clean up and retry
 rm -rf ~/.cache/claude-code-statusline/ ~/.local/share/claude-code-statusline/
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev --debug
 ```
 
 See [🐛 Troubleshooting Guide](troubleshooting.md#installation-hanging-issues) for complete details.

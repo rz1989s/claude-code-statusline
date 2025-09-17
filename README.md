@@ -72,7 +72,7 @@ bash install.sh
 ### Option 1b: One-Line Install (Trust the Repo)
 ```bash
 # Direct install without inspection (for trusted users)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 ```
 
 ### Option 2: Manual Install (No script required)
@@ -85,7 +85,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/examples/Config.toml -o ~/.claude/statusline/Config.toml
 
 # 3. Download library modules (automated)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --modules-only
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --modules-only
 
 # 4. Make executable and test
 chmod +x ~/.claude/statusline/statusline.sh
@@ -1092,17 +1092,17 @@ Our breakthrough v2.9.0 installer **eliminates GitHub rate limits forever** with
 ##### 🎯 **Choose Your Experience Level:**
 ```bash
 # 📦 PRODUCTION (Recommended for Most Users)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 
 # 🛠️ DEVELOPMENT (Stable Development Features)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev
 
 # 🚀 DEV6 (Current Development - Settings.json Enhancement)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 
 # 🌙 NIGHTLY (⚠️ Experimental - Advanced Users Only)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh)" -- --branch=nightly
 ```
 
 **🔍 Branch Descriptions:**
@@ -1116,16 +1116,16 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nigh
 ##### 🚀 **Enhanced Installation Options:**
 ```bash
 # Enhanced dependency analysis
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps
 
 # Interactive installation menu
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --interactive
 
 # Full analysis with user menu
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps --interactive
 
 # Skip settings.json configuration (dev6 feature)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
 ```
 
 <details>
@@ -1460,7 +1460,7 @@ Transform your statusline with the **revolutionary single source configuration s
 
 ```bash
 # 1. Install (creates comprehensive Config.toml automatically)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 
 # 2. Edit your comprehensive Config.toml (ALL 227 settings included!)
 nano ~/.claude/statusline/Config.toml
