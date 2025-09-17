@@ -287,7 +287,15 @@ get_local_system_coordinates() {
             debug_log "Detected macOS, trying CoreLocationCLI..." "INFO"
             if command_exists CoreLocationCLI; then
                 local result
-                if result=$(timeout 10 CoreLocationCLI --format "%latitude %longitude" 2>/dev/null); then
+                # Use platform-appropriate timeout command
+                local timeout_cmd=""
+                if command_exists "gtimeout"; then
+                    timeout_cmd="gtimeout"
+                elif command_exists "timeout"; then
+                    timeout_cmd="timeout"
+                fi
+
+                if [[ -n "$timeout_cmd" ]] && result=$($timeout_cmd 10 CoreLocationCLI --format "%latitude %longitude" 2>/dev/null); then
                     if [[ "$result" =~ ^-?[0-9]+\.[0-9]+\ -?[0-9]+\.[0-9]+$ ]]; then
                         coordinates="$result"
                         coordinates="${coordinates// /,}"  # Replace space with comma
@@ -304,9 +312,18 @@ get_local_system_coordinates() {
             ;;
         "Linux")   # Linux
             debug_log "Detected Linux, trying geoclue2..." "INFO"
+
+            # Use platform-appropriate timeout command
+            local timeout_cmd=""
+            if command_exists "timeout"; then
+                timeout_cmd="timeout"
+            elif command_exists "gtimeout"; then
+                timeout_cmd="gtimeout"
+            fi
+
             if [[ -x "/usr/lib/geoclue-2.0/demos/where-am-i" ]]; then
                 local result
-                if result=$(timeout 15 /usr/lib/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
+                if [[ -n "$timeout_cmd" ]] && result=$($timeout_cmd 15 /usr/lib/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
                     local latitude=$(echo "$result" | grep "Latitude:" | awk '{print $2}' | sed 's/°//')
                     local longitude=$(echo "$result" | grep "Longitude:" | awk '{print $2}' | sed 's/°//')
 
@@ -322,7 +339,7 @@ get_local_system_coordinates() {
             elif [[ -x "/usr/libexec/geoclue-2.0/demos/where-am-i" ]]; then
                 # Alternative path for some distributions
                 local result
-                if result=$(timeout 15 /usr/libexec/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
+                if [[ -n "$timeout_cmd" ]] && result=$($timeout_cmd 15 /usr/libexec/geoclue-2.0/demos/where-am-i 2>/dev/null | head -10); then
                     local latitude=$(echo "$result" | grep "Latitude:" | awk '{print $2}' | sed 's/°//')
                     local longitude=$(echo "$result" | grep "Longitude:" | awk '{print $2}' | sed 's/°//')
 
