@@ -1479,7 +1479,7 @@ verify_installation() {
         if [ -d "$LIB_DIR/components" ]; then
             component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Component modules: $component_count files"
-            [[ $component_count -lt 20 ]] && print_warning "    Expected 20 component modules"
+            [[ $component_count -lt 19 ]] && print_warning "    Expected 19 component modules"
         else
             print_warning "  • Components directory missing"
         fi
