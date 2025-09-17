@@ -193,7 +193,7 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 **Installation Commands**:
 ```bash
 # Production (main branch)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Nightly (experimental)
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly

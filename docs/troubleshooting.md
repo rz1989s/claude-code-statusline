@@ -162,7 +162,7 @@ Use the new debug mode to trace installation flow:
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 
 # Or via environment variable
-STATUSLINE_INSTALL_DEBUG=true sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)"
+STATUSLINE_INSTALL_DEBUG=true curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
 ```
 
 **Manual Recovery** (if installation is stuck):

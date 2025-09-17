@@ -1144,11 +1144,11 @@ EOF
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
 }
 
-# Function to safely remove directory with timeout protection
+# Function to safely remove directory with robust timeout and fallback protection
 safe_remove_directory() {
     trace_execution "safe_remove_directory $1"
     local dir_path="$1"
-    local timeout_seconds="${2:-30}"  # Default 30 seconds timeout
+    local timeout_seconds="${2:-10}"  # Reduced from 30s to 10s for faster failure
 
     if [[ ! -d "$dir_path" ]]; then
         print_debug "Directory doesn't exist: $dir_path"
@@ -1156,10 +1156,13 @@ safe_remove_directory() {
         return 0
     fi
 
-    print_debug "Starting directory removal with ${timeout_seconds}s timeout: $dir_path"
-    print_status "🗑️ Removing directory with timeout protection: $dir_path"
+    print_debug "Starting robust directory removal with ${timeout_seconds}s timeout: $dir_path"
+    print_status "🗑️ Removing directory with enhanced protection: $dir_path"
 
-    # Detect available timeout command (prefer gtimeout on macOS)
+    # Step 1: Try to make directory writable first
+    chmod -R u+w "$dir_path" 2>/dev/null || true
+
+    # Step 2: Use timeout command if available (with shorter timeout)
     local timeout_cmd=""
     if command_exists "gtimeout"; then
         timeout_cmd="gtimeout"
@@ -1167,31 +1170,53 @@ safe_remove_directory() {
         timeout_cmd="timeout"
     fi
 
-    # Remove directory with optional timeout protection
+    # Step 3: Enhanced removal with multiple fallback strategies
     if [[ -n "$timeout_cmd" ]]; then
+        print_debug "Attempting removal with $timeout_cmd (${timeout_seconds}s timeout)"
         if $timeout_cmd "${timeout_seconds}s" rm -rf "$dir_path" 2>/dev/null; then
             print_success "✅ Directory removed successfully: $dir_path"
             return 0
         else
             local exit_code=$?
             if [[ $exit_code -eq 124 ]]; then
-                print_error "❌ Directory removal timed out after ${timeout_seconds}s: $dir_path"
+                print_warning "⚠️ Timeout removal timed out, trying fallback methods"
             else
-                print_error "❌ Failed to remove directory: $dir_path (exit code: $exit_code)"
+                print_warning "⚠️ Timeout removal failed (exit: $exit_code), trying fallback methods"
             fi
-            return 1
-        fi
-    else
-        # Fallback to direct rm without timeout protection
-        print_warning "⚠️ No timeout command available, using direct rm"
-        if rm -rf "$dir_path" 2>/dev/null; then
-            print_success "✅ Directory removed successfully: $dir_path"
-            return 0
-        else
-            print_error "❌ Failed to remove directory: $dir_path"
-            return 1
         fi
     fi
+
+    # Step 4: Fallback strategy - try direct removal
+    print_debug "Fallback: Attempting direct rm removal"
+    if rm -rf "$dir_path" 2>/dev/null; then
+        print_success "✅ Directory removed successfully via fallback: $dir_path"
+        return 0
+    fi
+
+    # Step 5: Emergency fallback - move to temp location instead of removing
+    print_debug "Emergency fallback: Moving directory to temp location"
+    local temp_path="/tmp/statusline_removal_$(date +%s)_$$"
+    if mv "$dir_path" "$temp_path" 2>/dev/null; then
+        print_success "✅ Directory moved to temp location: $temp_path"
+        print_status "💡 Directory will be cleaned up by system later"
+        # Try to remove in background without blocking installation
+        (sleep 10 && rm -rf "$temp_path" 2>/dev/null &) || true
+        return 0
+    fi
+
+    # Step 6: Final fallback - rename directory and continue
+    print_warning "⚠️ Cannot remove directory, renaming for safety"
+    local backup_name="${dir_path}.old.$(date +%s)"
+    if mv "$dir_path" "$backup_name" 2>/dev/null; then
+        print_warning "⚠️ Directory renamed to: $backup_name"
+        print_status "💡 Installation will continue, manual cleanup may be needed later"
+        return 0
+    fi
+
+    # If we get here, something is seriously wrong
+    print_error "❌ All removal strategies failed for: $dir_path"
+    print_error "💡 Manual intervention required - please remove manually and retry"
+    return 1
 }
 
 # Function to safely terminate any running statusline processes
@@ -1249,7 +1274,7 @@ backup_existing_installation() {
             terminate_statusline_processes
 
             # Remove old installation after successful backup with timeout protection
-            if safe_remove_directory "$STATUSLINE_DIR" 30; then
+            if safe_remove_directory "$STATUSLINE_DIR" 10; then
                 print_status "🧹 Removed old installation for clean install"
                 return 0
             else
@@ -1283,7 +1308,7 @@ clean_cache_directories() {
     for cache_dir in "${cache_dirs[@]}"; do
         if [ -d "$cache_dir" ]; then
             print_status "  🗑️ Removing old cache: $cache_dir"
-            if safe_remove_directory "$cache_dir" 15; then
+            if safe_remove_directory "$cache_dir" 5; then
                 print_success "  ✅ Cache cleared: $cache_dir"
                 ((cleaned_count++))
             else

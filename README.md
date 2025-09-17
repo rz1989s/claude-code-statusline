@@ -72,7 +72,7 @@ bash install.sh
 ### Option 1b: One-Line Install (Trust the Repo)
 ```bash
 # Direct install without inspection (for trusted users)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 ```
 
 ### Option 2: Manual Install (No script required)
@@ -1092,7 +1092,7 @@ Our breakthrough v2.9.0 installer **eliminates GitHub rate limits forever** with
 ##### 🎯 **Choose Your Experience Level:**
 ```bash
 # 📦 PRODUCTION (Recommended for Most Users)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # 🛠️ DEVELOPMENT (Stable Development Features)
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
@@ -1460,7 +1460,7 @@ Transform your statusline with the **revolutionary single source configuration s
 
 ```bash
 # 1. Install (creates comprehensive Config.toml automatically)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # 2. Edit your comprehensive Config.toml (ALL 227 settings included!)
 nano ~/.claude/statusline/Config.toml

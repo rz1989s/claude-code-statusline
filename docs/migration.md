@@ -85,7 +85,7 @@ curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 
 # Option 3: Traditional main branch (if you prefer stable release)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 ```
 
 **Dev6 Benefits for Migration**:

@@ -33,7 +33,7 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 ```bash
 # Standard installation (backward compatible)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Enhanced mode - comprehensive dependency analysis
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
@@ -606,7 +606,7 @@ brew install coreutils
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 
 # Or enable via environment variable
-STATUSLINE_INSTALL_DEBUG=true sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)"
+STATUSLINE_INSTALL_DEBUG=true curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
 ```
 
 **Manual Recovery**:

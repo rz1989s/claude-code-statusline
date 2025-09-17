@@ -13,7 +13,7 @@ Transform your terminal with the **most significant configuration simplification
 **Comprehensive Config.toml created automatically during installation:**
 ```bash
 # 1. Install (creates Config.toml with ALL 227 settings automatically)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # 2. Edit your comprehensive Config.toml (all settings included!)
 nano ~/.claude/statusline/Config.toml
