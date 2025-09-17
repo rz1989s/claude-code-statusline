@@ -1312,12 +1312,14 @@ clean_cache_directories() {
             print_status "  🗑️ Removing old cache: $cache_dir"
             if safe_remove_directory "$cache_dir" 5; then
                 print_success "  ✅ Cache cleared: $cache_dir"
-                ((cleaned_count++))
+                cleaned_count=$((cleaned_count + 1))
             else
                 print_warning "  ⚠️ Failed to clear cache: $cache_dir"
             fi
         fi
     done
+
+    print_status "DEBUG: Cache loop completed, cleaned_count=$cleaned_count"
 
     if [ $cleaned_count -gt 0 ]; then
         print_success "🎉 Cache cleanup complete: $cleaned_count directories cleared"
@@ -1326,6 +1328,7 @@ clean_cache_directories() {
         print_status "✓ No existing cache found - starting with clean slate"
     fi
 
+    print_status "DEBUG: About to return from clean_cache_directories"
     return 0
 }
 
