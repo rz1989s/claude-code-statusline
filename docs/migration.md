@@ -79,10 +79,10 @@ echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Test"}}' 
 
 ```bash
 # Option 1: Migrate with settings.json preservation (recommended for existing setups)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 
 # Option 2: Standard dev6 installation with automatic settings.json backup
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 
 # Option 3: Traditional main branch (if you prefer stable release)
 sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"

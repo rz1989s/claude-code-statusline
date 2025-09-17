@@ -85,7 +85,7 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/examples/Config.toml -o ~/.claude/statusline/Config.toml
 
 # 3. Download library modules (automated)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --modules-only
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --modules-only
 
 # 4. Make executable and test
 chmod +x ~/.claude/statusline/statusline.sh
@@ -1095,14 +1095,14 @@ Our breakthrough v2.9.0 installer **eliminates GitHub rate limits forever** with
 sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)"
 
 # 🛠️ DEVELOPMENT (Stable Development Features)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
 
 # 🚀 DEV6 (Current Development - Settings.json Enhancement)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 
 # 🌙 NIGHTLY (⚠️ Experimental - Advanced Users Only)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh)" -- --branch=nightly
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 ```
 
 **🔍 Branch Descriptions:**
@@ -1116,16 +1116,16 @@ sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-status
 ##### 🚀 **Enhanced Installation Options:**
 ```bash
 # Enhanced dependency analysis
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
 
 # Interactive installation menu
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --interactive
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
 
 # Full analysis with user menu
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh)" -- --check-all-deps --interactive
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
 
 # Skip settings.json configuration (dev6 feature)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
 <details>

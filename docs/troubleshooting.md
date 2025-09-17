@@ -159,7 +159,7 @@ Use the new debug mode to trace installation flow:
 
 ```bash
 # Enable debug mode for detailed installation tracing
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev --debug
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 
 # Or via environment variable
 STATUSLINE_INSTALL_DEBUG=true sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)"
@@ -176,7 +176,7 @@ rm -rf ~/.cache/claude-code-statusline/
 rm -rf ~/.local/share/claude-code-statusline/
 
 # 3. Retry with debug mode
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh)" -- --branch=dev --debug
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 ```
 
 **Technical Details**: v2.11.1 fixes this issue by:
@@ -228,10 +228,10 @@ sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-status
 
 ```bash
 # Standard dev6 installation (configures settings.json)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 
 # Preserve existing settings.json (skip Claude Code configuration)
-sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
 #### Settings.json Issues
@@ -241,7 +241,7 @@ sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-status
 **Solutions**:
 1. **Use preserve flag during installation**:
    ```bash
-   sh -c "$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh)" -- --branch=dev6 --preserve-statusline
+   curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
    ```
 
 2. **Restore from automatic backup**:
