@@ -1173,8 +1173,12 @@ safe_remove_directory() {
     # Step 3: Enhanced removal with multiple fallback strategies
     if [[ -n "$timeout_cmd" ]]; then
         print_debug "Attempting removal with $timeout_cmd (${timeout_seconds}s timeout)"
+        print_status "DEBUG: About to run: $timeout_cmd ${timeout_seconds}s rm -rf $dir_path"
+        print_status "DEBUG: Executing timeout command now..."
         if $timeout_cmd "${timeout_seconds}s" rm -rf "$dir_path" 2>/dev/null; then
+            print_status "DEBUG: Timeout removal command completed successfully"
             print_success "✅ Directory removed successfully: $dir_path"
+            print_status "DEBUG: About to return 0 from safe_remove_directory"
             return 0
         else
             local exit_code=$?
@@ -1188,10 +1192,13 @@ safe_remove_directory() {
 
     # Step 4: Fallback strategy - try direct removal
     print_debug "Fallback: Attempting direct rm removal"
+    print_status "DEBUG: About to run direct: rm -rf $dir_path"
     if rm -rf "$dir_path" 2>/dev/null; then
+        print_status "DEBUG: Direct removal command completed successfully"
         print_success "✅ Directory removed successfully via fallback: $dir_path"
         return 0
     fi
+    print_status "DEBUG: Direct removal failed, proceeding to emergency fallback"
 
     # Step 5: Emergency fallback - move to temp location instead of removing
     print_debug "Emergency fallback: Moving directory to temp location"
@@ -1308,15 +1315,23 @@ clean_cache_directories() {
     local cleaned_count=0
 
     for cache_dir in "${cache_dirs[@]}"; do
+        print_status "DEBUG: Processing cache_dir: $cache_dir"
         if [ -d "$cache_dir" ]; then
+            print_status "DEBUG: Directory exists, calling safe_remove_directory"
             print_status "  🗑️ Removing old cache: $cache_dir"
             if safe_remove_directory "$cache_dir" 5; then
                 print_success "  ✅ Cache cleared: $cache_dir"
+                print_status "DEBUG: About to increment cleaned_count from $cleaned_count"
                 cleaned_count=$((cleaned_count + 1))
+                print_status "DEBUG: Incremented cleaned_count to $cleaned_count"
             else
+                print_status "DEBUG: safe_remove_directory failed"
                 print_warning "  ⚠️ Failed to clear cache: $cache_dir"
             fi
+        else
+            print_status "DEBUG: Directory does not exist: $cache_dir"
         fi
+        print_status "DEBUG: Completed processing cache_dir: $cache_dir"
     done
 
     print_status "DEBUG: Cache loop completed, cleaned_count=$cleaned_count"
