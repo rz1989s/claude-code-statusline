@@ -38,7 +38,7 @@ get_city_from_coordinates() {
     case "$latitude,$longitude" in
         # Indonesia (231M Muslims)
         -6.1[7-2]*,106.8[2-6]*|-6.2[0-1]*,106.8[3-5]*) echo "Jakarta"; return 0 ;;          # Jakarta Metro
-        -6.2[3-5]*,106.9[7-9]*|-6.2[3-5]*,107.0[0-2]*) echo "Bekasi"; return 0 ;;  # Bekasi/East Jakarta
+        -6.2[3-5]*,106.9[6-9]*|-6.2[3-5]*,107.0[0-2]*) echo "Bekasi"; return 0 ;;  # Bekasi/East Jakarta
         -7.2[4-6]*,112.7[4-7]*) echo "Surabaya"; return 0 ;;         # Surabaya
         -6.9[0-2]*,107.6[0-2]*) echo "Bandung"; return 0 ;;          # Bandung
         3.5[8-6]*,98.6[6-8]*) echo "Medan"; return 0 ;;              # Medan
