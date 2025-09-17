@@ -1102,23 +1102,52 @@ configure_settings() {
         return 0
     fi
 
-    # Always backup settings.json if it exists (same format as statusline backup)
+    # Check if settings.json already has correct configuration
+    if [ -f "$SETTINGS_PATH" ]; then
+        # First validate if it's valid JSON
+        if jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+            # Check if statusLine is already correctly configured
+            local current_command=$(jq -r '.statusLine.command // ""' "$SETTINGS_PATH" 2>/dev/null)
+            if [[ "$current_command" == "bash ~/.claude/statusline/statusline.sh" ]] ||
+               [[ "$current_command" == "bash ~/.claude/statusline.sh" ]]; then
+                print_success "✅ settings.json already configured correctly - no changes needed"
+                return 0
+            fi
+        else
+            # Invalid JSON detected
+            print_warning "⚠️ Invalid JSON detected in settings.json"
+            local invalid_backup="${SETTINGS_PATH}.invalid.$(date +%Y%m%d_%H%M%S)"
+            mv "$SETTINGS_PATH" "$invalid_backup"
+            print_status "💾 Saved invalid file as: $invalid_backup"
+            print_status "🔄 Creating fresh settings.json with valid configuration..."
+        fi
+    fi
+
+    # Create backup only if file exists and we're making changes
     if [ -f "$SETTINGS_PATH" ]; then
         local backup_path="${SETTINGS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
         cp "$SETTINGS_PATH" "$backup_path"
-        print_success "Backed up settings.json to $backup_path (restore: cp \"$backup_path\" \"$SETTINGS_PATH\")"
+        print_success "Backed up settings.json to $backup_path"
+        print_status "💡 Restore command: cp \"$backup_path\" \"$SETTINGS_PATH\""
     fi
 
     local temp_settings=$(mktemp)
+    local operation_success=false
 
-    # Always set canonical statusline command
-    if [ -f "$SETTINGS_PATH" ]; then
-        # Update existing file - preserve everything, only replace statusLine
+    # Handle configuration based on file state
+    if [ -f "$SETTINGS_PATH" ] && jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+        # Valid JSON exists - update it
         print_status "Updating existing settings.json with statusline configuration..."
-        jq '.statusLine = {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}' \
-           "$SETTINGS_PATH" > "$temp_settings"
-    else
-        # Create new file
+        if jq '.statusLine = {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}' \
+           "$SETTINGS_PATH" > "$temp_settings" 2>/dev/null; then
+            operation_success=true
+        else
+            print_warning "⚠️ Failed to update settings.json with jq"
+        fi
+    fi
+
+    # If update failed or file doesn't exist, create new one
+    if [ "$operation_success" = "false" ]; then
         print_status "Creating new settings.json file..."
         cat > "$temp_settings" << 'EOF'
 {
@@ -1128,20 +1157,33 @@ configure_settings() {
   }
 }
 EOF
+        operation_success=true
     fi
 
-    # Validate and apply
-    if jq . "$temp_settings" >/dev/null 2>&1; then
+    # Validate and apply the configuration
+    if [ "$operation_success" = "true" ] && jq . "$temp_settings" >/dev/null 2>&1; then
         mv "$temp_settings" "$SETTINGS_PATH"
-        print_success "Configured settings.json with statusline"
+        print_success "✅ Configured settings.json with statusline"
     else
-        print_error "Failed to configure settings.json"
-        rm -f "$temp_settings"
-        exit 1
+        # Recovery attempt - create minimal valid config
+        print_warning "⚠️ Configuration validation failed, attempting recovery..."
+        echo '{"statusLine":{"type":"command","command":"bash ~/.claude/statusline/statusline.sh"}}' > "$SETTINGS_PATH"
+
+        if jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+            print_success "✅ Recovery successful - created minimal valid configuration"
+        else
+            print_error "❌ Failed to configure settings.json"
+            print_status "💡 Manual recovery options:"
+            print_status "   1. Restore backup: cp \"$backup_path\" \"$SETTINGS_PATH\""
+            print_status "   2. Create manually: echo '{\"statusLine\":{\"type\":\"command\",\"command\":\"bash ~/.claude/statusline/statusline.sh\"}}' > ~/.claude/settings.json"
+            rm -f "$temp_settings"
+            return 1
+        fi
     fi
 
     # Clean up temp file if it still exists
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
+    return 0
 }
 
 # Function to safely remove directory with robust timeout and fallback protection
