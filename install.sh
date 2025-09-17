@@ -1262,6 +1262,8 @@ terminate_statusline_processes() {
 # Simplified backup function - backup entire statusline folder if exists
 backup_existing_installation() {
     trace_execution "backup_existing_installation"
+    print_status "DEBUG: Entered backup_existing_installation function"
+    print_status "DEBUG: Checking directory: $STATUSLINE_DIR"
     if [ -d "$STATUSLINE_DIR" ]; then
         local backup_path="${STATUSLINE_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "🔄 Existing statusline installation found, creating backup..."
@@ -1648,9 +1650,12 @@ main() {
 
     print_debug "Step 2: Cleaning cache directories (before backup)"
     clean_cache_directories  # Clear cache BEFORE backup and removal to prevent hangs
+    print_status "DEBUG: Cache cleanup completed, proceeding to backup step"
 
     print_debug "Step 3: Backing up existing installation"
+    print_status "DEBUG: About to call backup_existing_installation"
     backup_existing_installation || true  # Don't fail if no existing installation
+    print_status "DEBUG: Backup step completed"
 
     print_debug "Step 4: Downloading statusline"
     download_statusline
