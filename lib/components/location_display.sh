@@ -97,7 +97,7 @@ get_city_from_coordinates() {
         6.9[2-3]*,79.8[4-5]*) echo "Colombo"; return 0 ;;            # Colombo
 
         # Maldives (0.5M Muslims)
-        4.1[7-8]*,73.5[0-1]*) echo "Malé"; return 0 ;;               # Malé
+        4.1[7-8]*,73.5[0-1]*) echo "Male"; return 0 ;;               # Male (Maldives)
     esac
 
     # === MIDDLE EAST & GULF (120M Muslims) ===
@@ -245,7 +245,7 @@ get_city_from_coordinates() {
         -37.8[1-2]*,144.9[6-7]*) echo "Melbourne"; return 0 ;;       # Melbourne
 
         # Brazil (1M Muslims)
-        -23.5[5-6]*,-46.6[3-4]*) echo "São Paulo"; return 0 ;;       # São Paulo
+        -23.5[5-6]*,-46.6[3-4]*) echo "Sao Paulo"; return 0 ;;       # Sao Paulo
         -22.9[0-1]*,-43.1[7-8]*) echo "Rio de Janeiro"; return 0 ;;  # Rio
     esac
 
@@ -267,7 +267,7 @@ get_city_from_coordinates() {
         12.3[6-7]*,-1.5[1-2]*) echo "Ouagadougou"; return 0 ;;        # Burkina Faso
         13.5[1-2]*,-2.1[0-1]*) echo "Bamako"; return 0 ;;             # Mali
         14.7[0-1]*,-17.4[4-5]*) echo "Dakar"; return 0 ;;             # Senegal
-        12.1[3-4]*,15.0[5-6]*) echo "N'Djamena"; return 0 ;;          # Chad
+        12.1[3-4]*,15.0[5-6]*) echo "NDjamena"; return 0 ;;          # Chad
         13.9[0-1]*,2.1[1-2]*) echo "Niamey"; return 0 ;;              # Niger
     esac
 
@@ -437,21 +437,21 @@ render_location_display() {
     show_confidence=$(get_location_display_config "show_confidence" "false")
 
     # Build base display
-    local location_text="📍 Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}"
+    local location_text="Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}"
 
     # Add format variations
     case "$display_format" in
         "full")
             case "$COMPONENT_LOCATION_DISPLAY_CITY" in
-                "Jakarta") location_text="📍 Loc: Jakarta, DKI Jakarta, Indonesia" ;;
-                "Bekasi") location_text="📍 Loc: Bekasi, West Java, Indonesia" ;;
-                "Surabaya") location_text="📍 Loc: Surabaya, East Java, Indonesia" ;;
-                "Bandung") location_text="📍 Loc: Bandung, West Java, Indonesia" ;;
-                *) location_text="📍 Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}" ;;
+                "Jakarta") location_text="Loc: Jakarta, DKI Jakarta, Indonesia" ;;
+                "Bekasi") location_text="Loc: Bekasi, West Java, Indonesia" ;;
+                "Surabaya") location_text="Loc: Surabaya, East Java, Indonesia" ;;
+                "Bandung") location_text="Loc: Bandung, West Java, Indonesia" ;;
+                *) location_text="Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}" ;;
             esac
             ;;
         "short"|*)
-            location_text="📍 Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}"
+            location_text="Loc: ${COMPONENT_LOCATION_DISPLAY_CITY}"
             ;;
     esac
 
@@ -496,7 +496,7 @@ get_location_display_config() {
             get_component_config "location_display" "show_confidence" "${default_value:-false}"
             ;;
         "icon")
-            get_component_config "location_display" "icon" "${default_value:-📍}"
+            get_component_config "location_display" "icon" "${default_value:-Loc}"
             ;;
         *)
             echo "$default_value"
