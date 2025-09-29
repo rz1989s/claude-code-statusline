@@ -226,7 +226,45 @@ get_current_hijri_date_with_maghrib() {
 # CACHE VALIDATION
 # ============================================================================
 
-# Validate cached prayer data to ensure it's properly formatted
+# Validate cached static prayer data (prayer_times\thijri_date)
+validate_static_prayer_cache() {
+    local cache_file="$1"
+
+    # Basic cache validation
+    if ! validate_basic_cache "$cache_file"; then
+        return 1
+    fi
+
+    # Read cache content
+    local cache_content
+    cache_content="$(cat "$cache_file" 2>/dev/null)" || return 1
+
+    # Check for tab-delimited format (prayer_times\thijri_date)
+    if [[ ! "$cache_content" =~ $'\t' ]]; then
+        debug_log "Static prayer cache validation failed: missing tab delimiter" "WARN"
+        return 1
+    fi
+
+    # Parse and validate components
+    IFS=$'\t' read -r prayer_times hijri_date <<< "$cache_content"
+
+    # Validate prayer times format (should have 5 comma-separated times)
+    if [[ ! "$prayer_times" =~ ^[0-9]{2}:[0-9]{2}(,[0-9]{2}:[0-9]{2}){4}$ ]]; then
+        debug_log "Static prayer cache validation failed: invalid prayer times format" "WARN"
+        return 1
+    fi
+
+    # Validate hijri date (should have comma-separated components)
+    if [[ ! "$hijri_date" =~ ^[0-9]+(,[^,]+){3}$ ]]; then
+        debug_log "Static prayer cache validation failed: invalid hijri date format" "WARN"
+        return 1
+    fi
+
+    debug_log "Static prayer cache validation passed" "INFO"
+    return 0
+}
+
+# Validate cached prayer data to ensure it's properly formatted (backward compatibility)
 validate_prayer_cache() {
     local cache_file="$1"
 
@@ -280,9 +318,9 @@ validate_prayer_cache() {
 # MAIN PRAYER DATA RETRIEVAL
 # ============================================================================
 
-# Internal function to fetch prayer data without caching (for execute_cached_command)
-_get_prayer_times_and_hijri_uncached() {
-    debug_log "Retrieving comprehensive prayer and Hijri data (uncached)..." "INFO"
+# Internal function to fetch only static prayer data without caching (for execute_cached_command)
+_get_prayer_times_static_uncached() {
+    debug_log "Retrieving static prayer and Hijri data (uncached)..." "INFO"
 
     # Get current location coordinates
     local coordinates
@@ -326,7 +364,31 @@ _get_prayer_times_and_hijri_uncached() {
         return 1
     fi
 
-    # Calculate prayer statuses
+    # Store only static data - no prayer statuses or current time
+    # Format: prayer_times\thijri_date
+    echo -e "$prayer_times\t$hijri_date"
+
+    debug_log "Successfully retrieved static prayer data" "INFO"
+    return 0
+}
+
+# Backward compatibility function that includes dynamic status calculation
+_get_prayer_times_and_hijri_uncached() {
+    debug_log "Retrieving comprehensive prayer and Hijri data (uncached)..." "INFO"
+
+    # Get static data (cached)
+    local static_data
+    static_data=$(get_prayer_times_static)
+
+    if [[ $? -ne 0 || -z "$static_data" ]]; then
+        debug_log "Failed to get static prayer data" "ERROR"
+        return 1
+    fi
+
+    # Parse static data
+    IFS=$'\t' read -r prayer_times hijri_date <<< "$static_data"
+
+    # Calculate dynamic prayer statuses with current time
     local current_time=$(get_current_time)
     local prayer_statuses
     prayer_statuses=$(calculate_prayer_statuses "$current_time" "$prayer_times")
@@ -341,21 +403,21 @@ _get_prayer_times_and_hijri_uncached() {
     IFS=',' read -r fajr dhuhr asr maghrib isha <<< "$prayer_times"
     maghrib_time="$maghrib"
 
-    # Adjust Hijri date based on Maghrib
+    # Adjust Hijri date based on current Maghrib time
     local adjusted_hijri
     adjusted_hijri=$(get_current_hijri_date_with_maghrib "$current_time" "$maghrib_time" "$hijri_date")
 
-    # Combine all data using tab delimiter (less likely to conflict)
+    # Combine all data using tab delimiter
     # Format: prayer_times\tprayer_statuses\thijri_date\tcurrent_time
     echo -e "$prayer_times\t$prayer_statuses\t$adjusted_hijri\t$current_time"
 
-    debug_log "Successfully retrieved and processed all prayer data" "INFO"
+    debug_log "Successfully retrieved and processed all prayer data with fresh statuses" "INFO"
     return 0
 }
 
-# Get comprehensive prayer times and Hijri date data with travel-friendly caching
-get_prayer_times_and_hijri() {
-    debug_log "Retrieving prayer data with travel-friendly caching..." "INFO"
+# Get static prayer times and Hijri date (cached) - no status calculation
+get_prayer_times_static() {
+    debug_log "Retrieving static prayer data with caching..." "INFO"
 
     # Get current coordinates for cache key generation (to detect location changes)
     local coordinates
@@ -371,21 +433,27 @@ get_prayer_times_and_hijri() {
     local current_date=$(get_current_date)
 
     # Generate location-aware cache key to detect travel/location changes
-    # Include date, coordinates, and method for cache isolation
-    # Use safe alphanumeric format to avoid bash arithmetic interpretation
     local safe_date="${current_date//-/}"  # Remove all dashes
     local safe_lat="${latitude//[.-]/}"    # Remove dots and minus signs
     local safe_lng="${longitude//[.-]/}"   # Remove dots and minus signs
-    local cache_key="prayer_${safe_date}_${safe_lat}_${safe_lng}_${CONFIG_PRAYER_CALCULATION_METHOD}"
+    local cache_key="prayer_static_${safe_date}_${safe_lat}_${safe_lng}_${CONFIG_PRAYER_CALCULATION_METHOD}"
 
-    debug_log "Using travel-aware cache key: $cache_key" "INFO"
+    debug_log "Using travel-aware cache key for static data: $cache_key" "INFO"
 
-    # Use travel-friendly cache duration (1 hour instead of 24 hours)
+    # Use longer cache duration for static data (can be cached longer)
     execute_cached_command \
         "$cache_key" \
         "$CACHE_DURATION_PRAYER_TIMES" \
-        "validate_prayer_cache" \
+        "validate_static_prayer_cache" \
         "true" \
         "false" \
-        _get_prayer_times_and_hijri_uncached
+        _get_prayer_times_static_uncached
+}
+
+# Get comprehensive prayer times and Hijri date data with dynamic status calculation
+get_prayer_times_and_hijri() {
+    debug_log "Retrieving prayer data with dynamic status calculation..." "INFO"
+
+    # This function now always calculates fresh statuses but uses cached prayer times
+    _get_prayer_times_and_hijri_uncached
 }
