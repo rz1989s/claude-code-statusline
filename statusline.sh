@@ -6,8 +6,20 @@
 
 # Check if we need modern bash for associative arrays (bash 4.0+)
 if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
-    # Try to find and use modern bash automatically
-    for bash_candidate in $(command -v bash 2>/dev/null | head -5) /opt/homebrew/bin/bash /usr/local/bin/bash /opt/local/bin/bash; do
+    # Try to find and use modern bash automatically - platform-aware
+    local bash_candidates=()
+
+    # Platform-aware bash candidate prioritization
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # macOS: try system bash first, then Homebrew installations
+        bash_candidates=($(command -v bash 2>/dev/null | head -5) /opt/homebrew/bin/bash /usr/local/bin/bash /opt/local/bin/bash)
+    else
+        # Linux: try system paths first
+        bash_candidates=($(command -v bash 2>/dev/null | head -5) /usr/bin/bash /bin/bash /usr/local/bin/bash)
+    fi
+
+    for bash_candidate in "${bash_candidates[@]}"; do
+        [[ -z "$bash_candidate" ]] && continue  # Skip empty entries
         if [[ -x "$bash_candidate" ]] && [[ "$("$bash_candidate" -c 'echo ${BASH_VERSION%%.*}' 2>/dev/null)" -ge 4 ]]; then
             # Re-execute script with modern bash
             exec "$bash_candidate" "$0" "$@"
@@ -16,7 +28,13 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
     
     # If no modern bash found, warn but continue with degraded functionality
     echo "WARNING: Bash ${BASH_VERSION} detected. Advanced caching features disabled." >&2
-    echo "For full functionality, install bash 4+: brew install bash" >&2
+
+    # Platform-specific installation suggestion
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        echo "For full functionality, install bash 4+: brew install bash" >&2
+    else
+        echo "For full functionality, install bash 4+: sudo apt install bash (or equivalent)" >&2
+    fi
     export STATUSLINE_COMPATIBILITY_MODE=true
 fi
 

@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.11.0 with GPS-first prayer location detection and 18-component atomic architecture
-**Branch Strategy**: dev6 (settings.json) → dev → nightly → main
+**Current**: v2.11.5 with cross-platform compatibility improvements and GPS-first prayer location detection
+**Branch Strategy**: dev11 (cross-platform fixes) → dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular system (91.5% code reduction from v1)
 **Key Features**: 5-line statusline, Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation
+**Platform Support**: 100% compatibility on macOS, Ubuntu, Arch, Fedora, Alpine Linux with automatic platform detection
 
 ## Essential Commands
 
@@ -29,6 +30,10 @@ STATUSLINE_DEBUG=true ./statusline.sh 2>&1 | grep "cache"
 
 # Installation
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+
+# Cross-Platform Testing
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev11/install.sh | bash -s -- --branch=dev11 --check-all-deps --interactive
+bats tests/unit/test_platform_compatibility.bats
 ```
 
 ## Architecture

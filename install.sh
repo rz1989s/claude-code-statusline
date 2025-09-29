@@ -200,14 +200,31 @@ check_all_dependencies() {
         fi
     done
     
-    # Check optional dependencies (timeout/gtimeout)
-    if command_exists "gtimeout" || command_exists "timeout"; then
-        local timeout_cmd="gtimeout"
-        command_exists "timeout" && timeout_cmd="timeout"
+    # Check optional dependencies (timeout/gtimeout) - platform-aware selection
+    local timeout_cmd=""
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
+        # macOS: prefer gtimeout (from coreutils), fallback to system timeout if available
+        if command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        elif command_exists "timeout"; then
+            timeout_cmd="timeout"
+        fi
+    else
+        # Linux: prefer system timeout, fallback to gtimeout if installed
+        if command_exists "timeout"; then
+            timeout_cmd="timeout"
+        elif command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        fi
+    fi
+
+    if [[ -n "$timeout_cmd" ]]; then
         printf "  ✅ %-8s → %s\\n" "$timeout_cmd" "Network operation protection"
         available_features=$((available_features + 1))
     else
-        printf "  ⚠️ %-8s → %s\\n" "timeout" "Network operation protection"
+        local suggest_cmd="timeout"
+        [[ "$OS_TYPE" == "Darwin" ]] && suggest_cmd="gtimeout (coreutils)"
+        printf "  ⚠️ %-8s → %s\\n" "$suggest_cmd" "Network operation protection"
         missing_optional+=("timeout")
     fi
 
@@ -223,11 +240,46 @@ check_all_dependencies() {
             fi
             ;;
         "Linux")
-            if [[ -x "/usr/lib/geoclue-2.0/demos/where-am-i" ]] || command_exists "geoclue"; then
+            # Check multiple possible geoclue installation paths
+            local geoclue_found=false
+            local geoclue_paths=(
+                "/usr/lib/geoclue-2.0/demos/where-am-i"    # Ubuntu/Debian
+                "/usr/libexec/geoclue-2.0/demos/where-am-i" # Some distributions
+                "/usr/bin/where-am-i"                       # Alternative location
+            )
+
+            for geoclue_path in "${geoclue_paths[@]}"; do
+                if [[ -x "$geoclue_path" ]]; then
+                    geoclue_found=true
+                    break
+                fi
+            done
+
+            # Also check for command availability
+            if [[ "$geoclue_found" == "false" ]] && (command_exists "geoclue" || command_exists "where-am-i"); then
+                geoclue_found=true
+            fi
+
+            if [[ "$geoclue_found" == "true" ]]; then
                 printf "  ✅ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (Linux)"
                 available_features=$((available_features + 1))
             else
-                printf "  ⚠️ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (apt install geoclue-2.0-dev)"
+                # Distribution-specific installation suggestions
+                local install_suggestion=""
+                if [[ -f /etc/os-release ]]; then
+                    . /etc/os-release
+                    case "$ID" in
+                        "ubuntu"|"debian") install_suggestion="apt install geoclue-2-demo" ;;
+                        "arch"|"manjaro") install_suggestion="pacman -S geoclue" ;;
+                        "fedora"|"rhel"|"centos") install_suggestion="dnf install geoclue2-devel" ;;
+                        "alpine") install_suggestion="apk add geoclue-dev" ;;
+                        *) install_suggestion="install geoclue2/geoclue-dev package" ;;
+                    esac
+                else
+                    install_suggestion="install geoclue2/geoclue-dev package"
+                fi
+
+                printf "  ⚠️ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times ($install_suggestion)"
                 missing_optional+=("geoclue")
             fi
             ;;
@@ -283,8 +335,22 @@ check_dependencies() {
     if [ ${#missing_deps[@]} -ne 0 ]; then
         print_error "Missing required dependencies: ${missing_deps[*]}"
         print_status "Please install missing dependencies:"
-        print_status "  macOS: brew install ${missing_deps[*]}"
-        print_status "  Linux: sudo apt install ${missing_deps[*]}"
+
+        # Platform-specific installation instructions
+        if [[ "$OS_TYPE" == "Darwin" ]]; then
+            print_status "  macOS: brew install ${missing_deps[*]}"
+        else
+            # Distribution-aware Linux instructions
+            case "$PKG_MGR" in
+                "apt") print_status "  Ubuntu/Debian: sudo apt update && sudo apt install ${missing_deps[*]}" ;;
+                "yum") print_status "  CentOS/RHEL: sudo yum install ${missing_deps[*]}" ;;
+                "dnf") print_status "  Fedora: sudo dnf install ${missing_deps[*]}" ;;
+                "pacman") print_status "  Arch Linux: sudo pacman -S ${missing_deps[*]}" ;;
+                "apk") print_status "  Alpine: sudo apk add ${missing_deps[*]}" ;;
+                "pkg") print_status "  FreeBSD: sudo pkg install ${missing_deps[*]}" ;;
+                *) print_status "  Linux: Install using your package manager: ${missing_deps[*]}" ;;
+            esac
+        fi
         exit 1
     fi
     
@@ -315,7 +381,19 @@ generate_install_commands() {
         elif [[ "$dep" == "CoreLocationCLI" ]]; then
             all_missing+=("corelocationcli")  # macOS GPS tool
         elif [[ "$dep" == "geoclue" ]]; then
-            all_missing+=("geoclue-2.0-dev")  # Linux GPS tool
+            # Distribution-specific geoclue package names
+            if [[ -f /etc/os-release ]]; then
+                . /etc/os-release
+                case "$ID" in
+                    "ubuntu"|"debian") all_missing+=("geoclue-2-demo") ;;
+                    "arch"|"manjaro") all_missing+=("geoclue") ;;
+                    "fedora"|"rhel"|"centos") all_missing+=("geoclue2-devel") ;;
+                    "alpine") all_missing+=("geoclue-dev") ;;
+                    *) all_missing+=("geoclue2") ;;  # Generic fallback
+                esac
+            else
+                all_missing+=("geoclue2")  # Generic fallback
+            fi
         fi
     done
     
@@ -1046,9 +1124,20 @@ check_bash_compatibility() {
         return 0
     fi
     
-    # Check for modern bash installations  
+    # Check for modern bash installations - platform-aware path detection
     local modern_bash_found=false
-    for bash_path in "/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash"; do
+    local bash_paths=()
+
+    # Platform-aware bash path prioritization
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
+        # macOS: check Homebrew paths first, then system paths
+        bash_paths=("/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash" "/usr/bin/bash" "/bin/bash")
+    else
+        # Linux: check system paths first, then alternative installations
+        bash_paths=("/usr/bin/bash" "/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash")
+    fi
+
+    for bash_path in "${bash_paths[@]}"; do
         if [[ -x "$bash_path" ]] && "$bash_path" -c 'declare -A test_array' 2>/dev/null; then
             print_success "Modern bash found: $bash_path"
             modern_bash_found=true
@@ -1058,7 +1147,20 @@ check_bash_compatibility() {
     
     if [[ "$modern_bash_found" == "false" ]]; then
         print_warning "Modern bash not found - some advanced features may not work"
-        print_status "For full functionality, consider: brew install bash"
+
+        # Platform-specific bash installation suggestions
+        if [[ "$OS_TYPE" == "Darwin" ]]; then
+            print_status "For full functionality, consider: brew install bash"
+        else
+            case "$PKG_MGR" in
+                "apt") print_status "For full functionality, consider: sudo apt update && sudo apt install bash" ;;
+                "yum"|"dnf") print_status "For full functionality, consider: sudo $PKG_MGR install bash" ;;
+                "pacman") print_status "For full functionality, consider: sudo pacman -S bash" ;;
+                "apk") print_status "For full functionality, consider: sudo apk add bash" ;;
+                *) print_status "For full functionality, install a modern version of bash (4.0+)" ;;
+            esac
+        fi
+
         print_status "Statusline includes automatic compatibility detection"
     else
         print_success "Statusline will automatically use modern bash features"
@@ -1204,12 +1306,22 @@ safe_remove_directory() {
     # Step 1: Try to make directory writable first
     chmod -R u+w "$dir_path" 2>/dev/null || true
 
-    # Step 2: Use timeout command if available (with shorter timeout)
+    # Step 2: Use timeout command if available (with shorter timeout) - platform-aware selection
     local timeout_cmd=""
-    if command_exists "gtimeout"; then
-        timeout_cmd="gtimeout"
-    elif command_exists "timeout"; then
-        timeout_cmd="timeout"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # macOS: prefer gtimeout (from coreutils), fallback to system timeout
+        if command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        elif command_exists "timeout"; then
+            timeout_cmd="timeout"
+        fi
+    else
+        # Linux: prefer system timeout, fallback to gtimeout if installed
+        if command_exists "timeout"; then
+            timeout_cmd="timeout"
+        elif command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        fi
     fi
 
     # Step 3: Enhanced removal with multiple fallback strategies
