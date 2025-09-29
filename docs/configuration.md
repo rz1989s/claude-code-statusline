@@ -13,7 +13,7 @@ Transform your terminal with the **most significant configuration simplification
 **Comprehensive Config.toml created automatically during installation:**
 ```bash
 # 1. Install (creates Config.toml with ALL 227 settings automatically)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # 2. Edit your comprehensive Config.toml (all settings included!)
 nano ~/.claude/statusline/Config.toml
@@ -25,10 +25,10 @@ nano ~/.claude/statusline/Config.toml
 **Dev6 Installation (Enhanced Settings.json Management):**
 ```bash
 # Install dev6 with enhanced settings.json handling
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 
 # Install dev6 with existing settings.json preservation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
 **🎯 No More Configuration Hunting!**

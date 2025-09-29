@@ -171,6 +171,12 @@ export CACHE_DURATION_VERY_SHORT=10      # 10 seconds (git status, current branc
 export CACHE_DURATION_REALTIME=5         # 5 seconds (current directory, file status)
 export CACHE_DURATION_LIVE=2             # 2 seconds (for high-frequency operations)
 
+# Prayer & Location System Cache Durations (travel-friendly)
+# These durations are optimized for travelers who may cross timezones/countries quickly
+export CACHE_DURATION_PRAYER_TIMES=3600      # 1 hour - prayer times refresh for travelers
+export CACHE_DURATION_PRAYER_LOCATION=1800   # 30 minutes - location display refresh
+export CACHE_DURATION_PRAYER_CALCULATION=3600 # 1 hour - calculation method changes by country
+
 # ============================================================================
 # UNIFIED CACHE KEY GENERATION
 # ============================================================================

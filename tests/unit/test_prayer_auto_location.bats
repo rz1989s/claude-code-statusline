@@ -495,9 +495,9 @@ teardown() {
 # INTEGRATION TESTS
 # ============================================================================
 
-@test "Integration: auto mode with successful IP geolocation" {
+@test "Integration: local_gps mode with successful IP geolocation fallback" {
     # Set up configuration
-    CONFIG_PRAYER_LOCATION_MODE="auto"
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
     CONFIG_PRAYER_LATITUDE=""
     CONFIG_PRAYER_LONGITUDE=""
     
@@ -527,9 +527,9 @@ teardown() {
     [[ "$CONFIG_PRAYER_CALCULATION_METHOD" == "17" ]]  # JAKIM for Malaysia
 }
 
-@test "Integration: auto mode with offline timezone fallback" {
+@test "Integration: local_gps mode with offline timezone fallback" {
     # Set up configuration
-    CONFIG_PRAYER_LOCATION_MODE="auto"  
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"  
     CONFIG_PRAYER_LATITUDE=""
     CONFIG_PRAYER_LONGITUDE=""
     
@@ -641,4 +641,193 @@ teardown() {
         assert_success
         assert_output "$expected_method"
     done
+}
+
+# ============================================================================
+# GPS LOCATION DETECTION TESTS (NEW)
+# ============================================================================
+
+@test "GPS detection: local_gps mode with CoreLocationCLI (macOS)" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+
+    # Mock CoreLocationCLI for macOS
+    create_mock_command "uname" "echo 'Darwin'"
+    create_mock_command "CoreLocationCLI" "echo '40.7128 -74.0060'"
+
+    # Source the location module to get access to GPS functions
+    source_with_fallback "$BATS_TEST_DIRNAME/../../lib/prayer/location.sh"
+
+    run get_local_system_coordinates
+    assert_success
+    assert_output "40.7128 -74.0060"
+}
+
+@test "GPS detection: local_gps mode with geoclue2 (Linux)" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+
+    # Mock geoclue2 for Linux
+    create_mock_command "uname" "echo 'Linux'"
+
+    # Create mock geoclue2 executable
+    mkdir -p /tmp/mock_geoclue/usr/lib/geoclue-2.0/demos
+    cat > /tmp/mock_geoclue/usr/lib/geoclue-2.0/demos/where-am-i << 'EOF'
+#!/bin/bash
+echo "Latitude: 40.7128"
+echo "Longitude: -74.0060"
+EOF
+    chmod +x /tmp/mock_geoclue/usr/lib/geoclue-2.0/demos/where-am-i
+
+    # Mock the file existence check
+    create_mock_command "test" "case \"\$*\" in
+        *geoclue-2.0/demos/where-am-i*) exit 0 ;;
+        *) /usr/bin/test \"\$@\" ;;
+    esac"
+
+    # Source the location module to get access to GPS functions
+    source_with_fallback "$BATS_TEST_DIRNAME/../../lib/prayer/location.sh"
+
+    # Override the geoclue path check for testing
+    export MOCK_GEOCLUE_PATH="/tmp/mock_geoclue/usr/lib/geoclue-2.0/demos/where-am-i"
+
+    run get_local_system_coordinates
+    assert_success
+    assert_output "40.7128 -74.0060"
+
+    # Cleanup
+    rm -rf /tmp/mock_geoclue
+}
+
+@test "GPS detection: local_gps mode fallback to IP geolocation" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+
+    # Mock GPS tools not available
+    create_mock_command "CoreLocationCLI" "exit 1"
+    create_mock_command "uname" "echo 'Darwin'"
+
+    # Mock successful IP geolocation fallback
+    local mock_response='{"status":"success","country":"Indonesia","countryCode":"ID","city":"Jakarta","lat":-6.2088,"lon":106.8456,"timezone":"Asia/Jakarta","query":"203.142.67.168"}'
+
+    create_mock_command "curl" "echo '$mock_response'"
+    create_mock_command "jq" 'case "$*" in
+        ". > /dev/null 2>&1") exit 0 ;;
+        "-r .status // \"fail\" 2>/dev/null") echo "success" ;;
+        "-r .country // \"Unknown\" 2>/dev/null") echo "Indonesia" ;;
+        "-r .countryCode // \"XX\" 2>/dev/null") echo "ID" ;;
+        "-r .city // \"Unknown\" 2>/dev/null") echo "Jakarta" ;;
+        "-r .lat // 0 2>/dev/null") echo "-6.2088" ;;
+        "-r .lon // 0 2>/dev/null") echo "106.8456" ;;
+        "-r .timezone // \"UTC\" 2>/dev/null") echo "Asia/Jakarta" ;;
+        "-r .query // \"unknown\" 2>/dev/null") echo "203.142.67.168" ;;
+        "-r .latitude // 0 2>/dev/null") echo "-6.2088" ;;
+        "-r .longitude // 0 2>/dev/null") echo "106.8456" ;;
+    esac'
+
+    run get_location_coordinates
+    assert_success
+    assert_output "-6.2088,106.8456"
+
+    # Verify configuration was updated for Indonesia
+    [[ "$CONFIG_PRAYER_CALCULATION_METHOD" == "20" ]]  # KEMENAG for Indonesia
+}
+
+@test "GPS detection: local_gps mode with cached fallback" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+
+    # Mock GPS tools and network not available
+    create_mock_command "CoreLocationCLI" "exit 1"
+    create_mock_command "curl" "exit 1"
+    create_mock_command "ping" "exit 1"
+
+    # Create fresh cache file
+    local test_data='{"country":"Malaysia","countryCode":"MY","city":"Kuala Lumpur","latitude":3.1390,"longitude":101.6869,"timezone":"Asia/Kuala_Lumpur","timestamp":'$(date +%s)',"source":"test"}'
+    local cache_file="$STATUSLINE_CACHE_DIR/location_auto_detect.cache"
+
+    echo "$test_data" > "$cache_file"
+    chmod 600 "$cache_file"
+
+    # Mock jq for JSON parsing
+    create_mock_command "jq" 'case "$*" in
+        ". > /dev/null 2>&1") exit 0 ;;
+        "-r .countryCode // \"XX\" 2>/dev/null") echo "MY" ;;
+        "-r .latitude // 0 2>/dev/null") echo "3.1390" ;;
+        "-r .longitude // 0 2>/dev/null") echo "101.6869" ;;
+        "-r .timezone // \"UTC\" 2>/dev/null") echo "Asia/Kuala_Lumpur" ;;
+        "-r .city // \"Unknown\" 2>/dev/null") echo "Kuala Lumpur" ;;
+        "-r .country // \"Unknown\" 2>/dev/null") echo "Malaysia" ;;
+    esac'
+
+    run get_location_coordinates
+    assert_success
+    assert_output "3.1390,101.6869"
+
+    # Verify configuration was updated for Malaysia
+    [[ "$CONFIG_PRAYER_CALCULATION_METHOD" == "17" ]]  # JAKIM for Malaysia
+}
+
+@test "GPS detection: local_gps mode with timezone fallback" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+
+    # Mock all location detection methods not available
+    create_mock_command "CoreLocationCLI" "exit 1"
+    create_mock_command "curl" "exit 1"
+    create_mock_command "ping" "exit 1"
+
+    # Mock no valid cache
+    local cache_file="$STATUSLINE_CACHE_DIR/location_auto_detect.cache"
+    [[ -f "$cache_file" ]] && rm "$cache_file"
+
+    # Mock system timezone detection
+    create_mock_command "readlink" "echo '/usr/share/zoneinfo/Asia/Jakarta'"
+
+    run get_location_coordinates
+    assert_success
+    assert_output "-6.2088,106.8456"  # Jakarta coordinates from timezone fallback
+}
+
+@test "GPS integration: local_gps mode end-to-end success" {
+    # Set up local_gps configuration
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+    CONFIG_PRAYER_ENABLED="true"
+
+    # Mock successful GPS detection
+    create_mock_command "uname" "echo 'Darwin'"
+    create_mock_command "CoreLocationCLI" "echo '21.4225 39.8262'"  # Mecca coordinates
+
+    # Mock successful prayer API response
+    local mock_prayer_response='{"data":{"timings":{"Fajr":"05:30","Dhuhr":"12:45","Asr":"15:45","Maghrib":"18:30","Isha":"20:00"},"date":{"hijri":{"day":"29","month":{"en":"Jumada al-awwal"},"year":"1446","weekday":{"en":"Al Khamis"}}}}}'
+
+    create_mock_command "curl" "echo '$mock_prayer_response'"
+    create_mock_command "jq" 'echo "05:30,12:45,15:45,18:30,20:00"'
+    create_mock_command "date" 'case "$*" in
+        "+%Y-%m-%d") echo "2024-01-15" ;;
+        "+%H:%M") echo "14:00" ;;
+        *) /bin/date "$@" ;;
+    esac'
+
+    # Source prayer module
+    source_with_fallback "$BATS_TEST_DIRNAME/../../lib/prayer.sh"
+
+    run get_location_coordinates
+    assert_success
+    assert_output "21.4225,39.8262"
+
+    # Verify Saudi Arabia prayer method was detected
+    [[ "$CONFIG_PRAYER_CALCULATION_METHOD" == "4" ]]  # Umm al-Qura for Saudi Arabia
 }

@@ -52,8 +52,8 @@ teardown() {
     assert_output "40.7128,-74.0060"
 }
 
-@test "get_location_coordinates should fall back to default for auto mode" {
-    export CONFIG_PRAYER_LOCATION_MODE="auto"
+@test "get_location_coordinates should fall back to default for local_gps mode" {
+    export CONFIG_PRAYER_LOCATION_MODE="local_gps"
     
     run get_location_coordinates
     assert_success
@@ -135,34 +135,34 @@ teardown() {
 @test "calculate_prayer_statuses should identify completed and next prayers" {
     local prayer_times="05:30,12:45,15:45,18:30,20:00"
     local current_time="14:00"  # After Dhuhr, before Asr
-    
-    run calculate_prayer_statuses "$prayer_times" "$current_time"
+
+    run calculate_prayer_statuses "$current_time" "$prayer_times"
     assert_success
-    
+
     # Should show first two prayers as completed, Asr as next
-    assert_output "completed,completed,next,upcoming,upcoming"
+    assert_output "completed,completed,next,upcoming,upcoming|Asr|15:45|2"
 }
 
 @test "calculate_prayer_statuses should handle early morning time" {
     local prayer_times="05:30,12:45,15:45,18:30,20:00"
     local current_time="04:00"  # Before Fajr
-    
-    run calculate_prayer_statuses "$prayer_times" "$current_time"
+
+    run calculate_prayer_statuses "$current_time" "$prayer_times"
     assert_success
-    
+
     # Should show Fajr as next, all others as upcoming
-    assert_output "next,upcoming,upcoming,upcoming,upcoming"
+    assert_output "next,upcoming,upcoming,upcoming,upcoming|Fajr|05:30|0"
 }
 
 @test "calculate_prayer_statuses should handle late night time" {
     local prayer_times="05:30,12:45,15:45,18:30,20:00"
     local current_time="23:00"  # After Isha
-    
-    run calculate_prayer_statuses "$prayer_times" "$current_time"
+
+    run calculate_prayer_statuses "$current_time" "$prayer_times"
     assert_success
-    
-    # Should show all prayers as completed
-    assert_output "completed,completed,completed,completed,completed"
+
+    # Should show all prayers as completed, Fajr as next (tomorrow)
+    assert_output "next,completed,completed,completed,completed|Fajr|05:30|0"
 }
 
 # Test Maghrib-based Hijri date logic
@@ -171,21 +171,20 @@ teardown() {
     local hijri_data="29,Jumada al-awwal,1446,Al Khamis"
     local maghrib_time="18:30"
     local current_time="19:00"  # After Maghrib
-    
-    run get_current_hijri_date_with_maghrib "$hijri_data" "$maghrib_time" "$current_time"
+
+    run get_current_hijri_date_with_maghrib "$current_time" "$maghrib_time" "$hijri_data"
     assert_success
-    
-    # Should increment day and add moon indicator
-    [[ "$output" == *"30,Jumada al-awwal,1446,Al Khamis"* ]]
-    [[ "$output" == *"🌙"* ]]
+
+    # Should increment day (moon indicator is handled by display module)
+    assert_output "30,Jumada al-awwal,1446,Al Khamis"
 }
 
 @test "get_current_hijri_date_with_maghrib should not change date before Maghrib" {
     local hijri_data="29,Jumada al-awwal,1446,Al Khamis"
     local maghrib_time="18:30"
     local current_time="16:00"  # Before Maghrib
-    
-    run get_current_hijri_date_with_maghrib "$hijri_data" "$maghrib_time" "$current_time"
+
+    run get_current_hijri_date_with_maghrib "$current_time" "$maghrib_time" "$hijri_data"
     assert_success
     assert_output "29,Jumada al-awwal,1446,Al Khamis"
 }

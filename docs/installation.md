@@ -33,35 +33,38 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 ```bash
 # Standard installation (backward compatible)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
 
 # Enhanced mode - comprehensive dependency analysis
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps
 
 # Interactive mode - user choice menu
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --interactive
 
 # Full experience - analysis + choices
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --check-all-deps --interactive
 
 # Preserve existing settings.json (skip Claude Code configuration)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash -s -- --preserve-statusline
+
+# Debug mode - detailed installation tracing (troubleshooting)
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
 ```
 
 ### Development Branch Installation
 
 ```bash
 # 🚀 DEV6 (Current Development - Enhanced Settings.json Management)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 
 # Dev6 with existing settings.json preservation
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 
 # 🌙 NIGHTLY (Experimental - Advanced Users Only)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
 
 # 🛠️ DEV (Stable Development)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
 ```
 
 ### Enhanced Settings.json Management (Dev6)
@@ -80,10 +83,10 @@ curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/
 
 ```bash
 # Install with settings.json preservation (new in dev6)
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 
 # Standard dev6 installation with settings.json backup and configuration
-curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6
 ```
 
 ### Download & Inspect First
@@ -592,6 +595,31 @@ brew install coreutils
 1. Check terminal color support: `echo $TERM`
 2. Try different theme: Edit `CONFIG_THEME="classic"` in script
 3. Use ANSI colors: Set `CONFIG_THEME="custom"` and modify color variables
+
+#### Installation Script Hangs During First Run
+
+**Problem**: Installation hangs when existing statusline directory and cache are present.
+
+**Solution**:
+```bash
+# Use debug mode to trace installation flow (v2.11.1+)
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+
+# Or enable via environment variable
+STATUSLINE_INSTALL_DEBUG=true curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash
+```
+
+**Manual Recovery**:
+```bash
+# 1. Kill hanging processes
+pkill -f "install.sh" && pkill -f "statusline.sh"
+
+# 2. Clean up and retry
+rm -rf ~/.cache/claude-code-statusline/ ~/.local/share/claude-code-statusline/
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev --debug
+```
+
+See [🐛 Troubleshooting Guide](troubleshooting.md#installation-hanging-issues) for complete details.
 
 #### Script hangs or is slow
 **Solutions**:
