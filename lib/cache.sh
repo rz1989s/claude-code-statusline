@@ -734,9 +734,18 @@ else
     declare -A CACHE_STATS_TOTAL_CALLS=()
 fi
 
+# Sanitize cache key to avoid bash arithmetic evaluation issues
+# Replaces patterns like "1m", "2k", etc. that bash may try to evaluate as numbers
+sanitize_cache_key() {
+    local key="$1"
+    # Replace all hyphens with double underscores to completely avoid arithmetic parsing issues
+    # The hyphen after number+letter patterns seems to confuse bash's parser
+    echo "$key" | tr '-' '_'
+}
+
 # Initialize cache statistics for a key
 init_cache_stats() {
-    local cache_key="$1"
+    local cache_key=$(sanitize_cache_key "$1")
     CACHE_STATS_HITS["$cache_key"]=0
     CACHE_STATS_MISSES["$cache_key"]=0
     CACHE_STATS_ERRORS["$cache_key"]=0
@@ -746,57 +755,72 @@ init_cache_stats() {
 
 # Record a cache hit with response time
 record_cache_hit() {
-    local cache_key="$1"
+    local cache_key=$(sanitize_cache_key "$1")
     local response_time_ms="${2:-0}"
-    
-    [[ -z "${CACHE_STATS_HITS["$cache_key"]:-}" ]] && init_cache_stats "$cache_key"
-    
-    CACHE_STATS_HITS["$cache_key"]=$((CACHE_STATS_HITS["$cache_key"] + 1))
-    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((CACHE_STATS_TOTAL_CALLS["$cache_key"] + 1))
-    
-    # Update average response time
-    local current_avg=${CACHE_STATS_RESPONSE_TIMES["$cache_key"]}
-    local total_calls=${CACHE_STATS_TOTAL_CALLS["$cache_key"]}
+
+    # Initialize stats for this key (idempotent, safe to call multiple times)
+    : "${CACHE_STATS_HITS["$cache_key"]:=0}"
+    : "${CACHE_STATS_MISSES["$cache_key"]:=0}"
+    : "${CACHE_STATS_ERRORS["$cache_key"]:=0}"
+    : "${CACHE_STATS_RESPONSE_TIMES["$cache_key"]:=0}"
+    : "${CACHE_STATS_TOTAL_CALLS["$cache_key"]:=0}"
+
+    CACHE_STATS_HITS["$cache_key"]=$((${CACHE_STATS_HITS["$cache_key"]} + 1))
+    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((${CACHE_STATS_TOTAL_CALLS["$cache_key"]} + 1))
+
+    # Update average response time (use local vars to avoid bash arithmetic parsing issues)
+    local current_avg="${CACHE_STATS_RESPONSE_TIMES["$cache_key"]}"
+    local total_calls="${CACHE_STATS_TOTAL_CALLS["$cache_key"]}"
     CACHE_STATS_RESPONSE_TIMES["$cache_key"]=$(( (current_avg * (total_calls - 1) + response_time_ms) / total_calls ))
 }
 
 # Record a cache miss with response time
 record_cache_miss() {
-    local cache_key="$1"
+    local cache_key=$(sanitize_cache_key "$1")
     local response_time_ms="${2:-0}"
-    
-    [[ -z "${CACHE_STATS_MISSES["$cache_key"]:-}" ]] && init_cache_stats "$cache_key"
-    
-    CACHE_STATS_MISSES["$cache_key"]=$((CACHE_STATS_MISSES["$cache_key"] + 1))
-    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((CACHE_STATS_TOTAL_CALLS["$cache_key"] + 1))
-    
-    # Update average response time
-    local current_avg=${CACHE_STATS_RESPONSE_TIMES["$cache_key"]}
-    local total_calls=${CACHE_STATS_TOTAL_CALLS["$cache_key"]}
+
+    # Initialize stats for this key (idempotent, safe to call multiple times)
+    : "${CACHE_STATS_HITS["$cache_key"]:=0}"
+    : "${CACHE_STATS_MISSES["$cache_key"]:=0}"
+    : "${CACHE_STATS_ERRORS["$cache_key"]:=0}"
+    : "${CACHE_STATS_RESPONSE_TIMES["$cache_key"]:=0}"
+    : "${CACHE_STATS_TOTAL_CALLS["$cache_key"]:=0}"
+
+    CACHE_STATS_MISSES["$cache_key"]=$((${CACHE_STATS_MISSES["$cache_key"]} + 1))
+    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((${CACHE_STATS_TOTAL_CALLS["$cache_key"]} + 1))
+
+    # Update average response time (use local vars to avoid bash arithmetic parsing issues)
+    local current_avg="${CACHE_STATS_RESPONSE_TIMES["$cache_key"]}"
+    local total_calls="${CACHE_STATS_TOTAL_CALLS["$cache_key"]}"
     CACHE_STATS_RESPONSE_TIMES["$cache_key"]=$(( (current_avg * (total_calls - 1) + response_time_ms) / total_calls ))
 }
 
 # Record a cache error
 record_cache_error() {
-    local cache_key="$1"
-    
-    [[ -z "${CACHE_STATS_ERRORS["$cache_key"]:-}" ]] && init_cache_stats "$cache_key"
-    
-    CACHE_STATS_ERRORS["$cache_key"]=$((CACHE_STATS_ERRORS["$cache_key"] + 1))
-    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((CACHE_STATS_TOTAL_CALLS["$cache_key"] + 1))
+    local cache_key=$(sanitize_cache_key "$1")
+
+    # Initialize stats for this key (idempotent, safe to call multiple times)
+    : "${CACHE_STATS_HITS["$cache_key"]:=0}"
+    : "${CACHE_STATS_MISSES["$cache_key"]:=0}"
+    : "${CACHE_STATS_ERRORS["$cache_key"]:=0}"
+    : "${CACHE_STATS_RESPONSE_TIMES["$cache_key"]:=0}"
+    : "${CACHE_STATS_TOTAL_CALLS["$cache_key"]:=0}"
+
+    CACHE_STATS_ERRORS["$cache_key"]=$((${CACHE_STATS_ERRORS["$cache_key"]} + 1))
+    CACHE_STATS_TOTAL_CALLS["$cache_key"]=$((${CACHE_STATS_TOTAL_CALLS["$cache_key"]} + 1))
 }
 
 # Calculate cache hit ratio for a specific key
 get_cache_hit_ratio() {
-    local cache_key="$1"
+    local cache_key=$(sanitize_cache_key "$1")
     local hits=${CACHE_STATS_HITS["$cache_key"]:-0}
     local total=${CACHE_STATS_TOTAL_CALLS["$cache_key"]:-0}
-    
+
     if [[ $total -eq 0 ]]; then
         echo "0.00"
         return
     fi
-    
+
     local ratio
     ratio=$(awk -v h="$hits" -v t="$total" 'BEGIN { printf "%.2f", (h/t)*100 }')
     echo "$ratio"
