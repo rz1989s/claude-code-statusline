@@ -85,9 +85,10 @@ trace_execution() {
     fi
 }
 
-# Function to check if command exists
+# Function to check if command exists (Windows-compatible)
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    # Check for command with and without .exe extension (Windows compatibility)
+    command -v "$1" >/dev/null 2>&1 || command -v "$1.exe" >/dev/null 2>&1
 }
 
 # Enhanced system detection and capability analysis
@@ -114,10 +115,13 @@ detect_system_capabilities() {
     # Package Manager Detection (in priority order)
     PKG_MGR="none"
     PKG_INSTALL_CMD=""
-    
+
     if command_exists brew; then
         PKG_MGR="brew"
         PKG_INSTALL_CMD="brew install"
+    elif command_exists choco; then
+        PKG_MGR="choco"
+        PKG_INSTALL_CMD="choco install"
     elif command_exists apt; then
         PKG_MGR="apt"
         PKG_INSTALL_CMD="sudo apt update && sudo apt install"
@@ -339,6 +343,16 @@ check_dependencies() {
         # Platform-specific installation instructions
         if [[ "$OS_TYPE" == "Darwin" ]]; then
             print_status "  macOS: brew install ${missing_deps[*]}"
+        elif [[ "$OS_PLATFORM" == "Windows" ]]; then
+            # Windows-specific instructions
+            print_status "  Windows (Chocolatey): choco install ${missing_deps[*]}"
+            print_status "  Windows (Scoop): scoop install ${missing_deps[*]}"
+            print_warning ""
+            print_warning "⚠️  Windows Troubleshooting:"
+            print_warning "  1. Close and reopen Git Bash after installing packages"
+            print_warning "  2. Verify PATH includes: C:\\ProgramData\\chocolatey\\bin"
+            print_warning "  3. Test in new terminal: curl --version && jq --version"
+            print_warning "  4. Run as Administrator if PATH issues persist"
         else
             # Distribution-aware Linux instructions
             case "$PKG_MGR" in
@@ -348,7 +362,8 @@ check_dependencies() {
                 "pacman") print_status "  Arch Linux: sudo pacman -S ${missing_deps[*]}" ;;
                 "apk") print_status "  Alpine: sudo apk add ${missing_deps[*]}" ;;
                 "pkg") print_status "  FreeBSD: sudo pkg install ${missing_deps[*]}" ;;
-                *) print_status "  Linux: Install using your package manager: ${missing_deps[*]}" ;;
+                "choco") print_status "  Windows: choco install ${missing_deps[*]}" ;;
+                *) print_status "  Install using your package manager: ${missing_deps[*]}" ;;
             esac
         fi
         exit 1
@@ -456,6 +471,21 @@ generate_install_commands() {
             done
             [ ${#pacman_deps[@]} -gt 0 ] && echo "$PKG_INSTALL_CMD ${pacman_deps[*]}"
             ;;
+        "choco")
+            echo "# Windows with Chocolatey"
+            local choco_deps=()
+            for dep in "${all_missing[@]}"; do
+                case "$dep" in
+                    "bunx") choco_deps+=("bun") ;;
+                    "python3") choco_deps+=("python") ;;
+                    "coreutils") ;; # Skip coreutils on Windows (not available via choco)
+                    *) choco_deps+=("$dep") ;;
+                esac
+            done
+            [ ${#choco_deps[@]} -gt 0 ] && echo "$PKG_INSTALL_CMD ${choco_deps[*]}"
+            echo ""
+            echo "⚠️  After installation, close and reopen Git Bash to reload PATH"
+            ;;
         "none")
             if [[ "$OS_PLATFORM" == "macOS" ]]; then
                 echo "❌ No package manager detected on macOS"
@@ -468,6 +498,23 @@ generate_install_commands() {
                 echo
                 echo "Step 3: Re-run statusline installer"
                 echo "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
+            elif [[ "$OS_PLATFORM" == "Windows" ]]; then
+                echo "❌ No package manager detected on Windows"
+                echo
+                echo "Step 1: Install Chocolatey (recommended) or Scoop"
+                echo "# Chocolatey (run in PowerShell as Administrator):"
+                echo "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+                echo
+                echo "# OR Scoop (run in PowerShell):"
+                echo "iwr -useb get.scoop.sh | iex"
+                echo
+                echo "Step 2: Then install dependencies"
+                echo "choco install curl jq bun python bc"
+                echo "# OR with Scoop:"
+                echo "scoop install curl jq bun python bc"
+                echo
+                echo "Step 3: Close and reopen Git Bash, then re-run installer"
+                echo "curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
             else
                 echo "⚠️ Manual installation required"
                 echo
