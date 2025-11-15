@@ -378,17 +378,11 @@ load_cached_location() {
         return 1
     fi
     
-    # Check cache age
+    # Check cache age (cross-platform)
     if command_exists stat; then
-        local file_age
-        if [[ "$(uname)" == "Darwin" ]]; then
-            # macOS stat format
-            file_age=$(( $(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || echo 0) ))
-        else
-            # Linux stat format  
-            file_age=$(( $(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || echo 0) ))
-        fi
-        
+        local cache_mtime=$(get_file_mtime "$cache_file")
+        local file_age=$(( $(date +%s) - cache_mtime ))
+
         if [[ $file_age -gt $cache_duration_seconds ]]; then
             debug_log "Cached location data is too old (${file_age}s), ignoring" "INFO"
             return 1
