@@ -128,9 +128,19 @@ sanitize_variable_name() {
         sanitized="var_${sanitized}"
     fi
 
+    # Enforce maximum length to prevent excessively long variable names
+    if [[ ${#sanitized} -gt 64 ]]; then
+        sanitized="${sanitized:0:64}_truncated"
+    fi
+
     # Ensure result is not empty
     if [[ -z "$sanitized" ]]; then
         sanitized="var_unknown"
+    fi
+
+    # Log sanitization events when input was modified (debug mode)
+    if [[ "$input" != "$sanitized" ]] && [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Username sanitized: '$input' → '$sanitized'" "INFO"
     fi
 
     echo "$sanitized"
