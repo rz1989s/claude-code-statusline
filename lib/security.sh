@@ -102,6 +102,50 @@ sanitize_path_secure() {
     echo "$sanitized"
 }
 
+# Sanitize string for use as bash variable name
+# Bash variable names can only contain: letters, numbers, underscores
+# Must start with letter or underscore
+sanitize_variable_name() {
+    local input="$1"
+
+    # Validate input
+    if [[ -z "$input" ]]; then
+        echo "var_unknown"
+        return 0
+    fi
+
+    # Replace dots with underscores (main issue from #51)
+    local sanitized="${input//./_}"
+
+    # Replace hyphens with underscores
+    sanitized="${sanitized//-/_}"
+
+    # Remove any characters that aren't alphanumeric or underscore
+    sanitized=$(printf '%s' "$sanitized" | /usr/bin/tr -cd '[:alnum:]_')
+
+    # Ensure it doesn't start with a number (bash requirement)
+    if [[ "$sanitized" =~ ^[0-9] ]]; then
+        sanitized="var_${sanitized}"
+    fi
+
+    # Enforce maximum length to prevent excessively long variable names
+    if [[ ${#sanitized} -gt 64 ]]; then
+        sanitized="${sanitized:0:64}_truncated"
+    fi
+
+    # Ensure result is not empty
+    if [[ -z "$sanitized" ]]; then
+        sanitized="var_unknown"
+    fi
+
+    # Log sanitization events when input was modified (debug mode)
+    if [[ "$input" != "$sanitized" ]] && [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Username sanitized: '$input' → '$sanitized'" "INFO"
+    fi
+
+    echo "$sanitized"
+}
+
 # ============================================================================
 # SECURE FILE OPERATIONS
 # ============================================================================
@@ -420,6 +464,6 @@ init_security_module() {
 init_security_module
 
 # Export security functions
-export -f sanitize_path_secure create_secure_cache_file validate_ansi_color
+export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color
 export -f execute_python_safely parse_mcp_server_name_secure
 export -f parse_timeout_to_seconds is_cache_fresh cleanup_stale_locks
