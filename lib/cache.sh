@@ -267,7 +267,9 @@ generate_typed_cache_key() {
 
 # Instance-specific cache management with XDG compliance
 # Use a more stable session identifier for better cache sharing across statusline calls
-export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${USER}_claude_statusline}}"
+# Sanitize USER to ensure valid variable names (issue #51: dots in username)
+SANITIZED_USER=$(sanitize_variable_name "${USER}")
+export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${SANITIZED_USER}_claude_statusline}}"
 
 # Update session marker location to be more secure
 if [[ "$CACHE_BASE_DIR" =~ ^/tmp ]]; then
