@@ -134,7 +134,7 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((available_features++))
+            ((++available_features))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_critical+=("$dep")
@@ -147,7 +147,7 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((available_features++))
+            ((++available_features))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_important+=("$dep")
@@ -160,7 +160,7 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((available_features++))
+            ((++available_features))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_helpful+=("$dep")
@@ -172,7 +172,7 @@ check_all_dependencies() {
         local timeout_cmd="gtimeout"
         command_exists "timeout" && timeout_cmd="timeout"
         printf "  ✅ %-8s → %s\\n" "$timeout_cmd" "Network operation protection"
-        ((available_features++))
+        ((++available_features))
     else
         printf "  ⚠️ %-8s → %s\\n" "timeout" "Network operation protection"
         missing_optional+=("timeout")
@@ -559,7 +559,7 @@ download_directory_comprehensive() {
         for attempt in {1..3}; do
             if curl -fsSL "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $module"
-                ((files_downloaded++))
+                ((++files_downloaded))
                 file_downloaded=true
                 break
             else
@@ -647,7 +647,7 @@ download_directory_with_api_fallback() {
     while IFS='|' read -r download_url filename file_type; do
         [[ "$file_type" == "file" && "$filename" == *.sh ]] || continue
         
-        ((total_files++))
+        ((++total_files))
         local file_path="$local_path/$filename"
         local file_downloaded=false
         
@@ -655,7 +655,7 @@ download_directory_with_api_fallback() {
         for file_attempt in {1..3}; do
             if curl -fsSL "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $repo_path/$filename"
-                ((files_downloaded++))
+                ((++files_downloaded))
                 file_downloaded=true
                 break
             else
@@ -843,7 +843,7 @@ download_lib_fallback() {
         for attempt in {1..3}; do
             if curl -fsSL "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
                 print_status "✓ Downloaded $module"
-                ((successful_downloads++))
+                ((++successful_downloads))
                 module_downloaded=true
                 break
             else
@@ -916,7 +916,7 @@ download_examples() {
         
         if curl -fsSL "$config_url" -o "$config_path"; then
             print_status "  ✓ Downloaded $config (reference template)"
-            ((successful_downloads++))
+            ((++successful_downloads))
         else
             print_error "  ✗ Failed to download $config"
             failed_downloads+=("$config")
@@ -931,7 +931,7 @@ download_examples() {
     
     if curl -fsSL "$readme_url" -o "$readme_path"; then
         print_status "  ✓ Downloaded examples/README.md"
-        ((successful_downloads++))
+        ((++successful_downloads))
     else
         print_error "  ✗ Failed to download examples/README.md"
         failed_downloads+=("examples/README.md")
