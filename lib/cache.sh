@@ -682,12 +682,9 @@ recover_stale_locks() {
     # Check lock age
     local lock_age
     if command -v stat >/dev/null 2>&1; then
-        if [[ "$(uname)" == "Darwin" ]]; then
-            lock_age=$(( $(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || echo 0) ))
-        else
-            lock_age=$(( $(date +%s) - $(stat -c %Y "$lock_file" 2>/dev/null || echo 0) ))
-        fi
-        
+        local lock_mtime=$(get_file_mtime "$lock_file")
+        lock_age=$(( $(date +%s) - lock_mtime ))
+
         if [[ $lock_age -gt $max_age_seconds ]]; then
             report_cache_warning "STALE_LOCK_RECOVERY" \
                 "Removing stale lock (age: ${lock_age}s): $(basename "$lock_file")" \
@@ -916,12 +913,7 @@ get_cache_memory_stats() {
         if [[ -f "$file" ]]; then
             file_count=$((file_count + 1))
             if command -v stat >/dev/null 2>&1; then
-                local file_size
-                if [[ "$(uname)" == "Darwin" ]]; then
-                    file_size=$(stat -f %z "$file" 2>/dev/null || echo 0)
-                else
-                    file_size=$(stat -c %s "$file" 2>/dev/null || echo 0)
-                fi
+                local file_size=$(get_file_size "$file")
                 total_size=$((total_size + file_size))
             fi
         fi

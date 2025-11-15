@@ -162,8 +162,9 @@ load_cached_location() {
         return 1
     fi
     
-    # Check cache age
-    local cache_age=$(($(date +%s) - $(stat -c %Y "$cache_file" 2>/dev/null || echo 0)))
+    # Check cache age (cross-platform)
+    local cache_mtime=$(get_file_mtime "$cache_file")
+    local cache_age=$(($(date +%s) - cache_mtime))
     if [[ $cache_age -gt $cache_ttl ]]; then
         debug_log "Cached location data expired (${cache_age}s > ${cache_ttl}s)" "INFO"
         rm -f "$cache_file" 2>/dev/null

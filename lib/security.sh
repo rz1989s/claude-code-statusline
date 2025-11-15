@@ -217,8 +217,8 @@ create_secure_cache_file() {
         if [[ $write_status -eq 0 && -f "$cache_file" ]]; then
             # Verify permissions were set correctly
             local perms
-            perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
-            if [[ "$perms" != "644" ]]; then
+            perms=$(get_file_permissions "$cache_file")
+            if [[ -n "$perms" && "$perms" != "644" ]]; then
                 handle_warning "Cache file has unexpected permissions: $perms (expected: 644)" "create_secure_cache_file"
                 # Try to fix permissions
                 chmod 644 "$cache_file" 2>/dev/null
@@ -407,6 +407,72 @@ parse_timeout_to_seconds() {
 }
 
 # ============================================================================
+# PLATFORM-AWARE FILE STAT HELPERS
+# ============================================================================
+
+# Get file modification time (cross-platform, BSD/GNU stat compatible)
+# Returns: Unix timestamp (seconds since epoch) or 0 on failure
+get_file_mtime() {
+    local file="$1"
+    local mtime
+
+    [[ ! -f "$file" ]] && echo "0" && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux), then fallback
+    if mtime=$(stat -f %m "$file" 2>/dev/null); then
+        echo "$mtime"
+        return 0
+    elif mtime=$(stat -c %Y "$file" 2>/dev/null); then
+        echo "$mtime"
+        return 0
+    else
+        echo "0"
+        return 1
+    fi
+}
+
+# Get file permissions (cross-platform, BSD/GNU stat compatible)
+# Returns: Octal permissions (e.g., "644") or empty string on failure
+get_file_permissions() {
+    local file="$1"
+    local perms
+
+    [[ ! -f "$file" ]] && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux)
+    if perms=$(stat -f %A "$file" 2>/dev/null); then
+        echo "$perms"
+        return 0
+    elif perms=$(stat -c %a "$file" 2>/dev/null); then
+        echo "$perms"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Get file size in bytes (cross-platform, BSD/GNU stat compatible)
+# Returns: File size in bytes or 0 on failure
+get_file_size() {
+    local file="$1"
+    local size
+
+    [[ ! -f "$file" ]] && echo "0" && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux)
+    if size=$(stat -f %z "$file" 2>/dev/null); then
+        echo "$size"
+        return 0
+    elif size=$(stat -c %s "$file" 2>/dev/null); then
+        echo "$size"
+        return 0
+    else
+        echo "0"
+        return 1
+    fi
+}
+
+# ============================================================================
 # CACHE VALIDATION
 # ============================================================================
 
@@ -414,9 +480,10 @@ parse_timeout_to_seconds() {
 is_cache_fresh() {
     local cache_file="$1"
     local cache_duration="${2:-30}" # Default 30 seconds
-    
+
     if [[ -f "$cache_file" ]]; then
-        local cache_age=$(($(get_timestamp) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0)))
+        local file_mtime=$(get_file_mtime "$cache_file")
+        local cache_age=$(($(get_timestamp) - file_mtime))
         [[ $cache_age -lt $cache_duration ]]
     else
         return 1
@@ -427,10 +494,11 @@ is_cache_fresh() {
 cleanup_stale_locks() {
     local lock_file="$1"
     local max_age="${2:-120}" # Default 2 minutes
-    
+
     if [[ -f "$lock_file" ]]; then
         local lock_content=$(cat "$lock_file" 2>/dev/null)
-        local lock_age=$(($(get_timestamp) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        local lock_mtime=$(get_file_mtime "$lock_file")
+        local lock_age=$(($(get_timestamp) - lock_mtime))
 
         # Extract PID from lock file format: "instance:PID:timestamp" or "PID:timestamp:instance"
         local lock_pid
@@ -464,6 +532,6 @@ init_security_module() {
 init_security_module
 
 # Export security functions
-export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color
+export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color get_file_mtime get_file_permissions get_file_size
 export -f execute_python_safely parse_mcp_server_name_secure
 export -f parse_timeout_to_seconds is_cache_fresh cleanup_stale_locks
