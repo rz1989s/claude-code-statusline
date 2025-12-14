@@ -99,3 +99,5 @@ social-media-posts/
 
 # API research data
 api-research/
+# Claude Code local settings
+.claude/
