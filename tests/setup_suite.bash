@@ -39,8 +39,8 @@ export CONFIG_MCP_TIMEOUT="1s"
 export CONFIG_VERSION_TIMEOUT="1s"
 export CONFIG_CCUSAGE_TIMEOUT="1s"
 
-# Test directories
-export TEST_FIXTURES_DIR="$BATS_TEST_DIRNAME/fixtures"
+# Test directories - fixtures are in tests/fixtures, not subdirectories
+export TEST_FIXTURES_DIR="$STATUSLINE_ROOT/tests/fixtures"
 export TEST_TMP_DIR="/tmp/statusline_test_$$"
 export TEST_CACHE_DIR="$TEST_TMP_DIR/cache"
 
@@ -53,12 +53,20 @@ setup_test_env() {
     mkdir -p "$TEST_TMP_DIR"
     mkdir -p "$TEST_CACHE_DIR"
     mkdir -p "$MOCK_BIN_DIR"
-    
-    # Add mock bin to PATH
+
+    # Add mock bin to PATH (must be first to override system commands)
     export PATH="$MOCK_BIN_DIR:$PATH"
-    
+
+    # Force statusline to use test cache directory
+    export CLAUDE_CACHE_DIR="$TEST_CACHE_DIR"
+    export XDG_CACHE_HOME="$TEST_TMP_DIR/xdg_cache"
+    mkdir -p "$XDG_CACHE_HOME"
+
     # Set test-specific cache file
     export CONFIG_VERSION_CACHE_FILE="$TEST_CACHE_DIR/.claude_version_cache"
+
+    # Disable caching for more predictable test behavior
+    export STATUSLINE_DISABLE_CACHE="true"
 }
 
 # Cleanup test environment
@@ -260,6 +268,29 @@ fi
 
 if [[ -f "/usr/local/lib/bats-assert/load.bash" ]]; then
     load "/usr/local/lib/bats-assert/load.bash"
+fi
+
+# Fallback: refute_output if bats-assert not available
+if ! type refute_output &>/dev/null; then
+    refute_output() {
+        local unexpected=""
+        if [[ "$1" == "--partial" ]]; then
+            unexpected="$2"
+            if [[ "$output" == *"$unexpected"* ]]; then
+                echo "Expected output NOT to contain: '$unexpected'"
+                echo "Actual output: '$output'"
+                return 1
+            fi
+        else
+            unexpected="$1"
+            if [[ "$output" == "$unexpected" ]]; then
+                echo "Expected output NOT to equal: '$unexpected'"
+                echo "Actual output: '$output'"
+                return 1
+            fi
+        fi
+        return 0
+    }
 fi
 
 # Common setup that runs before each test

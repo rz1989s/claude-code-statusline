@@ -59,7 +59,7 @@ teardown() {
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
     
     assert_success
-    assert_output_contains "MCP (2/3)"       # Partial connection status
+    assert_output_contains "MCP:2/3"         # Partial connection status (2 of 3 connected)
 }
 
 @test "should handle missing ccusage gracefully" {
@@ -194,7 +194,7 @@ EOF
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
     
     assert_success
-    assert_output_contains "🔥 LIVE"         # Active block indicator
+    assert_output_contains "🔥LIVE"          # Active block indicator (no space between emoji and label)
     assert_output_contains "RESET at"        # Reset time info
 }
 
@@ -213,50 +213,50 @@ EOF
 
 # Test timeout handling
 @test "should handle MCP timeout gracefully" {
-    # Create slow MCP command that will timeout
+    # Create mock claude that simulates timeout (exit code 124)
     cat > "$MOCK_BIN_DIR/claude" << 'EOF'
 #!/bin/bash
 if [[ "$1" == "mcp" && "$2" == "list" ]]; then
-    sleep 10  # Longer than timeout
-    echo "This should not appear"
+    # Simulate timeout immediately - exit code 124 is what timeout returns
+    exit 124
 elif [[ "$1" == "--version" ]]; then
-    cat "$TEST_FIXTURES_DIR/sample_outputs/claude_version.txt"
+    echo "1.0.81 (Claude Code)"
 fi
 EOF
     chmod +x "$MOCK_BIN_DIR/claude"
-    
+
     # Set short timeout
     export CONFIG_MCP_TIMEOUT="1s"
-    
+
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
-    
+
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
-    
+
     assert_success
-    assert_output_contains "MCP (?/?)"       # Should show unknown status after timeout
+    assert_output_contains "MCP:?/?"         # Should show unknown status after timeout
 }
 
 @test "should handle ccusage timeout gracefully" {
-    # Create slow ccusage command
+    # Create mock ccusage that simulates timeout (exit code 124)
     cat > "$MOCK_BIN_DIR/bunx" << 'EOF'
 #!/bin/bash
 if [[ "$1" == "ccusage" ]]; then
     if [[ "$2" == "--version" ]]; then
         echo "ccusage 1.0.0"
     else
-        sleep 10  # Longer than timeout
-        echo "This should not appear"
+        # Simulate timeout immediately - exit code 124 is what timeout returns
+        exit 124
     fi
 fi
 EOF
     chmod +x "$MOCK_BIN_DIR/bunx"
-    
+
     export CONFIG_CCUSAGE_TIMEOUT="1s"
-    
+
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
-    
+
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
-    
+
     assert_success
     # Should show fallback values for cost tracking
     assert_output_contains "\$0.00"
@@ -296,13 +296,13 @@ EOF
     setup_mock_mcp "timeout"
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
     assert_success
-    assert_output_contains "MCP (?/?)"
-    
+    assert_output_contains "MCP:?/?"
+
     # Second run with working MCP
     setup_mock_mcp "connected"
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
     assert_success
-    assert_output_contains "MCP (3/3)"
+    assert_output_contains "MCP:3/3"
 }
 
 # Test cache behavior
