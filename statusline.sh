@@ -198,7 +198,7 @@ THEMES:
     ENV_CONFIG_THEME=catppuccin ./statusline.sh  - Use catppuccin theme
 
 DEBUGGING:
-    STATUSLINE_DEBUG_MODE=true ./statusline.sh   - Enable debug logging
+    STATUSLINE_DEBUG=true ./statusline.sh        - Enable debug logging
 
 FEATURES:
     - 4-line statusline with git status, MCP monitoring, and cost tracking

@@ -146,12 +146,24 @@ We welcome contributions in many forms! Choose what resonates with your skills a
    ```bash
    # Install npm dependencies for testing
    npm install
-   
+
    # Verify setup by running tests
    npm test
    ```
 
-3. **Verify Installation**:
+3. **Setup Pre-commit Hooks** (recommended):
+   ```bash
+   # Install pre-commit framework
+   pip install pre-commit
+
+   # Install hooks (runs shellcheck, validates TOML, etc.)
+   pre-commit install
+
+   # Test hooks manually
+   pre-commit run --all-files
+   ```
+
+4. **Verify Installation**:
    ```bash
    # Test the statusline directly
    ./statusline.sh --help

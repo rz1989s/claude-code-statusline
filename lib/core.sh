@@ -43,7 +43,7 @@ _strict_mode_error_handler() {
     local func_name="$4"
 
     # Only log if debug mode is enabled to avoid noise
-    if [[ "${STATUSLINE_DEBUG_MODE:-false}" == "true" ]]; then
+    if [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]; then
         echo "[ERR] Command failed (exit $exit_code) at ${source_file}:${line_number} in ${func_name}" >&2
     fi
 
@@ -269,13 +269,19 @@ cleanup_temp_resources() {
     [[ -n "$temp_dir" && -d "$temp_dir" ]] && rm -rf "$temp_dir" 2>/dev/null
 }
 
+# Check if debug mode is enabled (standardized helper - Issue #78)
+# Usage: if is_debug_mode; then echo "debug info"; fi
+is_debug_mode() {
+    [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]
+}
+
 # Debug logging function (respects debug configuration)
 debug_log() {
     local message="$1"
     local level="${2:-INFO}"
-    
-    # Only log if debug mode is enabled (will be set by config module)
-    if [[ "${STATUSLINE_DEBUG_MODE:-false}" == "true" ]]; then
+
+    # Only log if debug mode is enabled
+    if is_debug_mode; then
         echo "[$level] $(date '+%Y-%m-%d %H:%M:%S') $message" >&2
     fi
 }
@@ -376,5 +382,5 @@ init_core_module
 # Export core functions for use by other modules
 export -f load_module is_module_loaded get_script_dir safe_echo command_exists
 export -f get_timestamp is_numeric is_boolean safe_compare
-export -f create_temp_dir cleanup_temp_resources debug_log
+export -f create_temp_dir cleanup_temp_resources debug_log is_debug_mode
 export -f start_timer end_timer handle_error handle_warning
