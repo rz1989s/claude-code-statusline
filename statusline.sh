@@ -211,6 +211,16 @@ For detailed configuration, see: https://github.com/rz1989s/claude-code-statusli
 EOF
 }
 
+# ============================================================================
+# SOURCE GUARD - Allow tests to source the script for function access
+# ============================================================================
+# When sourced (not executed directly), return after loading modules/functions
+# This enables testing individual functions without triggering stdin reads
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    debug_log "Script sourced - returning after module initialization" "INFO"
+    return 0 2>/dev/null || true
+fi
+
 # Parse command-line arguments
 if [[ $# -gt 0 ]]; then
     case "$1" in
