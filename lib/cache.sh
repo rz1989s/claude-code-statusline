@@ -305,8 +305,10 @@ migrate_legacy_cache() {
         return 1
     fi
     
-    # Set proper permissions
-    chmod 700 "$new_dir" 2>/dev/null
+    # Set proper permissions (non-fatal if fails - directory is still usable)
+    if ! chmod 700 "$new_dir" 2>/dev/null; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Could not set permissions on $new_dir (non-fatal)" "WARN"
+    fi
     
     # Migrate valid cache files with integrity verification
     local migrated_count=0
@@ -359,7 +361,10 @@ init_cache_directory() {
     
     if [[ ! -d "$CACHE_BASE_DIR" ]]; then
         if mkdir -p "$CACHE_BASE_DIR" 2>/dev/null; then
-            chmod 700 "$CACHE_BASE_DIR" 2>/dev/null
+            # Set restrictive permissions (non-fatal if fails)
+            if ! chmod 700 "$CACHE_BASE_DIR" 2>/dev/null; then
+                [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Could not set permissions on $CACHE_BASE_DIR (non-fatal)" "WARN"
+            fi
             [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Created XDG-compliant cache directory: $CACHE_BASE_DIR" "INFO"
         else
             # Attempt directory recovery
@@ -397,14 +402,17 @@ get_cache_file_path() {
 # Clean up old cache files and orphaned session markers
 cleanup_cache_files() {
     # Remove cache files older than 24 hours
+    # Note: Errors suppressed intentionally - cleanup is best-effort, cache dir may not exist
     find "$CACHE_BASE_DIR" -name "*.cache" -mtime +1 -delete 2>/dev/null || true
-    
+
     # Remove orphaned session markers (where process no longer exists)
     for marker in /tmp/.cache_session_*; do
         [[ -f "$marker" ]] || continue
-        
+
         local marker_pid="${marker##*_}"
+        # Note: kill -0 stderr suppressed - expected to fail for non-existent processes
         if [[ "$marker_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$marker_pid" 2>/dev/null; then
+            # Note: rm stderr suppressed - file may already be removed by another process
             rm -f "$marker" 2>/dev/null
             [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Removed orphaned cache session marker: $marker_pid" "INFO"
         fi
@@ -615,7 +623,9 @@ recover_cache_directory() {
     )
     
     for alt_dir in "${alternatives[@]}"; do
+        # Note: mkdir stderr suppressed - expected to fail for some alternatives
         if [[ -n "$alt_dir" ]] && mkdir -p "$alt_dir" 2>/dev/null; then
+            # Note: chmod stderr suppressed - non-fatal, directory still usable
             chmod 700 "$alt_dir" 2>/dev/null
             [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Successfully recovered using fallback directory: $alt_dir" "INFO"
             echo "$alt_dir"
@@ -645,11 +655,13 @@ detect_and_recover_corruption() {
         report_cache_warning "CORRUPTION_DETECTED" \
             "Cache file not readable: $(basename "$cache_file")" \
             "Removing corrupted file and regenerating cache"
+        # Note: rm stderr suppressed - file may have been removed by another process
         rm -f "$cache_file" 2>/dev/null
         return 1
     fi
-    
+
     # Check for empty or invalid files
+    # Note: head stderr suppressed - file may be unreadable or removed between checks
     if [[ ! -s "$cache_file" ]] || [[ "$(head -c 1 "$cache_file" 2>/dev/null | wc -c)" -eq 0 ]]; then
         report_cache_warning "CORRUPTION_DETECTED" \
             "Cache file empty or invalid: $(basename "$cache_file")" \
@@ -657,8 +669,9 @@ detect_and_recover_corruption() {
         rm -f "$cache_file" 2>/dev/null
         return 1
     fi
-    
+
     # Check for null bytes or control characters (basic corruption detection)
+    # Note: grep stderr suppressed - binary file warning expected for corrupted files
     if grep -q $'\\0\\|\\x1\\|\\x2\\|\\x3' "$cache_file" 2>/dev/null; then
         report_cache_warning "CORRUPTION_DETECTED" \
             "Cache file contains invalid characters: $(basename "$cache_file")" \
@@ -689,19 +702,23 @@ recover_stale_locks() {
             report_cache_warning "STALE_LOCK_RECOVERY" \
                 "Removing stale lock (age: ${lock_age}s): $(basename "$lock_file")" \
                 "Lock was older than ${max_age_seconds}s threshold"
+            # Note: rm stderr suppressed - lock may have been removed by another process
             rm -f "$lock_file" 2>/dev/null
             return 0
         fi
     fi
-    
+
     # Check if lock process still exists
     if [[ -r "$lock_file" ]]; then
         local lock_content
+        # Note: cat stderr suppressed - lock file may be removed/unreadable mid-check
         lock_content="$(cat "$lock_file" 2>/dev/null || echo "")"
         local lock_pid
+        # Note: cut stderr suppressed - defensive against malformed lock content
         lock_pid="$(echo "$lock_content" | cut -d':' -f2 2>/dev/null || echo "")"
-        
+
         if [[ -n "$lock_pid" ]] && [[ "$lock_pid" =~ ^[0-9]+$ ]]; then
+            # Note: kill -0 stderr suppressed - expected to fail for non-existent processes
             if ! kill -0 "$lock_pid" 2>/dev/null; then
                 report_cache_warning "ORPHANED_LOCK_RECOVERY" \
                     "Removing orphaned lock (PID $lock_pid not found): $(basename "$lock_file")" \

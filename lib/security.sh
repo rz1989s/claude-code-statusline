@@ -168,11 +168,14 @@ create_secure_cache_file() {
     local cache_dir
     cache_dir=$(dirname "$cache_file")
     if [[ ! -d "$cache_dir" ]]; then
+        # Note: mkdir/chmod stderr suppressed - parent may not exist or lack permissions
+        # Function will fail gracefully on write if directory creation fails
         mkdir -p "$cache_dir" 2>/dev/null
         chmod 700 "$cache_dir" 2>/dev/null # Secure permissions to prevent other users from reading cost data
     fi
 
     # Acquire exclusive file lock to prevent race conditions
+    # Note: set -C + redirect stderr suppressed - expected to fail when lock exists
     while ! (
         set -C
         echo $$ >"$lock_file"
@@ -192,25 +195,31 @@ create_secure_cache_file() {
         local temp_file="${cache_file}.tmp.$$"
 
         # Write content to temporary file
+        # Note: stderr suppressed - write_status captures success/failure
         echo "$content" >"$temp_file" 2>/dev/null
         write_status=$?
 
         if [[ $write_status -eq 0 && -f "$temp_file" ]]; then
             # Set secure permissions before moving
+            # Note: chmod stderr suppressed - non-fatal, file still usable
             chmod 644 "$temp_file" 2>/dev/null
 
             # Atomic move to final location
+            # Note: mv stderr suppressed - write_status captures success/failure
             mv "$temp_file" "$cache_file" 2>/dev/null
             write_status=$?
         else
             handle_error "Failed to write to temporary cache file: $temp_file" 1 "create_secure_cache_file"
+            # Note: rm stderr suppressed - file may not exist
             rm -f "$temp_file" 2>/dev/null
         fi
 
         # Clean up temporary file if move failed
+        # Note: rm stderr suppressed - file may already be removed
         [[ -f "$temp_file" ]] && rm -f "$temp_file" 2>/dev/null
 
         # Release lock
+        # Note: rm stderr suppressed - lock may not exist if acquisition failed
         rm -f "$lock_file" 2>/dev/null
 
         # Verify final result
@@ -412,6 +421,8 @@ parse_timeout_to_seconds() {
 
 # Get file modification time (cross-platform, BSD/GNU stat compatible)
 # Returns: Unix timestamp (seconds since epoch) or 0 on failure
+# Note: stderr suppressed on stat commands because BSD/GNU syntaxes differ;
+# one will always fail depending on platform, which is expected behavior
 get_file_mtime() {
     local file="$1"
     local mtime
