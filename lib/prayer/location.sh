@@ -3,9 +3,16 @@
 # ============================================================================
 # Claude Code Statusline - Prayer Location Detection Module
 # ============================================================================
-# 
+#
 # This module handles location detection, caching, and coordinate resolution
 # for Islamic prayer times.
+#
+# Error Suppression Patterns (Issue #76):
+# - curl 2>/dev/null: Network ops may fail (offline, timeout, DNS issues)
+# - jq -r '.field // fallback' 2>/dev/null: JSON parsing with safe defaults
+# - CoreLocationCLI/geoclue 2>/dev/null: GPS tools may not be installed
+# - readlink 2>/dev/null: Symlink resolution may fail (no /etc/localtime)
+# - mkdir/echo/rm/cat 2>/dev/null: Best-effort filesystem ops
 #
 # Dependencies: core.sh, security.sh, cache.sh, prayer/core.sh, prayer/timezone_methods.sh
 # ============================================================================
