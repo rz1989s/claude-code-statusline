@@ -1150,6 +1150,19 @@ curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
+#### Method 2: Homebrew (macOS)
+
+```bash
+# Add the tap and install
+brew tap rz1989s/tap
+brew install claude-code-statusline
+
+# Verify installation
+claude-statusline --help
+```
+
+> **Note**: The curl installer is still recommended for full automatic setup. Homebrew provides the formula but requires manual settings.json configuration.
+
 <details>
 <summary><strong>🚀 Revolutionary 3-Tier Download System Features</strong></summary>
 
