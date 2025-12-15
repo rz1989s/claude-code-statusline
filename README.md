@@ -21,6 +21,7 @@
 **🎨 Transform your terminal with 18 atomic components across 1-9 configurable lines**  
 *Block metrics • Burn rate monitoring • Cache efficiency • Cost projections • Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
+[![CI](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
 [![Shell](https://img.shields.io/badge/Shell-Bash-lightgrey.svg)]()
