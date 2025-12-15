@@ -76,7 +76,7 @@ sanitize_path_secure() {
         sanitized="${sanitized//.\/}"     # Remove ./  
         sanitized="${sanitized//\/\///}"  # Remove double slashes -> single slash
 
-        ((iteration_count++))
+        iteration_count=$((iteration_count + 1))
     done
 
     # Final cleanup: remove any remaining .. sequences completely
@@ -182,7 +182,7 @@ create_secure_cache_file() {
             break
         fi
         sleep 0.1
-        ((wait_count++))
+        wait_count=$((wait_count + 1))
     done
 
     # Create file with content atomically

@@ -227,7 +227,7 @@ format_mcp_server_list() {
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
-        ((parse_count++))
+        parse_count=$((parse_count + 1))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"
@@ -634,7 +634,7 @@ build_modular_statusline() {
     local line_count=0
     for line in "${lines_output[@]}"; do
         echo "$line"
-        ((line_count++))
+        line_count=$((line_count + 1))
     done
     
     debug_log "Modular statusline built: $line_count lines output" "INFO"

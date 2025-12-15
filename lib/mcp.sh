@@ -164,15 +164,15 @@ get_mcp_status() {
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
-        ((parse_count++))
+        parse_count=$((parse_count + 1))
         
         # Extract server status
         local server_status="${server_entry#*:}"
         
-        ((total_count++))
+        total_count=$((total_count + 1))
         
         if [[ "$server_status" == "$MCP_STATUS_CONNECTED" ]]; then
-            ((connected_count++))
+            connected_count=$((connected_count + 1))
         fi
     done
     
@@ -232,7 +232,7 @@ get_active_mcp_servers() {
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
-        ((parse_count++))
+        parse_count=$((parse_count + 1))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"
@@ -280,7 +280,7 @@ format_mcp_servers() {
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
-        ((parse_count++))
+        parse_count=$((parse_count + 1))
         
         # Extract server name and status
         local server_name="${server_entry%:*}"
@@ -395,7 +395,7 @@ get_mcp_server_details() {
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
-        ((parse_count++))
+        parse_count=$((parse_count + 1))
         
         local entry_name="${server_entry%:*}"
         local entry_status="${server_entry#*:}"

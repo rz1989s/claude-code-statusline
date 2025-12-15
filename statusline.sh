@@ -78,6 +78,10 @@ if [[ "${STATUSLINE_CORE_LOADED:-}" != "true" ]]; then
     exit 1
 fi
 
+# Enable strict mode for fail-fast behavior (Issue #77)
+# This enables: set -euo pipefail with ERR trap for better debugging
+enable_strict_mode
+
 # ============================================================================
 # MODULE LOADING SEQUENCE
 # ============================================================================
