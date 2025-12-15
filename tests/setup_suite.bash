@@ -49,6 +49,9 @@ export MOCK_BIN_DIR="$TEST_TMP_DIR/mock_bin"
 
 # Setup test environment
 setup_test_env() {
+    # Export PROJECT_ROOT for tests that use it (alias to STATUSLINE_ROOT)
+    export PROJECT_ROOT="$STATUSLINE_ROOT"
+
     # Create temporary test directories
     mkdir -p "$TEST_TMP_DIR"
     mkdir -p "$TEST_CACHE_DIR"
