@@ -559,8 +559,10 @@ init_git_module() {
     return 0
 }
 
-# Initialize the module
-init_git_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_git_module
+fi
 
 # Export git functions
 export -f is_git_repository get_git_root is_git_root

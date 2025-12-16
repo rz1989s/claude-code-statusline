@@ -539,8 +539,10 @@ init_security_module() {
     return 0
 }
 
-# Initialize the module
-init_security_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_security_module
+fi
 
 # Export security functions
 export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color get_file_mtime get_file_permissions get_file_size

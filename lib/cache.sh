@@ -1634,8 +1634,10 @@ init_cache_module() {
     return 0
 }
 
-# Initialize the module
-init_cache_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_cache_module
+fi
 
 # ============================================================================
 # EXPORTS

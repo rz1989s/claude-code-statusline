@@ -8,7 +8,11 @@ load '../helpers/test_helpers'
 
 setup() {
     common_setup
-    
+
+    # Load required dependency modules first (Issue #62)
+    source "$PROJECT_ROOT/lib/core.sh" || skip "Core module not available"
+    source "$PROJECT_ROOT/lib/security.sh" || skip "Security module not available"
+
     # Load cache module for testing
     source "$PROJECT_ROOT/lib/cache.sh" || skip "Cache module not available"
     

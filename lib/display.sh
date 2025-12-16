@@ -720,8 +720,10 @@ init_display_module() {
     return 0
 }
 
-# Initialize the module
-init_display_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_display_module
+fi
 
 # Export display functions
 export -f format_directory_path get_model_emoji format_model_name

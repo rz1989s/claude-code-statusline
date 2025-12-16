@@ -849,8 +849,10 @@ init_config_module() {
     return 0
 }
 
-# Initialize the module
-init_config_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_config_module
+fi
 
 # Export configuration functions
 export -f parse_toml_to_json discover_config_file init_default_config

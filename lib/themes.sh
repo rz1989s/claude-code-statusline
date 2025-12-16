@@ -305,8 +305,10 @@ init_themes_module() {
     return 0
 }
 
-# Initialize the module
-init_themes_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_themes_module
+fi
 
 # Export theme functions
 export -f apply_theme apply_classic_theme apply_garden_theme apply_catppuccin_theme

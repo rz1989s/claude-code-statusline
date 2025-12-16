@@ -52,6 +52,9 @@ setup_test_env() {
     # Export PROJECT_ROOT for tests that use it (alias to STATUSLINE_ROOT)
     export PROJECT_ROOT="$STATUSLINE_ROOT"
 
+    # Mark as testing mode to skip module auto-initialization (Issue #62)
+    export STATUSLINE_TESTING="true"
+
     # Create temporary test directories
     mkdir -p "$TEST_TMP_DIR"
     mkdir -p "$TEST_CACHE_DIR"

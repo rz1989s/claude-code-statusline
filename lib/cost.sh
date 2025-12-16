@@ -765,8 +765,10 @@ init_cost_module() {
     return 0
 }
 
-# Initialize the module
-init_cost_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_cost_module
+fi
 
 # Export cost tracking functions
 export -f is_ccusage_available init_cost_cache execute_ccusage_with_cache

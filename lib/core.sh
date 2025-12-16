@@ -376,8 +376,10 @@ cleanup_on_signal() {
     exit 0
 }
 
-# Initialize the core module
-init_core_module
+# Initialize the core module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_core_module
+fi
 
 # Export core functions for use by other modules
 export -f load_module is_module_loaded get_script_dir safe_echo command_exists

@@ -448,8 +448,10 @@ init_mcp_module() {
     return 0
 }
 
-# Initialize the module
-init_mcp_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_mcp_module
+fi
 
 # Export MCP functions
 export -f is_claude_cli_available execute_mcp_list parse_mcp_server_list
