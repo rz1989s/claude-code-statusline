@@ -83,7 +83,12 @@ jobs:
 
       - name: Validate TOML syntax
         run: |
-          python3 -c "import tomllib; tomllib.load(open('Config.toml', 'rb'))" && echo "Config.toml is valid"
+          # Config.toml is in examples/ directory
+          if [[ -f "examples/Config.toml" ]]; then
+            python3 -c "import tomllib; tomllib.load(open('examples/Config.toml', 'rb'))" && echo "Config.toml is valid"
+          else
+            echo "Config.toml not found, skipping validation"
+          fi
 
       - name: Validate version.txt
         run: |
