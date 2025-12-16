@@ -257,10 +257,16 @@ format_mcp_server_list() {
 # VERSION FORMATTING
 # ============================================================================
 
-# Format Claude version
+# Format Claude Code version (with CC: prefix)
 format_claude_version() {
     local version="$1"
-    echo "${CONFIG_PURPLE}${CONFIG_VERSION_PREFIX}${version}${CONFIG_RESET}"
+    echo "${CONFIG_PURPLE}${CONFIG_CLAUDE_CODE_PREFIX}${version}${CONFIG_RESET}"
+}
+
+# Format Statusline version (with SL: prefix)
+format_statusline_version() {
+    local version="$1"
+    echo "${CONFIG_CYAN}${CONFIG_STATUSLINE_PREFIX}${version}${CONFIG_RESET}"
 }
 
 # ============================================================================
@@ -730,7 +736,7 @@ export -f format_directory_path get_model_emoji format_model_name
 export -f format_git_branch format_git_status_emoji format_git_info
 export -f format_cost_value format_session_cost format_monthly_cost format_weekly_cost
 export -f format_daily_cost format_live_block_cost get_mcp_status_format format_mcp_server_list
-export -f format_claude_version format_submodule_display format_current_time format_separator
+export -f format_claude_version format_statusline_version format_submodule_display format_current_time format_separator
 export -f build_line1 build_line2 build_line3 build_line4 build_complete_statusline
 export -f get_line_config build_modular_statusline use_modular_display build_statusline
 export -f test_display_formatting

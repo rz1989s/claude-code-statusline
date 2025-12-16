@@ -92,6 +92,8 @@ export CONFIG_DAILY_LABEL=""
 export CONFIG_SUBMODULE_LABEL=""
 export CONFIG_MCP_LABEL=""
 export CONFIG_VERSION_PREFIX=""
+export CONFIG_CLAUDE_CODE_PREFIX=""
+export CONFIG_STATUSLINE_PREFIX=""
 export CONFIG_SESSION_PREFIX=""
 export CONFIG_LIVE_LABEL=""
 export CONFIG_RESET_LABEL=""
@@ -338,6 +340,8 @@ init_default_config() {
     CONFIG_SUBMODULE_LABEL="SUB:"
     CONFIG_MCP_LABEL="MCP"
     CONFIG_VERSION_PREFIX="ver"
+    CONFIG_CLAUDE_CODE_PREFIX="CC:"
+    CONFIG_STATUSLINE_PREFIX="SL:"
     CONFIG_SESSION_PREFIX="S:"
     CONFIG_LIVE_LABEL="LIVE"
     CONFIG_RESET_LABEL="RESET"
@@ -555,6 +559,8 @@ extract_config_values() {
             label_submodule: ."labels.submodule",
             label_mcp: ."labels.mcp",
             label_version_prefix: ."labels.version_prefix",
+            label_claude_code_prefix: ."labels.claude_code_prefix",
+            label_statusline_prefix: ."labels.statusline_prefix",
             label_session_prefix: ."labels.session_prefix",
             label_live: ."labels.live",
             label_reset: ."labels.reset",
@@ -667,6 +673,12 @@ extract_config_values() {
             ;;
         label_version_prefix)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_PREFIX="$value"
+            ;;
+        label_claude_code_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_CLAUDE_CODE_PREFIX="$value"
+            ;;
+        label_statusline_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_STATUSLINE_PREFIX="$value"
             ;;
         label_session_prefix)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_SESSION_PREFIX="$value"
