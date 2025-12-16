@@ -39,7 +39,10 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm test
+        run: |
+          # Run unit tests only in CI (integration tests require full environment)
+          # Integration tests should be run locally before submitting PRs
+          bats tests/unit/*.bats
 
       - name: Upload test results
         if: failure()
