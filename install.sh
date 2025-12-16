@@ -1173,7 +1173,9 @@ check_bash_compatibility() {
     local bash_paths=()
 
     # Platform-aware bash path prioritization
-    if [[ "$OS_TYPE" == "Darwin" ]]; then
+    # Use OS_TYPE if set, otherwise detect it
+    local os_type="${OS_TYPE:-$(uname -s)}"
+    if [[ "$os_type" == "Darwin" ]]; then
         # macOS: check Homebrew paths first, then system paths
         bash_paths=("/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash" "/usr/bin/bash" "/bin/bash")
     else
@@ -1193,7 +1195,7 @@ check_bash_compatibility() {
         print_warning "Modern bash not found - some advanced features may not work"
 
         # Platform-specific bash installation suggestions
-        if [[ "$OS_TYPE" == "Darwin" ]]; then
+        if [[ "$os_type" == "Darwin" ]]; then
             print_status "For full functionality, consider: brew install bash"
         else
             case "$PKG_MGR" in
