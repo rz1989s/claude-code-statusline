@@ -29,6 +29,9 @@ export STATUSLINE_CORE_LOADED=true
 # ============================================================================
 
 enable_strict_mode() {
+    # Skip strict mode in testing environment to allow test assertions to work (Issue #62)
+    [[ "${STATUSLINE_TESTING:-}" == "true" ]] && return 0
+
     set -eo pipefail
 
     # Set up ERR trap to provide better error context
