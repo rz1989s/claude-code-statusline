@@ -66,14 +66,15 @@ EOF
 
 @test "get_commits_today should return 0 for non-git directory" {
     cd "$TEST_TMP_DIR"
-    
+
     # Mock git to fail
     create_failing_mock_command "git" "not a git repository" 128
-    
+
     source "$STATUSLINE_SCRIPT"
     run get_commits_today
-    
-    assert_success
+
+    # Function returns exit code 1 (not in git repo) but outputs "0" as safe default
+    assert_failure
     assert_output "0"
 }
 
