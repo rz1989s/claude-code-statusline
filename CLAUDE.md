@@ -73,6 +73,10 @@ bats tests/unit/test_*.bats           # Unit tests (9 files)
 bats tests/integration/test_*.bats    # Integration tests (6 files)
 bats tests/benchmarks/test_*.bats     # Performance tests (2 files)
 
+# Pre-commit hooks (optional but recommended)
+pip install pre-commit && pre-commit install
+pre-commit run --all-files            # Manual check
+
 # Installation Testing
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
@@ -199,6 +203,9 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 ```bash
 # Production (main branch)
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+
+# Homebrew (macOS)
+brew tap rz1989s/tap && brew install claude-code-statusline
 
 # Nightly (experimental)
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
