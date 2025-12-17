@@ -3,9 +3,16 @@
 # ============================================================================
 # Claude Code Statusline - Git Integration Module
 # ============================================================================
-# 
+#
 # This module handles all git-related operations including repository status,
 # commit counting, branch detection, and submodule management.
+#
+# Error Suppression Patterns (Issue #76):
+# - git rev-parse 2>/dev/null: May fail in non-git directories (expected)
+# - git branch/log/config 2>/dev/null: May fail in empty repos or missing configs
+# - git submodule 2>/dev/null: May fail if no .gitmodules present
+# - grep .gitmodules 2>/dev/null: File may not exist in repos without submodules
+# - timeout/gtimeout 2>/dev/null: Cross-platform timeout (GNU vs BSD)
 #
 # Dependencies: core.sh, security.sh
 # ============================================================================
@@ -552,8 +559,10 @@ init_git_module() {
     return 0
 }
 
-# Initialize the module
-init_git_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_git_module
+fi
 
 # Export git functions
 export -f is_git_repository get_git_root is_git_root

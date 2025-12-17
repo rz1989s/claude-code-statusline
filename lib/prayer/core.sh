@@ -58,7 +58,27 @@ load_prayer_config() {
     # Prayer settings
     CONFIG_PRAYER_CALCULATION_METHOD="${ENV_CONFIG_PRAYER_CALCULATION_METHOD:-${CONFIG_PRAYER_CALCULATION_METHOD:-$DEFAULT_CALCULATION_METHOD}}"
     CONFIG_PRAYER_MADHAB="${ENV_CONFIG_PRAYER_MADHAB:-${CONFIG_PRAYER_MADHAB:-$DEFAULT_MADHAB}}"
-    CONFIG_PRAYER_LOCATION_MODE="${ENV_CONFIG_PRAYER_LOCATION_MODE:-${CONFIG_PRAYER_LOCATION_MODE:-auto}}"
+    # Direct Config.toml fallback when main config system fails OR force manual coordinates
+    if [[ (-z "${CONFIG_PRAYER_LOCATION_MODE:-}" || "${CONFIG_PRAYER_LOCATION_MODE:-}" == "auto" || "${CONFIG_PRAYER_LOCATION_MODE:-}" == "local_gps") && -f "${HOME}/.claude/statusline/Config.toml" ]]; then
+        local toml_mode=$(grep "^prayer.location_mode" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+        local toml_lat=$(grep "^prayer.latitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+        local toml_lng=$(grep "^prayer.longitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+
+        # Force manual coordinates if they exist in Config.toml
+        if [[ "$toml_mode" == "manual" && -n "$toml_lat" && -n "$toml_lng" ]]; then
+            CONFIG_PRAYER_LOCATION_MODE="manual"
+            CONFIG_PRAYER_LATITUDE="$toml_lat"
+            CONFIG_PRAYER_LONGITUDE="$toml_lng"
+            debug_log "FORCED manual prayer config from Config.toml: mode=$CONFIG_PRAYER_LOCATION_MODE lat=$CONFIG_PRAYER_LATITUDE lng=$CONFIG_PRAYER_LONGITUDE" "INFO"
+        elif [[ "$toml_mode" == "local_gps" || -z "$toml_mode" ]]; then
+            # Default to local_gps mode for fresh GPS coordinates
+            CONFIG_PRAYER_LOCATION_MODE="local_gps"
+            debug_log "Using local_gps mode for fresh GPS coordinates" "INFO"
+        fi
+    fi
+
+    # NEW DEFAULT: local_gps instead of auto (VPN-independent fresh coordinates)
+    CONFIG_PRAYER_LOCATION_MODE="${ENV_CONFIG_PRAYER_LOCATION_MODE:-${CONFIG_PRAYER_LOCATION_MODE:-local_gps}}"
     CONFIG_PRAYER_LATITUDE="${ENV_CONFIG_PRAYER_LATITUDE:-${CONFIG_PRAYER_LATITUDE:-}}"
     CONFIG_PRAYER_LONGITUDE="${ENV_CONFIG_PRAYER_LONGITUDE:-${CONFIG_PRAYER_LONGITUDE:-}}"
     CONFIG_PRAYER_TIMEZONE="${ENV_CONFIG_PRAYER_TIMEZONE:-${CONFIG_PRAYER_TIMEZONE:-}}"
@@ -85,21 +105,21 @@ load_prayer_config() {
         debug_log "Integrating auto-detection with prayer configuration..." "INFO"
         
         case "$CONFIG_PRAYER_LOCATION_MODE" in
-            "auto"|"ip_based")
-                # Run auto-detection if coordinates are not manually provided
+            "local_gps"|"auto"|"ip_based")
+                # Run location detection if coordinates are not manually provided
                 if [[ -z "$CONFIG_PRAYER_LATITUDE" || -z "$CONFIG_PRAYER_LONGITUDE" ]]; then
-                    debug_log "Running auto-detection for location and method..." "INFO"
-                    
-                    # Attempt to get location coordinates (triggers auto-detection)
+                    debug_log "Running location detection for coordinates and method..." "INFO"
+
+                    # Attempt to get location coordinates (NEW: prioritizes local GPS)
                     local auto_coordinates
                     auto_coordinates=$(get_location_coordinates)
-                    
+
                     if [[ -n "$auto_coordinates" && "$auto_coordinates" != "0,0" ]]; then
                         # Parse coordinates if not already set by auto-detection functions
                         if [[ -z "$CONFIG_PRAYER_LATITUDE" || -z "$CONFIG_PRAYER_LONGITUDE" ]]; then
                             CONFIG_PRAYER_LATITUDE="${auto_coordinates%%,*}"
                             CONFIG_PRAYER_LONGITUDE="${auto_coordinates##*,}"
-                            debug_log "Auto-detected coordinates applied: $CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE" "INFO"
+                            debug_log "Location coordinates applied: $CONFIG_PRAYER_LATITUDE,$CONFIG_PRAYER_LONGITUDE" "INFO"
                         fi
                         
                         # Auto-detect calculation method if not manually set
@@ -128,6 +148,15 @@ load_prayer_config() {
                 ;;
             "manual")
                 debug_log "Manual location mode, skipping auto-detection" "INFO"
+                # Ensure manual coordinates are not empty
+                if [[ -z "$CONFIG_PRAYER_LATITUDE" || -z "$CONFIG_PRAYER_LONGITUDE" ]]; then
+                    debug_log "Manual mode but coordinates empty, reading from Config.toml" "WARN"
+                    if [[ -f "${HOME}/.claude/statusline/Config.toml" ]]; then
+                        CONFIG_PRAYER_LATITUDE=$(grep "^prayer.latitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+                        CONFIG_PRAYER_LONGITUDE=$(grep "^prayer.longitude" "${HOME}/.claude/statusline/Config.toml" | cut -d'"' -f2 2>/dev/null)
+                        debug_log "Manual coordinates loaded: lat=$CONFIG_PRAYER_LATITUDE lng=$CONFIG_PRAYER_LONGITUDE" "INFO"
+                    fi
+                fi
                 ;;
             *)
                 debug_log "Unknown location mode: $CONFIG_PRAYER_LOCATION_MODE" "WARN"

@@ -35,26 +35,60 @@ EXAMPLES_DIR="$STATUSLINE_DIR/examples"
 CONFIG_PATH="$STATUSLINE_DIR/Config.toml"
 SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 
-# Function to print colored output
+# Debug mode flag (can be set via environment)
+DEBUG_MODE="${STATUSLINE_INSTALL_DEBUG:-false}"
+
+# Function to print colored output with enhanced debugging
 print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${BLUE}[INFO]${NC} ${timestamp}$1"
 }
 
 print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${GREEN}[SUCCESS]${NC} ${timestamp}$1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${YELLOW}[WARNING]${NC} ${timestamp}$1"
 }
 
 print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    local timestamp=""
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        timestamp="$(date '+%H:%M:%S') "
+    fi
+    echo -e "${RED}[ERROR]${NC} ${timestamp}$1"
 }
 
-# Function to check if command exists
+# Debug-only output function
+print_debug() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        echo -e "${YELLOW}[DEBUG]${NC} $(date '+%H:%M:%S') $1"
+    fi
+}
+
+# Function to trace execution flow
+trace_execution() {
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        print_debug "🔍 Executing: $1"
+    fi
+}
+
+# Function to check if command exists (Windows-compatible)
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    # Check for command with and without .exe extension (Windows compatibility)
+    command -v "$1" >/dev/null 2>&1 || command -v "$1.exe" >/dev/null 2>&1
 }
 
 # Enhanced system detection and capability analysis
@@ -81,10 +115,13 @@ detect_system_capabilities() {
     # Package Manager Detection (in priority order)
     PKG_MGR="none"
     PKG_INSTALL_CMD=""
-    
+
     if command_exists brew; then
         PKG_MGR="brew"
         PKG_INSTALL_CMD="brew install"
+    elif command_exists choco; then
+        PKG_MGR="choco"
+        PKG_INSTALL_CMD="choco install"
     elif command_exists apt; then
         PKG_MGR="apt"
         PKG_INSTALL_CMD="sudo apt update && sudo apt install"
@@ -119,7 +156,7 @@ check_all_dependencies() {
     local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing")
     local important_deps=("bunx:Cost tracking with ccusage")
     local helpful_deps=("bc:Precise cost calculations" "python3:Advanced TOML features & date parsing")
-    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)")
+    local optional_deps=("timeout:Network operation protection (gtimeout on macOS)" "CoreLocationCLI:GPS location for prayer times (macOS)" "geoclue:GPS location for prayer times (Linux)")
     
     local missing_critical=()
     local missing_important=()
@@ -134,7 +171,7 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((++available_features))
+            available_features=$((available_features + 1))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_critical+=("$dep")
@@ -147,7 +184,7 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((++available_features))
+            available_features=$((available_features + 1))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_important+=("$dep")
@@ -160,23 +197,100 @@ check_all_dependencies() {
         local desc="${dep_info#*:}"
         if command_exists "$dep"; then
             printf "  ✅ %-8s → %s\\n" "$dep" "$desc"
-            ((++available_features))
+            available_features=$((available_features + 1))
         else
             printf "  ❌ %-8s → %s\\n" "$dep" "$desc"
             missing_helpful+=("$dep")
         fi
     done
     
-    # Check optional dependencies (timeout/gtimeout)
-    if command_exists "gtimeout" || command_exists "timeout"; then
-        local timeout_cmd="gtimeout"
-        command_exists "timeout" && timeout_cmd="timeout"
-        printf "  ✅ %-8s → %s\\n" "$timeout_cmd" "Network operation protection"
-        ((++available_features))
+    # Check optional dependencies (timeout/gtimeout) - platform-aware selection
+    local timeout_cmd=""
+    if [[ "$OS_TYPE" == "Darwin" ]]; then
+        # macOS: prefer gtimeout (from coreutils), fallback to system timeout if available
+        if command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        elif command_exists "timeout"; then
+            timeout_cmd="timeout"
+        fi
     else
-        printf "  ⚠️ %-8s → %s\\n" "timeout" "Network operation protection"
+        # Linux: prefer system timeout, fallback to gtimeout if installed
+        if command_exists "timeout"; then
+            timeout_cmd="timeout"
+        elif command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        fi
+    fi
+
+    if [[ -n "$timeout_cmd" ]]; then
+        printf "  ✅ %-8s → %s\\n" "$timeout_cmd" "Network operation protection"
+        available_features=$((available_features + 1))
+    else
+        local suggest_cmd="timeout"
+        [[ "$OS_TYPE" == "Darwin" ]] && suggest_cmd="gtimeout (coreutils)"
+        printf "  ⚠️ %-8s → %s\\n" "$suggest_cmd" "Network operation protection"
         missing_optional+=("timeout")
     fi
+
+    # Check GPS location tools (platform-specific)
+    case "$OS_TYPE" in
+        "Darwin")
+            if command_exists "CoreLocationCLI"; then
+                printf "  ✅ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (macOS)"
+                available_features=$((available_features + 1))
+            else
+                printf "  ⚠️ %-8s → %s\\n" "GPS-macOS" "GPS location for prayer times (brew install corelocationcli)"
+                missing_optional+=("CoreLocationCLI")
+            fi
+            ;;
+        "Linux")
+            # Check multiple possible geoclue installation paths
+            local geoclue_found=false
+            local geoclue_paths=(
+                "/usr/lib/geoclue-2.0/demos/where-am-i"    # Ubuntu/Debian
+                "/usr/libexec/geoclue-2.0/demos/where-am-i" # Some distributions
+                "/usr/bin/where-am-i"                       # Alternative location
+            )
+
+            for geoclue_path in "${geoclue_paths[@]}"; do
+                if [[ -x "$geoclue_path" ]]; then
+                    geoclue_found=true
+                    break
+                fi
+            done
+
+            # Also check for command availability
+            if [[ "$geoclue_found" == "false" ]] && (command_exists "geoclue" || command_exists "where-am-i"); then
+                geoclue_found=true
+            fi
+
+            if [[ "$geoclue_found" == "true" ]]; then
+                printf "  ✅ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times (Linux)"
+                available_features=$((available_features + 1))
+            else
+                # Distribution-specific installation suggestions
+                local install_suggestion=""
+                if [[ -f /etc/os-release ]]; then
+                    . /etc/os-release
+                    case "$ID" in
+                        "ubuntu"|"debian") install_suggestion="apt install geoclue-2-demo" ;;
+                        "arch"|"manjaro") install_suggestion="pacman -S geoclue" ;;
+                        "fedora"|"rhel"|"centos") install_suggestion="dnf install geoclue2-devel" ;;
+                        "alpine") install_suggestion="apk add geoclue-dev" ;;
+                        *) install_suggestion="install geoclue2/geoclue-dev package" ;;
+                    esac
+                else
+                    install_suggestion="install geoclue2/geoclue-dev package"
+                fi
+
+                printf "  ⚠️ %-8s → %s\\n" "GPS-Linux" "GPS location for prayer times ($install_suggestion)"
+                missing_optional+=("geoclue")
+            fi
+            ;;
+        *)
+            printf "  ⚠️ %-8s → %s\\n" "GPS" "GPS location not supported on this platform"
+            ;;
+    esac
     
     echo
     local percentage=$((available_features * 100 / total_features))
@@ -225,8 +339,33 @@ check_dependencies() {
     if [ ${#missing_deps[@]} -ne 0 ]; then
         print_error "Missing required dependencies: ${missing_deps[*]}"
         print_status "Please install missing dependencies:"
-        print_status "  macOS: brew install ${missing_deps[*]}"
-        print_status "  Linux: sudo apt install ${missing_deps[*]}"
+
+        # Platform-specific installation instructions
+        if [[ "$OS_TYPE" == "Darwin" ]]; then
+            print_status "  macOS: brew install ${missing_deps[*]}"
+        elif [[ "$OS_PLATFORM" == "Windows" ]]; then
+            # Windows-specific instructions
+            print_status "  Windows (Chocolatey): choco install ${missing_deps[*]}"
+            print_status "  Windows (Scoop): scoop install ${missing_deps[*]}"
+            print_warning ""
+            print_warning "⚠️  Windows Troubleshooting:"
+            print_warning "  1. Close and reopen Git Bash after installing packages"
+            print_warning "  2. Verify PATH includes: C:\\ProgramData\\chocolatey\\bin"
+            print_warning "  3. Test in new terminal: curl --version && jq --version"
+            print_warning "  4. Run as Administrator if PATH issues persist"
+        else
+            # Distribution-aware Linux instructions
+            case "$PKG_MGR" in
+                "apt") print_status "  Ubuntu/Debian: sudo apt update && sudo apt install ${missing_deps[*]}" ;;
+                "yum") print_status "  CentOS/RHEL: sudo yum install ${missing_deps[*]}" ;;
+                "dnf") print_status "  Fedora: sudo dnf install ${missing_deps[*]}" ;;
+                "pacman") print_status "  Arch Linux: sudo pacman -S ${missing_deps[*]}" ;;
+                "apk") print_status "  Alpine: sudo apk add ${missing_deps[*]}" ;;
+                "pkg") print_status "  FreeBSD: sudo pkg install ${missing_deps[*]}" ;;
+                "choco") print_status "  Windows: choco install ${missing_deps[*]}" ;;
+                *) print_status "  Install using your package manager: ${missing_deps[*]}" ;;
+            esac
+        fi
         exit 1
     fi
     
@@ -254,6 +393,22 @@ generate_install_commands() {
             all_missing+=("coreutils")  # Contains gtimeout on macOS
         elif [[ "$dep" == "timeout" ]]; then
             all_missing+=("coreutils")
+        elif [[ "$dep" == "CoreLocationCLI" ]]; then
+            all_missing+=("corelocationcli")  # macOS GPS tool
+        elif [[ "$dep" == "geoclue" ]]; then
+            # Distribution-specific geoclue package names
+            if [[ -f /etc/os-release ]]; then
+                . /etc/os-release
+                case "$ID" in
+                    "ubuntu"|"debian") all_missing+=("geoclue-2-demo") ;;
+                    "arch"|"manjaro") all_missing+=("geoclue") ;;
+                    "fedora"|"rhel"|"centos") all_missing+=("geoclue2-devel") ;;
+                    "alpine") all_missing+=("geoclue-dev") ;;
+                    *) all_missing+=("geoclue2") ;;  # Generic fallback
+                esac
+            else
+                all_missing+=("geoclue2")  # Generic fallback
+            fi
         fi
     done
     
@@ -316,6 +471,21 @@ generate_install_commands() {
             done
             [ ${#pacman_deps[@]} -gt 0 ] && echo "$PKG_INSTALL_CMD ${pacman_deps[*]}"
             ;;
+        "choco")
+            echo "# Windows with Chocolatey"
+            local choco_deps=()
+            for dep in "${all_missing[@]}"; do
+                case "$dep" in
+                    "bunx") choco_deps+=("bun") ;;
+                    "python3") choco_deps+=("python") ;;
+                    "coreutils") ;; # Skip coreutils on Windows (not available via choco)
+                    *) choco_deps+=("$dep") ;;
+                esac
+            done
+            [ ${#choco_deps[@]} -gt 0 ] && echo "$PKG_INSTALL_CMD ${choco_deps[*]}"
+            echo ""
+            echo "⚠️  After installation, close and reopen Git Bash to reload PATH"
+            ;;
         "none")
             if [[ "$OS_PLATFORM" == "macOS" ]]; then
                 echo "❌ No package manager detected on macOS"
@@ -327,7 +497,24 @@ generate_install_commands() {
                 echo "brew install bun python3 bc jq coreutils"
                 echo
                 echo "Step 3: Re-run statusline installer"
-                echo "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
+                echo "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
+            elif [[ "$OS_PLATFORM" == "Windows" ]]; then
+                echo "❌ No package manager detected on Windows"
+                echo
+                echo "Step 1: Install Chocolatey (recommended) or Scoop"
+                echo "# Chocolatey (run in PowerShell as Administrator):"
+                echo "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+                echo
+                echo "# OR Scoop (run in PowerShell):"
+                echo "iwr -useb get.scoop.sh | iex"
+                echo
+                echo "Step 2: Then install dependencies"
+                echo "choco install curl jq bun python bc"
+                echo "# OR with Scoop:"
+                echo "scoop install curl jq bun python bc"
+                echo
+                echo "Step 3: Close and reopen Git Bash, then re-run installer"
+                echo "curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
             else
                 echo "⚠️ Manual installation required"
                 echo
@@ -371,7 +558,7 @@ show_user_choice_menu() {
                 generate_install_commands
                 echo
                 print_status "Copy the commands above, then re-run this installer:"
-                print_status "curl -fsSL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh | bash"
+                print_status "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
                 exit 0
                 ;;
             3)
@@ -427,6 +614,10 @@ parse_arguments() {
                 PRESERVE_STATUSLINE=true
                 shift
                 ;;
+            --debug)
+                DEBUG_MODE=true
+                shift
+                ;;
             --help|-h)
                 SHOW_HELP=true
                 shift
@@ -452,6 +643,7 @@ show_help() {
     echo "  --minimal           Only check critical dependencies (curl, jq)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
     echo "  --preserve-statusline  Skip settings.json configuration entirely"
+    echo "  --debug             Enable detailed debug logging with timestamps"
     echo "  --help, -h          Show this help message"
     echo
     echo "Examples:"
@@ -460,6 +652,11 @@ show_help() {
     echo "  $0 --interactive            # Interactive mode with user choices"
     echo "  $0 --check-all-deps --interactive  # Full analysis + user menu"
     echo "  $0 --preserve-statusline    # Install modules but keep settings.json unchanged"
+    echo "  $0 --debug                  # Enable debug logging to trace installation flow"
+    echo ""
+    echo "Debug Mode:"
+    echo "  STATUSLINE_INSTALL_DEBUG=true $0    # Enable debug via environment variable"
+    echo "  $0 --debug --interactive           # Debug mode with interactive choices"
     echo
     echo "Rate Limit Optimization:"
     echo "  GITHUB_TOKEN=your_token $0   # Use GitHub token (5000/hour vs 60/hour)"
@@ -503,6 +700,7 @@ download_directory_comprehensive() {
     # Create local directory structure
     mkdir -p "$local_path"
     mkdir -p "$local_path/prayer"
+    mkdir -p "$local_path/cache"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -529,7 +727,13 @@ download_directory_comprehensive() {
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
     )
-    
+
+    local cache_modules=(
+        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
+        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
+        # 🆕 ADD NEW CACHE MODULES HERE (lib/cache/*.sh files)
+    )
+
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -538,11 +742,12 @@ download_directory_comprehensive() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -559,7 +764,7 @@ download_directory_comprehensive() {
         for attempt in {1..3}; do
             if curl -fsSL "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $module"
-                ((++files_downloaded))
+                files_downloaded=$((files_downloaded + 1))
                 file_downloaded=true
                 break
             else
@@ -594,33 +799,30 @@ download_directory_with_api_fallback() {
     local attempt="${4:-1}"
     local max_attempts=3
     
-    # Check for GitHub token to increase rate limits
-    local auth_header=""
+    # Build curl arguments array (avoids eval for security - Issue #68)
+    local curl_args=(-fsSL)
     if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        auth_header="-H \"Authorization: token $GITHUB_TOKEN\""
+        curl_args+=(-H "Authorization: token $GITHUB_TOKEN")
         print_status "🔑 Using GitHub token for enhanced rate limits (5000/hour)"
     else
         print_status "⚠️ No GitHub token - limited to 60 requests/hour"
     fi
-    
+
     if [[ $attempt -eq 1 ]]; then
         print_status "📦 API fallback: discovering files in $repo_path..."
     else
         print_status "📦 API retry attempt $attempt/$max_attempts for $repo_path..."
     fi
-    
+
     local api_url="https://api.github.com/repos/rz1989s/claude-code-statusline/contents/$repo_path?ref=$INSTALL_BRANCH"
-    
+    curl_args+=("$api_url")
+
     # Create local directory
     mkdir -p "$local_path"
-    
-    # Get directory contents with optional auth
+
+    # Get directory contents with array-based curl call
     local contents
-    if [[ -n "$auth_header" ]]; then
-        contents=$(eval curl -fsSL $auth_header "$api_url" 2>/dev/null)
-    else
-        contents=$(curl -fsSL "$api_url" 2>/dev/null)
-    fi
+    contents=$(curl "${curl_args[@]}" 2>/dev/null)
     
     if [[ -z "$contents" || "$contents" == "Not Found" || "$contents" == "null" ]]; then
         if [[ $attempt -lt $max_attempts ]]; then
@@ -647,7 +849,7 @@ download_directory_with_api_fallback() {
     while IFS='|' read -r download_url filename file_type; do
         [[ "$file_type" == "file" && "$filename" == *.sh ]] || continue
         
-        ((++total_files))
+        total_files=$((total_files + 1))
         local file_path="$local_path/$filename"
         local file_downloaded=false
         
@@ -655,7 +857,7 @@ download_directory_with_api_fallback() {
         for file_attempt in {1..3}; do
             if curl -fsSL "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
                 print_status "  ✓ Downloaded $repo_path/$filename"
-                ((++files_downloaded))
+                files_downloaded=$((files_downloaded + 1))
                 file_downloaded=true
                 break
             else
@@ -808,7 +1010,14 @@ download_lib_fallback() {
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
-    
+
+    # Cache system modules (lib/cache/) - modular cache architecture
+    local cache_modules=(
+        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
+        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
+        # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
+    )
+
     # Component modules (lib/components/) - all 18 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
@@ -818,11 +1027,12 @@ download_lib_fallback() {
         "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
+        "components/location_display.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
@@ -831,6 +1041,7 @@ download_lib_fallback() {
     
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
+    mkdir -p "$LIB_DIR/cache"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
@@ -843,7 +1054,7 @@ download_lib_fallback() {
         for attempt in {1..3}; do
             if curl -fsSL "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
                 print_status "✓ Downloaded $module"
-                ((++successful_downloads))
+                successful_downloads=$((successful_downloads + 1))
                 module_downloaded=true
                 break
             else
@@ -916,7 +1127,7 @@ download_examples() {
         
         if curl -fsSL "$config_url" -o "$config_path"; then
             print_status "  ✓ Downloaded $config (reference template)"
-            ((++successful_downloads))
+            successful_downloads=$((successful_downloads + 1))
         else
             print_error "  ✗ Failed to download $config"
             failed_downloads+=("$config")
@@ -931,7 +1142,7 @@ download_examples() {
     
     if curl -fsSL "$readme_url" -o "$readme_path"; then
         print_status "  ✓ Downloaded examples/README.md"
-        ((++successful_downloads))
+        successful_downloads=$((successful_downloads + 1))
     else
         print_error "  ✗ Failed to download examples/README.md"
         failed_downloads+=("examples/README.md")
@@ -972,9 +1183,22 @@ check_bash_compatibility() {
         return 0
     fi
     
-    # Check for modern bash installations  
+    # Check for modern bash installations - platform-aware path detection
     local modern_bash_found=false
-    for bash_path in "/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash"; do
+    local bash_paths=()
+
+    # Platform-aware bash path prioritization
+    # Use OS_TYPE if set, otherwise detect it
+    local os_type="${OS_TYPE:-$(uname -s)}"
+    if [[ "$os_type" == "Darwin" ]]; then
+        # macOS: check Homebrew paths first, then system paths
+        bash_paths=("/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash" "/usr/bin/bash" "/bin/bash")
+    else
+        # Linux: check system paths first, then alternative installations
+        bash_paths=("/usr/bin/bash" "/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash")
+    fi
+
+    for bash_path in "${bash_paths[@]}"; do
         if [[ -x "$bash_path" ]] && "$bash_path" -c 'declare -A test_array' 2>/dev/null; then
             print_success "Modern bash found: $bash_path"
             modern_bash_found=true
@@ -984,7 +1208,20 @@ check_bash_compatibility() {
     
     if [[ "$modern_bash_found" == "false" ]]; then
         print_warning "Modern bash not found - some advanced features may not work"
-        print_status "For full functionality, consider: brew install bash"
+
+        # Platform-specific bash installation suggestions
+        if [[ "$os_type" == "Darwin" ]]; then
+            print_status "For full functionality, consider: brew install bash"
+        else
+            case "$PKG_MGR" in
+                "apt") print_status "For full functionality, consider: sudo apt update && sudo apt install bash" ;;
+                "yum"|"dnf") print_status "For full functionality, consider: sudo $PKG_MGR install bash" ;;
+                "pacman") print_status "For full functionality, consider: sudo pacman -S bash" ;;
+                "apk") print_status "For full functionality, consider: sudo apk add bash" ;;
+                *) print_status "For full functionality, install a modern version of bash (4.0+)" ;;
+            esac
+        fi
+
         print_status "Statusline includes automatic compatibility detection"
     else
         print_success "Statusline will automatically use modern bash features"
@@ -1028,23 +1265,52 @@ configure_settings() {
         return 0
     fi
 
-    # Always backup settings.json if it exists (same format as statusline backup)
+    # Check if settings.json already has correct configuration
+    if [ -f "$SETTINGS_PATH" ]; then
+        # First validate if it's valid JSON
+        if jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+            # Check if statusLine is already correctly configured
+            local current_command=$(jq -r '.statusLine.command // ""' "$SETTINGS_PATH" 2>/dev/null)
+            if [[ "$current_command" == "bash ~/.claude/statusline/statusline.sh" ]] ||
+               [[ "$current_command" == "bash ~/.claude/statusline.sh" ]]; then
+                print_success "✅ settings.json already configured correctly - no changes needed"
+                return 0
+            fi
+        else
+            # Invalid JSON detected
+            print_warning "⚠️ Invalid JSON detected in settings.json"
+            local invalid_backup="${SETTINGS_PATH}.invalid.$(date +%Y%m%d_%H%M%S)"
+            mv "$SETTINGS_PATH" "$invalid_backup"
+            print_status "💾 Saved invalid file as: $invalid_backup"
+            print_status "🔄 Creating fresh settings.json with valid configuration..."
+        fi
+    fi
+
+    # Create backup only if file exists and we're making changes
     if [ -f "$SETTINGS_PATH" ]; then
         local backup_path="${SETTINGS_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
         cp "$SETTINGS_PATH" "$backup_path"
-        print_success "Backed up settings.json to $backup_path (restore: cp \"$backup_path\" \"$SETTINGS_PATH\")"
+        print_success "Backed up settings.json to $backup_path"
+        print_status "💡 Restore command: cp \"$backup_path\" \"$SETTINGS_PATH\""
     fi
 
     local temp_settings=$(mktemp)
+    local operation_success=false
 
-    # Always set canonical statusline command
-    if [ -f "$SETTINGS_PATH" ]; then
-        # Update existing file - preserve everything, only replace statusLine
+    # Handle configuration based on file state
+    if [ -f "$SETTINGS_PATH" ] && jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+        # Valid JSON exists - update it
         print_status "Updating existing settings.json with statusline configuration..."
-        jq '.statusLine = {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}' \
-           "$SETTINGS_PATH" > "$temp_settings"
-    else
-        # Create new file
+        if jq '.statusLine = {"type": "command", "command": "bash ~/.claude/statusline/statusline.sh"}' \
+           "$SETTINGS_PATH" > "$temp_settings" 2>/dev/null; then
+            operation_success=true
+        else
+            print_warning "⚠️ Failed to update settings.json with jq"
+        fi
+    fi
+
+    # If update failed or file doesn't exist, create new one
+    if [ "$operation_success" = "false" ]; then
         print_status "Creating new settings.json file..."
         cat > "$temp_settings" << 'EOF'
 {
@@ -1054,24 +1320,163 @@ configure_settings() {
   }
 }
 EOF
+        operation_success=true
     fi
 
-    # Validate and apply
-    if jq . "$temp_settings" >/dev/null 2>&1; then
+    # Validate and apply the configuration
+    if [ "$operation_success" = "true" ] && jq . "$temp_settings" >/dev/null 2>&1; then
         mv "$temp_settings" "$SETTINGS_PATH"
-        print_success "Configured settings.json with statusline"
+        print_success "✅ Configured settings.json with statusline"
     else
-        print_error "Failed to configure settings.json"
-        rm -f "$temp_settings"
-        exit 1
+        # Recovery attempt - create minimal valid config
+        print_warning "⚠️ Configuration validation failed, attempting recovery..."
+        echo '{"statusLine":{"type":"command","command":"bash ~/.claude/statusline/statusline.sh"}}' > "$SETTINGS_PATH"
+
+        if jq . "$SETTINGS_PATH" >/dev/null 2>&1; then
+            print_success "✅ Recovery successful - created minimal valid configuration"
+        else
+            print_error "❌ Failed to configure settings.json"
+            print_status "💡 Manual recovery options:"
+            print_status "   1. Restore backup: cp \"$backup_path\" \"$SETTINGS_PATH\""
+            print_status "   2. Create manually: echo '{\"statusLine\":{\"type\":\"command\",\"command\":\"bash ~/.claude/statusline/statusline.sh\"}}' > ~/.claude/settings.json"
+            rm -f "$temp_settings"
+            return 1
+        fi
     fi
 
     # Clean up temp file if it still exists
     [ -f "$temp_settings" ] && rm -f "$temp_settings" || true
+    return 0
+}
+
+# Function to safely remove directory with robust timeout and fallback protection
+safe_remove_directory() {
+    trace_execution "safe_remove_directory $1"
+    local dir_path="$1"
+    local timeout_seconds="${2:-10}"  # Reduced from 30s to 10s for faster failure
+
+    if [[ ! -d "$dir_path" ]]; then
+        print_debug "Directory doesn't exist: $dir_path"
+        print_status "✓ Directory doesn't exist: $dir_path"
+        return 0
+    fi
+
+    print_debug "Starting robust directory removal with ${timeout_seconds}s timeout: $dir_path"
+    print_status "🗑️ Removing directory with enhanced protection: $dir_path"
+
+    # Step 1: Try to make directory writable first
+    chmod -R u+w "$dir_path" 2>/dev/null || true
+
+    # Step 2: Use timeout command if available (with shorter timeout) - platform-aware selection
+    local timeout_cmd=""
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # macOS: prefer gtimeout (from coreutils), fallback to system timeout
+        if command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        elif command_exists "timeout"; then
+            timeout_cmd="timeout"
+        fi
+    else
+        # Linux: prefer system timeout, fallback to gtimeout if installed
+        if command_exists "timeout"; then
+            timeout_cmd="timeout"
+        elif command_exists "gtimeout"; then
+            timeout_cmd="gtimeout"
+        fi
+    fi
+
+    # Step 3: Enhanced removal with multiple fallback strategies
+    if [[ -n "$timeout_cmd" ]]; then
+        print_debug "Attempting removal with $timeout_cmd (${timeout_seconds}s timeout)"
+        if $timeout_cmd "${timeout_seconds}s" rm -rf "$dir_path" 2>/dev/null; then
+            print_success "✅ Directory removed successfully: $dir_path"
+            return 0
+        else
+            local exit_code=$?
+            if [[ $exit_code -eq 124 ]]; then
+                print_warning "⚠️ Timeout removal timed out, trying fallback methods"
+            else
+                print_warning "⚠️ Timeout removal failed (exit: $exit_code), trying fallback methods"
+            fi
+        fi
+    fi
+
+    # Step 4: Fallback strategy - try direct removal
+    print_debug "Fallback: Attempting direct rm removal"
+    if rm -rf "$dir_path" 2>/dev/null; then
+        print_success "✅ Directory removed successfully via fallback: $dir_path"
+        return 0
+    fi
+
+    # Step 5: Emergency fallback - move to temp location instead of removing
+    print_debug "Emergency fallback: Moving directory to temp location"
+    local temp_path="/tmp/statusline_removal_$(date +%s)_$$"
+    if mv "$dir_path" "$temp_path" 2>/dev/null; then
+        print_success "✅ Directory moved to temp location: $temp_path"
+        print_status "💡 Directory will be cleaned up by system later"
+        # Try to remove in background without blocking installation
+        (sleep 10 && rm -rf "$temp_path" 2>/dev/null &) || true
+        return 0
+    fi
+
+    # Step 6: Final fallback - rename directory and continue
+    print_warning "⚠️ Cannot remove directory, renaming for safety"
+    local backup_name="${dir_path}.old.$(date +%s)"
+    if mv "$dir_path" "$backup_name" 2>/dev/null; then
+        print_warning "⚠️ Directory renamed to: $backup_name"
+        print_status "💡 Installation will continue, manual cleanup may be needed later"
+        return 0
+    fi
+
+    # If we get here, something is seriously wrong
+    print_error "❌ All removal strategies failed for: $dir_path"
+    print_error "💡 Manual intervention required - please remove manually and retry"
+    return 1
+}
+
+# Function to safely terminate any running statusline processes
+terminate_statusline_processes() {
+    trace_execution "terminate_statusline_processes"
+    print_status "🔍 Checking for running statusline processes..."
+
+    # Find statusline processes (excluding grep itself)
+    local statusline_pids=$(pgrep -f "statusline.sh" 2>/dev/null | grep -v $$ || true)
+
+    if [[ -n "$statusline_pids" ]]; then
+        print_status "⚠️ Found running statusline processes: $(echo $statusline_pids | tr '\n' ' ')"
+
+        # Send TERM signal first for graceful shutdown
+        for pid in $statusline_pids; do
+            if kill -0 "$pid" 2>/dev/null; then
+                print_status "  📤 Sending TERM signal to process $pid"
+                kill -TERM "$pid" 2>/dev/null || true
+            fi
+        done
+
+        # Wait briefly for graceful shutdown
+        sleep 2
+
+        # Check if any processes are still running and force kill if needed
+        local remaining_pids=$(pgrep -f "statusline.sh" 2>/dev/null | grep -v $$ || true)
+        if [[ -n "$remaining_pids" ]]; then
+            print_warning "🔨 Force killing remaining statusline processes: $(echo $remaining_pids | tr '\n' ' ')"
+            for pid in $remaining_pids; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    kill -KILL "$pid" 2>/dev/null || true
+                fi
+            done
+            sleep 1
+        fi
+
+        print_success "✅ All statusline processes terminated"
+    else
+        print_status "✓ No running statusline processes found"
+    fi
 }
 
 # Simplified backup function - backup entire statusline folder if exists
 backup_existing_installation() {
+    trace_execution "backup_existing_installation"
     if [ -d "$STATUSLINE_DIR" ]; then
         local backup_path="${STATUSLINE_DIR}.backup.$(date +%Y%m%d_%H%M%S)"
         print_status "🔄 Existing statusline installation found, creating backup..."
@@ -1079,11 +1484,19 @@ backup_existing_installation() {
         if cp -r "$STATUSLINE_DIR" "$backup_path"; then
             print_success "✅ Backup created: $backup_path"
             print_status "💡 Your entire statusline configuration has been preserved"
-            
-            # Remove old installation after successful backup
-            rm -rf "$STATUSLINE_DIR"
-            print_status "🧹 Removed old installation for clean install"
-            return 0
+
+            # Terminate any running statusline processes before removal
+            terminate_statusline_processes
+
+            # Remove old installation after successful backup with timeout protection
+            if safe_remove_directory "$STATUSLINE_DIR" 10; then
+                print_status "🧹 Removed old installation for clean install"
+                return 0
+            else
+                print_error "❌ Failed to remove old installation - continuing anyway"
+                print_warning "💡 You may need to manually remove: $STATUSLINE_DIR"
+                return 0  # Continue installation even if removal fails
+            fi
         else
             print_error "❌ Failed to create backup - installation aborted"
             exit 1
@@ -1092,6 +1505,42 @@ backup_existing_installation() {
         print_status "No existing statusline installation found"
         return 1
     fi
+}
+
+# Function to clean cache directories for fresh installation
+clean_cache_directories() {
+    trace_execution "clean_cache_directories"
+    print_status "🧹 Cleaning cache directories for fresh installation..."
+
+    # Cache directories to clean (both primary and fallback locations)
+    local cache_dirs=(
+        "$HOME/.cache/claude-code-statusline"
+        "$HOME/.local/share/claude-code-statusline"
+    )
+
+    local cleaned_count=0
+
+    for cache_dir in "${cache_dirs[@]}"; do
+        if [ -d "$cache_dir" ]; then
+            print_status "  🗑️ Removing old cache: $cache_dir"
+            if safe_remove_directory "$cache_dir" 5; then
+                print_success "  ✅ Cache cleared: $cache_dir"
+                cleaned_count=$((cleaned_count + 1))
+            else
+                print_warning "  ⚠️ Failed to clear cache: $cache_dir"
+            fi
+        fi
+    done
+
+
+    if [ $cleaned_count -gt 0 ]; then
+        print_success "🎉 Cache cleanup complete: $cleaned_count directories cleared"
+        print_status "💡 Cache will rebuild automatically with correct format on first run"
+    else
+        print_status "✓ No existing cache found - starting with clean slate"
+    fi
+
+    return 0
 }
 
 # Function to download Config.toml template (simplified - no individual backup)
@@ -1158,7 +1607,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=31  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=43  # 🆕 UPDATE THIS COUNT when adding new modules! (11 main + 5 prayer + 8 cache + 19 components)
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================
@@ -1190,8 +1639,9 @@ verify_installation() {
         
         # Check subdirectories with detailed reporting
         local prayer_count=0
+        local cache_count=0
         local component_count=0
-        
+
         if [ -d "$LIB_DIR/prayer" ]; then
             prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Prayer modules: $prayer_count files"
@@ -1199,11 +1649,19 @@ verify_installation() {
         else
             print_warning "  • Prayer directory missing"
         fi
-        
+
+        if [ -d "$LIB_DIR/cache" ]; then
+            cache_count=$(find "$LIB_DIR/cache" -name "*.sh" -type f | wc -l | tr -d ' ')
+            print_status "  • Cache modules: $cache_count files"
+            [[ $cache_count -lt 8 ]] && print_warning "    Expected 8 cache modules"
+        else
+            print_warning "  • Cache directory missing"
+        fi
+
         if [ -d "$LIB_DIR/components" ]; then
             component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Component modules: $component_count files"
-            [[ $component_count -lt 20 ]] && print_warning "    Expected 20 component modules"
+            [[ $component_count -lt 19 ]] && print_warning "    Expected 19 component modules"
         else
             print_warning "  • Components directory missing"
         fi
@@ -1408,13 +1866,33 @@ main() {
         echo
     fi
     
+    trace_execution "main installation flow"
+
+    print_debug "Step 1: Creating Claude directory"
     create_claude_directory
+
+    print_debug "Step 2: Cleaning cache directories (before backup)"
+    clean_cache_directories  # Clear cache BEFORE backup and removal to prevent hangs
+
+    print_debug "Step 3: Backing up existing installation"
     backup_existing_installation || true  # Don't fail if no existing installation
+
+    print_debug "Step 4: Downloading statusline"
     download_statusline
+
+    print_debug "Step 5: Downloading examples"
     download_examples  # Download all example configurations
+
+    print_debug "Step 6: Checking bash compatibility"
     check_bash_compatibility
+
+    print_debug "Step 7: Making executable"
     make_executable
+
+    print_debug "Step 8: Configuring settings"
     configure_settings
+
+    print_debug "Step 9: Downloading config template"
     download_config_template  # Fail installation if config template download fails
     
     echo

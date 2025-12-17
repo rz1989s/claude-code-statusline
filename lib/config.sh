@@ -92,6 +92,8 @@ export CONFIG_DAILY_LABEL=""
 export CONFIG_SUBMODULE_LABEL=""
 export CONFIG_MCP_LABEL=""
 export CONFIG_VERSION_PREFIX=""
+export CONFIG_CLAUDE_CODE_PREFIX=""
+export CONFIG_STATUSLINE_PREFIX=""
 export CONFIG_SESSION_PREFIX=""
 export CONFIG_LIVE_LABEL=""
 export CONFIG_RESET_LABEL=""
@@ -338,6 +340,8 @@ init_default_config() {
     CONFIG_SUBMODULE_LABEL="SUB:"
     CONFIG_MCP_LABEL="MCP"
     CONFIG_VERSION_PREFIX="ver"
+    CONFIG_CLAUDE_CODE_PREFIX="CC:"
+    CONFIG_STATUSLINE_PREFIX="SL:"
     CONFIG_SESSION_PREFIX="S:"
     CONFIG_LIVE_LABEL="LIVE"
     CONFIG_RESET_LABEL="RESET"
@@ -350,6 +354,15 @@ init_default_config() {
     CONFIG_MCP_NONE_MESSAGE="none"
     CONFIG_UNKNOWN_VERSION="?"
     CONFIG_NO_SUBMODULES="--"
+
+    # Prayer configuration defaults
+    CONFIG_PRAYER_ENABLED="true"
+    CONFIG_PRAYER_LOCATION_MODE="local_gps"
+    CONFIG_PRAYER_LATITUDE=""
+    CONFIG_PRAYER_LONGITUDE=""
+    CONFIG_PRAYER_CALCULATION_METHOD=""
+    CONFIG_PRAYER_MADHAB="2"
+    CONFIG_PRAYER_TIMEZONE=""
 
     # Line configuration defaults removed in v2.8.1+ single source architecture
     # All configuration now loaded exclusively from Config.toml via auto-regeneration
@@ -546,6 +559,8 @@ extract_config_values() {
             label_submodule: ."labels.submodule",
             label_mcp: ."labels.mcp",
             label_version_prefix: ."labels.version_prefix",
+            label_claude_code_prefix: ."labels.claude_code_prefix",
+            label_statusline_prefix: ."labels.statusline_prefix",
             label_session_prefix: ."labels.session_prefix",
             label_live: ."labels.live",
             label_reset: ."labels.reset",
@@ -658,6 +673,12 @@ extract_config_values() {
             ;;
         label_version_prefix)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_PREFIX="$value"
+            ;;
+        label_claude_code_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_CLAUDE_CODE_PREFIX="$value"
+            ;;
+        label_statusline_prefix)
+            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_STATUSLINE_PREFIX="$value"
             ;;
         label_session_prefix)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_SESSION_PREFIX="$value"
@@ -840,8 +861,10 @@ init_config_module() {
     return 0
 }
 
-# Initialize the module
-init_config_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_config_module
+fi
 
 # Export configuration functions
 export -f parse_toml_to_json discover_config_file init_default_config

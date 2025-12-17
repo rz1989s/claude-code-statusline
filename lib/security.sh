@@ -76,7 +76,7 @@ sanitize_path_secure() {
         sanitized="${sanitized//.\/}"     # Remove ./  
         sanitized="${sanitized//\/\///}"  # Remove double slashes -> single slash
 
-        ((iteration_count++))
+        iteration_count=$((iteration_count + 1))
     done
 
     # Final cleanup: remove any remaining .. sequences completely
@@ -97,6 +97,50 @@ sanitize_path_secure() {
     # Ensure result is not empty
     if [[ -z "$sanitized" ]]; then
         sanitized="unknown-path"
+    fi
+
+    echo "$sanitized"
+}
+
+# Sanitize string for use as bash variable name
+# Bash variable names can only contain: letters, numbers, underscores
+# Must start with letter or underscore
+sanitize_variable_name() {
+    local input="$1"
+
+    # Validate input
+    if [[ -z "$input" ]]; then
+        echo "var_unknown"
+        return 0
+    fi
+
+    # Replace dots with underscores (main issue from #51)
+    local sanitized="${input//./_}"
+
+    # Replace hyphens with underscores
+    sanitized="${sanitized//-/_}"
+
+    # Remove any characters that aren't alphanumeric or underscore
+    sanitized=$(printf '%s' "$sanitized" | /usr/bin/tr -cd '[:alnum:]_')
+
+    # Ensure it doesn't start with a number (bash requirement)
+    if [[ "$sanitized" =~ ^[0-9] ]]; then
+        sanitized="var_${sanitized}"
+    fi
+
+    # Enforce maximum length to prevent excessively long variable names
+    if [[ ${#sanitized} -gt 64 ]]; then
+        sanitized="${sanitized:0:64}_truncated"
+    fi
+
+    # Ensure result is not empty
+    if [[ -z "$sanitized" ]]; then
+        sanitized="var_unknown"
+    fi
+
+    # Log sanitization events when input was modified (debug mode)
+    if [[ "$input" != "$sanitized" ]] && [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]; then
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Username sanitized: '$input' → '$sanitized'" "INFO"
     fi
 
     echo "$sanitized"
@@ -124,11 +168,14 @@ create_secure_cache_file() {
     local cache_dir
     cache_dir=$(dirname "$cache_file")
     if [[ ! -d "$cache_dir" ]]; then
+        # Note: mkdir/chmod stderr suppressed - parent may not exist or lack permissions
+        # Function will fail gracefully on write if directory creation fails
         mkdir -p "$cache_dir" 2>/dev/null
         chmod 700 "$cache_dir" 2>/dev/null # Secure permissions to prevent other users from reading cost data
     fi
 
     # Acquire exclusive file lock to prevent race conditions
+    # Note: set -C + redirect stderr suppressed - expected to fail when lock exists
     while ! (
         set -C
         echo $$ >"$lock_file"
@@ -138,7 +185,7 @@ create_secure_cache_file() {
             break
         fi
         sleep 0.1
-        ((wait_count++))
+        wait_count=$((wait_count + 1))
     done
 
     # Create file with content atomically
@@ -148,33 +195,39 @@ create_secure_cache_file() {
         local temp_file="${cache_file}.tmp.$$"
 
         # Write content to temporary file
+        # Note: stderr suppressed - write_status captures success/failure
         echo "$content" >"$temp_file" 2>/dev/null
         write_status=$?
 
         if [[ $write_status -eq 0 && -f "$temp_file" ]]; then
             # Set secure permissions before moving
+            # Note: chmod stderr suppressed - non-fatal, file still usable
             chmod 644 "$temp_file" 2>/dev/null
 
             # Atomic move to final location
+            # Note: mv stderr suppressed - write_status captures success/failure
             mv "$temp_file" "$cache_file" 2>/dev/null
             write_status=$?
         else
             handle_error "Failed to write to temporary cache file: $temp_file" 1 "create_secure_cache_file"
+            # Note: rm stderr suppressed - file may not exist
             rm -f "$temp_file" 2>/dev/null
         fi
 
         # Clean up temporary file if move failed
+        # Note: rm stderr suppressed - file may already be removed
         [[ -f "$temp_file" ]] && rm -f "$temp_file" 2>/dev/null
 
         # Release lock
+        # Note: rm stderr suppressed - lock may not exist if acquisition failed
         rm -f "$lock_file" 2>/dev/null
 
         # Verify final result
         if [[ $write_status -eq 0 && -f "$cache_file" ]]; then
             # Verify permissions were set correctly
             local perms
-            perms=$(stat -f %A "$cache_file" 2>/dev/null || stat -c %a "$cache_file" 2>/dev/null)
-            if [[ "$perms" != "644" ]]; then
+            perms=$(get_file_permissions "$cache_file")
+            if [[ -n "$perms" && "$perms" != "644" ]]; then
                 handle_warning "Cache file has unexpected permissions: $perms (expected: 644)" "create_secure_cache_file"
                 # Try to fix permissions
                 chmod 644 "$cache_file" 2>/dev/null
@@ -363,6 +416,74 @@ parse_timeout_to_seconds() {
 }
 
 # ============================================================================
+# PLATFORM-AWARE FILE STAT HELPERS
+# ============================================================================
+
+# Get file modification time (cross-platform, BSD/GNU stat compatible)
+# Returns: Unix timestamp (seconds since epoch) or 0 on failure
+# Note: stderr suppressed on stat commands because BSD/GNU syntaxes differ;
+# one will always fail depending on platform, which is expected behavior
+get_file_mtime() {
+    local file="$1"
+    local mtime
+
+    [[ ! -f "$file" ]] && echo "0" && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux), then fallback
+    if mtime=$(stat -f %m "$file" 2>/dev/null); then
+        echo "$mtime"
+        return 0
+    elif mtime=$(stat -c %Y "$file" 2>/dev/null); then
+        echo "$mtime"
+        return 0
+    else
+        echo "0"
+        return 1
+    fi
+}
+
+# Get file permissions (cross-platform, BSD/GNU stat compatible)
+# Returns: Octal permissions (e.g., "644") or empty string on failure
+get_file_permissions() {
+    local file="$1"
+    local perms
+
+    [[ ! -f "$file" ]] && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux)
+    if perms=$(stat -f %A "$file" 2>/dev/null); then
+        echo "$perms"
+        return 0
+    elif perms=$(stat -c %a "$file" 2>/dev/null); then
+        echo "$perms"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Get file size in bytes (cross-platform, BSD/GNU stat compatible)
+# Returns: File size in bytes or 0 on failure
+get_file_size() {
+    local file="$1"
+    local size
+
+    [[ ! -f "$file" ]] && echo "0" && return 1
+
+    # Try BSD stat first (macOS), then GNU stat (Linux)
+    if size=$(stat -f %z "$file" 2>/dev/null); then
+        echo "$size"
+        return 0
+    elif size=$(stat -c %s "$file" 2>/dev/null); then
+        echo "$size"
+        return 0
+    else
+        echo "0"
+        return 1
+    fi
+}
+
+# ============================================================================
 # CACHE VALIDATION
 # ============================================================================
 
@@ -370,9 +491,10 @@ parse_timeout_to_seconds() {
 is_cache_fresh() {
     local cache_file="$1"
     local cache_duration="${2:-30}" # Default 30 seconds
-    
+
     if [[ -f "$cache_file" ]]; then
-        local cache_age=$(($(get_timestamp) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0)))
+        local file_mtime=$(get_file_mtime "$cache_file")
+        local cache_age=$(($(get_timestamp) - file_mtime))
         [[ $cache_age -lt $cache_duration ]]
     else
         return 1
@@ -383,10 +505,11 @@ is_cache_fresh() {
 cleanup_stale_locks() {
     local lock_file="$1"
     local max_age="${2:-120}" # Default 2 minutes
-    
+
     if [[ -f "$lock_file" ]]; then
         local lock_content=$(cat "$lock_file" 2>/dev/null)
-        local lock_age=$(($(get_timestamp) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+        local lock_mtime=$(get_file_mtime "$lock_file")
+        local lock_age=$(($(get_timestamp) - lock_mtime))
 
         # Extract PID from lock file format: "instance:PID:timestamp" or "PID:timestamp:instance"
         local lock_pid
@@ -416,10 +539,12 @@ init_security_module() {
     return 0
 }
 
-# Initialize the module
-init_security_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_security_module
+fi
 
 # Export security functions
-export -f sanitize_path_secure create_secure_cache_file validate_ansi_color
+export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color get_file_mtime get_file_permissions get_file_size
 export -f execute_python_safely parse_mcp_server_name_secure
 export -f parse_timeout_to_seconds is_cache_fresh cleanup_stale_locks

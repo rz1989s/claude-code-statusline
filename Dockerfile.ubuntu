@@ -1,0 +1,52 @@
+# Claude Code Statusline - Ubuntu Image
+# Matches CI environment (ubuntu-latest) for consistent testing
+#
+# Build: docker build -f Dockerfile.ubuntu -t claude-statusline:ubuntu .
+# Run:   docker run --rm claude-statusline:ubuntu
+# Test:  docker run --rm claude-statusline:ubuntu bats tests/unit/*.bats
+
+FROM ubuntu:24.04
+
+LABEL maintainer="rz1989s"
+LABEL description="Claude Code Enhanced Statusline - Ubuntu (CI parity)"
+LABEL org.opencontainers.image.source="https://github.com/rz1989s/claude-code-statusline"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install all dependencies in single layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    jq \
+    curl \
+    git \
+    bats \
+    coreutils \
+    shellcheck \
+    npm \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Set bash as default shell
+SHELL ["/bin/bash", "-c"]
+
+WORKDIR /app
+
+# Copy source files
+COPY . .
+
+# Make scripts executable
+RUN chmod +x statusline.sh install.sh
+
+# Install npm dependencies for tests
+RUN npm ci --ignore-scripts 2>/dev/null || true
+
+# Verify installation
+RUN bash --version && jq --version && bats --version
+
+# Default entrypoint runs statusline
+ENTRYPOINT ["./statusline.sh"]
+
+# Default command (can be overridden)
+CMD []
