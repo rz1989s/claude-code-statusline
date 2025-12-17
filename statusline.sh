@@ -234,6 +234,12 @@ fi
 # MAIN STATUSLINE GENERATION
 # ============================================================================
 
+# Skip main execution when sourced for testing
+if [[ "${STATUSLINE_TESTING:-}" == "true" ]]; then
+    debug_log "Test mode enabled - skipping main execution" "INFO"
+    return 0 2>/dev/null || exit 0
+fi
+
 debug_log "Starting statusline generation..." "INFO"
 start_timer "statusline_generation"
 
