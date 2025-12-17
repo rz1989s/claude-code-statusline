@@ -2002,6 +2002,43 @@ cat TODOS.md
 
 **Jazakallahu khairan** for helping make this project better for the Claude Code community! 🙏
 
+### 🐳 Docker Development Environment
+
+For consistent development and testing across platforms:
+
+```bash
+# Build and run tests (Alpine - fast)
+docker compose run test
+
+# Run tests on Ubuntu (CI parity)
+docker compose run test-ubuntu
+
+# Development shell with mounted source
+docker compose run dev
+
+# Run linting
+docker compose run lint
+```
+
+**Available Docker services:**
+| Service | Description |
+|---------|-------------|
+| `dev` | Interactive bash shell with source mounted |
+| `test` | Run unit tests on Alpine |
+| `test-ubuntu` | Run unit tests on Ubuntu (matches CI) |
+| `test-all` | Run all tests (unit + integration) |
+| `lint` | Run shellcheck on main scripts |
+| `lint-all` | Run shellcheck on all lib files |
+
+**Build images manually:**
+```bash
+# Alpine (default, ~50MB)
+docker build -t claude-statusline .
+
+# Ubuntu (CI parity, ~150MB)
+docker build -f Dockerfile.ubuntu -t claude-statusline:ubuntu .
+```
+
 ---
 
 ## 📜 License
