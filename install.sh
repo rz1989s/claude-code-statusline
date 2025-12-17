@@ -700,6 +700,7 @@ download_directory_comprehensive() {
     # Create local directory structure
     mkdir -p "$local_path"
     mkdir -p "$local_path/prayer"
+    mkdir -p "$local_path/cache"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -726,7 +727,13 @@ download_directory_comprehensive() {
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
     )
-    
+
+    local cache_modules=(
+        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
+        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
+        # 🆕 ADD NEW CACHE MODULES HERE (lib/cache/*.sh files)
+    )
+
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -740,7 +747,7 @@ download_directory_comprehensive() {
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -1003,7 +1010,14 @@ download_lib_fallback() {
         "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
         # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
     )
-    
+
+    # Cache system modules (lib/cache/) - modular cache architecture
+    local cache_modules=(
+        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
+        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
+        # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
+    )
+
     # Component modules (lib/components/) - all 18 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
@@ -1018,7 +1032,7 @@ download_lib_fallback() {
     )
     
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
@@ -1027,6 +1041,7 @@ download_lib_fallback() {
     
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
+    mkdir -p "$LIB_DIR/cache"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
@@ -1592,7 +1607,7 @@ verify_installation() {
     # Strict module verification with comprehensive checks
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=32  # 🆕 UPDATE THIS COUNT when adding new modules!
+    local expected_modules=43  # 🆕 UPDATE THIS COUNT when adding new modules! (11 main + 5 prayer + 8 cache + 19 components)
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
     # ================================================================
@@ -1624,8 +1639,9 @@ verify_installation() {
         
         # Check subdirectories with detailed reporting
         local prayer_count=0
+        local cache_count=0
         local component_count=0
-        
+
         if [ -d "$LIB_DIR/prayer" ]; then
             prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Prayer modules: $prayer_count files"
@@ -1633,7 +1649,15 @@ verify_installation() {
         else
             print_warning "  • Prayer directory missing"
         fi
-        
+
+        if [ -d "$LIB_DIR/cache" ]; then
+            cache_count=$(find "$LIB_DIR/cache" -name "*.sh" -type f | wc -l | tr -d ' ')
+            print_status "  • Cache modules: $cache_count files"
+            [[ $cache_count -lt 8 ]] && print_warning "    Expected 8 cache modules"
+        else
+            print_warning "  • Cache directory missing"
+        fi
+
         if [ -d "$LIB_DIR/components" ]; then
             component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
             print_status "  • Component modules: $component_count files"
