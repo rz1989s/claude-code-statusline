@@ -278,13 +278,35 @@ is_debug_mode() {
     [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]
 }
 
+# Check if JSON log format is enabled (Issue #73)
+# Usage: STATUSLINE_LOG_FORMAT=json STATUSLINE_DEBUG=true ./statusline.sh
+is_json_log_format() {
+    [[ "${STATUSLINE_LOG_FORMAT:-text}" == "json" ]]
+}
+
 # Debug logging function (respects debug configuration)
+# Supports text (default) and JSON structured output (Issue #73)
 debug_log() {
     local message="$1"
     local level="${2:-INFO}"
 
     # Only log if debug mode is enabled
-    if is_debug_mode; then
+    if ! is_debug_mode; then
+        return 0
+    fi
+
+    if is_json_log_format; then
+        # JSON structured output for log aggregation systems
+        local timestamp
+        timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+        # Escape special characters in message for valid JSON
+        local escaped_msg
+        escaped_msg=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
+
+        echo "{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$escaped_msg\"}" >&2
+    else
+        # Default text format (unchanged)
         echo "[$level] $(date '+%Y-%m-%d %H:%M:%S') $message" >&2
     fi
 }

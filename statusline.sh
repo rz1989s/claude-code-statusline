@@ -203,6 +203,7 @@ THEMES:
 
 DEBUGGING:
     STATUSLINE_DEBUG=true ./statusline.sh        - Enable debug logging
+    STATUSLINE_LOG_FORMAT=json STATUSLINE_DEBUG=true ./statusline.sh - JSON logs
 
 FEATURES:
     - 4-line statusline with git status, MCP monitoring, and cost tracking
