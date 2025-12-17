@@ -28,6 +28,7 @@ test.sh
 
 # Cache and temporary files
 cache/
+!lib/cache/
 tmp/
 temp/
 .cache/
