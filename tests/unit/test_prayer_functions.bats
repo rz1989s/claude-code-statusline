@@ -7,11 +7,11 @@ load '../helpers/test_helpers'
 
 setup() {
     common_setup
-    
+
     # Load the prayer module for testing
-    source "$TEST_STATUSLINE_DIR/lib/core.sh"
-    source "$TEST_STATUSLINE_DIR/lib/security.sh"
-    source "$TEST_STATUSLINE_DIR/lib/prayer.sh"
+    source "$STATUSLINE_ROOT/lib/core.sh"
+    source "$STATUSLINE_ROOT/lib/security.sh"
+    source "$STATUSLINE_ROOT/lib/prayer.sh"
     
     # Set up mock configuration for prayer module
     export CONFIG_PRAYER_ENABLED="true"

@@ -268,13 +268,72 @@ assert_failure() {
 }
 
 # Load bats-support and bats-assert if available
-if [[ -f "/usr/local/lib/bats-support/load.bash" ]]; then
-    load "/usr/local/lib/bats-support/load.bash"
-fi
+# Check multiple paths for cross-platform compatibility
+_load_bats_library() {
+    local lib_name="$1"
+    local paths=(
+        "/usr/lib/bats-${lib_name}/load.bash"           # Ubuntu CI
+        "/usr/local/lib/bats-${lib_name}/load.bash"     # macOS Homebrew
+        "${BATS_TEST_DIRNAME}/../node_modules/bats-${lib_name}/load.bash"  # npm local
+        "${HOME}/.bats/bats-${lib_name}/load.bash"      # User install
+    )
 
-if [[ -f "/usr/local/lib/bats-assert/load.bash" ]]; then
-    load "/usr/local/lib/bats-assert/load.bash"
-fi
+    for path in "${paths[@]}"; do
+        if [[ -f "$path" ]]; then
+            load "$path"
+            return 0
+        fi
+    done
+
+    # Library not found - define stub functions to prevent test failures
+    if [[ "$lib_name" == "assert" ]]; then
+        # Define stub functions if bats-assert is not available
+        if ! declare -f assert_output &>/dev/null; then
+            assert_output() {
+                local expected
+                if [[ "$1" == "--partial" ]]; then
+                    expected="$2"
+                    if [[ "$output" != *"$expected"* ]]; then
+                        echo "Expected output to contain: $expected"
+                        echo "Actual: $output"
+                        return 1
+                    fi
+                else
+                    expected="$1"
+                    if [[ "$output" != "$expected" ]]; then
+                        echo "Expected: $expected"
+                        echo "Actual: $output"
+                        return 1
+                    fi
+                fi
+            }
+        fi
+        if ! declare -f refute_output &>/dev/null; then
+            refute_output() {
+                local unexpected
+                if [[ "$1" == "--partial" ]]; then
+                    unexpected="$2"
+                    if [[ "$output" == *"$unexpected"* ]]; then
+                        echo "Expected output to NOT contain: $unexpected"
+                        echo "Actual: $output"
+                        return 1
+                    fi
+                else
+                    unexpected="$1"
+                    if [[ "$output" == "$unexpected" ]]; then
+                        echo "Expected output to NOT be: $unexpected"
+                        echo "Actual: $output"
+                        return 1
+                    fi
+                fi
+            }
+        fi
+    fi
+    return 1
+}
+
+_load_bats_library "support"
+_load_bats_library "assert"
 
 # Fallback: assert_output if bats-assert not available
 if ! type assert_output &>/dev/null; then
