@@ -276,6 +276,121 @@ if [[ -f "/usr/local/lib/bats-assert/load.bash" ]]; then
     load "/usr/local/lib/bats-assert/load.bash"
 fi
 
+# Fallback: assert_output if bats-assert not available
+if ! type assert_output &>/dev/null; then
+    assert_output() {
+        local expected=""
+        local partial=false
+
+        # Parse arguments
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                --partial|-p)
+                    partial=true
+                    shift
+                    ;;
+                *)
+                    expected="$1"
+                    shift
+                    ;;
+            esac
+        done
+
+        if [[ "$partial" == "true" ]]; then
+            if [[ "$output" != *"$expected"* ]]; then
+                echo "Expected output to contain: '$expected'"
+                echo "Actual output: '$output'"
+                return 1
+            fi
+        else
+            # Trim whitespace for comparison
+            local trimmed_output="${output#"${output%%[![:space:]]*}"}"
+            trimmed_output="${trimmed_output%"${trimmed_output##*[![:space:]]}"}"
+            local trimmed_expected="${expected#"${expected%%[![:space:]]*}"}"
+            trimmed_expected="${trimmed_expected%"${trimmed_expected##*[![:space:]]}"}"
+
+            if [[ "$trimmed_output" != "$trimmed_expected" ]]; then
+                echo "Expected output: '$expected'"
+                echo "Actual output: '$output'"
+                return 1
+            fi
+        fi
+        return 0
+    }
+fi
+
+# Fallback: assert_equal if bats-assert not available
+if ! type assert_equal &>/dev/null; then
+    assert_equal() {
+        local expected="$1"
+        local actual="$2"
+        if [[ "$expected" != "$actual" ]]; then
+            echo "Expected: '$expected'"
+            echo "Actual: '$actual'"
+            return 1
+        fi
+        return 0
+    }
+fi
+
+# Fallback: assert_line if bats-assert not available
+if ! type assert_line &>/dev/null; then
+    assert_line() {
+        local line_num=""
+        local expected=""
+        local partial=false
+
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                -n|--index)
+                    line_num="$2"
+                    shift 2
+                    ;;
+                -p|--partial)
+                    partial=true
+                    shift
+                    ;;
+                *)
+                    expected="$1"
+                    shift
+                    ;;
+            esac
+        done
+
+        local line
+        if [[ -n "$line_num" ]]; then
+            line=$(echo "$output" | sed -n "$((line_num + 1))p")
+        else
+            # Search all lines for match
+            while IFS= read -r line; do
+                if [[ "$partial" == "true" ]]; then
+                    [[ "$line" == *"$expected"* ]] && return 0
+                else
+                    [[ "$line" == "$expected" ]] && return 0
+                fi
+            done <<< "$output"
+            echo "Expected line not found: '$expected'"
+            echo "Output: '$output'"
+            return 1
+        fi
+
+        if [[ "$partial" == "true" ]]; then
+            if [[ "$line" != *"$expected"* ]]; then
+                echo "Expected line $line_num to contain: '$expected'"
+                echo "Actual line: '$line'"
+                return 1
+            fi
+        else
+            if [[ "$line" != "$expected" ]]; then
+                echo "Expected line $line_num: '$expected'"
+                echo "Actual line: '$line'"
+                return 1
+            fi
+        fi
+        return 0
+    }
+fi
+
 # Fallback: refute_output if bats-assert not available
 if ! type refute_output &>/dev/null; then
     refute_output() {

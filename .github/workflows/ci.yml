@@ -42,9 +42,13 @@ jobs:
         run: |
           # Run unit tests only in CI (integration tests require full environment)
           # Integration tests should be run locally before submitting PRs
-          # Note: Some tests have known issues being tracked in Issue #62
-          # Using continue-on-error while test suite is being stabilized
-          bats tests/unit/*.bats || echo "::warning::Some tests failed - see Issue #62 for test stabilization tracking"
+          #
+          # Test status (Issue #79):
+          # - Core tests: PASSING (git, cache, security, timeout validation)
+          # - MCP tests: Some edge cases fail due to output capture issues
+          #
+          # Using continue-on-error until MCP test issues are fully resolved
+          bats tests/unit/*.bats || echo "::warning::Some MCP tests failed - see Issue #79 for tracking"
         continue-on-error: true
 
       - name: Upload test results
@@ -116,13 +120,13 @@ jobs:
       - name: Check results
         run: |
           # Test job uses continue-on-error, so check lint and validate only
-          # Tests are tracked separately in Issue #62
+          # Tests are tracked separately in Issue #79
           if [[ "${{ needs.lint.result }}" == "failure" ]] || \
              [[ "${{ needs.validate.result }}" == "failure" ]]; then
             echo "One or more critical checks failed"
             exit 1
           fi
           if [[ "${{ needs.test.result }}" == "failure" ]]; then
-            echo "::warning::Tests had failures - see Issue #62 for tracking"
+            echo "::warning::Some tests had failures - see Issue #79 for tracking"
           fi
           echo "All critical checks passed!"
