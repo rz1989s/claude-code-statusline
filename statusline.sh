@@ -193,6 +193,8 @@ USAGE:
     statusline.sh --modules                 - Show loaded modules
     statusline.sh --health                  - Show system health status
     statusline.sh --health=json             - Show health status (JSON format)
+    statusline.sh --metrics                 - Show performance metrics (JSON)
+    statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
 
 THEMES:
     ENV_CONFIG_THEME=classic ./statusline.sh    - Use classic theme
@@ -334,6 +336,143 @@ EOF
     return $exit_code
 }
 
+# Show performance metrics for monitoring and analytics
+show_metrics() {
+    local format="${1:-json}"
+    local timestamp
+    timestamp=$(date +%s)
+
+    # Module stats
+    local modules_loaded=${#STATUSLINE_MODULES_LOADED[@]}
+    local modules_failed=${#STATUSLINE_MODULES_FAILED[@]}
+
+    # Cache stats
+    local cache_hits=0
+    local cache_misses=0
+    local cache_hit_rate="0.00"
+    local cache_size_bytes=0
+    local cache_file_count=0
+
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        # Aggregate cache stats from tracking arrays
+        if declare -p CACHE_STATS_HITS &>/dev/null 2>&1; then
+            for key in "${!CACHE_STATS_HITS[@]}"; do
+                cache_hits=$((cache_hits + ${CACHE_STATS_HITS[$key]:-0}))
+            done
+        fi
+        if declare -p CACHE_STATS_MISSES &>/dev/null 2>&1; then
+            for key in "${!CACHE_STATS_MISSES[@]}"; do
+                cache_misses=$((cache_misses + ${CACHE_STATS_MISSES[$key]:-0}))
+            done
+        fi
+        local total=$((cache_hits + cache_misses))
+        if [[ $total -gt 0 ]]; then
+            cache_hit_rate=$(awk "BEGIN {printf \"%.2f\", ($cache_hits / $total) * 100}")
+        fi
+
+        # Get cache directory stats
+        local cache_dir="${CLAUDE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline}"
+        if [[ -d "$cache_dir" ]]; then
+            cache_file_count=$(find "$cache_dir" -type f 2>/dev/null | wc -l | tr -d ' ')
+            # Use du -sk for cross-platform compatibility, convert to bytes
+            local size_kb
+            size_kb=$(du -sk "$cache_dir" 2>/dev/null | cut -f1 || echo "0")
+            cache_size_bytes=$((size_kb * 1024))
+        fi
+    fi
+
+    # Component stats
+    local components_enabled=0
+    local components_total=0
+    if [[ "${STATUSLINE_COMPONENTS_LOADED:-}" == "true" ]]; then
+        if declare -p STATUSLINE_COMPONENT_REGISTRY &>/dev/null 2>&1; then
+            components_total=${#STATUSLINE_COMPONENT_REGISTRY[@]}
+        fi
+        if declare -p COMPONENT_ENABLED &>/dev/null 2>&1; then
+            for comp in "${!COMPONENT_ENABLED[@]}"; do
+                [[ "${COMPONENT_ENABLED[$comp]}" == "true" ]] && components_enabled=$((components_enabled + 1))
+            done
+        fi
+    fi
+
+    # Output based on format
+    case "$format" in
+        json)
+            cat <<EOF
+{
+  "timestamp": $timestamp,
+  "version": "$STATUSLINE_VERSION",
+  "modules": {
+    "loaded": $modules_loaded,
+    "failed": $modules_failed
+  },
+  "cache": {
+    "hits": $cache_hits,
+    "misses": $cache_misses,
+    "hit_rate_percent": $cache_hit_rate,
+    "file_count": $cache_file_count,
+    "size_bytes": $cache_size_bytes
+  },
+  "components": {
+    "enabled": $components_enabled,
+    "total": $components_total
+  }
+}
+EOF
+            ;;
+        prometheus|prom)
+            cat <<EOF
+# HELP statusline_info Statusline version info
+# TYPE statusline_info gauge
+statusline_info{version="$STATUSLINE_VERSION"} 1
+
+# HELP statusline_modules_loaded Number of successfully loaded modules
+# TYPE statusline_modules_loaded gauge
+statusline_modules_loaded $modules_loaded
+
+# HELP statusline_modules_failed Number of failed modules
+# TYPE statusline_modules_failed gauge
+statusline_modules_failed $modules_failed
+
+# HELP statusline_cache_hits_total Total cache hits
+# TYPE statusline_cache_hits_total counter
+statusline_cache_hits_total $cache_hits
+
+# HELP statusline_cache_misses_total Total cache misses
+# TYPE statusline_cache_misses_total counter
+statusline_cache_misses_total $cache_misses
+
+# HELP statusline_cache_hit_rate Cache hit rate percentage
+# TYPE statusline_cache_hit_rate gauge
+statusline_cache_hit_rate $cache_hit_rate
+
+# HELP statusline_cache_size_bytes Cache directory size in bytes
+# TYPE statusline_cache_size_bytes gauge
+statusline_cache_size_bytes $cache_size_bytes
+
+# HELP statusline_cache_file_count Number of cache files
+# TYPE statusline_cache_file_count gauge
+statusline_cache_file_count $cache_file_count
+
+# HELP statusline_components_enabled Number of enabled components
+# TYPE statusline_components_enabled gauge
+statusline_components_enabled $components_enabled
+
+# HELP statusline_components_total Total number of components
+# TYPE statusline_components_total gauge
+statusline_components_total $components_total
+EOF
+            ;;
+        *)
+            echo "Unknown format: $format" >&2
+            echo "Supported formats: json, prometheus" >&2
+            return 1
+            ;;
+    esac
+
+    return 0
+}
+
 # ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
@@ -383,6 +522,18 @@ if [[ $# -gt 0 ]]; then
         ;;
     "--health=json"|"--health-json")
         show_health_status "json"
+        exit $?
+        ;;
+    "--metrics")
+        show_metrics
+        exit $?
+        ;;
+    "--metrics=json")
+        show_metrics "json"
+        exit $?
+        ;;
+    "--metrics=prometheus"|"--metrics=prom")
+        show_metrics "prometheus"
         exit $?
         ;;
     *)
