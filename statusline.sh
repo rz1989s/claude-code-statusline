@@ -191,6 +191,8 @@ USAGE:
     statusline.sh --version                 - Show version information
     statusline.sh --test-display            - Test display formatting
     statusline.sh --modules                 - Show loaded modules
+    statusline.sh --health                  - Show system health status
+    statusline.sh --health=json             - Show health status (JSON format)
 
 THEMES:
     ENV_CONFIG_THEME=classic ./statusline.sh    - Use classic theme
@@ -209,6 +211,127 @@ FEATURES:
 
 For detailed configuration, see: https://github.com/rz1989s/claude-code-statusline
 EOF
+}
+
+# Show health status for diagnostics and monitoring
+show_health_status() {
+    local format="${1:-human}"
+    local status="healthy"
+    local exit_code=0
+    local issues=()
+
+    # Collect dependency versions
+    local bash_version="${BASH_VERSION%%(*}"
+    local jq_version
+    local curl_version
+    local git_version
+
+    jq_version=$(jq --version 2>/dev/null | sed 's/jq-//')
+    curl_version=$(curl --version 2>/dev/null | head -1 | awk '{print $2}')
+    git_version=$(git --version 2>/dev/null | awk '{print $3}')
+
+    # Check critical dependencies
+    local deps_ok=true
+    [[ -z "$jq_version" ]] && deps_ok=false && issues+=("jq not found")
+    [[ -z "$curl_version" ]] && deps_ok=false && issues+=("curl not found")
+    [[ "${BASH_VERSINFO[0]}" -lt 4 ]] && deps_ok=false && issues+=("bash < 4.0")
+
+    # Check modules
+    local modules_loaded=${#STATUSLINE_MODULES_LOADED[@]}
+    local modules_failed=${#STATUSLINE_MODULES_FAILED[@]}
+    [[ $modules_failed -gt 0 ]] && issues+=("$modules_failed module(s) failed to load")
+
+    # Check config file
+    local config_status="valid"
+    local config_path="${CONFIG_PATH:-$HOME/.claude/statusline/Config.toml}"
+    if [[ ! -f "$config_path" ]]; then
+        config_status="missing"
+        issues+=("Config.toml not found")
+    fi
+
+    # Check cache directory
+    local cache_status="writable"
+    local cache_dir="${CLAUDE_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline}"
+    if [[ ! -d "$cache_dir" ]]; then
+        cache_status="missing"
+    elif [[ ! -w "$cache_dir" ]]; then
+        cache_status="read-only"
+        issues+=("Cache directory not writable")
+    fi
+
+    # Check optional dependencies
+    local ccusage_status="not installed"
+    command -v ccusage >/dev/null 2>&1 && ccusage_status="available"
+    command -v bunx >/dev/null 2>&1 && [[ "$ccusage_status" == "not installed" ]] && ccusage_status="available (via bunx)"
+
+    # Determine overall status
+    [[ ${#issues[@]} -gt 0 ]] && status="degraded"
+    [[ "$deps_ok" == "false" ]] && status="unhealthy" && exit_code=1
+
+    # Output based on format
+    if [[ "$format" == "json" ]]; then
+        # Properly quote string values, handle null for missing deps
+        local jq_val="${jq_version:-null}"
+        local curl_val="${curl_version:-null}"
+        local git_val="${git_version:-null}"
+        [[ "$jq_val" != "null" ]] && jq_val="\"$jq_val\""
+        [[ "$curl_val" != "null" ]] && curl_val="\"$curl_val\""
+        [[ "$git_val" != "null" ]] && git_val="\"$git_val\""
+
+        cat <<EOF
+{
+  "status": "$status",
+  "version": "$STATUSLINE_VERSION",
+  "modules_loaded": $modules_loaded,
+  "modules_failed": $modules_failed,
+  "dependencies": {
+    "bash": "$bash_version",
+    "jq": $jq_val,
+    "curl": $curl_val,
+    "git": $git_val
+  },
+  "optional": {
+    "ccusage": "$ccusage_status"
+  },
+  "config": "$config_status",
+  "cache": "$cache_status"
+}
+EOF
+    else
+        # Human-readable output
+        echo "Claude Code Statusline Health Check"
+        echo "===================================="
+        echo ""
+        echo "Status: $status"
+        echo "Version: ${STATUSLINE_VERSION:-unknown}"
+        echo ""
+        echo "Dependencies:"
+        [[ -n "$bash_version" && "${BASH_VERSINFO[0]}" -ge 4 ]] && echo "  ✓ bash $bash_version" || echo "  ✗ bash ${bash_version:-unknown} (requires 4.0+)"
+        [[ -n "$jq_version" ]] && echo "  ✓ jq $jq_version" || echo "  ✗ jq not found"
+        [[ -n "$curl_version" ]] && echo "  ✓ curl $curl_version" || echo "  ✗ curl not found"
+        [[ -n "$git_version" ]] && echo "  ✓ git $git_version" || echo "  ⚠ git not found (optional)"
+        echo ""
+        echo "Optional:"
+        if [[ "$ccusage_status" != "not installed" ]]; then
+            echo "  ✓ ccusage: $ccusage_status"
+        else
+            echo "  ⚠ ccusage: not installed (cost tracking disabled)"
+        fi
+        echo ""
+        echo "Modules: $modules_loaded loaded, $modules_failed failed"
+        echo "Config: $config_status"
+        echo "Cache: $cache_status"
+
+        if [[ ${#issues[@]} -gt 0 ]]; then
+            echo ""
+            echo "Issues:"
+            for issue in "${issues[@]}"; do
+                echo "  • $issue"
+            done
+        fi
+    fi
+
+    return $exit_code
 }
 
 # ============================================================================
@@ -253,6 +376,14 @@ if [[ $# -gt 0 ]]; then
             done
         fi
         exit 0
+        ;;
+    "--health")
+        show_health_status
+        exit $?
+        ;;
+    "--health=json"|"--health-json")
+        show_health_status "json"
+        exit $?
         ;;
     *)
         echo "Unknown option: $1" >&2
