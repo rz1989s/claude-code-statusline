@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+package-lock.json
+
+# Build artifacts
+*.log
+.cache
+
+# Local development
+homebrew-tap/
+.claude/
+
+# Test artifacts
+/tmp/statusline_test_*
+tests/**/*.tmp
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

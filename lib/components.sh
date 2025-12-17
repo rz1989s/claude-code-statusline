@@ -150,7 +150,7 @@ collect_all_component_data() {
     
     for component_name in "${STATUSLINE_COMPONENT_ORDER[@]}"; do
         if collect_component_data "$component_name"; then
-            ((collected_count++))
+            collected_count=$((collected_count + 1))
         fi
     done
     
@@ -227,7 +227,7 @@ build_component_line() {
             else
                 line_output="$component_output"
             fi
-            ((rendered_count++))
+            rendered_count=$((rendered_count + 1))
         fi
     done
     
@@ -298,7 +298,7 @@ load_component_modules() {
             debug_log "Loading component module: $component_basename" "INFO"
             
             if source "$component_file"; then
-                ((loaded_count++))
+                loaded_count=$((loaded_count + 1))
                 debug_log "Successfully loaded component: $component_basename" "INFO"
             else
                 handle_warning "Failed to load component: $component_basename" "load_component_modules"

@@ -36,44 +36,49 @@ teardown() {
 @test "get_commits_today should return commit count" {
     setup_mock_git_repo "$TEST_TMP_DIR/git_repo" "clean"
     cd "$TEST_TMP_DIR/git_repo"
-    
+
     # Mock git log to return 3 commits
+    # Note: Pattern must match actual git command with quoted date argument
     cat > "$MOCK_BIN_DIR/git" << 'EOF'
 #!/bin/bash
 case "$*" in
     "rev-parse --is-inside-work-tree")
+        echo "true"
         exit 0
         ;;
-    "log --since=today 00:00 --oneline")
+    *"--since"*"--oneline"*)
+        # Match any log command with --since and --oneline flags
         echo "commit1 First commit"
         echo "commit2 Second commit"
         echo "commit3 Third commit"
         ;;
     *)
-        echo "Mock git: $*"
+        # Fallback for other git commands
+        exit 0
         ;;
 esac
 EOF
     chmod +x "$MOCK_BIN_DIR/git"
-    
+
     # Source the function and test it
     source "$STATUSLINE_SCRIPT"
     run get_commits_today
-    
+
     assert_success
     assert_output "3"
 }
 
 @test "get_commits_today should return 0 for non-git directory" {
     cd "$TEST_TMP_DIR"
-    
-    # Mock git to fail
+
+    # Mock git to fail for is_git_repository check
     create_failing_mock_command "git" "not a git repository" 128
-    
+
     source "$STATUSLINE_SCRIPT"
     run get_commits_today
-    
-    assert_success
+
+    # Function returns exit code 1 when not in git repo, but still outputs "0"
+    assert_failure
     assert_output "0"
 }
 

@@ -73,6 +73,10 @@ bats tests/unit/test_*.bats           # Unit tests (9 files)
 bats tests/integration/test_*.bats    # Integration tests (6 files)
 bats tests/benchmarks/test_*.bats     # Performance tests (2 files)
 
+# Pre-commit hooks (optional but recommended)
+pip install pre-commit && pre-commit install
+pre-commit run --all-files            # Manual check
+
 # Installation Testing
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
@@ -189,23 +193,47 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 
 ## Installation System
 
-**3-Tier Download Architecture** (v2.9.0):
+**Two Installation Methods Available:**
+
+| Feature | curl installer (Recommended) | Homebrew (macOS) |
+|---------|------------------------------|------------------|
+| Platform | macOS, Linux, WSL | macOS only |
+| Auto settings.json | ✅ Automatic | ❌ Manual setup |
+| Updates | Re-run installer | `brew upgrade` |
+| Uninstall | Manual cleanup | `brew uninstall` |
+| Branch selection | ✅ Any branch | main only |
+
+**Method 1: curl Installer (Recommended)**
+```bash
+# Production (main branch) - Full automatic setup
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
+
+# Nightly (experimental features)
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
+
+# Development branch
+curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/install.sh | bash -s -- --branch=dev
+```
+
+**Method 2: Homebrew (macOS)**
+```bash
+# Install via Homebrew tap
+brew tap rz1989s/tap && brew install claude-code-statusline
+
+# After install, manually add to Claude Code settings.json:
+# "env": { "CLAUDE_CODE_STATUSLINE": "~/.claude/statusline/statusline.sh" }
+
+# Updates
+brew update && brew upgrade claude-code-statusline
+```
+
+**Homebrew Tap Repository**: https://github.com/rz1989s/homebrew-tap
+
+**3-Tier Download Architecture** (curl installer):
 - **Tier 1**: Direct raw URLs (unlimited, fastest)
 - **Tier 2**: GitHub API fallback (5,000/hour with token)
 - **Tier 3**: Comprehensive retry with exponential backoff
 - **Result**: 100% download guarantee, zero intervention required
-
-**Installation Commands**:
-```bash
-# Production (main branch)
-curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash
-
-# Nightly (experimental)
-curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/nightly/install.sh | bash -s -- --branch=nightly
-
-# Development (dev6 with settings.json enhancements)
-curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
-```
 
 ## Prayer System Integration
 

@@ -3,10 +3,18 @@
 # ============================================================================
 # Claude Code Statusline - Cost Tracking Module
 # ============================================================================
-# 
+#
 # This module handles all cost tracking and billing information using
 # ccusage integration, including session costs, daily/weekly/monthly totals,
 # and active billing block management.
+#
+# Error Suppression Patterns (Issue #76):
+# - jq empty 2>/dev/null: JSON validation where invalid data returns fallback
+# - date -d/-r 2>/dev/null: Cross-platform date (GNU -d vs BSD -r)
+# - bunx ccusage 2>/dev/null: External tool may not be installed
+# - printf "%.2f" 2>/dev/null: Numeric formatting with fallback on invalid input
+# - kill -0 2>/dev/null: Process existence check (expected to fail for dead PIDs)
+# - rm/mkdir/chmod 2>/dev/null: Best-effort filesystem ops (race conditions)
 #
 
 # CRITICAL EMERGENCY FIX: Set date format defaults immediately to fix DAY $0.00 bug
@@ -283,6 +291,7 @@ calculate_cost_dates() {
         local current_epoch=$(date +%s)
         local seven_days_epoch=$((current_epoch - 7 * 24 * 3600))
         local thirty_days_epoch=$((current_epoch - 30 * 24 * 3600))
+        # Note: Chained date calls try GNU (-d @epoch) then BSD (-r epoch) then today as final fallback
         seven_days_ago=$(date -d "@$seven_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || date -r "$seven_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || echo "$(date "+$CONFIG_DATE_FORMAT_COMPACT")")
         thirty_days_ago=$(date -d "@$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || date -r "$thirty_days_epoch" "+$CONFIG_DATE_FORMAT_COMPACT" 2>/dev/null || echo "$(date "+$CONFIG_DATE_FORMAT_COMPACT")")
     fi
@@ -756,8 +765,10 @@ init_cost_module() {
     return 0
 }
 
-# Initialize the module
-init_cost_module
+# Initialize the module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_cost_module
+fi
 
 # Export cost tracking functions
 export -f is_ccusage_available init_cost_cache execute_ccusage_with_cache

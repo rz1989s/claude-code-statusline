@@ -15,6 +15,56 @@
 export STATUSLINE_CORE_LOADED=true
 
 # ============================================================================
+# STRICT MODE / FAIL-FAST BEHAVIOR
+# ============================================================================
+# Enable strict mode for robust error handling across all modules.
+# - set -e: Exit immediately if a command exits with non-zero status
+# - set -o pipefail: Pipeline fails if any command in it fails
+#
+# Note: We intentionally omit -u (nounset) because this codebase uses
+# associative arrays with dynamic keys for caching, which triggers false
+# positives when checking if a key exists.
+#
+# Usage: Call enable_strict_mode early in the main script (statusline.sh)
+# ============================================================================
+
+enable_strict_mode() {
+    # Skip strict mode in testing environment to allow test assertions to work (Issue #62)
+    [[ "${STATUSLINE_TESTING:-}" == "true" ]] && return 0
+
+    set -eo pipefail
+
+    # Set up ERR trap to provide better error context
+    trap '_strict_mode_error_handler $? "${BASH_SOURCE[0]}" "${LINENO}" "${FUNCNAME[0]:-main}"' ERR
+}
+
+# Internal error handler for strict mode
+_strict_mode_error_handler() {
+    local exit_code="$1"
+    local source_file="$2"
+    local line_number="$3"
+    local func_name="$4"
+
+    # Only log if debug mode is enabled to avoid noise
+    if [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]; then
+        echo "[ERR] Command failed (exit $exit_code) at ${source_file}:${line_number} in ${func_name}" >&2
+    fi
+
+    # Don't exit - let the normal error handling continue
+    # The trap is for debugging, not for changing behavior
+    return 0
+}
+
+# Disable strict mode (for sections that need lenient error handling)
+disable_strict_mode() {
+    set +eo pipefail
+    trap - ERR
+}
+
+# Export strict mode functions
+export -f enable_strict_mode disable_strict_mode _strict_mode_error_handler
+
+# ============================================================================
 # CORE CONSTANTS
 # ============================================================================
 
@@ -130,7 +180,7 @@ get_script_dir() {
     # Follow symlinks to find the real script location with loop protection
     while [[ -L "$script_path" ]] && [[ $link_count -lt $max_links ]]; do
         script_path=$(readlink "$script_path")
-        ((link_count++))
+        link_count=$((link_count + 1))
     done
     
     # Warn if we hit the symlink limit
@@ -222,13 +272,41 @@ cleanup_temp_resources() {
     [[ -n "$temp_dir" && -d "$temp_dir" ]] && rm -rf "$temp_dir" 2>/dev/null
 }
 
+# Check if debug mode is enabled (standardized helper - Issue #78)
+# Usage: if is_debug_mode; then echo "debug info"; fi
+is_debug_mode() {
+    [[ "${STATUSLINE_DEBUG:-false}" == "true" ]]
+}
+
+# Check if JSON log format is enabled (Issue #73)
+# Usage: STATUSLINE_LOG_FORMAT=json STATUSLINE_DEBUG=true ./statusline.sh
+is_json_log_format() {
+    [[ "${STATUSLINE_LOG_FORMAT:-text}" == "json" ]]
+}
+
 # Debug logging function (respects debug configuration)
+# Supports text (default) and JSON structured output (Issue #73)
 debug_log() {
     local message="$1"
     local level="${2:-INFO}"
-    
-    # Only log if debug mode is enabled (will be set by config module)
-    if [[ "${STATUSLINE_DEBUG_MODE:-false}" == "true" ]]; then
+
+    # Only log if debug mode is enabled
+    if ! is_debug_mode; then
+        return 0
+    fi
+
+    if is_json_log_format; then
+        # JSON structured output for log aggregation systems
+        local timestamp
+        timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+
+        # Escape special characters in message for valid JSON
+        local escaped_msg
+        escaped_msg=$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g')
+
+        echo "{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$escaped_msg\"}" >&2
+    else
+        # Default text format (unchanged)
         echo "[$level] $(date '+%Y-%m-%d %H:%M:%S') $message" >&2
     fi
 }
@@ -323,11 +401,13 @@ cleanup_on_signal() {
     exit 0
 }
 
-# Initialize the core module
-init_core_module
+# Initialize the core module (skip during testing to allow sourcing without side effects)
+if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
+    init_core_module
+fi
 
 # Export core functions for use by other modules
 export -f load_module is_module_loaded get_script_dir safe_echo command_exists
 export -f get_timestamp is_numeric is_boolean safe_compare
-export -f create_temp_dir cleanup_temp_resources debug_log
+export -f create_temp_dir cleanup_temp_resources debug_log is_debug_mode
 export -f start_timer end_timer handle_error handle_warning

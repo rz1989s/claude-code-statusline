@@ -792,33 +792,30 @@ download_directory_with_api_fallback() {
     local attempt="${4:-1}"
     local max_attempts=3
     
-    # Check for GitHub token to increase rate limits
-    local auth_header=""
+    # Build curl arguments array (avoids eval for security - Issue #68)
+    local curl_args=(-fsSL)
     if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        auth_header="-H \"Authorization: token $GITHUB_TOKEN\""
+        curl_args+=(-H "Authorization: token $GITHUB_TOKEN")
         print_status "🔑 Using GitHub token for enhanced rate limits (5000/hour)"
     else
         print_status "⚠️ No GitHub token - limited to 60 requests/hour"
     fi
-    
+
     if [[ $attempt -eq 1 ]]; then
         print_status "📦 API fallback: discovering files in $repo_path..."
     else
         print_status "📦 API retry attempt $attempt/$max_attempts for $repo_path..."
     fi
-    
+
     local api_url="https://api.github.com/repos/rz1989s/claude-code-statusline/contents/$repo_path?ref=$INSTALL_BRANCH"
-    
+    curl_args+=("$api_url")
+
     # Create local directory
     mkdir -p "$local_path"
-    
-    # Get directory contents with optional auth
+
+    # Get directory contents with array-based curl call
     local contents
-    if [[ -n "$auth_header" ]]; then
-        contents=$(eval curl -fsSL $auth_header "$api_url" 2>/dev/null)
-    else
-        contents=$(curl -fsSL "$api_url" 2>/dev/null)
-    fi
+    contents=$(curl "${curl_args[@]}" 2>/dev/null)
     
     if [[ -z "$contents" || "$contents" == "Not Found" || "$contents" == "null" ]]; then
         if [[ $attempt -lt $max_attempts ]]; then
@@ -1176,7 +1173,9 @@ check_bash_compatibility() {
     local bash_paths=()
 
     # Platform-aware bash path prioritization
-    if [[ "$OS_TYPE" == "Darwin" ]]; then
+    # Use OS_TYPE if set, otherwise detect it
+    local os_type="${OS_TYPE:-$(uname -s)}"
+    if [[ "$os_type" == "Darwin" ]]; then
         # macOS: check Homebrew paths first, then system paths
         bash_paths=("/opt/homebrew/bin/bash" "/usr/local/bin/bash" "/opt/local/bin/bash" "/usr/bin/bash" "/bin/bash")
     else
@@ -1196,7 +1195,7 @@ check_bash_compatibility() {
         print_warning "Modern bash not found - some advanced features may not work"
 
         # Platform-specific bash installation suggestions
-        if [[ "$OS_TYPE" == "Darwin" ]]; then
+        if [[ "$os_type" == "Darwin" ]]; then
             print_status "For full functionality, consider: brew install bash"
         else
             case "$PKG_MGR" in

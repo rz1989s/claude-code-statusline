@@ -1,0 +1,46 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# See: https://pre-commit.com
+
+repos:
+  # Shellcheck for bash script linting
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+        args: ["--severity=error", "--exclude=SC2034,SC1090,SC1091"]
+        # SC2034: Unused variables (many are exported for other modules)
+        # SC1090: Can't follow non-constant source (dynamic sourcing)
+        # SC1091: Not following sourced file (cross-module deps)
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: mixed-line-endings
+        args: ['--fix=lf']
+
+  # TOML syntax validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-toml
+
+  # YAML syntax validation (for this config and CI files)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+
+# CI integration: Add to .github/workflows/ci.yml:
+# - name: Run pre-commit
+#   uses: pre-commit/action@v3.0.1

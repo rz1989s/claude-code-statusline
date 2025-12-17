@@ -1,0 +1,67 @@
+# Docker Compose for Claude Code Statusline
+#
+# Usage:
+#   docker compose run dev          # Development shell
+#   docker compose run test         # Run tests (Alpine)
+#   docker compose run test-ubuntu  # Run tests (Ubuntu - CI parity)
+#   docker compose run lint         # Run shellcheck
+
+services:
+  # Development environment with mounted source
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules  # Preserve container's node_modules
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Run tests on Alpine
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: /bin/bash
+    command: ["-c", "bats tests/unit/*.bats"]
+
+  # Run tests on Ubuntu (matches CI environment)
+  test-ubuntu:
+    build:
+      context: .
+      dockerfile: Dockerfile.ubuntu
+    entrypoint: /bin/bash
+    command: ["-c", "bats tests/unit/*.bats"]
+
+  # Run all tests (unit + integration)
+  test-all:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: /bin/bash
+    command: ["-c", "bats tests/unit/*.bats tests/integration/*.bats"]
+
+  # Run shellcheck linting
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: shellcheck
+    command: ["-x", "-e", "SC2034,SC1090,SC1091", "statusline.sh", "install.sh"]
+
+  # Lint all lib files
+  lint-all:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: /bin/bash
+    command: ["-c", "shellcheck -x -e SC2034,SC1090,SC1091 statusline.sh install.sh lib/*.sh"]
+
+  # Run statusline with sample input
+  run:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    stdin_open: true

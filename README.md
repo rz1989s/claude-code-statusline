@@ -21,6 +21,7 @@
 **🎨 Transform your terminal with 18 atomic components across 1-9 configurable lines**  
 *Block metrics • Burn rate monitoring • Cache efficiency • Cost projections • Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
+[![CI](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform Support](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux%20%7C%20WSL-green.svg)](#-system-requirements)
 [![Shell](https://img.shields.io/badge/Shell-Bash-lightgrey.svg)]()
@@ -1149,6 +1150,19 @@ curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main
 curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6/install.sh | bash -s -- --branch=dev6 --preserve-statusline
 ```
 
+#### Method 2: Homebrew (macOS)
+
+```bash
+# Add the tap and install
+brew tap rz1989s/tap
+brew install claude-code-statusline
+
+# Verify installation
+claude-statusline --help
+```
+
+> **Note**: The curl installer is still recommended for full automatic setup. Homebrew provides the formula but requires manual settings.json configuration.
+
 <details>
 <summary><strong>🚀 Revolutionary 3-Tier Download System Features</strong></summary>
 
@@ -1987,6 +2001,43 @@ cat TODOS.md
 ```
 
 **Jazakallahu khairan** for helping make this project better for the Claude Code community! 🙏
+
+### 🐳 Docker Development Environment
+
+For consistent development and testing across platforms:
+
+```bash
+# Build and run tests (Alpine - fast)
+docker compose run test
+
+# Run tests on Ubuntu (CI parity)
+docker compose run test-ubuntu
+
+# Development shell with mounted source
+docker compose run dev
+
+# Run linting
+docker compose run lint
+```
+
+**Available Docker services:**
+| Service | Description |
+|---------|-------------|
+| `dev` | Interactive bash shell with source mounted |
+| `test` | Run unit tests on Alpine |
+| `test-ubuntu` | Run unit tests on Ubuntu (matches CI) |
+| `test-all` | Run all tests (unit + integration) |
+| `lint` | Run shellcheck on main scripts |
+| `lint-all` | Run shellcheck on all lib files |
+
+**Build images manually:**
+```bash
+# Alpine (default, ~50MB)
+docker build -t claude-statusline .
+
+# Ubuntu (CI parity, ~150MB)
+docker build -f Dockerfile.ubuntu -t claude-statusline:ubuntu .
+```
 
 ---
 

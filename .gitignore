@@ -28,6 +28,7 @@ test.sh
 
 # Cache and temporary files
 cache/
+!lib/cache/
 tmp/
 temp/
 .cache/
@@ -99,3 +100,5 @@ social-media-posts/
 
 # API research data
 api-research/
+# Claude Code local settings
+.claude/
