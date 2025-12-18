@@ -16,6 +16,9 @@ class ClaudeCodeStatusline < Formula
   depends_on "coreutils" if OS.mac?  # For gtimeout
 
   def install
+    # Install config template BEFORE moving files to libexec
+    (share/"claude-code-statusline").install "examples/Config.toml"
+
     # Install all files to libexec
     libexec.install Dir["*"]
 
@@ -24,9 +27,6 @@ class ClaudeCodeStatusline < Formula
       #!/bin/bash
       exec "#{libexec}/statusline.sh" "$@"
     EOS
-
-    # Install config template from examples directory
-    (share/"claude-code-statusline").install "examples/Config.toml"
   end
 
   def post_install
