@@ -7,8 +7,8 @@
 class ClaudeCodeStatusline < Formula
   desc "Enhanced statusline for Claude Code with themes, cost tracking, and prayer times"
   homepage "https://github.com/rz1989s/claude-code-statusline"
-  url "https://github.com/rz1989s/claude-code-statusline/archive/refs/tags/v2.11.6.tar.gz"
-  sha256 "a18b768af22cf13f0192dfec9a0183a90c8fcbba0330f647a301a7dab9468a77"
+  url "https://github.com/rz1989s/claude-code-statusline/archive/refs/tags/v2.12.0.tar.gz"
+  sha256 "a022bbff95bdeda3e5007f8c18b69111dc8b7a4c5c44bd3e56cb1aa69068ee15"
   license "MIT"
   head "https://github.com/rz1989s/claude-code-statusline.git", branch: "main"
 
@@ -16,6 +16,9 @@ class ClaudeCodeStatusline < Formula
   depends_on "coreutils" if OS.mac?  # For gtimeout
 
   def install
+    # Install config template BEFORE moving files to libexec
+    (share/"claude-code-statusline").install "examples/Config.toml"
+
     # Install all files to libexec
     libexec.install Dir["*"]
 
@@ -24,9 +27,6 @@ class ClaudeCodeStatusline < Formula
       #!/bin/bash
       exec "#{libexec}/statusline.sh" "$@"
     EOS
-
-    # Install config template
-    (share/"claude-code-statusline").install "Config.toml"
   end
 
   def post_install
