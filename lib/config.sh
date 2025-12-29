@@ -236,6 +236,19 @@ File: $toml_file" 6 "parse_toml_to_json"
             # Use sed to extract key and value parts
             local key=$(echo "$line" | sed 's/^[[:space:]]*\([^=]*\)[[:space:]]*=.*/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
             local value=$(echo "$line" | sed 's/^[[:space:]]*[^=]*=[[:space:]]*\(.*\)/\1/' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            # Strip inline comments (# not inside quotes) - Fix for v2.13.0
+            # Handle quoted strings: find closing quote, strip everything after
+            if [[ "$value" =~ ^\" ]]; then
+                # Quoted string - extract up to closing quote, ignore rest
+                value=$(echo "$value" | sed 's/^\("[^"]*"\).*/\1/')
+            elif [[ "$value" =~ ^\[ ]]; then
+                # Array - extract up to closing bracket, ignore rest
+                value=$(echo "$value" | sed 's/^\(\[[^]]*\]\).*/\1/')
+            else
+                # Unquoted value - strip from # onwards (inline comment)
+                value=$(echo "$value" | sed 's/[[:space:]]*#.*//')
+            fi
             
             # Skip if key is empty (malformed line)
             if [[ -z "$key" ]]; then
