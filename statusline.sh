@@ -561,6 +561,19 @@ start_timer "statusline_generation"
 # Read input from Claude Code
 # Performance optimization: 64 individual jq calls replaced with 1 optimized operation
 input=$(cat)
+
+# ============================================================================
+# STORE RAW JSON INPUT GLOBALLY (Issue #99)
+# ============================================================================
+# Export the full JSON input for component access to native Anthropic data.
+# This enables components to extract native fields like:
+# - cost.total_cost_usd (native session cost)
+# - cost.total_lines_added/removed (code productivity)
+# - current_usage.cache_read_input_tokens (cache efficiency)
+# - session_id, transcript_path (session info)
+# See: https://github.com/rz1989s/claude-code-statusline/issues/99
+export STATUSLINE_INPUT_JSON="$input"
+
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 

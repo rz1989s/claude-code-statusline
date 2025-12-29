@@ -735,6 +735,144 @@ get_unified_block_metrics() {
 }
 
 # ============================================================================
+# NATIVE COST EXTRACTION (Issue #99)
+# ============================================================================
+# Extract cost data directly from Anthropic's native statusline JSON input.
+# This provides zero-latency cost data without external ccusage calls.
+# Available in Claude Code v1.0.85+
+
+# Extract native session cost from Anthropic JSON input
+# Returns: cost value or empty string if unavailable
+get_native_session_cost() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        debug_log "No native JSON input available for cost extraction" "INFO"
+        echo ""
+        return 1
+    fi
+
+    local native_cost
+    native_cost=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_cost_usd // empty' 2>/dev/null)
+
+    if [[ -n "$native_cost" && "$native_cost" != "null" ]]; then
+        # Format to 2 decimal places
+        printf "%.2f" "$native_cost" 2>/dev/null || echo ""
+        return 0
+    else
+        echo ""
+        return 1
+    fi
+}
+
+# Extract native duration from Anthropic JSON input
+# Returns: duration in ms or empty string if unavailable
+get_native_session_duration() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_duration_ms // empty' 2>/dev/null
+}
+
+# Extract native API duration from Anthropic JSON input
+# Returns: API duration in ms or empty string if unavailable
+get_native_api_duration() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_api_duration_ms // empty' 2>/dev/null
+}
+
+# Debug comparison: Log native vs ccusage cost side-by-side
+# This helps validate that native data matches ccusage before production use
+compare_native_vs_ccusage_cost() {
+    local native_cost ccusage_cost
+
+    # Get native cost
+    native_cost=$(get_native_session_cost)
+
+    # Get ccusage cost (extract from full usage info)
+    if is_ccusage_available; then
+        local usage_info
+        usage_info=$(get_claude_usage_info)
+        ccusage_cost="${usage_info%%:*}"
+    else
+        ccusage_cost="N/A"
+    fi
+
+    # Format for comparison
+    local native_display="${native_cost:-N/A}"
+    local ccusage_display="${ccusage_cost:-N/A}"
+
+    # Calculate difference if both are available
+    local diff_display="N/A"
+    if [[ -n "$native_cost" && "$ccusage_cost" != "N/A" && "$ccusage_cost" != "-.--" ]]; then
+        local diff
+        diff=$(awk "BEGIN {printf \"%.4f\", $native_cost - $ccusage_cost}" 2>/dev/null)
+        if [[ -n "$diff" ]]; then
+            diff_display="$diff"
+        fi
+    fi
+
+    # Log the comparison (always visible in debug mode)
+    debug_log "[COST COMPARE] Native: \$$native_display | ccusage: \$$ccusage_display | Diff: \$$diff_display" "INFO"
+
+    # Return comparison data for further processing
+    echo "${native_display}:${ccusage_display}:${diff_display}"
+}
+
+# Get session cost with source preference
+# Supports: auto | native | ccusage
+get_session_cost_with_source() {
+    local source="${1:-auto}"
+
+    case "$source" in
+        "native")
+            local native_cost
+            native_cost=$(get_native_session_cost)
+            if [[ -n "$native_cost" ]]; then
+                echo "$native_cost"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+        "ccusage")
+            if is_ccusage_available; then
+                local usage_info
+                usage_info=$(get_claude_usage_info)
+                echo "${usage_info%%:*}"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+        "auto"|*)
+            # Prefer native if available, fallback to ccusage
+            local native_cost
+            native_cost=$(get_native_session_cost)
+
+            if [[ -n "$native_cost" && "$native_cost" != "0.00" ]]; then
+                debug_log "Using native cost source: \$$native_cost" "INFO"
+                echo "$native_cost"
+            elif is_ccusage_available; then
+                local usage_info
+                usage_info=$(get_claude_usage_info)
+                local ccusage_cost="${usage_info%%:*}"
+                debug_log "Using ccusage cost source: \$$ccusage_cost" "INFO"
+                echo "$ccusage_cost"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+    esac
+}
+
+# Export native cost functions
+export -f get_native_session_cost get_native_session_duration get_native_api_duration
+export -f compare_native_vs_ccusage_cost get_session_cost_with_source
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 

@@ -19,20 +19,26 @@ COMPONENT_COST_REPO_COST=""
 # Collect repository cost data
 collect_cost_repo_data() {
     debug_log "Collecting cost_repo component data" "INFO"
-    
+
     COMPONENT_COST_REPO_COST="-.--"
-    
+
+    # Issue #99: Debug comparison mode - log native vs ccusage side-by-side
+    # This runs ONLY when STATUSLINE_DEBUG=true to validate native data
+    if is_debug_mode && is_module_loaded "cost"; then
+        compare_native_vs_ccusage_cost >/dev/null
+    fi
+
     if is_module_loaded "cost" && is_ccusage_available; then
         # Get usage info and extract session cost
         local usage_info
         usage_info=$(get_claude_usage_info)
-        
+
         if [[ -n "$usage_info" ]]; then
             # Parse usage info (format: session:month:week:today:block:reset)
             COMPONENT_COST_REPO_COST="${usage_info%%:*}"
         fi
     fi
-    
+
     debug_log "cost_repo data: cost=$COMPONENT_COST_REPO_COST" "INFO"
     return 0
 }

@@ -80,6 +80,18 @@ timeouts.version = "10s"
 timeouts.ccusage = "10s"
 timeouts.prayer = "10s"
 
+# === COST TRACKING CONFIGURATION (Issue #99) ===
+# Control how session cost data is sourced and displayed
+#
+# Session cost source options:
+# • "auto"    - Prefer native Anthropic data, fallback to ccusage (RECOMMENDED)
+# • "native"  - Use only native cost.total_cost_usd from Anthropic JSON
+# • "ccusage" - Use only ccusage tool (legacy behavior)
+#
+# Note: Debug comparison mode (STATUSLINE_DEBUG=true) logs both sources
+# side-by-side for validation before production use.
+cost.session_source = "auto"
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!

@@ -42,6 +42,9 @@ export CONFIG_MCP_TIMEOUT=""
 export CONFIG_VERSION_TIMEOUT=""
 export CONFIG_CCUSAGE_TIMEOUT=""
 
+# Issue #99: Cost session source (auto | native | ccusage)
+export CONFIG_COST_SESSION_SOURCE="auto"
+
 export CONFIG_VERSION_CACHE_DURATION=""
 export CONFIG_VERSION_CACHE_FILE=""
 
@@ -546,6 +549,7 @@ extract_config_values() {
             timeout_mcp: ."timeouts.mcp",
             timeout_version: ."timeouts.version",
             timeout_ccusage: ."timeouts.ccusage",
+            cost_session_source: ."cost.session_source",
             cache_version_duration: ."cache.version_duration",
             cache_version_file: ."cache.version_file",
             display_time_format: ."display.time_format",
@@ -634,6 +638,10 @@ extract_config_values() {
             ;;
         timeout_ccusage)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_CCUSAGE_TIMEOUT="$value"
+            ;;
+        cost_session_source)
+            # Issue #99: Cost session source (auto | native | ccusage)
+            [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_COST_SESSION_SOURCE="$value"
             ;;
         cache_version_duration)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$value"
