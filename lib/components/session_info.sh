@@ -84,26 +84,33 @@ render_session_info() {
         reset_code="${COLOR_RESET:-}"
     fi
 
-    # Build output
+    # Build output using printf for reliable emoji handling
     local output=""
+    local parts=()
 
+    # Session ID with emoji
     if [[ "$show_id" == "true" && -n "$COMPONENT_SESSION_ID" ]]; then
         if [[ -n "$emoji_session" ]]; then
-            output="${emoji_session} "
+            parts+=("${emoji_session} ${id_color}${COMPONENT_SESSION_ID}${reset_code}")
+        else
+            parts+=("${id_color}${COMPONENT_SESSION_ID}${reset_code}")
         fi
-        output="${output}${id_color}${COMPONENT_SESSION_ID}${reset_code}"
     fi
 
+    # Project name (emoji only if no session ID shown)
     if [[ "$show_project" == "true" && -n "$COMPONENT_SESSION_PROJECT" ]]; then
-        if [[ -n "$output" ]]; then
-            output="${output}${separator}"
-        elif [[ -n "$emoji_project" ]]; then
-            output="${emoji_project} "
+        if [[ ${#parts[@]} -eq 0 && -n "$emoji_project" ]]; then
+            parts+=("${emoji_project} ${project_color}${COMPONENT_SESSION_PROJECT}${reset_code}")
+        else
+            parts+=("${project_color}${COMPONENT_SESSION_PROJECT}${reset_code}")
         fi
-        output="${output}${project_color}${COMPONENT_SESSION_PROJECT}${reset_code}"
     fi
 
-    echo "$output"
+    # Join parts with separator
+    local IFS="$separator"
+    output="${parts[*]}"
+
+    printf '%s' "$output"
 }
 
 # Get session info configuration
