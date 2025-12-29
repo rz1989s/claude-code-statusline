@@ -1031,6 +1031,175 @@ get_code_productivity_display() {
 export -f get_native_lines_added get_native_lines_removed get_code_productivity_display
 
 # ============================================================================
+# CONTEXT WINDOW VIA TRANSCRIPT PARSING (Issue #101)
+# ============================================================================
+# Parse transcript JSONL file to get accurate context window percentage.
+# This avoids the bug in native context_window JSON (cumulative vs current).
+# Reference: https://codelynx.dev/posts/calculate-claude-code-context
+
+# Context window constants
+export CONTEXT_WINDOW_SIZE=200000  # Claude's context window size
+
+# Get transcript path from Anthropic JSON input
+get_transcript_path() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        debug_log "No JSON input for transcript path" "INFO"
+        echo ""
+        return 1
+    fi
+
+    local transcript_path
+    transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
+
+    if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        echo "$transcript_path"
+        return 0
+    else
+        debug_log "Transcript path not found or file doesn't exist: $transcript_path" "INFO"
+        echo ""
+        return 1
+    fi
+}
+
+# Parse the last usage entry from transcript JSONL file
+# Returns: JSON object with usage data or empty
+parse_transcript_last_usage() {
+    local transcript_path="$1"
+
+    if [[ -z "$transcript_path" || ! -f "$transcript_path" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Use tac (reverse cat) to efficiently find last usage entry
+    # Look for entries with "usage" field, excluding sidechains
+    local last_usage
+
+    # Performance optimization: use tac and grep -m1 for large files
+    if command_exists tac; then
+        last_usage=$(tac "$transcript_path" 2>/dev/null | \
+            grep -m1 '"usage"' 2>/dev/null | \
+            jq -r '.usage // empty' 2>/dev/null)
+    else
+        # Fallback for systems without tac (macOS uses tail -r)
+        if command_exists tail; then
+            # Try tail -r (BSD/macOS)
+            last_usage=$(tail -r "$transcript_path" 2>/dev/null | \
+                grep -m1 '"usage"' 2>/dev/null | \
+                jq -r '.usage // empty' 2>/dev/null)
+        fi
+
+        # Final fallback: use awk to get last line with usage
+        if [[ -z "$last_usage" ]]; then
+            last_usage=$(awk '/"usage"/' "$transcript_path" 2>/dev/null | \
+                tail -1 | \
+                jq -r '.usage // empty' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -n "$last_usage" && "$last_usage" != "null" ]]; then
+        echo "$last_usage"
+        return 0
+    else
+        debug_log "No usage data found in transcript" "INFO"
+        echo ""
+        return 1
+    fi
+}
+
+# Get context window token count from transcript
+# Returns: total tokens (input + cache_read + cache_creation)
+get_context_tokens_from_transcript() {
+    local transcript_path
+    transcript_path=$(get_transcript_path)
+
+    if [[ -z "$transcript_path" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local usage_data
+    usage_data=$(parse_transcript_last_usage "$transcript_path")
+
+    if [[ -z "$usage_data" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    # Extract token counts
+    local input_tokens cache_read cache_creation
+    input_tokens=$(echo "$usage_data" | jq -r '.input_tokens // 0' 2>/dev/null)
+    cache_read=$(echo "$usage_data" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null)
+    cache_creation=$(echo "$usage_data" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null)
+
+    # Handle null/empty values
+    [[ -z "$input_tokens" || "$input_tokens" == "null" ]] && input_tokens=0
+    [[ -z "$cache_read" || "$cache_read" == "null" ]] && cache_read=0
+    [[ -z "$cache_creation" || "$cache_creation" == "null" ]] && cache_creation=0
+
+    # Calculate total: input_tokens + cache_read + cache_creation
+    local total=$((input_tokens + cache_read + cache_creation))
+
+    debug_log "Context tokens: input=$input_tokens, cache_read=$cache_read, cache_creation=$cache_creation, total=$total" "INFO"
+    echo "$total"
+}
+
+# Get context window percentage from transcript
+# Returns: percentage (0-100+)
+get_context_window_percentage() {
+    local total_tokens
+    total_tokens=$(get_context_tokens_from_transcript)
+
+    if [[ "$total_tokens" -eq 0 ]]; then
+        echo "0"
+        return 1
+    fi
+
+    # Calculate percentage
+    local percentage
+    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+
+    echo "${percentage:-0}"
+}
+
+# Get formatted context window display
+# Returns: "45% (90K/200K)" or "85% ⚠️" format
+get_context_window_display() {
+    local warn_threshold="${CONFIG_CONTEXT_WARN_THRESHOLD:-75}"
+    local critical_threshold="${CONFIG_CONTEXT_CRITICAL_THRESHOLD:-90}"
+
+    local total_tokens percentage
+    total_tokens=$(get_context_tokens_from_transcript)
+
+    if [[ "$total_tokens" -eq 0 ]]; then
+        echo "N/A"
+        return 1
+    fi
+
+    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+
+    # Format tokens for display (K/M suffix)
+    local formatted_tokens formatted_max
+    formatted_tokens=$(format_tokens_compact "$total_tokens")
+    formatted_max=$(format_tokens_compact "$CONTEXT_WINDOW_SIZE")
+
+    # Add warning indicator based on threshold
+    local indicator=""
+    if [[ "$percentage" -ge "$critical_threshold" ]]; then
+        indicator=" 🔴"
+    elif [[ "$percentage" -ge "$warn_threshold" ]]; then
+        indicator=" ⚠️"
+    fi
+
+    echo "${percentage}% (${formatted_tokens}/${formatted_max})${indicator}"
+}
+
+# Export transcript parsing functions
+export -f get_transcript_path parse_transcript_last_usage
+export -f get_context_tokens_from_transcript get_context_window_percentage
+export -f get_context_window_display
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 

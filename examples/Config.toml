@@ -104,6 +104,20 @@ features.show_code_productivity = true
 code_productivity.show_zero = false   # Hide when +0/-0
 code_productivity.emoji = ""          # Optional emoji prefix (e.g., "")
 
+# === CONTEXT WINDOW CONFIGURATION (Issue #101) ===
+# Display accurate context window usage via transcript parsing.
+# This avoids the bug in native context_window JSON (cumulative vs current).
+# Reference: https://codelynx.dev/posts/calculate-claude-code-context
+#
+# Display format: 🧠 45% (90K/200K) or 🧠 85% ⚠️
+features.show_context_window = true
+context_window.emoji = "🧠"            # Brain emoji for context
+context_window.show_tokens = true      # Show raw token count (90K/200K)
+context_window.show_when_empty = false # Hide when no transcript data
+context_window.warn_threshold = 75     # Yellow warning above this %
+context_window.critical_threshold = 90 # Red critical above this %
+context_window.medium_threshold = 50   # Yellow medium (50-75%)
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!

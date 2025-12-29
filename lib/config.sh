@@ -53,6 +53,15 @@ export CONFIG_FEATURES_SHOW_CODE_PRODUCTIVITY="true"
 export CONFIG_CODE_PRODUCTIVITY_SHOW_ZERO="false"
 export CONFIG_CODE_PRODUCTIVITY_EMOJI=""
 
+# Issue #101: Context window settings
+export CONFIG_FEATURES_SHOW_CONTEXT_WINDOW="true"
+export CONFIG_CONTEXT_EMOJI="🧠"
+export CONFIG_CONTEXT_SHOW_TOKENS="true"
+export CONFIG_CONTEXT_SHOW_WHEN_EMPTY="false"
+export CONFIG_CONTEXT_WARN_THRESHOLD="75"
+export CONFIG_CONTEXT_CRITICAL_THRESHOLD="90"
+export CONFIG_CONTEXT_MEDIUM_THRESHOLD="50"
+
 export CONFIG_VERSION_CACHE_DURATION=""
 export CONFIG_VERSION_CACHE_FILE=""
 
@@ -562,6 +571,13 @@ extract_config_values() {
             feature_show_code_productivity: ."features.show_code_productivity",
             code_productivity_show_zero: ."code_productivity.show_zero",
             code_productivity_emoji: ."code_productivity.emoji",
+            feature_show_context_window: ."features.show_context_window",
+            context_window_emoji: ."context_window.emoji",
+            context_window_show_tokens: ."context_window.show_tokens",
+            context_window_show_when_empty: ."context_window.show_when_empty",
+            context_window_warn_threshold: ."context_window.warn_threshold",
+            context_window_critical_threshold: ."context_window.critical_threshold",
+            context_window_medium_threshold: ."context_window.medium_threshold",
             cache_version_duration: ."cache.version_duration",
             cache_version_file: ."cache.version_file",
             display_time_format: ."display.time_format",
@@ -670,6 +686,34 @@ extract_config_values() {
         code_productivity_emoji)
             # Issue #100: Emoji prefix
             [[ "$value" != "null" ]] && CONFIG_CODE_PRODUCTIVITY_EMOJI="$value"
+            ;;
+        feature_show_context_window)
+            # Issue #101: Show context window
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_FEATURES_SHOW_CONTEXT_WINDOW="$value"
+            ;;
+        context_window_emoji)
+            # Issue #101: Context window emoji
+            [[ "$value" != "null" ]] && CONFIG_CONTEXT_EMOJI="$value"
+            ;;
+        context_window_show_tokens)
+            # Issue #101: Show token counts
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_CONTEXT_SHOW_TOKENS="$value"
+            ;;
+        context_window_show_when_empty)
+            # Issue #101: Show when no data
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_CONTEXT_SHOW_WHEN_EMPTY="$value"
+            ;;
+        context_window_warn_threshold)
+            # Issue #101: Warning threshold percentage
+            [[ "$value" =~ ^[0-9]+$ ]] && CONFIG_CONTEXT_WARN_THRESHOLD="$value"
+            ;;
+        context_window_critical_threshold)
+            # Issue #101: Critical threshold percentage
+            [[ "$value" =~ ^[0-9]+$ ]] && CONFIG_CONTEXT_CRITICAL_THRESHOLD="$value"
+            ;;
+        context_window_medium_threshold)
+            # Issue #101: Medium threshold percentage
+            [[ "$value" =~ ^[0-9]+$ ]] && CONFIG_CONTEXT_MEDIUM_THRESHOLD="$value"
             ;;
         cache_version_duration)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$value"

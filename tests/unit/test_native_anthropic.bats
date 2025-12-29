@@ -260,3 +260,55 @@ teardown() {
     [[ "$status" -eq 0 ]]
     [[ "$output" == "0" ]]
 }
+
+# ============================================================================
+# CONTEXT WINDOW TESTS (Issue #101)
+# ============================================================================
+
+@test "get_transcript_path returns empty when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_transcript_path
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_transcript_path returns empty when transcript_path missing" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_transcript_path
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_context_window_percentage returns 0 when no transcript" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_context_window_percentage
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "0" ]]
+}
+
+@test "parse_transcript_last_usage returns empty for non-existent file" {
+    run parse_transcript_last_usage "/nonexistent/transcript.jsonl"
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "parse_transcript_last_usage returns empty for empty path" {
+    run parse_transcript_last_usage ""
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_context_window_display returns N/A when no data" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_context_window_display
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "N/A" ]]
+}
+
+@test "CONTEXT_WINDOW_SIZE constant is set correctly" {
+    [[ "$CONTEXT_WINDOW_SIZE" == "200000" ]]
+}
