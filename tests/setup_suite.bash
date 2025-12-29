@@ -481,6 +481,20 @@ if ! type fail &>/dev/null; then
     }
 fi
 
+# Source script with fallback - silently skip if file doesn't exist
+source_with_fallback() {
+    local script_path="$1"
+    if [[ -f "$script_path" ]]; then
+        # Source with STATUSLINE_TESTING to prevent auto-initialization
+        STATUSLINE_TESTING=true source "$script_path" 2>/dev/null || true
+        return 0
+    else
+        # File not found - return success but log in debug mode
+        [[ "${STATUSLINE_DEBUG:-}" == "true" ]] && echo "DEBUG: Script not found: $script_path" >&2
+        return 0
+    fi
+}
+
 # Common setup that runs before each test
 common_setup() {
     setup_test_env

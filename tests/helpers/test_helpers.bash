@@ -2,6 +2,25 @@
 
 # Test Helpers for Claude Code Enhanced Statusline Tests
 
+# Source setup_suite.bash for common functions (fail, assert_*, source_with_fallback)
+_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$_HELPERS_DIR/../setup_suite.bash" ]]; then
+    source "$_HELPERS_DIR/../setup_suite.bash"
+fi
+
+# Source script with fallback - silently skip if file doesn't exist
+# (Also defined in setup_suite.bash, but needed here for standalone use)
+if ! type source_with_fallback &>/dev/null; then
+    source_with_fallback() {
+        local script_path="$1"
+        if [[ -f "$script_path" ]]; then
+            STATUSLINE_TESTING=true source "$script_path" 2>/dev/null || true
+            return 0
+        fi
+        return 0
+    }
+fi
+
 # Source the main statusline script for function testing
 source_statusline_script() {
     # Source the script in a way that doesn't execute the main logic
