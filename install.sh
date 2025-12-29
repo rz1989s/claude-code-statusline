@@ -743,6 +743,9 @@ download_directory_comprehensive() {
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
         "components/location_display.sh"
+        # v2.13.0: Native Anthropic data components
+        "components/code_productivity.sh" "components/context_window.sh"
+        "components/session_info.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -1018,7 +1021,7 @@ download_lib_fallback() {
         # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
     )
 
-    # Component modules (lib/components/) - all 18 components
+    # Component modules (lib/components/) - all 22 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -1028,6 +1031,9 @@ download_lib_fallback() {
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
         "components/location_display.sh"
+        # v2.13.0: Native Anthropic data components
+        "components/code_productivity.sh" "components/context_window.sh"
+        "components/session_info.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
     
