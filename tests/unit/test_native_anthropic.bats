@@ -1,0 +1,202 @@
+#!/usr/bin/env bats
+
+# Unit tests for native Anthropic data extraction functions
+# Tests Issue #99 (native cost) and Issue #103 (native cache efficiency)
+
+load '../setup_suite'
+load '../helpers/test_helpers'
+
+setup() {
+    common_setup
+
+    # Load required dependency modules
+    source "$PROJECT_ROOT/lib/core.sh" || skip "Core module not available"
+    source "$PROJECT_ROOT/lib/security.sh" || skip "Security module not available"
+    source "$PROJECT_ROOT/lib/cache.sh" || skip "Cache module not available"
+    source "$PROJECT_ROOT/lib/config.sh" || skip "Config module not available"
+    source "$PROJECT_ROOT/lib/cost.sh" || skip "Cost module not available"
+}
+
+teardown() {
+    # Clean up test environment variables
+    unset STATUSLINE_INPUT_JSON
+    common_teardown
+}
+
+# ============================================================================
+# NATIVE COST EXTRACTION TESTS (Issue #99)
+# ============================================================================
+
+@test "get_native_session_cost returns empty when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_native_session_cost
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_session_cost extracts cost.total_cost_usd correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0.0123}}'
+
+    run get_native_session_cost
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.01" ]]
+}
+
+@test "get_native_session_cost handles larger costs" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":1.2345}}'
+
+    run get_native_session_cost
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "1.23" ]]
+}
+
+@test "get_native_session_cost handles zero cost" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0}}'
+
+    run get_native_session_cost
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.00" ]]
+}
+
+@test "get_native_session_cost handles missing cost field" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_native_session_cost
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_session_duration extracts duration correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_duration_ms":45000}}'
+
+    run get_native_session_duration
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "45000" ]]
+}
+
+@test "get_native_api_duration extracts API duration correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_api_duration_ms":2300}}'
+
+    run get_native_api_duration
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "2300" ]]
+}
+
+# ============================================================================
+# NATIVE CACHE EFFICIENCY TESTS (Issue #103)
+# ============================================================================
+
+@test "get_native_cache_read_tokens returns 0 when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_native_cache_read_tokens
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "0" ]]
+}
+
+@test "get_native_cache_read_tokens extracts tokens correctly" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":5000}}'
+
+    run get_native_cache_read_tokens
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "5000" ]]
+}
+
+@test "get_native_cache_creation_tokens extracts tokens correctly" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_creation_input_tokens":2000}}'
+
+    run get_native_cache_creation_tokens
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "2000" ]]
+}
+
+@test "get_native_cache_efficiency calculates 71% correctly" {
+    # 5000 / 7000 = 71.43%
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":5000,"cache_creation_input_tokens":2000}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "71" ]]
+}
+
+@test "get_native_cache_efficiency calculates 100% for all reads" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":10000,"cache_creation_input_tokens":0}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "100" ]]
+}
+
+@test "get_native_cache_efficiency calculates 0% for all creation" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":0,"cache_creation_input_tokens":10000}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0" ]]
+}
+
+@test "get_native_cache_efficiency returns 0 when no cache data" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"input_tokens":1000}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0" ]]
+}
+
+@test "get_native_cache_efficiency handles 50/50 split" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":5000,"cache_creation_input_tokens":5000}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "50" ]]
+}
+
+# ============================================================================
+# HYBRID SOURCE TESTS
+# ============================================================================
+
+@test "get_session_cost_with_source returns native cost when source is native" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0.5678}}'
+
+    run get_session_cost_with_source "native"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.57" ]]
+}
+
+@test "get_session_cost_with_source returns default when native unavailable" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_session_cost_with_source "native"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.00" ]]
+}
+
+# ============================================================================
+# JSON PARSING EDGE CASES
+# ============================================================================
+
+@test "native functions handle null values gracefully" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":null}}'
+
+    run get_native_session_cost
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "native functions handle malformed JSON gracefully" {
+    export STATUSLINE_INPUT_JSON='not valid json'
+
+    run get_native_session_cost
+    # Should not crash, just return empty
+    [[ "$output" == "" ]]
+}
+
+@test "native cache functions handle large token counts" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"cache_read_input_tokens":11969706,"cache_creation_input_tokens":415188}}'
+
+    run get_native_cache_efficiency
+    [[ "$status" -eq 0 ]]
+    # 11969706 / 12384894 = 96.6% -> rounds to 97
+    [[ "$output" == "97" ]]
+}
