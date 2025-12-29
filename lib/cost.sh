@@ -1040,7 +1040,7 @@ export -f get_native_lines_added get_native_lines_removed get_code_productivity_
 # Context window constants
 export CONTEXT_WINDOW_SIZE=200000  # Claude's context window size
 
-# Get transcript path from Anthropic JSON input
+# Get transcript path from Anthropic JSON input or auto-discover
 get_transcript_path() {
     if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
         debug_log "No JSON input for transcript path" "INFO"
@@ -1048,17 +1048,40 @@ get_transcript_path() {
         return 1
     fi
 
+    # Method 1: Try native transcript_path from JSON
     local transcript_path
     transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
 
     if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        debug_log "Found transcript via native JSON path: $transcript_path" "INFO"
         echo "$transcript_path"
         return 0
-    else
-        debug_log "Transcript path not found or file doesn't exist: $transcript_path" "INFO"
-        echo ""
-        return 1
     fi
+
+    # Method 2: Auto-discover using session_id
+    local session_id
+    session_id=$(get_native_session_id)
+
+    if [[ -n "$session_id" ]]; then
+        # Search in Claude projects directory for this session's transcript
+        local claude_projects_dir="$HOME/.claude/projects"
+
+        if [[ -d "$claude_projects_dir" ]]; then
+            # Find transcript file matching session_id (with .jsonl extension)
+            local found_path
+            found_path=$(find "$claude_projects_dir" -name "${session_id}.jsonl" -type f 2>/dev/null | head -1)
+
+            if [[ -n "$found_path" && -f "$found_path" ]]; then
+                debug_log "Auto-discovered transcript: $found_path" "INFO"
+                echo "$found_path"
+                return 0
+            fi
+        fi
+    fi
+
+    debug_log "Could not find transcript path" "INFO"
+    echo ""
+    return 1
 }
 
 # Parse the last usage entry from transcript JSONL file
