@@ -118,6 +118,19 @@ context_window.warn_threshold = 75     # Yellow warning above this %
 context_window.critical_threshold = 90 # Red critical above this %
 context_window.medium_threshold = 50   # Yellow medium (50-75%)
 
+# === SESSION INFO CONFIGURATION (Issue #102) ===
+# Display session identification for multi-session awareness.
+# Useful for: resume sessions (claude -r abc12345), debug correlation.
+#
+# Display format: 🔗 abc12345 • project-name
+session_info.show_id = true            # Show short session ID
+session_info.show_project = true       # Show derived project name
+session_info.id_length = 8             # Characters to show from session ID
+session_info.separator = " • "         # Separator between ID and project
+session_info.emoji_session = "🔗"      # Session ID emoji
+session_info.emoji_project = "📁"      # Project name emoji
+session_info.show_when_empty = false   # Hide when no session data
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!

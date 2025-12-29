@@ -62,6 +62,15 @@ export CONFIG_CONTEXT_WARN_THRESHOLD="75"
 export CONFIG_CONTEXT_CRITICAL_THRESHOLD="90"
 export CONFIG_CONTEXT_MEDIUM_THRESHOLD="50"
 
+# Issue #102: Session info settings
+export CONFIG_SESSION_INFO_SHOW_ID="true"
+export CONFIG_SESSION_INFO_SHOW_PROJECT="true"
+export CONFIG_SESSION_INFO_ID_LENGTH="8"
+export CONFIG_SESSION_INFO_SEPARATOR=" • "
+export CONFIG_SESSION_INFO_EMOJI_SESSION="🔗"
+export CONFIG_SESSION_INFO_EMOJI_PROJECT="📁"
+export CONFIG_SESSION_INFO_SHOW_WHEN_EMPTY="false"
+
 export CONFIG_VERSION_CACHE_DURATION=""
 export CONFIG_VERSION_CACHE_FILE=""
 
@@ -578,6 +587,13 @@ extract_config_values() {
             context_window_warn_threshold: ."context_window.warn_threshold",
             context_window_critical_threshold: ."context_window.critical_threshold",
             context_window_medium_threshold: ."context_window.medium_threshold",
+            session_info_show_id: ."session_info.show_id",
+            session_info_show_project: ."session_info.show_project",
+            session_info_id_length: ."session_info.id_length",
+            session_info_separator: ."session_info.separator",
+            session_info_emoji_session: ."session_info.emoji_session",
+            session_info_emoji_project: ."session_info.emoji_project",
+            session_info_show_when_empty: ."session_info.show_when_empty",
             cache_version_duration: ."cache.version_duration",
             cache_version_file: ."cache.version_file",
             display_time_format: ."display.time_format",
@@ -714,6 +730,34 @@ extract_config_values() {
         context_window_medium_threshold)
             # Issue #101: Medium threshold percentage
             [[ "$value" =~ ^[0-9]+$ ]] && CONFIG_CONTEXT_MEDIUM_THRESHOLD="$value"
+            ;;
+        session_info_show_id)
+            # Issue #102: Show session ID
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_SESSION_INFO_SHOW_ID="$value"
+            ;;
+        session_info_show_project)
+            # Issue #102: Show project name
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_SESSION_INFO_SHOW_PROJECT="$value"
+            ;;
+        session_info_id_length)
+            # Issue #102: Session ID length
+            [[ "$value" =~ ^[0-9]+$ ]] && CONFIG_SESSION_INFO_ID_LENGTH="$value"
+            ;;
+        session_info_separator)
+            # Issue #102: Separator between ID and project
+            [[ "$value" != "null" ]] && CONFIG_SESSION_INFO_SEPARATOR="$value"
+            ;;
+        session_info_emoji_session)
+            # Issue #102: Session emoji
+            [[ "$value" != "null" ]] && CONFIG_SESSION_INFO_EMOJI_SESSION="$value"
+            ;;
+        session_info_emoji_project)
+            # Issue #102: Project emoji
+            [[ "$value" != "null" ]] && CONFIG_SESSION_INFO_EMOJI_PROJECT="$value"
+            ;;
+        session_info_show_when_empty)
+            # Issue #102: Show when no data
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_SESSION_INFO_SHOW_WHEN_EMPTY="$value"
             ;;
         cache_version_duration)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$value"

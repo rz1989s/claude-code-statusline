@@ -312,3 +312,86 @@ teardown() {
 @test "CONTEXT_WINDOW_SIZE constant is set correctly" {
     [[ "$CONTEXT_WINDOW_SIZE" == "200000" ]]
 }
+
+# ============================================================================
+# SESSION INFO TESTS (Issue #102)
+# ============================================================================
+
+@test "get_native_session_id returns empty when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_native_session_id
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_session_id extracts session_id correctly" {
+    export STATUSLINE_INPUT_JSON='{"session_id":"abc12345-def6-7890-ghij-klmnopqrstuv"}'
+
+    run get_native_session_id
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "abc12345-def6-7890-ghij-klmnopqrstuv" ]]
+}
+
+@test "get_short_session_id returns first 8 chars by default" {
+    export STATUSLINE_INPUT_JSON='{"session_id":"abc12345-def6-7890-ghij-klmnopqrstuv"}'
+
+    run get_short_session_id
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "abc12345" ]]
+}
+
+@test "get_short_session_id respects custom length" {
+    export STATUSLINE_INPUT_JSON='{"session_id":"abc12345-def6-7890-ghij-klmnopqrstuv"}'
+
+    run get_short_session_id 12
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "abc12345-def" ]]
+}
+
+@test "get_native_project_dir extracts workspace.project_dir" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"project_dir":"/Users/rz/local-dev/my-project"}}'
+
+    run get_native_project_dir
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "/Users/rz/local-dev/my-project" ]]
+}
+
+@test "get_native_project_name returns basename of project_dir" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"project_dir":"/Users/rz/local-dev/my-project"}}'
+
+    run get_native_project_name
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "my-project" ]]
+}
+
+@test "get_native_current_dir extracts workspace.current_dir" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/Users/rz/local-dev/my-project/src"}}'
+
+    run get_native_current_dir
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "/Users/rz/local-dev/my-project/src" ]]
+}
+
+@test "get_session_info_display formats correctly with ID and project" {
+    export STATUSLINE_INPUT_JSON='{"session_id":"abc12345-def6-7890","workspace":{"project_dir":"/Users/rz/my-project"}}'
+
+    run get_session_info_display
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "abc12345 • my-project" ]]
+}
+
+@test "get_session_info_display returns empty when no data" {
+    export STATUSLINE_INPUT_JSON='{}'
+
+    run get_session_info_display
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_project_name returns empty for missing workspace" {
+    export STATUSLINE_INPUT_JSON='{"session_id":"abc12345"}'
+
+    run get_native_project_name
+    [[ "$output" == "" ]]
+}

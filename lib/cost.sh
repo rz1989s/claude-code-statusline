@@ -1200,6 +1200,106 @@ export -f get_context_tokens_from_transcript get_context_window_percentage
 export -f get_context_window_display
 
 # ============================================================================
+# SESSION INFO EXTRACTION (Issue #102)
+# ============================================================================
+# Extract session ID and project name from Anthropic's native JSON input.
+# Provides session identification for multi-session awareness.
+
+# Get full session ID from Anthropic JSON input
+get_native_session_id() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local session_id
+    session_id=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.session_id // empty' 2>/dev/null)
+    echo "${session_id:-}"
+}
+
+# Get short session ID (first N characters)
+# Default: 8 characters for easy resume: claude -r abc12345
+get_short_session_id() {
+    local length="${1:-8}"
+    local full_id
+    full_id=$(get_native_session_id)
+
+    if [[ -n "$full_id" ]]; then
+        echo "${full_id:0:$length}"
+    else
+        echo ""
+    fi
+}
+
+# Get project directory from workspace
+get_native_project_dir() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local project_dir
+    project_dir=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.workspace.project_dir // empty' 2>/dev/null)
+    echo "${project_dir:-}"
+}
+
+# Get project name (basename of project directory)
+get_native_project_name() {
+    local project_dir
+    project_dir=$(get_native_project_dir)
+
+    if [[ -n "$project_dir" ]]; then
+        basename "$project_dir"
+    else
+        echo ""
+    fi
+}
+
+# Get current working directory from workspace
+get_native_current_dir() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local current_dir
+    current_dir=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.workspace.current_dir // empty' 2>/dev/null)
+    echo "${current_dir:-}"
+}
+
+# Get formatted session info display
+# Format: "abc12345 • project-name"
+get_session_info_display() {
+    local separator="${CONFIG_SESSION_INFO_SEPARATOR:- • }"
+    local id_length="${CONFIG_SESSION_INFO_ID_LENGTH:-8}"
+
+    local short_id project_name
+    short_id=$(get_short_session_id "$id_length")
+    project_name=$(get_native_project_name)
+
+    local output=""
+
+    if [[ -n "$short_id" ]]; then
+        output="$short_id"
+    fi
+
+    if [[ -n "$project_name" ]]; then
+        if [[ -n "$output" ]]; then
+            output="${output}${separator}${project_name}"
+        else
+            output="$project_name"
+        fi
+    fi
+
+    echo "$output"
+}
+
+# Export session info functions
+export -f get_native_session_id get_short_session_id
+export -f get_native_project_dir get_native_project_name get_native_current_dir
+export -f get_session_info_display
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 
