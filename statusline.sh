@@ -4,8 +4,11 @@
 # Bash Compatibility Check and Auto-Upgrade
 # ============================================================================
 
-# Check if we need modern bash for associative arrays (bash 4.0+)
-if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
+# Wrapped in function to satisfy ShellCheck SC2168 (local only valid in functions)
+_upgrade_bash_if_needed() {
+    # Check if we need modern bash for associative arrays (bash 4.0+)
+    [[ "${BASH_VERSION%%.*}" -ge 4 ]] && return 0
+
     # Try to find and use modern bash automatically - platform-aware
     local bash_candidates=()
 
@@ -25,7 +28,7 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
             exec "$bash_candidate" "$0" "$@"
         fi
     done
-    
+
     # If no modern bash found, warn but continue with degraded functionality
     echo "WARNING: Bash ${BASH_VERSION} detected. Advanced caching features disabled." >&2
 
@@ -36,7 +39,8 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
         echo "For full functionality, install bash 4+: sudo apt install bash (or equivalent)" >&2
     fi
     export STATUSLINE_COMPATIBILITY_MODE=true
-fi
+}
+_upgrade_bash_if_needed "$@"
 
 # ============================================================================
 # Claude Code Enhanced Statusline - Main Orchestrator (v2.1.0-refactored)

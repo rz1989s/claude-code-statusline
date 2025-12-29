@@ -473,6 +473,14 @@ if ! type refute_output &>/dev/null; then
     }
 fi
 
+# Fallback: fail function if bats-support not available
+if ! type fail &>/dev/null; then
+    fail() {
+        echo "FAIL: $1" >&2
+        return 1
+    }
+fi
+
 # Common setup that runs before each test
 common_setup() {
     setup_test_env

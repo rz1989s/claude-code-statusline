@@ -42,14 +42,7 @@ jobs:
         run: |
           # Run unit tests only in CI (integration tests require full environment)
           # Integration tests should be run locally before submitting PRs
-          #
-          # Test status (Issue #79):
-          # - Core tests: PASSING (git, cache, security, timeout validation)
-          # - MCP tests: Some edge cases fail due to output capture issues
-          #
-          # Using continue-on-error until MCP test issues are fully resolved
-          bats tests/unit/*.bats || echo "::warning::Some MCP tests failed - see Issue #79 for tracking"
-        continue-on-error: true
+          bats tests/unit/*.bats
 
       - name: Upload test results
         if: failure()
@@ -72,16 +65,13 @@ jobs:
         run: sudo apt-get install -y shellcheck
 
       - name: Run shellcheck on lib/
-        run: |
-          shellcheck --severity=error --exclude=SC2034,SC1090,SC1091 lib/*.sh || true
+        run: shellcheck --severity=error --exclude=SC2034,SC1090,SC1091,SC2199 lib/*.sh
 
       - name: Run shellcheck on statusline.sh
-        run: |
-          shellcheck --severity=error --exclude=SC2034,SC1090,SC1091 statusline.sh || true
+        run: shellcheck --severity=error --exclude=SC2034,SC1090,SC1091,SC2199 statusline.sh
 
       - name: Run shellcheck on install.sh
-        run: |
-          shellcheck --severity=error --exclude=SC2034,SC1090,SC1091 install.sh || true
+        run: shellcheck --severity=error --exclude=SC2034,SC1090,SC1091,SC2199 install.sh
 
   validate:
     name: Validate Config
@@ -119,14 +109,10 @@ jobs:
     steps:
       - name: Check results
         run: |
-          # Test job uses continue-on-error, so check lint and validate only
-          # Tests are tracked separately in Issue #79
-          if [[ "${{ needs.lint.result }}" == "failure" ]] || \
+          if [[ "${{ needs.test.result }}" == "failure" ]] || \
+             [[ "${{ needs.lint.result }}" == "failure" ]] || \
              [[ "${{ needs.validate.result }}" == "failure" ]]; then
-            echo "One or more critical checks failed"
+            echo "One or more checks failed"
             exit 1
           fi
-          if [[ "${{ needs.test.result }}" == "failure" ]]; then
-            echo "::warning::Some tests had failures - see Issue #79 for tracking"
-          fi
-          echo "All critical checks passed!"
+          echo "All checks passed!"
