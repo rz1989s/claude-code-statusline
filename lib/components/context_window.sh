@@ -92,8 +92,8 @@ render_context_window() {
         reset_code="${COLOR_RESET:-}"
     fi
 
-    # Format output with CTX: prefix
-    local label="${CONFIG_CONTEXT_LABEL:-CTX:}"
+    # Format output with Ctx: prefix
+    local label="${CONFIG_CONTEXT_LABEL:-Ctx:}"
     local output="${label} "
 
     # Show tokens or just percentage based on config

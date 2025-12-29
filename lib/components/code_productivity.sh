@@ -64,8 +64,8 @@ render_code_productivity() {
         reset_code="${COLOR_RESET:-}"
     fi
 
-    # Format: LINE: +X/-Y with colors
-    local label="${CONFIG_CODE_PRODUCTIVITY_LABEL:-LINE:}"
+    # Format: Line: +X/-Y with colors
+    local label="${CONFIG_CODE_PRODUCTIVITY_LABEL:-Line:}"
     local output="${label} ${green_code}+${added}${reset_code}/${red_code}-${removed}${reset_code}"
 
     echo "$output"
