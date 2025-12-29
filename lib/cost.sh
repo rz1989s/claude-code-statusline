@@ -1058,9 +1058,9 @@ get_transcript_path() {
         return 0
     fi
 
-    # Method 2: Auto-discover using session_id
+    # Method 2: Auto-discover using FULL session_id (not short version)
     local session_id
-    session_id=$(get_native_session_id)
+    session_id=$(get_native_session_id)  # Returns full UUID like "75cdeac6-6f3d-4936-8cbe-29f56a3af952"
 
     if [[ -n "$session_id" ]]; then
         # Search in Claude projects directory for this session's transcript
