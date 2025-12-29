@@ -200,3 +200,63 @@ teardown() {
     # 11969706 / 12384894 = 96.6% -> rounds to 97
     [[ "$output" == "97" ]]
 }
+
+# ============================================================================
+# NATIVE CODE PRODUCTIVITY TESTS (Issue #100)
+# ============================================================================
+
+@test "get_native_lines_added returns 0 when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_native_lines_added
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "0" ]]
+}
+
+@test "get_native_lines_added extracts lines correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_lines_added":156}}'
+
+    run get_native_lines_added
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "156" ]]
+}
+
+@test "get_native_lines_removed extracts lines correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_lines_removed":23}}'
+
+    run get_native_lines_removed
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "23" ]]
+}
+
+@test "get_code_productivity_display formats correctly" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_lines_added":156,"total_lines_removed":23}}'
+
+    run get_code_productivity_display
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "+156/-23" ]]
+}
+
+@test "get_code_productivity_display handles zero values" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_lines_added":0,"total_lines_removed":0}}'
+
+    run get_code_productivity_display
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "+0/-0" ]]
+}
+
+@test "get_code_productivity_display handles large numbers" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_lines_added":1500,"total_lines_removed":500}}'
+
+    run get_code_productivity_display
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "+1500/-500" ]]
+}
+
+@test "get_native_lines_added handles missing field" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0.01}}'
+
+    run get_native_lines_added
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0" ]]
+}

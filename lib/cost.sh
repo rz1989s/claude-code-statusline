@@ -983,6 +983,54 @@ export -f get_native_cache_read_tokens get_native_cache_creation_tokens
 export -f get_native_cache_efficiency compare_native_vs_ccusage_cache
 
 # ============================================================================
+# NATIVE CODE PRODUCTIVITY EXTRACTION (Issue #100)
+# ============================================================================
+# Extract lines added/removed from Anthropic's native cost object.
+# Provides real-time code productivity metrics.
+
+# Extract lines added from Anthropic JSON input
+get_native_lines_added() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local lines
+    lines=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_lines_added // 0' 2>/dev/null)
+    echo "${lines:-0}"
+}
+
+# Extract lines removed from Anthropic JSON input
+get_native_lines_removed() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local lines
+    lines=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_lines_removed // 0' 2>/dev/null)
+    echo "${lines:-0}"
+}
+
+# Get formatted code productivity string
+# Returns: "+X/-Y" format
+get_code_productivity_display() {
+    local added removed
+
+    added=$(get_native_lines_added)
+    removed=$(get_native_lines_removed)
+
+    # Handle null/empty values
+    [[ -z "$added" || "$added" == "null" ]] && added=0
+    [[ -z "$removed" || "$removed" == "null" ]] && removed=0
+
+    echo "+${added}/-${removed}"
+}
+
+# Export native code productivity functions
+export -f get_native_lines_added get_native_lines_removed get_code_productivity_display
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 

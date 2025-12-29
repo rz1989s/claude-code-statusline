@@ -98,6 +98,12 @@ cost.session_source = "auto"
 # • "ccusage" - Use only ccusage block metrics (legacy behavior)
 cache.efficiency_source = "auto"
 
+# Code productivity metrics (Issue #100)
+# Display lines added/removed during session
+features.show_code_productivity = true
+code_productivity.show_zero = false   # Hide when +0/-0
+code_productivity.emoji = ""          # Optional emoji prefix (e.g., "")
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!

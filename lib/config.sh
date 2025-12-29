@@ -48,6 +48,11 @@ export CONFIG_COST_SESSION_SOURCE="auto"
 # Issue #103: Cache efficiency source (auto | native | ccusage)
 export CONFIG_CACHE_EFFICIENCY_SOURCE="auto"
 
+# Issue #100: Code productivity settings
+export CONFIG_FEATURES_SHOW_CODE_PRODUCTIVITY="true"
+export CONFIG_CODE_PRODUCTIVITY_SHOW_ZERO="false"
+export CONFIG_CODE_PRODUCTIVITY_EMOJI=""
+
 export CONFIG_VERSION_CACHE_DURATION=""
 export CONFIG_VERSION_CACHE_FILE=""
 
@@ -554,6 +559,9 @@ extract_config_values() {
             timeout_ccusage: ."timeouts.ccusage",
             cost_session_source: ."cost.session_source",
             cache_efficiency_source: ."cache.efficiency_source",
+            feature_show_code_productivity: ."features.show_code_productivity",
+            code_productivity_show_zero: ."code_productivity.show_zero",
+            code_productivity_emoji: ."code_productivity.emoji",
             cache_version_duration: ."cache.version_duration",
             cache_version_file: ."cache.version_file",
             display_time_format: ."display.time_format",
@@ -650,6 +658,18 @@ extract_config_values() {
         cache_efficiency_source)
             # Issue #103: Cache efficiency source (auto | native | ccusage)
             [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_CACHE_EFFICIENCY_SOURCE="$value"
+            ;;
+        feature_show_code_productivity)
+            # Issue #100: Show code productivity metrics
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_FEATURES_SHOW_CODE_PRODUCTIVITY="$value"
+            ;;
+        code_productivity_show_zero)
+            # Issue #100: Show when +0/-0
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_CODE_PRODUCTIVITY_SHOW_ZERO="$value"
+            ;;
+        code_productivity_emoji)
+            # Issue #100: Emoji prefix
+            [[ "$value" != "null" ]] && CONFIG_CODE_PRODUCTIVITY_EMOJI="$value"
             ;;
         cache_version_duration)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$value"
