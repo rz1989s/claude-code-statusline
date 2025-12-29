@@ -96,13 +96,8 @@ render_context_window() {
     local label="${CONFIG_CONTEXT_LABEL:-Ctx:}"
     local output="${label} "
 
-    # Show tokens or just percentage based on config
-    local show_tokens="${CONFIG_CONTEXT_SHOW_TOKENS:-true}"
-    if [[ "$show_tokens" == "true" ]]; then
-        output="${output}${color_code}${display}${reset_code}"
-    else
-        output="${output}${color_code}${percentage}%${reset_code}"
-    fi
+    # Show just percentage (compact)
+    output="${output}${color_code}${percentage}%${reset_code}"
 
     echo "$output"
 }
