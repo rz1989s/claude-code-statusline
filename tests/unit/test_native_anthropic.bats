@@ -395,3 +395,39 @@ teardown() {
     run get_native_project_name
     [[ "$output" == "" ]]
 }
+
+# ============================================================================
+# HYBRID COST SOURCE TESTS (Issue #104)
+# ============================================================================
+
+@test "get_session_cost_with_source auto prefers native when available" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0.5678}}'
+
+    run get_session_cost_with_source "auto"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.57" ]]
+}
+
+@test "get_session_cost_with_source native returns native cost" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":1.2345}}'
+
+    run get_session_cost_with_source "native"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "1.23" ]]
+}
+
+@test "get_session_cost_with_source native returns default when unavailable" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_session_cost_with_source "native"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0.00" ]]
+}
+
+@test "get_session_cost_with_source handles empty source as auto" {
+    export STATUSLINE_INPUT_JSON='{"cost":{"total_cost_usd":0.9999}}'
+
+    run get_session_cost_with_source ""
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "1.00" ]]
+}
