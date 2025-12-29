@@ -416,8 +416,8 @@ hijri.show_weekday = true              # Include day of week in display
 # Number of lines to display (1-9) - SHOWCASING ALL 24 ATOMIC COMPONENTS!
 display.lines = 6
 
-# Line 1: Session + Repository Core (v2.13.0: added session_info)
-display.line1.components = ["session_info", "repo_info", "commits", "submodules", "version_info", "time_display"]
+# Line 1: Repository Core
+display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 

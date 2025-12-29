@@ -92,13 +92,9 @@ render_context_window() {
         reset_code="${COLOR_RESET:-}"
     fi
 
-    # Format output with emoji
-    local emoji="${CONFIG_CONTEXT_EMOJI:-🧠}"
-    local output=""
-
-    if [[ -n "$emoji" ]]; then
-        output="${emoji} "
-    fi
+    # Format output with CTX: prefix
+    local label="${CONFIG_CONTEXT_LABEL:-CTX:}"
+    local output="${label} "
 
     # Show tokens or just percentage based on config
     local show_tokens="${CONFIG_CONTEXT_SHOW_TOKENS:-true}"

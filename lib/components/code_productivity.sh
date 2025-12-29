@@ -64,15 +64,9 @@ render_code_productivity() {
         reset_code="${COLOR_RESET:-}"
     fi
 
-    # Format: +X/-Y with colors
-    local emoji="${CONFIG_CODE_PRODUCTIVITY_EMOJI:-}"
-    local output=""
-
-    if [[ -n "$emoji" ]]; then
-        output="${emoji} "
-    fi
-
-    output="${output}${green_code}+${added}${reset_code}/${red_code}-${removed}${reset_code}"
+    # Format: LINE: +X/-Y with colors
+    local label="${CONFIG_CODE_PRODUCTIVITY_LABEL:-LINE:}"
+    local output="${label} ${green_code}+${added}${reset_code}/${red_code}-${removed}${reset_code}"
 
     echo "$output"
 }
