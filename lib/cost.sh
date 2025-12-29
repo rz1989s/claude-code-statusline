@@ -1099,24 +1099,25 @@ parse_transcript_last_usage() {
     local last_usage
 
     # Performance optimization: use tac and grep -m1 for large files
+    # Note: usage is at .message.usage in transcript entries
     if command_exists tac; then
         last_usage=$(tac "$transcript_path" 2>/dev/null | \
             grep -m1 '"usage"' 2>/dev/null | \
-            jq -r '.usage // empty' 2>/dev/null)
+            jq -r '.message.usage // .usage // empty' 2>/dev/null)
     else
         # Fallback for systems without tac (macOS uses tail -r)
         if command_exists tail; then
             # Try tail -r (BSD/macOS)
             last_usage=$(tail -r "$transcript_path" 2>/dev/null | \
                 grep -m1 '"usage"' 2>/dev/null | \
-                jq -r '.usage // empty' 2>/dev/null)
+                jq -r '.message.usage // .usage // empty' 2>/dev/null)
         fi
 
         # Final fallback: use awk to get last line with usage
         if [[ -z "$last_usage" ]]; then
             last_usage=$(awk '/"usage"/' "$transcript_path" 2>/dev/null | \
                 tail -1 | \
-                jq -r '.usage // empty' 2>/dev/null)
+                jq -r '.message.usage // .usage // empty' 2>/dev/null)
         fi
     fi
 
