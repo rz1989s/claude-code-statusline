@@ -20,9 +20,15 @@ COMPONENT_CACHE_EFFICIENCY_INFO=""
 # Collect cache efficiency data from unified block metrics
 collect_cache_efficiency_data() {
     debug_log "Collecting cache_efficiency component data" "INFO"
-    
+
     COMPONENT_CACHE_EFFICIENCY_INFO="$CONFIG_NO_CCUSAGE_MESSAGE"
-    
+
+    # Issue #103: Debug comparison mode - log native vs ccusage side-by-side
+    # This runs ONLY when STATUSLINE_DEBUG=true to validate native data
+    if is_debug_mode && is_module_loaded "cost"; then
+        compare_native_vs_ccusage_cache >/dev/null
+    fi
+
     if is_module_loaded "cost" && is_ccusage_available; then
         # Get unified metrics from single ccusage call (cached 30s)
         local metrics

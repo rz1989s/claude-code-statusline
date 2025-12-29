@@ -92,6 +92,12 @@ timeouts.prayer = "10s"
 # side-by-side for validation before production use.
 cost.session_source = "auto"
 
+# Cache efficiency source (Issue #103)
+# • "auto"    - Prefer native current_usage data, fallback to ccusage
+# • "native"  - Use only native cache_read/cache_creation tokens
+# • "ccusage" - Use only ccusage block metrics (legacy behavior)
+cache.efficiency_source = "auto"
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!

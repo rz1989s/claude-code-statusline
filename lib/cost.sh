@@ -873,6 +873,116 @@ export -f get_native_session_cost get_native_session_duration get_native_api_dur
 export -f compare_native_vs_ccusage_cost get_session_cost_with_source
 
 # ============================================================================
+# NATIVE CACHE EFFICIENCY EXTRACTION (Issue #103)
+# ============================================================================
+# Extract cache token data from Anthropic's native current_usage field.
+# This provides real-time cache efficiency without ccusage calls.
+
+# Extract native cache read tokens from Anthropic JSON input
+get_native_cache_read_tokens() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local tokens
+    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null)
+    echo "${tokens:-0}"
+}
+
+# Extract native cache creation tokens from Anthropic JSON input
+get_native_cache_creation_tokens() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local tokens
+    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_creation_input_tokens // 0' 2>/dev/null)
+    echo "${tokens:-0}"
+}
+
+# Calculate cache efficiency from native data
+# Returns: efficiency percentage (0-100)
+get_native_cache_efficiency() {
+    local cache_read cache_creation total efficiency
+
+    cache_read=$(get_native_cache_read_tokens)
+    cache_creation=$(get_native_cache_creation_tokens)
+
+    # Handle null/empty values
+    [[ -z "$cache_read" || "$cache_read" == "null" ]] && cache_read=0
+    [[ -z "$cache_creation" || "$cache_creation" == "null" ]] && cache_creation=0
+
+    total=$((cache_read + cache_creation))
+
+    if [[ "$total" -gt 0 ]]; then
+        efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total}" 2>/dev/null)
+        echo "${efficiency:-0}"
+    else
+        echo "0"
+    fi
+}
+
+# Debug comparison: Log native vs ccusage cache efficiency side-by-side
+compare_native_vs_ccusage_cache() {
+    local native_read native_creation native_eff
+    local ccusage_read ccusage_creation ccusage_eff
+
+    # Get native values
+    native_read=$(get_native_cache_read_tokens)
+    native_creation=$(get_native_cache_creation_tokens)
+
+    # Calculate native efficiency
+    local native_total=$((native_read + native_creation))
+    if [[ "$native_total" -gt 0 ]]; then
+        native_eff=$(awk "BEGIN {printf \"%.0f\", $native_read * 100 / $native_total}" 2>/dev/null)
+    else
+        native_eff="N/A"
+    fi
+
+    # Get ccusage values
+    if is_ccusage_available; then
+        local metrics
+        metrics=$(get_unified_block_metrics)
+
+        if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
+            ccusage_read=$(echo "$metrics" | cut -d: -f4)
+            ccusage_creation=$(echo "$metrics" | cut -d: -f5)
+
+            local ccusage_total=$((ccusage_read + ccusage_creation))
+            if [[ "$ccusage_total" -gt 0 ]]; then
+                ccusage_eff=$(awk "BEGIN {printf \"%.0f\", $ccusage_read * 100 / $ccusage_total}" 2>/dev/null)
+            else
+                ccusage_eff="N/A"
+            fi
+        else
+            ccusage_read="N/A"
+            ccusage_creation="N/A"
+            ccusage_eff="N/A"
+        fi
+    else
+        ccusage_read="N/A"
+        ccusage_creation="N/A"
+        ccusage_eff="N/A"
+    fi
+
+    # Format displays
+    local native_display="${native_eff}% (read:${native_read}/create:${native_creation})"
+    local ccusage_display="${ccusage_eff}% (read:${ccusage_read}/create:${ccusage_creation})"
+
+    # Log the comparison
+    debug_log "[CACHE COMPARE] Native: $native_display | ccusage: $ccusage_display" "INFO"
+
+    # Return comparison data
+    echo "${native_eff}:${native_read}:${native_creation}:${ccusage_eff}:${ccusage_read}:${ccusage_creation}"
+}
+
+# Export native cache functions
+export -f get_native_cache_read_tokens get_native_cache_creation_tokens
+export -f get_native_cache_efficiency compare_native_vs_ccusage_cache
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 

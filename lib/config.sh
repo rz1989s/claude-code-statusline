@@ -45,6 +45,9 @@ export CONFIG_CCUSAGE_TIMEOUT=""
 # Issue #99: Cost session source (auto | native | ccusage)
 export CONFIG_COST_SESSION_SOURCE="auto"
 
+# Issue #103: Cache efficiency source (auto | native | ccusage)
+export CONFIG_CACHE_EFFICIENCY_SOURCE="auto"
+
 export CONFIG_VERSION_CACHE_DURATION=""
 export CONFIG_VERSION_CACHE_FILE=""
 
@@ -550,6 +553,7 @@ extract_config_values() {
             timeout_version: ."timeouts.version",
             timeout_ccusage: ."timeouts.ccusage",
             cost_session_source: ."cost.session_source",
+            cache_efficiency_source: ."cache.efficiency_source",
             cache_version_duration: ."cache.version_duration",
             cache_version_file: ."cache.version_file",
             display_time_format: ."display.time_format",
@@ -642,6 +646,10 @@ extract_config_values() {
         cost_session_source)
             # Issue #99: Cost session source (auto | native | ccusage)
             [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_COST_SESSION_SOURCE="$value"
+            ;;
+        cache_efficiency_source)
+            # Issue #103: Cache efficiency source (auto | native | ccusage)
+            [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_CACHE_EFFICIENCY_SOURCE="$value"
             ;;
         cache_version_duration)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_CACHE_DURATION="$value"
