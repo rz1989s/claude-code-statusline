@@ -820,14 +820,48 @@ profiles.default.theme = "catppuccin"
 profiles.default.show_cost_tracking = true
 profiles.default.show_reset_info = true
 
-# === PLUGIN SYSTEM ===
-# Extensible data source system (Phase 3 foundation)
-plugins.enabled = false
-plugins.auto_discovery = true
-plugins.plugin_dirs = ["~/.config/claude-code-statusline/plugins", "./plugins"]
-plugins.timeout_per_plugin = "10s"
+# === PLUGIN SYSTEM (Issue #90) ===
+# Extensible component system for custom data sources
+# Plugins can add new components to the statusline
 
-# Built-in plugin configurations
+plugins.enabled = false                    # Enable plugin system
+plugins.auto_discovery = true              # Scan plugin directories on startup
+plugins.plugin_dirs = ["~/.claude/statusline/plugins", "./plugins"]
+plugins.timeout_per_plugin = "5s"          # Max execution time per plugin
+plugins.validate_plugins = true            # Security validation (recommended)
+plugins.allow_network = false              # Allow plugins to make network calls
+plugins.debug_plugins = false              # Log plugin execution details
+
+# === PLUGIN STRUCTURE ===
+# Plugins are directories with a plugin.sh file and optional plugin.toml metadata
+#
+# ~/.claude/statusline/plugins/
+# ├── my-plugin/
+# │   ├── plugin.toml      # Metadata (name, version, description)
+# │   └── plugin.sh        # Implementation (must define get_<name>_component)
+#
+# === PLUGIN API ===
+# Your plugin.sh must define a component function:
+#
+# #!/bin/bash
+# # plugins/weather/plugin.sh
+#
+# get_weather_component() {
+#     echo "🌤️ 72°F"
+# }
+#
+# # Plugin is auto-registered based on directory name
+# # Component will be available as "weather" in display.lineX.components
+#
+# === PLUGIN METADATA (plugin.toml) ===
+# name = "weather"
+# version = "1.0.0"
+# description = "Display current weather"
+# author = "Your Name"
+# requires_network = true
+# dependencies = ["curl", "jq"]
+
+# Built-in plugin configurations (examples)
 plugins.git_extended.enabled = false
 plugins.git_extended.show_stash_count = false
 plugins.git_extended.show_ahead_behind = false

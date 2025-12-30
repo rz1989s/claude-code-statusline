@@ -156,6 +156,12 @@ if is_module_loaded "components"; then
     init_component_system
 fi
 
+# Load plugins module (Issue #90)
+# Must load after components (plugins can register custom components)
+load_module "plugins" || {
+    handle_warning "Plugins module failed to load - custom plugins disabled." "main"
+}
+
 # Load display/formatting module
 load_module "display" || {
     handle_error "Failed to load display module - output formatting disabled. Check lib/display.sh." 1 "main"
