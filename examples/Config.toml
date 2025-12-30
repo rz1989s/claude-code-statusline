@@ -92,6 +92,26 @@ timeouts.prayer = "10s"
 # side-by-side for validation before production use.
 cost.session_source = "auto"
 
+# === COST THRESHOLD ALERTS (Issue #93) ===
+# Alert users when costs exceed configured thresholds
+# Visual warnings change cost display color when approaching limits
+
+cost.alerts.enabled = false                # Enable cost threshold monitoring
+cost.alerts.daily_threshold = 5.00         # Alert if daily cost > $5.00
+cost.alerts.weekly_threshold = 25.00       # Alert if weekly cost > $25.00
+cost.alerts.monthly_threshold = 100.00     # Alert if monthly cost > $100.00
+cost.alerts.session_threshold = 2.00       # Alert if session cost > $2.00
+
+# Visual warning settings
+cost.alerts.warn_percent = 80              # Yellow warning at 80% of threshold
+cost.alerts.critical_percent = 100         # Red critical at 100% of threshold
+
+# Desktop notification settings (optional)
+cost.alerts.desktop_notify = false         # Enable desktop notifications
+cost.alerts.notify_cooldown = 300          # Seconds between repeated notifications (5 min)
+cost.alerts.notify_on_warn = false         # Notify at warning level (80%)
+cost.alerts.notify_on_critical = true      # Notify at critical level (100%)
+
 # Cache efficiency source (Issue #103)
 # • "auto"    - Prefer native current_usage data, fallback to ccusage
 # • "native"  - Use only native cache_read/cache_creation tokens
