@@ -202,6 +202,7 @@ USAGE:
     statusline.sh --list-themes             - List available themes
     statusline.sh --preview-theme <name>    - Preview a theme's colors
     statusline.sh --check-updates           - Check for new versions
+    statusline.sh --setup-wizard            - Interactive setup wizard
 
 THEMES:
     Available: classic, garden, catppuccin, ocean, custom
@@ -566,6 +567,190 @@ check_for_updates() {
     return 0
 }
 
+# Interactive setup wizard for new users
+run_setup_wizard() {
+    local config_file="$HOME/.claude/statusline/Config.toml"
+
+    clear
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║       Claude Code Statusline - Setup Wizard                ║"
+    echo "║                    v$STATUSLINE_VERSION                             ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Welcome! This wizard will help you configure your statusline."
+    echo ""
+    echo "Press Enter to continue or Ctrl+C to exit..."
+    read -r
+
+    # Step 1: Dependency Check
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 1/4: Checking Dependencies"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    local deps_ok=true
+
+    # Required
+    if command -v jq &>/dev/null; then
+        echo "  ✓ jq $(jq --version 2>/dev/null | sed 's/jq-//')"
+    else
+        echo "  ✗ jq (REQUIRED - install with: brew install jq)"
+        deps_ok=false
+    fi
+
+    if command -v git &>/dev/null; then
+        echo "  ✓ git $(git --version 2>/dev/null | awk '{print $3}')"
+    else
+        echo "  ✗ git (REQUIRED)"
+        deps_ok=false
+    fi
+
+    if command -v curl &>/dev/null; then
+        echo "  ✓ curl $(curl --version 2>/dev/null | head -1 | awk '{print $2}')"
+    else
+        echo "  ✗ curl (REQUIRED)"
+        deps_ok=false
+    fi
+
+    # Optional
+    echo ""
+    echo "  Optional dependencies:"
+    if command -v ccusage &>/dev/null; then
+        echo "  ✓ ccusage (cost tracking enabled)"
+    else
+        echo "  ○ ccusage (install for cost tracking: npm install -g ccusage)"
+    fi
+
+    if [[ "$deps_ok" == "false" ]]; then
+        echo ""
+        echo "  ⚠ Some required dependencies are missing."
+        echo "  Please install them and run the wizard again."
+        return 1
+    fi
+
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 2: Theme Selection
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 2/4: Choose Your Theme"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  1) catppuccin  - Catppuccin Mocha (warm, cozy colors)"
+    echo "  2) ocean       - Deep sea blues and teals"
+    echo "  3) garden      - Soft pastel colors"
+    echo "  4) classic     - Traditional ANSI colors"
+    echo ""
+
+    local theme_choice theme_name="catppuccin"
+    echo -n "  Select theme [1-4, default=1]: "
+    read -r theme_choice
+
+    case "$theme_choice" in
+        2) theme_name="ocean" ;;
+        3) theme_name="garden" ;;
+        4) theme_name="classic" ;;
+        *) theme_name="catppuccin" ;;
+    esac
+
+    echo ""
+    echo "  Selected: $theme_name"
+    echo ""
+    echo "  Preview:"
+    apply_theme "$theme_name"
+    echo -e "    ${CONFIG_BLUE}■ Blue${CONFIG_RESET}  ${CONFIG_GREEN}■ Green${CONFIG_RESET}  ${CONFIG_RED}■ Red${CONFIG_RESET}  ${CONFIG_YELLOW}■ Yellow${CONFIG_RESET}  ${CONFIG_CYAN}■ Cyan${CONFIG_RESET}"
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 3: Feature Configuration
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 3/4: Configure Features"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    local enable_prayer="false"
+    local enable_cost="true"
+    local display_lines="5"
+
+    echo -n "  Enable Islamic prayer times? [y/N]: "
+    read -r prayer_choice
+    [[ "$prayer_choice" =~ ^[Yy] ]] && enable_prayer="true"
+
+    echo -n "  Enable cost tracking? [Y/n]: "
+    read -r cost_choice
+    [[ "$cost_choice" =~ ^[Nn] ]] && enable_cost="false"
+
+    echo -n "  Number of display lines [1-9, default=5]: "
+    read -r lines_choice
+    [[ "$lines_choice" =~ ^[1-9]$ ]] && display_lines="$lines_choice"
+
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 4: Summary and Apply
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 4/4: Configuration Summary"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  Theme:          $theme_name"
+    echo "  Display lines:  $display_lines"
+    echo "  Prayer times:   $enable_prayer"
+    echo "  Cost tracking:  $enable_cost"
+    echo ""
+    echo "  Config file:    $config_file"
+    echo ""
+
+    echo -n "  Apply these settings? [Y/n]: "
+    read -r apply_choice
+
+    if [[ "$apply_choice" =~ ^[Nn] ]]; then
+        echo ""
+        echo "  Setup cancelled. No changes made."
+        return 0
+    fi
+
+    # Apply settings to Config.toml
+    if [[ -f "$config_file" ]]; then
+        # Update existing config
+        sed -i.bak "s/^name = \".*\"/name = \"$theme_name\"/" "$config_file" 2>/dev/null || true
+        sed -i.bak "s/^lines = .*/lines = $display_lines/" "$config_file" 2>/dev/null || true
+        sed -i.bak "s/^enabled = .* # prayer/enabled = $enable_prayer # prayer/" "$config_file" 2>/dev/null || true
+        rm -f "${config_file}.bak" 2>/dev/null
+        echo ""
+        echo "  ✓ Configuration updated!"
+    else
+        echo ""
+        echo "  ⚠ Config file not found. Settings will be applied via environment."
+        echo ""
+        echo "  Add to your shell profile:"
+        echo "    export ENV_CONFIG_THEME=$theme_name"
+        echo "    export ENV_CONFIG_DISPLAY_LINES=$display_lines"
+    fi
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║                  Setup Complete!                           ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  Your statusline is now configured."
+    echo ""
+    echo "  Quick commands:"
+    echo "    ./statusline.sh --help          Show all options"
+    echo "    ./statusline.sh --list-themes   List available themes"
+    echo "    ./statusline.sh --check-updates Check for updates"
+    echo ""
+
+    return 0
+}
+
 # ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
@@ -689,6 +874,10 @@ if [[ $# -gt 0 ]]; then
         ;;
     "--check-updates"|"--update-check")
         check_for_updates
+        exit $?
+        ;;
+    "--setup-wizard"|"--setup"|"--wizard")
+        run_setup_wizard
         exit $?
         ;;
     *)

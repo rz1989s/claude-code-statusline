@@ -31,6 +31,7 @@ _statusline() {
     '--preview-theme[Preview a theme]:theme:(classic garden catppuccin ocean custom)'
     '--preview-theme=[Preview a theme]:theme:(classic garden catppuccin ocean custom)'
     '--check-updates[Check for new versions]'
+    '--setup-wizard[Interactive setup wizard]'
   )
 
   # Available themes
