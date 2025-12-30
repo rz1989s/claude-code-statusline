@@ -21,7 +21,7 @@ _statusline_completions() {
   opts="--help --version --modules --test-display --health --health=json --health-json --metrics --metrics=json --metrics=prometheus --metrics=prom --list-themes --preview-theme"
 
   # Available themes
-  themes="classic garden catppuccin custom"
+  themes="classic garden catppuccin ocean custom"
 
   # Metrics formats
   formats="json prometheus prom"

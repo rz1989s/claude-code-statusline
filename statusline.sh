@@ -203,11 +203,12 @@ USAGE:
     statusline.sh --preview-theme <name>    - Preview a theme's colors
 
 THEMES:
-    Available: classic, garden, catppuccin, custom
+    Available: classic, garden, catppuccin, ocean, custom
 
     ENV_CONFIG_THEME=classic ./statusline.sh    - Use classic theme
     ENV_CONFIG_THEME=garden ./statusline.sh     - Use garden theme
     ENV_CONFIG_THEME=catppuccin ./statusline.sh - Use catppuccin theme
+    ENV_CONFIG_THEME=ocean ./statusline.sh      - Use ocean theme
 
 DEBUGGING:
     STATUSLINE_DEBUG=true ./statusline.sh        - Enable debug logging

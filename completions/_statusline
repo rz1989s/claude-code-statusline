@@ -28,8 +28,8 @@ _statusline() {
     '--metrics[Show performance metrics in JSON]'
     '--metrics=[Show metrics in format]:format:(json prometheus prom)'
     '--list-themes[List available themes]'
-    '--preview-theme[Preview a theme]:theme:(classic garden catppuccin custom)'
-    '--preview-theme=[Preview a theme]:theme:(classic garden catppuccin custom)'
+    '--preview-theme[Preview a theme]:theme:(classic garden catppuccin ocean custom)'
+    '--preview-theme=[Preview a theme]:theme:(classic garden catppuccin ocean custom)'
   )
 
   # Available themes
@@ -37,6 +37,7 @@ _statusline() {
     'classic:Traditional ANSI colors'
     'garden:Soft pastel colors'
     'catppuccin:Catppuccin Mocha theme'
+    'ocean:Deep sea blues and teals'
     'custom:User-defined custom theme'
   )
 

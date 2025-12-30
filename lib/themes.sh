@@ -104,6 +104,34 @@ apply_catppuccin_theme() {
     debug_log "Applied catppuccin theme" "INFO"
 }
 
+# Ocean theme (deep sea blues and teals)
+apply_ocean_theme() {
+    CONFIG_RED=$(printf '\033[38;2;255;107;107m')          # #ff6b6b Coral Red
+    CONFIG_BLUE=$(printf '\033[38;2;72;202;228m')          # #48cae4 Ocean Blue
+    CONFIG_GREEN=$(printf '\033[38;2;76;201;176m')         # #4cc9b0 Sea Green
+    CONFIG_YELLOW=$(printf '\033[38;2;255;209;102m')       # #ffd166 Sandy Gold
+    CONFIG_MAGENTA=$(printf '\033[38;2;189;147;249m')      # #bd93f9 Sea Lavender
+    CONFIG_CYAN=$(printf '\033[38;2;0;180;216m')           # #00b4d8 Bright Cyan
+    CONFIG_WHITE=$(printf '\033[38;2;202;220;230m')        # #cadce6 Seafoam White
+    CONFIG_ORANGE=$(printf '\033[38;2;255;159;67m')        # #ff9f43 Sunset Orange
+    CONFIG_LIGHT_ORANGE=$(printf '\033[38;2;255;183;107m') # #ffb76b Light Coral
+    CONFIG_LIGHT_GRAY=$(printf '\033[38;2;144;164;174m')   # #90a4ae Mist Gray
+    CONFIG_BRIGHT_GREEN=$(printf '\033[38;2;0;245;212m')   # #00f5d4 Aquamarine
+    CONFIG_PURPLE=$(printf '\033[38;2;168;130;214m')       # #a882d6 Deep Purple
+    CONFIG_TEAL=$(printf '\033[38;2;0;150;136m')           # #009688 Deep Teal
+    CONFIG_GOLD=$(printf '\033[38;2;255;193;7m')           # #ffc107 Treasure Gold
+    CONFIG_PINK_BRIGHT=$(printf '\033[38;2;255;138;174m')  # #ff8aae Coral Pink
+    CONFIG_INDIGO=$(printf '\033[38;2;67;97;238m')         # #4361ee Deep Indigo
+    CONFIG_VIOLET=$(printf '\033[38;2;114;137;218m')       # #7289da Twilight Violet
+    CONFIG_LIGHT_BLUE=$(printf '\033[38;2;144;224;239m')   # #90e0ef Light Aqua
+    CONFIG_DIM=$(printf '\033[2m')
+    CONFIG_ITALIC=$(printf '\033[3m')
+    CONFIG_STRIKETHROUGH=$(printf '\033[9m')
+    CONFIG_RESET=$(printf '\033[0m')
+
+    debug_log "Applied ocean theme" "INFO"
+}
+
 # ============================================================================
 # THEME APPLICATION
 # ============================================================================
@@ -123,6 +151,9 @@ apply_theme() {
         ;;
     "catppuccin")
         apply_catppuccin_theme
+        ;;
+    "ocean")
+        apply_ocean_theme
         ;;
     "custom")
         debug_log "Custom theme selected - colors should be set by configuration" "INFO"
@@ -207,7 +238,7 @@ validate_theme() {
 
 # Get list of available themes
 get_available_themes() {
-    echo "classic garden catppuccin custom"
+    echo "classic garden catppuccin ocean custom"
 }
 
 # Check if a theme is valid
@@ -311,6 +342,6 @@ if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
 fi
 
 # Export theme functions
-export -f apply_theme apply_classic_theme apply_garden_theme apply_catppuccin_theme
+export -f apply_theme apply_classic_theme apply_garden_theme apply_catppuccin_theme apply_ocean_theme
 export -f apply_custom_theme_defaults validate_theme get_available_themes
 export -f is_valid_theme get_current_theme preview_theme_colors apply_theme_inheritance
