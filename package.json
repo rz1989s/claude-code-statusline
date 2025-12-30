@@ -44,9 +44,6 @@
   "devDependencies": {
     "bats": "^1.10.0"
   },
-  "optionalDependencies": {
-    "@commander-js/extra-typings": "^11.1.0"
-  },
   "engines": {
     "node": ">=16.0.0",
     "bash": ">=3.2.0"
