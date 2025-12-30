@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # ============================================================================
-# Claude Code Statusline - Session Info Component (Issue #102)
+# Claude Code Statusline - Session Info Component (Issue #102, #105)
 # ============================================================================
 #
 # This component displays session identification info (short session ID +
-# derived project name) from Anthropic's native statusline JSON input.
+# session title) from Anthropic's native statusline JSON input.
 #
-# Display Format: 🔗 abc12345 • project-name
+# Display Format: 🔗 abc12345 • first user message...
 #
 # Use Cases:
 #   - Resume sessions easily: claude -r abc12345
-#   - Identify which project/session is active
+#   - Identify what task/conversation is active via session title
 #   - Debug correlation with transcript files
 #   - Multi-session awareness
 #
@@ -37,12 +37,13 @@ collect_session_info_data() {
 
     if is_module_loaded "cost"; then
         local id_length="${CONFIG_SESSION_INFO_ID_LENGTH:-8}"
+        local title_length="${CONFIG_SESSION_INFO_TITLE_LENGTH:-40}"
 
         COMPONENT_SESSION_ID=$(get_short_session_id "$id_length")
-        COMPONENT_SESSION_PROJECT=$(get_native_project_name)
+        COMPONENT_SESSION_PROJECT=$(get_session_title "$title_length")
         COMPONENT_SESSION_DISPLAY=$(get_session_info_display)
 
-        debug_log "session_info data: ID=${COMPONENT_SESSION_ID}, Project=${COMPONENT_SESSION_PROJECT}" "INFO"
+        debug_log "session_info data: ID=${COMPONENT_SESSION_ID}, Title=${COMPONENT_SESSION_PROJECT}" "INFO"
     fi
 
     return 0
@@ -144,7 +145,7 @@ get_session_info_config() {
             echo "${CONFIG_SESSION_INFO_EMOJI_PROJECT:-${default:-📁}}"
             ;;
         "description")
-            echo "Session ID and project name"
+            echo "Session ID and session title"
             ;;
         *)
             echo "$default"
@@ -158,8 +159,8 @@ get_session_info_config() {
 
 # Component metadata
 SESSION_INFO_COMPONENT_NAME="session_info"
-SESSION_INFO_COMPONENT_DESCRIPTION="Session ID and project name"
-SESSION_INFO_COMPONENT_VERSION="2.13.0"
+SESSION_INFO_COMPONENT_DESCRIPTION="Session ID and session title"
+SESSION_INFO_COMPONENT_VERSION="2.13.1"
 SESSION_INFO_COMPONENT_DEPENDENCIES=("cost")
 
 # ============================================================================
@@ -169,7 +170,7 @@ SESSION_INFO_COMPONENT_DEPENDENCIES=("cost")
 # Register the session_info component
 register_component \
     "session_info" \
-    "Session ID and project name" \
+    "Session ID and session title" \
     "cost" \
     "true"
 

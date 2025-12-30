@@ -1279,6 +1279,53 @@ get_native_project_name() {
     fi
 }
 
+# Get session title from first user message in transcript (Issue #105)
+# Returns: First user message content (truncated to ~40 chars) or project name fallback
+get_session_title() {
+    local max_length="${1:-40}"
+
+    # Try to get transcript path
+    local transcript_path
+    transcript_path=$(get_transcript_path)
+
+    if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        # Find first user message and extract content
+        # Content can be string or array format: {"type":"text","text":"..."}
+        local first_message
+        first_message=$(grep -m1 '"type":"user"' "$transcript_path" 2>/dev/null | \
+            jq -r '
+                if .message.content | type == "string" then
+                    .message.content
+                elif .message.content | type == "array" then
+                    (.message.content[] | select(.type == "text") | .text) // ""
+                else
+                    ""
+                end
+            ' 2>/dev/null | head -1)
+
+        if [[ -n "$first_message" ]]; then
+            # Strip command tags (e.g., <command-message>...</command-message>)
+            first_message=$(echo "$first_message" | sed 's/<[^>]*>//g')
+
+            # Truncate to max_length and add ellipsis if needed
+            if [[ ${#first_message} -gt $max_length ]]; then
+                first_message="${first_message:0:$((max_length - 3))}..."
+            fi
+
+            # Remove newlines and trim whitespace
+            first_message=$(echo "$first_message" | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            if [[ -n "$first_message" ]]; then
+                echo "$first_message"
+                return 0
+            fi
+        fi
+    fi
+
+    # Fallback to project name
+    get_native_project_name
+}
+
 # Get current working directory from workspace
 get_native_current_dir() {
     if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
@@ -1292,14 +1339,15 @@ get_native_current_dir() {
 }
 
 # Get formatted session info display
-# Format: "abc12345 • project-name"
+# Format: "abc12345 • session title..."
 get_session_info_display() {
     local separator="${CONFIG_SESSION_INFO_SEPARATOR:- • }"
     local id_length="${CONFIG_SESSION_INFO_ID_LENGTH:-8}"
+    local title_length="${CONFIG_SESSION_INFO_TITLE_LENGTH:-40}"
 
-    local short_id project_name
+    local short_id session_title
     short_id=$(get_short_session_id "$id_length")
-    project_name=$(get_native_project_name)
+    session_title=$(get_session_title "$title_length")
 
     local output=""
 
@@ -1307,11 +1355,11 @@ get_session_info_display() {
         output="$short_id"
     fi
 
-    if [[ -n "$project_name" ]]; then
+    if [[ -n "$session_title" ]]; then
         if [[ -n "$output" ]]; then
-            output="${output}${separator}${project_name}"
+            output="${output}${separator}${session_title}"
         else
-            output="$project_name"
+            output="$session_title"
         fi
     fi
 
@@ -1321,7 +1369,7 @@ get_session_info_display() {
 # Export session info functions
 export -f get_native_session_id get_short_session_id
 export -f get_native_project_dir get_native_project_name get_native_current_dir
-export -f get_session_info_display
+export -f get_session_title get_session_info_display
 
 # ============================================================================
 # MODULE INITIALIZATION
