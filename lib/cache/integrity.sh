@@ -66,11 +66,12 @@ recover_cache_directory() {
         "Failed to use cache directory: $failed_dir" \
         "Attempting fallback directory selection"
 
-    # Try alternative cache locations
+    # Try alternative cache locations (Issue #110: XDG-compliant with TMPDIR)
+    local temp_base="${TMPDIR:-/tmp}"
     local alternatives=(
         "${HOME:-}/.cache/claude-code-statusline-fallback"
-        "/tmp/.claude_statusline_fallback_${USER:-$(id -u)}"
-        "/tmp/.claude_statusline_emergency_$$"
+        "${temp_base}/.claude_statusline_fallback_${USER:-$(id -u)}"
+        "${temp_base}/.claude_statusline_emergency_$$"
     )
 
     for alt_dir in "${alternatives[@]}"; do

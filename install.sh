@@ -925,8 +925,8 @@ download_statusline() {
         current_version=$(cat "$local_version_path" 2>/dev/null | tr -d '[:space:]')
     fi
     
-    # Download latest version to temp location first
-    local temp_version="/tmp/statusline_version_check.txt"
+    # Download latest version to temp location first (Issue #110: use TMPDIR)
+    local temp_version="${TMPDIR:-/tmp}/statusline_version_check.txt"
     if curl -fsSL "$version_url" -o "$temp_version"; then
         new_version=$(cat "$temp_version" 2>/dev/null | tr -d '[:space:]')
         
@@ -1414,9 +1414,9 @@ safe_remove_directory() {
         return 0
     fi
 
-    # Step 5: Emergency fallback - move to temp location instead of removing
+    # Step 5: Emergency fallback - move to temp location instead of removing (Issue #110: use TMPDIR)
     print_debug "Emergency fallback: Moving directory to temp location"
-    local temp_path="/tmp/statusline_removal_$(date +%s)_$$"
+    local temp_path="${TMPDIR:-/tmp}/statusline_removal_$(date +%s)_$$"
     if mv "$dir_path" "$temp_path" 2>/dev/null; then
         print_success "✅ Directory moved to temp location: $temp_path"
         print_status "💡 Directory will be cleaned up by system later"

@@ -43,10 +43,11 @@ determine_cache_base_dir() {
     elif [[ -n "${HOME:-}" ]] && [[ -w "${HOME:-}" ]]; then
         cache_dir="$HOME/.cache/claude-code-statusline"
         [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using HOME/.cache: $cache_dir" "INFO"
-    # Priority 4: Secure fallback to /tmp with user isolation
+    # Priority 4: Secure fallback using TMPDIR with user isolation (Issue #110)
     else
-        cache_dir="/tmp/.claude_statusline_cache_${USER:-$(id -u)}"
-        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using secure /tmp fallback: $cache_dir" "WARN"
+        local temp_base="${TMPDIR:-/tmp}"
+        cache_dir="${temp_base}/.claude_statusline_cache_${USER:-$(id -u)}"
+        [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Using secure temp fallback: $cache_dir" "WARN"
     fi
 
     echo "$cache_dir"
@@ -180,7 +181,15 @@ cleanup_cache_files() {
     find "$CACHE_BASE_DIR" -name "*.cache" -mtime +1 -delete 2>/dev/null || true
 
     # Remove orphaned session markers (where process no longer exists)
-    for marker in /tmp/.cache_session_*; do
+    # Uses XDG-compliant runtime directory (Issue #110)
+    local runtime_dir
+    if declare -f get_secure_runtime_dir >/dev/null 2>&1; then
+        runtime_dir=$(get_secure_runtime_dir)
+    else
+        runtime_dir="$CACHE_BASE_DIR"
+    fi
+
+    for marker in "$runtime_dir"/.session_*; do
         [[ -f "$marker" ]] || continue
 
         local marker_pid="${marker##*_}"

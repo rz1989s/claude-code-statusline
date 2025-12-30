@@ -117,7 +117,8 @@ export DEFAULT_CCUSAGE_TIMEOUT="10s"
 
 # Default cache settings
 export DEFAULT_VERSION_CACHE_DURATION=3600
-export DEFAULT_VERSION_CACHE_FILE="/tmp/.claude_version_cache"
+# Note: Version cache file location determined dynamically by cache module
+# Uses XDG-compliant CACHE_BASE_DIR (see lib/cache/directory.sh)
 
 # Common patterns for validation
 export VALID_TIMEOUT_PATTERN='^[0-9]+[sm]?$'

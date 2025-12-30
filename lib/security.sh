@@ -537,6 +537,84 @@ cleanup_stale_locks() {
 }
 
 # ============================================================================
+# XDG-COMPLIANT SECURE DIRECTORY FUNCTIONS (Issue #110)
+# ============================================================================
+
+# Get XDG-compliant runtime directory for session markers and locks
+# Priority: XDG_RUNTIME_DIR -> CACHE_BASE_DIR -> fallback with user isolation
+get_secure_runtime_dir() {
+    local runtime_dir=""
+    local user_id="${USER:-$(id -u 2>/dev/null || echo 'unknown')}"
+
+    # Priority 1: XDG_RUNTIME_DIR (most secure, per-user, tmpfs)
+    if [[ -n "${XDG_RUNTIME_DIR:-}" ]] && [[ -d "${XDG_RUNTIME_DIR}" ]] && [[ -w "${XDG_RUNTIME_DIR}" ]]; then
+        runtime_dir="${XDG_RUNTIME_DIR}/claude-code-statusline"
+    # Priority 2: /run/user/$UID (Linux standard)
+    elif [[ -d "/run/user/$(id -u 2>/dev/null)" ]] && [[ -w "/run/user/$(id -u 2>/dev/null)" ]]; then
+        runtime_dir="/run/user/$(id -u)/claude-code-statusline"
+    # Priority 3: Use cache directory (already XDG-compliant)
+    elif [[ -n "${CACHE_BASE_DIR:-}" ]]; then
+        runtime_dir="${CACHE_BASE_DIR}/runtime"
+    # Priority 4: Secure fallback with user isolation
+    else
+        runtime_dir="${TMPDIR:-/tmp}/.claude_statusline_runtime_${user_id}"
+    fi
+
+    # Create directory with secure permissions
+    if [[ ! -d "$runtime_dir" ]]; then
+        mkdir -p "$runtime_dir" 2>/dev/null && chmod 700 "$runtime_dir" 2>/dev/null
+    fi
+
+    echo "$runtime_dir"
+}
+
+# Get secure temporary directory for truly temporary files
+# Priority: TMPDIR -> /tmp (with user isolation for sensitive files)
+get_secure_temp_dir() {
+    local temp_dir="${TMPDIR:-/tmp}"
+    local user_id="${USER:-$(id -u 2>/dev/null || echo 'unknown')}"
+
+    # For statusline-specific temp files, use isolated subdirectory
+    local isolated_temp="${temp_dir}/.claude_statusline_${user_id}"
+
+    # Create directory with secure permissions
+    if [[ ! -d "$isolated_temp" ]]; then
+        mkdir -p "$isolated_temp" 2>/dev/null && chmod 700 "$isolated_temp" 2>/dev/null
+    fi
+
+    echo "$isolated_temp"
+}
+
+# Get session marker path (for cost tracking instance isolation)
+get_session_marker_path() {
+    local instance_id="${1:-${CLAUDE_INSTANCE_ID:-${PPID:-$$}}}"
+    local runtime_dir
+    runtime_dir=$(get_secure_runtime_dir)
+    echo "${runtime_dir}/session_${instance_id}"
+}
+
+# Cleanup session markers in secure runtime directory
+cleanup_runtime_session_markers() {
+    local runtime_dir
+    runtime_dir=$(get_secure_runtime_dir)
+
+    # Remove old markers (older than 24 hours)
+    find "$runtime_dir" -name "session_*" -mtime +1 -delete 2>/dev/null || true
+
+    # Remove orphaned markers (where the parent process no longer exists)
+    local marker
+    for marker in "$runtime_dir"/session_*; do
+        [[ -f "$marker" ]] || continue
+
+        local marker_pid="${marker##*_}"
+        if [[ "$marker_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$marker_pid" 2>/dev/null; then
+            rm -f "$marker" 2>/dev/null
+            debug_log "Removed orphaned session marker for dead process: $marker_pid" "INFO"
+        fi
+    done
+}
+
+# ============================================================================
 # MODULE INITIALIZATION
 # ============================================================================
 
@@ -555,3 +633,4 @@ fi
 export -f sanitize_path_secure sanitize_variable_name create_secure_cache_file validate_ansi_color get_file_mtime get_file_permissions get_file_size
 export -f execute_python_safely parse_mcp_server_name_secure
 export -f parse_timeout_to_seconds is_cache_fresh cleanup_stale_locks
+export -f get_secure_runtime_dir get_secure_temp_dir get_session_marker_path cleanup_runtime_session_markers

@@ -39,8 +39,9 @@ export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
 export COST_CACHE_DURATION_DAILY=60       # 1 minute - today's cost
 export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
 export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
-# Use the proper XDG-compliant cache directory from cache.sh module
-export COST_CACHE_DIR="${CACHE_BASE_DIR:-/tmp/.claude_statusline_cache}"
+# Use the proper XDG-compliant cache directory from cache.sh module (Issue #110)
+# Fallback uses HOME/.cache instead of /tmp for better security
+export COST_CACHE_DIR="${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}"
 
 # Instance-specific session marker (prevents race conditions between multiple Claude Code instances)
 # Function to get current instance ID dynamically (checks env var each time)
@@ -50,23 +51,42 @@ get_instance_id() {
 }
 
 # Function to get the current session marker (allows dynamic instance ID)
+# Uses XDG-compliant runtime directory (Issue #110)
 get_session_marker() {
     local instance_id
     instance_id=$(get_instance_id)
-    echo "/tmp/.claude_statusline_session_${instance_id}"
+
+    # Use get_session_marker_path from security.sh if available
+    if declare -f get_session_marker_path >/dev/null 2>&1; then
+        get_session_marker_path "$instance_id"
+    else
+        # Fallback to cache directory if security module not loaded
+        echo "${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}/session_${instance_id}"
+    fi
 }
 
 # Cleanup old session markers (older than 24 hours) and orphaned markers
+# Uses XDG-compliant runtime directory (Issue #110)
 cleanup_old_session_markers() {
+    # Use cleanup_runtime_session_markers from security.sh if available
+    if declare -f cleanup_runtime_session_markers >/dev/null 2>&1; then
+        cleanup_runtime_session_markers
+        return
+    fi
+
+    # Fallback: Clean up in cache directory
+    local runtime_dir="${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}"
+    [[ -d "$runtime_dir" ]] || return 0
+
     # Remove old markers (older than 24 hours)
-    find /tmp -name ".claude_statusline_session_*" -mtime +1 -delete 2>/dev/null || true
-    
+    find "$runtime_dir" -name "session_*" -mtime +1 -delete 2>/dev/null || true
+
     # Remove orphaned markers (where the parent process no longer exists)
     local marker
-    for marker in /tmp/.claude_statusline_session_*; do
+    for marker in "$runtime_dir"/session_*; do
         # Skip if glob didn't match any files
         [[ -f "$marker" ]] || continue
-        
+
         local marker_pid="${marker##*_}"
         if [[ "$marker_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$marker_pid" 2>/dev/null; then
             rm -f "$marker" 2>/dev/null
