@@ -131,6 +131,12 @@ load_module "git" || {
     handle_warning "Git module failed to load - git features disabled. Repository status unavailable." "main"
 }
 
+# Load GitHub integration module (Issue #92)
+# Must load after git module (depends on git remote detection)
+load_module "github" || {
+    handle_warning "GitHub module failed to load - GitHub integration disabled." "main"
+}
+
 # Load MCP monitoring module
 load_module "mcp" || {
     handle_warning "MCP module failed to load - MCP monitoring disabled. Server status unavailable." "main"
