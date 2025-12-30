@@ -719,8 +719,9 @@ download_directory_comprehensive() {
     
     # Define ALL modules based on known structure (eliminates API dependency)
     local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+        "github.sh" "plugins.sh" "profiles.sh"
         # 🆕 ADD NEW MAIN MODULES HERE (lib/*.sh files)
     )
     
@@ -1011,9 +1012,10 @@ download_lib_fallback() {
     
     # ALL modules that must exist - comprehensive list for 100% functionality
     local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
-        # 🆕 ADD NEW MAIN MODULES HERE (must match line 500-504 arrays)
+        "github.sh" "plugins.sh" "profiles.sh"
+        # 🆕 ADD NEW MAIN MODULES HERE (must match line 720-725 arrays)
     )
     
     # Prayer system modules (lib/prayer/)

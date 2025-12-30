@@ -882,19 +882,18 @@ plugins.weather.units = "metric"
 # Requires: gh CLI (GitHub CLI) - install with: brew install gh
 # Note: For private repos, ensure gh is authenticated: gh auth login
 
-[github]
-enabled = false                    # Enable GitHub integration
-show_ci_status = true              # Show CI/CD workflow status (passing/failing)
-show_open_prs = true               # Show count of open pull requests
-show_latest_release = false        # Show latest release version tag
-cache_ttl = 300                    # Cache duration in seconds (5 minutes)
-timeout = 10                       # API timeout in seconds
+github.enabled = false                    # Enable GitHub integration
+github.show_ci_status = true              # Show CI/CD workflow status (passing/failing)
+github.show_open_prs = true               # Show count of open pull requests
+github.show_latest_release = false        # Show latest release version tag
+github.cache_ttl = 300                    # Cache duration in seconds (5 minutes)
+github.timeout = 10                       # API timeout in seconds
 
 # Status indicators (customize symbols)
-ci_passing = "✓"                   # Shown when CI passes
-ci_failing = "✗"                   # Shown when CI fails
-ci_pending = "●"                   # Shown when CI is running
-ci_unknown = "?"                   # Shown when status unknown
+github.ci_passing = "✓"                   # Shown when CI passes
+github.ci_failing = "✗"                   # Shown when CI fails
+github.ci_pending = "●"                   # Shown when CI is running
+github.ci_unknown = "?"                   # Shown when status unknown
 
 # === GITHUB DISPLAY EXAMPLES ===
 # With show_ci_status and show_open_prs enabled:
