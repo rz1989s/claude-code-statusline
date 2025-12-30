@@ -1,8 +1,13 @@
 {
   "name": "claude-code-statusline",
+  "version": "2.13.0",
   "description": "Enhanced statusline for Claude Code with universal bash compatibility, comprehensive monitoring and beautiful themes",
   "main": "statusline.sh",
+  "bin": {
+    "claude-statusline": "./bin/cli.js"
+  },
   "scripts": {
+    "postinstall": "node scripts/npm-setup.js",
     "test": "bats tests/**/*.bats",
     "test:unit": "bats tests/unit/*.bats",
     "test:integration": "bats tests/integration/*.bats",
@@ -61,9 +66,12 @@
   "files": [
     "statusline.sh",
     "version.txt",
+    "bin/",
     "lib/",
+    "scripts/npm-setup.js",
     "docs/",
     "examples/",
+    "plugins/",
     "README.md",
     "LICENSE"
   ]
