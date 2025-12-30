@@ -18,7 +18,7 @@ _statusline_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # Main options
-  opts="--help --version --modules --test-display --health --health=json --health-json --metrics --metrics=json --metrics=prometheus --metrics=prom"
+  opts="--help --version --modules --test-display --health --health=json --health-json --metrics --metrics=json --metrics=prometheus --metrics=prom --list-themes --preview-theme"
 
   # Available themes
   themes="classic garden catppuccin custom"
@@ -39,6 +39,10 @@ _statusline_completions() {
       COMPREPLY=($(compgen -W "$formats" -- "$cur"))
       return 0
       ;;
+    --preview-theme)
+      COMPREPLY=($(compgen -W "$themes" -- "$cur"))
+      return 0
+      ;;
   esac
 
   # Handle = style options
@@ -53,6 +57,12 @@ _statusline_completions() {
       local prefix="${cur%=*}="
       local suffix="${cur#*=}"
       COMPREPLY=($(compgen -W "$formats" -P "$prefix" -- "$suffix"))
+      return 0
+      ;;
+    --preview-theme=*)
+      local prefix="${cur%=*}="
+      local suffix="${cur#*=}"
+      COMPREPLY=($(compgen -W "$themes" -P "$prefix" -- "$suffix"))
       return 0
       ;;
   esac

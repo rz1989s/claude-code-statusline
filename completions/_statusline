@@ -27,6 +27,9 @@ _statusline() {
     '--health-json[Show health status in JSON format]'
     '--metrics[Show performance metrics in JSON]'
     '--metrics=[Show metrics in format]:format:(json prometheus prom)'
+    '--list-themes[List available themes]'
+    '--preview-theme[Preview a theme]:theme:(classic garden catppuccin custom)'
+    '--preview-theme=[Preview a theme]:theme:(classic garden catppuccin custom)'
   )
 
   # Available themes

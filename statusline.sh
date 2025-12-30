@@ -199,11 +199,15 @@ USAGE:
     statusline.sh --health=json             - Show health status (JSON format)
     statusline.sh --metrics                 - Show performance metrics (JSON)
     statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
+    statusline.sh --list-themes             - List available themes
+    statusline.sh --preview-theme <name>    - Preview a theme's colors
 
 THEMES:
+    Available: classic, garden, catppuccin, custom
+
     ENV_CONFIG_THEME=classic ./statusline.sh    - Use classic theme
-    ENV_CONFIG_THEME=garden ./statusline.sh     - Use garden theme  
-    ENV_CONFIG_THEME=catppuccin ./statusline.sh  - Use catppuccin theme
+    ENV_CONFIG_THEME=garden ./statusline.sh     - Use garden theme
+    ENV_CONFIG_THEME=catppuccin ./statusline.sh - Use catppuccin theme
 
 DEBUGGING:
     STATUSLINE_DEBUG=true ./statusline.sh        - Enable debug logging
@@ -540,6 +544,64 @@ if [[ $# -gt 0 ]]; then
     "--metrics=prometheus"|"--metrics=prom")
         show_metrics "prometheus"
         exit $?
+        ;;
+    "--list-themes")
+        echo "Available themes:"
+        for theme in $(get_available_themes); do
+            if [[ "$theme" == "$(get_current_theme)" ]]; then
+                echo "  ✓ $theme (current)"
+            else
+                echo "    $theme"
+            fi
+        done
+        exit 0
+        ;;
+    "--preview-theme")
+        if [[ -z "${2:-}" ]]; then
+            echo "Error: --preview-theme requires a theme name" >&2
+            echo "Usage: statusline.sh --preview-theme <theme>" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        if ! is_valid_theme "$2"; then
+            echo "Error: Unknown theme '$2'" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              THEME PREVIEW: $2"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        preview_theme_colors "$2"
+        echo ""
+        echo "To use this theme permanently:"
+        echo "  ENV_CONFIG_THEME=$2 ./statusline.sh"
+        echo "  Or set in Config.toml: theme.name = \"$2\""
+        exit 0
+        ;;
+    --preview-theme=*)
+        theme_name="${1#--preview-theme=}"
+        if [[ -z "$theme_name" ]]; then
+            echo "Error: --preview-theme requires a theme name" >&2
+            exit 1
+        fi
+        if ! is_valid_theme "$theme_name"; then
+            echo "Error: Unknown theme '$theme_name'" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              THEME PREVIEW: $theme_name"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        preview_theme_colors "$theme_name"
+        echo ""
+        echo "To use this theme permanently:"
+        echo "  ENV_CONFIG_THEME=$theme_name ./statusline.sh"
+        echo "  Or set in Config.toml: theme.name = \"$theme_name\""
+        exit 0
         ;;
     *)
         echo "Unknown option: $1" >&2
