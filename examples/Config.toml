@@ -650,6 +650,37 @@ debug.log_validation_details = false
 debug.benchmark_performance = false
 debug.export_debug_info = false
 
+# === DYNAMIC THEME SYSTEM ===
+# Automatic theme switching based on time of day or prayer times
+# Issue #94: Time-based, sunrise/sunset, and prayer-based theme switching
+
+theme.dynamic.enabled = false              # Enable dynamic theme switching
+theme.dynamic.mode = "time"                # time, sunrise_sunset, prayer
+
+# Time-based switching (mode = "time")
+# Switches between day/night themes at specified times
+theme.dynamic.day_theme = "garden"         # Theme during daytime
+theme.dynamic.night_theme = "catppuccin"   # Theme during nighttime
+theme.dynamic.day_start = "06:00"          # When day theme starts (24h format)
+theme.dynamic.night_start = "18:00"        # When night theme starts (24h format)
+
+# Sunrise/sunset mode (mode = "sunrise_sunset")
+# Uses location coordinates to calculate actual sunrise/sunset times
+# Requires prayer system or manual coordinates
+theme.dynamic.sunrise_offset = 30          # Minutes after sunrise for day theme
+theme.dynamic.sunset_offset = 30           # Minutes after sunset for night theme
+
+# Prayer-based mode (mode = "prayer")
+# Uses Islamic prayer times for switching
+# Day theme: After Fajr, Night theme: After Maghrib
+theme.dynamic.prayer_day_trigger = "fajr"  # Prayer that triggers day theme
+theme.dynamic.prayer_night_trigger = "maghrib"  # Prayer that triggers night theme
+
+# Manual override
+# Set to a specific theme name to override dynamic switching temporarily
+# Clear/empty to resume dynamic switching
+theme.dynamic.manual_override = ""
+
 # === THEME INHERITANCE SYSTEM ===
 # Advanced theme customization with inheritance
 theme.inheritance.enabled = true

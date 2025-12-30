@@ -136,10 +136,15 @@ apply_ocean_theme() {
 # THEME APPLICATION
 # ============================================================================
 
-# Apply theme based on CONFIG_THEME
+# Apply theme based on CONFIG_THEME (with dynamic theme support)
 apply_theme() {
-    local theme="${1:-$CONFIG_THEME}"
-    
+    local theme="${1:-}"
+
+    # If no theme provided, use dynamic theme resolution
+    if [[ -z "$theme" ]]; then
+        theme=$(get_dynamic_theme)
+    fi
+
     debug_log "Applying theme: $theme" "INFO"
     
     case "$theme" in
@@ -296,18 +301,207 @@ preview_theme_colors() {
 }
 
 # ============================================================================
+# DYNAMIC THEME SYSTEM (Issue #94)
+# ============================================================================
+
+# Configuration variables for dynamic themes
+CONFIG_THEME_DYNAMIC_ENABLED="${CONFIG_THEME_DYNAMIC_ENABLED:-false}"
+CONFIG_THEME_DYNAMIC_MODE="${CONFIG_THEME_DYNAMIC_MODE:-time}"
+CONFIG_THEME_DYNAMIC_DAY_THEME="${CONFIG_THEME_DYNAMIC_DAY_THEME:-garden}"
+CONFIG_THEME_DYNAMIC_NIGHT_THEME="${CONFIG_THEME_DYNAMIC_NIGHT_THEME:-catppuccin}"
+CONFIG_THEME_DYNAMIC_DAY_START="${CONFIG_THEME_DYNAMIC_DAY_START:-06:00}"
+CONFIG_THEME_DYNAMIC_NIGHT_START="${CONFIG_THEME_DYNAMIC_NIGHT_START:-18:00}"
+CONFIG_THEME_DYNAMIC_SUNRISE_OFFSET="${CONFIG_THEME_DYNAMIC_SUNRISE_OFFSET:-30}"
+CONFIG_THEME_DYNAMIC_SUNSET_OFFSET="${CONFIG_THEME_DYNAMIC_SUNSET_OFFSET:-30}"
+CONFIG_THEME_DYNAMIC_PRAYER_DAY_TRIGGER="${CONFIG_THEME_DYNAMIC_PRAYER_DAY_TRIGGER:-fajr}"
+CONFIG_THEME_DYNAMIC_PRAYER_NIGHT_TRIGGER="${CONFIG_THEME_DYNAMIC_PRAYER_NIGHT_TRIGGER:-maghrib}"
+CONFIG_THEME_DYNAMIC_MANUAL_OVERRIDE="${CONFIG_THEME_DYNAMIC_MANUAL_OVERRIDE:-}"
+
+# Check if dynamic themes are enabled
+is_dynamic_theme_enabled() {
+    [[ "${CONFIG_THEME_DYNAMIC_ENABLED:-false}" == "true" ]]
+}
+
+# Get current time in minutes since midnight
+get_minutes_since_midnight() {
+    local current_hour current_min
+    current_hour=$(date +%H | sed 's/^0//')
+    current_min=$(date +%M | sed 's/^0//')
+    echo $(( current_hour * 60 + current_min ))
+}
+
+# Convert HH:MM time string to minutes since midnight
+time_to_minutes() {
+    local time_str="$1"
+    local hours mins
+    hours=$(echo "$time_str" | cut -d: -f1 | sed 's/^0//')
+    mins=$(echo "$time_str" | cut -d: -f2 | sed 's/^0//')
+    echo $(( hours * 60 + mins ))
+}
+
+# Determine if currently daytime based on time-based mode
+is_daytime_by_time() {
+    local current_mins day_start_mins night_start_mins
+    current_mins=$(get_minutes_since_midnight)
+    day_start_mins=$(time_to_minutes "$CONFIG_THEME_DYNAMIC_DAY_START")
+    night_start_mins=$(time_to_minutes "$CONFIG_THEME_DYNAMIC_NIGHT_START")
+
+    # Handle normal case (day starts before night, e.g., 06:00-18:00)
+    if [[ $day_start_mins -lt $night_start_mins ]]; then
+        [[ $current_mins -ge $day_start_mins && $current_mins -lt $night_start_mins ]]
+    else
+        # Handle inverted case (day starts after night, e.g., 18:00-06:00 - unlikely but supported)
+        [[ $current_mins -ge $day_start_mins || $current_mins -lt $night_start_mins ]]
+    fi
+}
+
+# Determine if currently daytime based on sunrise/sunset
+# Uses prayer system sunrise/sunset if available
+is_daytime_by_sun() {
+    local sunrise_mins sunset_mins current_mins
+    local sunrise_offset="${CONFIG_THEME_DYNAMIC_SUNRISE_OFFSET:-30}"
+    local sunset_offset="${CONFIG_THEME_DYNAMIC_SUNSET_OFFSET:-30}"
+
+    # Try to get sunrise/sunset from prayer cache
+    local prayer_cache_file
+    prayer_cache_file="${CACHE_BASE_DIR:-$HOME/.cache/claude-code-statusline}/prayer_times_today.json"
+
+    if [[ -f "$prayer_cache_file" ]]; then
+        local sunrise sunset
+        sunrise=$(jq -r '.data.timings.Sunrise // empty' "$prayer_cache_file" 2>/dev/null)
+        sunset=$(jq -r '.data.timings.Sunset // empty' "$prayer_cache_file" 2>/dev/null)
+
+        if [[ -n "$sunrise" && -n "$sunset" ]]; then
+            sunrise_mins=$(time_to_minutes "$sunrise")
+            sunset_mins=$(time_to_minutes "$sunset")
+            current_mins=$(get_minutes_since_midnight)
+
+            # Add offsets
+            sunrise_mins=$(( sunrise_mins + sunrise_offset ))
+            sunset_mins=$(( sunset_mins + sunset_offset ))
+
+            debug_log "Sun mode: sunrise=$sunrise (+${sunrise_offset}m), sunset=$sunset (+${sunset_offset}m), current=$current_mins" "INFO"
+
+            [[ $current_mins -ge $sunrise_mins && $current_mins -lt $sunset_mins ]]
+            return $?
+        fi
+    fi
+
+    # Fallback to time-based if no sunrise/sunset data
+    debug_log "No sunrise/sunset data available, falling back to time-based mode" "WARN"
+    is_daytime_by_time
+}
+
+# Determine if currently daytime based on prayer times
+# Day = after Fajr until Maghrib, Night = after Maghrib until Fajr
+is_daytime_by_prayer() {
+    local prayer_cache_file current_mins
+    local day_trigger="${CONFIG_THEME_DYNAMIC_PRAYER_DAY_TRIGGER:-fajr}"
+    local night_trigger="${CONFIG_THEME_DYNAMIC_PRAYER_NIGHT_TRIGGER:-maghrib}"
+
+    prayer_cache_file="${CACHE_BASE_DIR:-$HOME/.cache/claude-code-statusline}/prayer_times_today.json"
+
+    if [[ -f "$prayer_cache_file" ]]; then
+        local day_time night_time
+
+        # Get prayer times based on triggers (capitalize first letter)
+        local day_prayer night_prayer
+        day_prayer="$(echo "${day_trigger:0:1}" | tr '[:lower:]' '[:upper:]')${day_trigger:1}"
+        night_prayer="$(echo "${night_trigger:0:1}" | tr '[:lower:]' '[:upper:]')${night_trigger:1}"
+
+        day_time=$(jq -r ".data.timings.$day_prayer // empty" "$prayer_cache_file" 2>/dev/null)
+        night_time=$(jq -r ".data.timings.$night_prayer // empty" "$prayer_cache_file" 2>/dev/null)
+
+        if [[ -n "$day_time" && -n "$night_time" ]]; then
+            local day_mins night_mins
+            day_mins=$(time_to_minutes "$day_time")
+            night_mins=$(time_to_minutes "$night_time")
+            current_mins=$(get_minutes_since_midnight)
+
+            debug_log "Prayer mode: $day_prayer=$day_time, $night_prayer=$night_time, current=$current_mins" "INFO"
+
+            [[ $current_mins -ge $day_mins && $current_mins -lt $night_mins ]]
+            return $?
+        fi
+    fi
+
+    # Fallback to time-based if no prayer data
+    debug_log "No prayer data available, falling back to time-based mode" "WARN"
+    is_daytime_by_time
+}
+
+# Check if currently daytime based on configured mode
+is_daytime() {
+    case "${CONFIG_THEME_DYNAMIC_MODE:-time}" in
+        "time")
+            is_daytime_by_time
+            ;;
+        "sunrise_sunset"|"sun")
+            is_daytime_by_sun
+            ;;
+        "prayer")
+            is_daytime_by_prayer
+            ;;
+        *)
+            debug_log "Unknown dynamic theme mode: $CONFIG_THEME_DYNAMIC_MODE, defaulting to time" "WARN"
+            is_daytime_by_time
+            ;;
+    esac
+}
+
+# Get the dynamically resolved theme name
+get_dynamic_theme() {
+    # Check for manual override first
+    if [[ -n "${CONFIG_THEME_DYNAMIC_MANUAL_OVERRIDE:-}" ]]; then
+        debug_log "Dynamic theme: using manual override '${CONFIG_THEME_DYNAMIC_MANUAL_OVERRIDE}'" "INFO"
+        echo "${CONFIG_THEME_DYNAMIC_MANUAL_OVERRIDE}"
+        return 0
+    fi
+
+    # Check if dynamic themes are enabled
+    if ! is_dynamic_theme_enabled; then
+        # Return the static theme
+        echo "${CONFIG_THEME:-catppuccin}"
+        return 0
+    fi
+
+    # Determine day/night and return appropriate theme
+    if is_daytime; then
+        debug_log "Dynamic theme: daytime, using '${CONFIG_THEME_DYNAMIC_DAY_THEME}'" "INFO"
+        echo "${CONFIG_THEME_DYNAMIC_DAY_THEME:-garden}"
+    else
+        debug_log "Dynamic theme: nighttime, using '${CONFIG_THEME_DYNAMIC_NIGHT_THEME}'" "INFO"
+        echo "${CONFIG_THEME_DYNAMIC_NIGHT_THEME:-catppuccin}"
+    fi
+}
+
+# Get current theme period (day/night) for display purposes
+get_current_theme_period() {
+    if ! is_dynamic_theme_enabled; then
+        echo "static"
+        return 0
+    fi
+
+    if is_daytime; then
+        echo "day"
+    else
+        echo "night"
+    fi
+}
+
+# ============================================================================
 # THEME INHERITANCE SYSTEM (Advanced)
 # ============================================================================
 
 # Apply theme inheritance (from original Phase 3 system)
 apply_theme_inheritance() {
     local config_json="$1"
-    
+
     if [[ -z "$config_json" ]]; then
         debug_log "No config JSON provided for theme inheritance" "INFO"
         return 0
     fi
-    
+
     # This would be implemented if theme inheritance is needed
     # For now, it's a placeholder for future enhancement
     debug_log "Theme inheritance system ready (not implemented in refactor)" "INFO"
@@ -321,18 +515,26 @@ apply_theme_inheritance() {
 # Initialize the themes module
 init_themes_module() {
     debug_log "Themes module initialized" "INFO"
-    
+
     # Apply default theme if none is set
     if [[ -z "$CONFIG_THEME" ]]; then
         CONFIG_THEME="catppuccin"
     fi
-    
-    # Apply the theme
+
+    # Log dynamic theme status
+    if is_dynamic_theme_enabled; then
+        local period theme_name
+        period=$(get_current_theme_period)
+        theme_name=$(get_dynamic_theme)
+        debug_log "Dynamic themes enabled: mode=${CONFIG_THEME_DYNAMIC_MODE}, period=${period}, theme=${theme_name}" "INFO"
+    fi
+
+    # Apply the theme (uses dynamic resolution if enabled)
     apply_theme
-    
+
     # Validate the theme
     validate_theme || handle_warning "Theme validation failed" "init_themes_module"
-    
+
     return 0
 }
 
@@ -345,3 +547,7 @@ fi
 export -f apply_theme apply_classic_theme apply_garden_theme apply_catppuccin_theme apply_ocean_theme
 export -f apply_custom_theme_defaults validate_theme get_available_themes
 export -f is_valid_theme get_current_theme preview_theme_colors apply_theme_inheritance
+# Dynamic theme exports
+export -f is_dynamic_theme_enabled get_dynamic_theme get_current_theme_period
+export -f is_daytime is_daytime_by_time is_daytime_by_sun is_daytime_by_prayer
+export -f get_minutes_since_midnight time_to_minutes
