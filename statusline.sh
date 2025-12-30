@@ -211,6 +211,7 @@ USAGE:
     statusline.sh [options]                 - Run statusline (default)
     statusline.sh --help                    - Show this help message
     statusline.sh --version                 - Show version information
+    statusline.sh --json                    - Output JSON for IDE integrations
     statusline.sh --test-display            - Test display formatting
     statusline.sh --modules                 - Show loaded modules
     statusline.sh --health                  - Show system health status
@@ -770,6 +771,145 @@ run_setup_wizard() {
 }
 
 # ============================================================================
+# JSON API OUTPUT (Issue #95)
+# ============================================================================
+# Provides structured JSON output for IDE integrations (VS Code, Vim, Emacs)
+# Usage: ./statusline.sh --json
+
+output_json_api() {
+    local json_output=""
+
+    # Get current directory (for context)
+    local current_dir="${PWD}"
+
+    # Repository info
+    local repo_name=""
+    local repo_branch=""
+    local repo_status="not_git"
+    local repo_commits_today="0"
+    local repo_has_submodules="false"
+
+    if is_module_loaded "git" && is_git_repository; then
+        repo_name=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null)
+        repo_branch=$(get_git_branch 2>/dev/null)
+        repo_status=$(get_git_status 2>/dev/null)
+        repo_commits_today=$(get_commits_today 2>/dev/null)
+        [[ -f ".gitmodules" ]] && repo_has_submodules="true"
+    fi
+
+    # Cost info
+    local cost_session="0.00"
+    local cost_daily="0.00"
+    local cost_weekly="0.00"
+    local cost_monthly="0.00"
+
+    if is_module_loaded "cost" && is_ccusage_available; then
+        cost_session=$(get_session_cost 2>/dev/null || echo "0.00")
+        cost_daily=$(get_daily_cost 2>/dev/null || echo "0.00")
+        cost_weekly=$(get_weekly_cost 2>/dev/null || echo "0.00")
+        cost_monthly=$(get_monthly_cost 2>/dev/null || echo "0.00")
+    fi
+
+    # MCP info
+    local mcp_connected="0"
+    local mcp_total="0"
+    local mcp_servers="[]"
+
+    if is_module_loaded "mcp" && is_claude_cli_available; then
+        local mcp_status
+        mcp_status=$(get_mcp_status 2>/dev/null)
+        if [[ "$mcp_status" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+            mcp_connected="${BASH_REMATCH[1]}"
+            mcp_total="${BASH_REMATCH[2]}"
+        fi
+        # Get server names as JSON array
+        local servers_raw
+        servers_raw=$(get_all_mcp_servers 2>/dev/null)
+        if [[ -n "$servers_raw" && "$servers_raw" != "none" ]]; then
+            mcp_servers=$(echo "$servers_raw" | tr ',' '\n' | jq -R . | jq -s .)
+        fi
+    fi
+
+    # GitHub info
+    local github_ci_status=""
+    local github_pr_count="0"
+    local github_release=""
+
+    if is_module_loaded "github" && is_github_enabled; then
+        github_ci_status=$(get_ci_status 2>/dev/null)
+        github_pr_count=$(get_open_pr_count 2>/dev/null || echo "0")
+        github_release=$(get_latest_release 2>/dev/null)
+    fi
+
+    # Prayer info (if enabled)
+    local prayer_enabled="false"
+    local prayer_next=""
+    local prayer_time=""
+
+    if is_module_loaded "prayer" && [[ "${CONFIG_PRAYER_ENABLED:-false}" == "true" ]]; then
+        prayer_enabled="true"
+        # Get next prayer info if available
+        if declare -f get_next_prayer_info &>/dev/null; then
+            local prayer_info
+            prayer_info=$(get_next_prayer_info 2>/dev/null)
+            prayer_next=$(echo "$prayer_info" | cut -d'|' -f1)
+            prayer_time=$(echo "$prayer_info" | cut -d'|' -f2)
+        fi
+    fi
+
+    # System info
+    local theme_name
+    theme_name=$(get_current_theme 2>/dev/null || echo "default")
+    local modules_count="${#STATUSLINE_MODULES_LOADED[@]}"
+
+    # Build JSON output using jq for proper escaping
+    cat <<EOF | jq -c .
+{
+  "version": "$STATUSLINE_VERSION",
+  "timestamp": $(date +%s),
+  "repository": {
+    "name": "$repo_name",
+    "branch": "$repo_branch",
+    "status": "$repo_status",
+    "commits_today": $repo_commits_today,
+    "has_submodules": $repo_has_submodules,
+    "path": "$current_dir"
+  },
+  "cost": {
+    "session": $cost_session,
+    "daily": $cost_daily,
+    "weekly": $cost_weekly,
+    "monthly": $cost_monthly,
+    "currency": "USD"
+  },
+  "mcp": {
+    "connected": $mcp_connected,
+    "total": $mcp_total,
+    "servers": $mcp_servers
+  },
+  "github": {
+    "enabled": $(is_github_enabled && echo "true" || echo "false"),
+    "ci_status": "$github_ci_status",
+    "open_prs": $github_pr_count,
+    "latest_release": "$github_release"
+  },
+  "prayer": {
+    "enabled": $prayer_enabled,
+    "next": "$prayer_next",
+    "time": "$prayer_time"
+  },
+  "system": {
+    "theme": "$theme_name",
+    "modules_loaded": $modules_count,
+    "platform": "$(uname -s)"
+  }
+}
+EOF
+
+    return 0
+}
+
+# ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
 # When sourced (not executed directly), return after loading modules/functions
@@ -892,6 +1032,11 @@ if [[ $# -gt 0 ]]; then
         ;;
     "--check-updates"|"--update-check")
         check_for_updates
+        exit $?
+        ;;
+    "--json")
+        # JSON API output for IDE integrations (Issue #95)
+        output_json_api
         exit $?
         ;;
     "--setup-wizard"|"--setup"|"--wizard")
