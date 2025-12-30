@@ -725,26 +725,64 @@ conditional.git_context.enabled = false
 conditional.git_context.work_repos = []
 conditional.git_context.personal_repos = []
 
-# === CONFIGURATION PROFILES ===
-# Different configurations for different contexts
+# === CONFIGURATION PROFILES (Issue #84) ===
+# Automatic configuration switching based on context
+# Supports: directory matching, git remote matching, time-based switching
+
 profiles.enabled = false
-profiles.default_profile = "default"
+profiles.default_profile = "personal"
 profiles.auto_switch = true
 
-# Profile definitions (examples)
+# Detection priority: 1=git_remote, 2=directory, 3=time, 4=default
+profiles.detection_priority = ["git_remote", "directory", "time"]
+
+# === WORK PROFILE ===
+# Automatically activates for work directories/repos
 profiles.work.theme = "classic"
 profiles.work.show_cost_tracking = true
 profiles.work.show_reset_info = true
 profiles.work.mcp_timeout = "10s"
 
+# Directory patterns (glob-style matching)
+# Matches: /work/*, ~/projects/company/*, ~/src/work-*
+profiles.work.directories = ["/work/*", "~/projects/company/*", "~/src/work-*"]
+
+# Git remote patterns (substring matching)
+# Matches: github.com/mycompany/*, gitlab.com/work/*
+profiles.work.git_remotes = ["github.com/mycompany/", "gitlab.com/work/"]
+
+# Time-based activation (24h format, optional)
+profiles.work.time_start = "09:00"
+profiles.work.time_end = "17:00"
+profiles.work.time_days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+# === PERSONAL PROFILE ===
 profiles.personal.theme = "catppuccin"
 profiles.personal.show_cost_tracking = false
 profiles.personal.show_reset_info = false
 profiles.personal.mcp_timeout = "10s"
 
+# Directory patterns
+profiles.personal.directories = ["~/personal/*", "~/projects/personal/*", "~/hobby/*"]
+
+# Git remote patterns
+profiles.personal.git_remotes = ["github.com/myusername/"]
+
+# === DEMO PROFILE ===
+# For presentations and screen sharing
 profiles.demo.theme = "garden"
 profiles.demo.show_cost_tracking = false
 profiles.demo.show_commits = false
+profiles.demo.show_reset_info = false
+
+# Activate demo profile in specific directories
+profiles.demo.directories = ["~/demo/*", "~/presentations/*"]
+
+# === DEFAULT PROFILE ===
+# Fallback when no other profile matches
+profiles.default.theme = "catppuccin"
+profiles.default.show_cost_tracking = true
+profiles.default.show_reset_info = true
 
 # === PLUGIN SYSTEM ===
 # Extensible data source system (Phase 3 foundation)

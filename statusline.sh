@@ -114,6 +114,12 @@ load_module "config" || {
     exit 1
 }
 
+# Load profiles module (Issue #84)
+# Must load after config but before themes (profiles can affect theme selection)
+load_module "profiles" || {
+    handle_warning "Profiles module failed to load - profile switching disabled." "main"
+}
+
 # Load theme module
 load_module "themes" || {
     handle_error "Failed to load themes module - theme system disabled. Check lib/themes.sh for color support." 1 "main"
