@@ -7,7 +7,7 @@
 # This module handles location detection, caching, and coordinate resolution
 # for Islamic prayer times.
 #
-# Error Suppression Patterns (Issue #76):
+# Error Suppression Patterns (Issue #108):
 # - curl 2>/dev/null: Network ops may fail (offline, timeout, DNS issues)
 # - jq -r '.field // fallback' 2>/dev/null: JSON parsing with safe defaults
 # - CoreLocationCLI/geoclue 2>/dev/null: GPS tools may not be installed

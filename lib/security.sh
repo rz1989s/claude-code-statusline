@@ -3,9 +3,16 @@
 # ============================================================================
 # Claude Code Statusline - Security Module
 # ============================================================================
-# 
-# This module contains all security-related functions including input 
+#
+# This module contains all security-related functions including input
 # sanitization, secure file operations, and validation routines.
+#
+# Error Suppression Patterns (Issue #108):
+# - mkdir -p 2>/dev/null: Creating secure dirs (race condition safe)
+# - chmod 700 2>/dev/null: Best-effort permissions (may fail on some FS)
+# - rm -f 2>/dev/null: Cleanup lock/temp files (may not exist)
+# - stat 2>/dev/null: Platform-specific stat (BSD vs GNU fallback)
+# - kill -0 2>/dev/null: Check if PID exists (expected to fail for dead PIDs)
 #
 # Dependencies: core.sh
 # ============================================================================

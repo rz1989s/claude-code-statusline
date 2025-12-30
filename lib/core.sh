@@ -3,9 +3,14 @@
 # ============================================================================
 # Claude Code Statusline - Core Module
 # ============================================================================
-# 
+#
 # This module contains core constants, shared utilities, and foundational
 # functions that other modules depend on.
+#
+# Error Suppression Patterns (Issue #108):
+# - command -v 2>/dev/null: Check if command exists (expected to fail if not)
+# - rm -rf temp_dir 2>/dev/null: Cleanup temp directories (may not exist)
+# - type -t 2>/dev/null: Check function/command type (expected to fail)
 #
 # Dependencies: None (this is the base module)
 # ============================================================================

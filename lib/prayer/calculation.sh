@@ -3,9 +3,15 @@
 # ============================================================================
 # Claude Code Statusline - Prayer Time Calculation Module
 # ============================================================================
-# 
-# This module handles prayer time calculations, API data processing, and 
+#
+# This module handles prayer time calculations, API data processing, and
 # Hijri calendar calculations.
+#
+# Error Suppression Patterns (Issue #108):
+# - date 2>/dev/null: Cross-platform date (GNU -d vs BSD -j -f)
+# - jq 2>/dev/null: JSON extraction with fallback on missing fields
+# - printf 2>/dev/null: Number formatting with fallback on invalid input
+# - bc 2>/dev/null: Math calculations with fallback to bash arithmetic
 #
 # Dependencies: core.sh, security.sh, cache.sh, prayer/core.sh
 # ============================================================================

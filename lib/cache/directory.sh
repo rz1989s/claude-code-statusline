@@ -7,6 +7,14 @@
 # This module handles XDG-compliant cache directory detection, initialization,
 # migration from legacy locations, and path management.
 #
+# Error Suppression Patterns (Issue #108):
+# - mkdir -p 2>/dev/null: Race condition safe - another process may create dir
+# - chmod 700 2>/dev/null: Best-effort permissions - may fail on some filesystems
+# - rm -f 2>/dev/null: Cleanup ops where file may not exist (expected)
+# - mv 2>/dev/null: Migration ops where source may be gone (race condition)
+#
+# All critical failures are reported via report_cache_error() or debug_log().
+#
 # Dependencies: config.sh (for CACHE_CONFIG_*), security.sh (for sanitize_variable_name)
 # ============================================================================
 

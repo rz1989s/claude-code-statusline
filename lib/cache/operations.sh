@@ -8,6 +8,12 @@
 # function, specialized caching functions, resource cleanup, and cache
 # management utilities.
 #
+# Error Suppression Patterns (Issue #108):
+# - rm -f 2>/dev/null: Cleanup of temp/stale files (may not exist)
+# - find -exec rm 2>/dev/null: Batch cleanup where files may be gone
+# - eval 2>/dev/null: Dynamic command execution with fallback
+# - cat 2>/dev/null: Reading cache that may have been invalidated
+#
 # Dependencies: All other cache sub-modules, security.sh (for is_cache_fresh)
 # ============================================================================
 

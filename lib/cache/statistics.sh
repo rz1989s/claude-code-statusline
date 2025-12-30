@@ -7,6 +7,11 @@
 # This module provides cache performance monitoring and analytics including
 # hit/miss tracking, response times, and memory usage statistics.
 #
+# Error Suppression Patterns (Issue #108):
+# - declare 2>/dev/null: Dynamic variable creation (may already exist)
+# - du 2>/dev/null: Disk usage where cache dir may not exist yet
+# - wc 2>/dev/null: Counting files that may be deleted during count
+#
 # Dependencies: keys.sh (for sanitize_cache_key)
 # ============================================================================
 

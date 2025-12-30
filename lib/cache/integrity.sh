@@ -7,6 +7,15 @@
 # This module provides cache integrity features including SHA-256 checksums,
 # corruption detection, error handling, and recovery mechanisms.
 #
+# Error Suppression Patterns (Issue #108):
+# - mkdir -p 2>/dev/null: Creating fallback dirs (may already exist)
+# - chmod 700 2>/dev/null: Best-effort secure permissions
+# - rm -f 2>/dev/null: Removing corrupted/stale cache files (may not exist)
+# - shasum/md5 2>/dev/null: Checksum tools may vary by platform
+# - cat/read 2>/dev/null: File may be deleted by concurrent process
+#
+# All failures are reported via report_cache_error() with recovery suggestions.
+#
 # Dependencies: config.sh (for CACHE_CONFIG_*), validation.sh, security.sh (for get_file_mtime)
 # ============================================================================
 

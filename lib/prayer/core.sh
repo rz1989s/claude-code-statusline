@@ -3,9 +3,14 @@
 # ============================================================================
 # Claude Code Statusline - Islamic Prayer Core Module
 # ============================================================================
-# 
+#
 # This module handles prayer configuration, constants, and API interactions.
-# 
+#
+# Error Suppression Patterns (Issue #108):
+# - curl 2>/dev/null: API calls may fail (offline, timeout, rate limited)
+# - jq 2>/dev/null: JSON parsing with fallback on malformed response
+# - date 2>/dev/null: Cross-platform date formatting (GNU/BSD differences)
+#
 # Dependencies: core.sh, security.sh, cache.sh, config.sh
 # ============================================================================
 

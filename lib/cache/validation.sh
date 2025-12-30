@@ -8,6 +8,11 @@
 # basic validation, JSON validation, Git-specific validation, and content
 # validators.
 #
+# Error Suppression Patterns (Issue #108):
+# - jq 2>/dev/null: JSON validation where invalid JSON returns false
+# - git 2>/dev/null: Git validation where not in repo returns false
+# - cat/read 2>/dev/null: File may be deleted during validation
+#
 # Dependencies: core.sh (for command_exists, debug_log)
 # ============================================================================
 
