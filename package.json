@@ -7,6 +7,8 @@
     "test:unit": "bats tests/unit/*.bats",
     "test:integration": "bats tests/integration/*.bats",
     "test:watch": "bats tests/**/*.bats --tap",
+    "test:coverage": "scripts/coverage.sh",
+    "test:coverage:html": "scripts/coverage.sh --html",
     "lint": "shellcheck --exclude=SC2034 --severity=error statusline.sh",
     "lint:tests": "shellcheck tests/**/*.bash tests/**/*.bats",
     "lint:all": "npm run lint && npm run lint:tests",
