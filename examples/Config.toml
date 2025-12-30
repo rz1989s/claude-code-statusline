@@ -701,12 +701,48 @@ theme.dynamic.prayer_night_trigger = "maghrib"  # Prayer that triggers night the
 # Clear/empty to resume dynamic switching
 theme.dynamic.manual_override = ""
 
-# === THEME INHERITANCE SYSTEM ===
-# Advanced theme customization with inheritance
-theme.inheritance.enabled = true
-theme.inheritance.base_theme = ""
-theme.inheritance.override_colors = []
-theme.inheritance.merge_strategy = "override"
+# === THEME INHERITANCE SYSTEM (Issue #85) ===
+# Create custom themes by inheriting from a base theme and overriding colors
+# This avoids duplicating entire theme definitions for small tweaks
+
+theme.inheritance.enabled = false          # Enable theme inheritance
+theme.inheritance.base_theme = ""          # Base theme to inherit from (classic/garden/catppuccin/ocean)
+theme.inheritance.merge_strategy = "override"  # How to merge: "override" (child wins) or "merge" (blend)
+
+# Individual color overrides (only specified colors are changed)
+# Use hex colors (#RRGGBB) or ANSI codes (\033[38;2;R;G;Bm)
+theme.inheritance.colors.red = ""          # Override red color
+theme.inheritance.colors.blue = ""         # Override blue color
+theme.inheritance.colors.green = ""        # Override green color
+theme.inheritance.colors.yellow = ""       # Override yellow color
+theme.inheritance.colors.magenta = ""      # Override magenta color
+theme.inheritance.colors.cyan = ""         # Override cyan color
+theme.inheritance.colors.white = ""        # Override white color
+theme.inheritance.colors.orange = ""       # Override orange color
+theme.inheritance.colors.purple = ""       # Override purple color
+theme.inheritance.colors.teal = ""         # Override teal color
+theme.inheritance.colors.gold = ""         # Override gold color
+theme.inheritance.colors.pink = ""         # Override pink color
+
+# === THEME INHERITANCE EXAMPLES ===
+#
+# Example 1: Catppuccin with custom accent colors
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "catppuccin"
+# theme.inheritance.colors.green = "#00ff88"    # Brighter green for success
+# theme.inheritance.colors.red = "#ff4444"      # More vibrant red for errors
+#
+# Example 2: Garden theme with ocean-inspired tweaks
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "garden"
+# theme.inheritance.colors.blue = "#48cae4"     # Ocean blue
+# theme.inheritance.colors.cyan = "#00b4d8"     # Bright cyan
+#
+# Example 3: Classic with modern pastel touches
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "classic"
+# theme.inheritance.colors.yellow = "#ffd166"   # Softer yellow
+# theme.inheritance.colors.magenta = "#bd93f9"  # Pastel purple
 
 # === CONDITIONAL CONFIGURATION ===
 # Context-aware configuration

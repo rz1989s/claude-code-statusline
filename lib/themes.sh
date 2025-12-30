@@ -136,9 +136,18 @@ apply_ocean_theme() {
 # THEME APPLICATION
 # ============================================================================
 
-# Apply theme based on CONFIG_THEME (with dynamic theme support)
+# Apply theme based on CONFIG_THEME (with dynamic theme and inheritance support)
 apply_theme() {
     local theme="${1:-}"
+
+    # Check if theme inheritance is enabled (Issue #85)
+    # If enabled, use the inherited theme instead of normal theme
+    if is_theme_inheritance_enabled; then
+        debug_log "Theme inheritance enabled, applying inherited theme" "INFO"
+        apply_inherited_theme
+        debug_log "Theme application completed (inherited from ${CONFIG_THEME_INHERITANCE_BASE})" "INFO"
+        return 0
+    fi
 
     # If no theme provided, use dynamic theme resolution
     if [[ -z "$theme" ]]; then
@@ -146,7 +155,7 @@ apply_theme() {
     fi
 
     debug_log "Applying theme: $theme" "INFO"
-    
+
     case "$theme" in
     "classic")
         apply_classic_theme
@@ -171,7 +180,7 @@ apply_theme() {
         apply_catppuccin_theme
         ;;
     esac
-    
+
     debug_log "Theme application completed: $theme" "INFO"
 }
 
@@ -490,22 +499,172 @@ get_current_theme_period() {
 }
 
 # ============================================================================
-# THEME INHERITANCE SYSTEM (Advanced)
+# THEME INHERITANCE SYSTEM (Issue #85)
 # ============================================================================
+# Allows themes to inherit from a base theme and override specific colors.
+# Supports hex color codes (#RRGGBB) which are converted to ANSI escapes.
 
-# Apply theme inheritance (from original Phase 3 system)
-apply_theme_inheritance() {
-    local config_json="$1"
+# Configuration defaults for theme inheritance
+CONFIG_THEME_INHERITANCE_ENABLED="${CONFIG_THEME_INHERITANCE_ENABLED:-false}"
+CONFIG_THEME_INHERITANCE_BASE="${CONFIG_THEME_INHERITANCE_BASE:-}"
+CONFIG_THEME_INHERITANCE_MERGE="${CONFIG_THEME_INHERITANCE_MERGE:-override}"
 
-    if [[ -z "$config_json" ]]; then
-        debug_log "No config JSON provided for theme inheritance" "INFO"
+# Check if theme inheritance is enabled
+is_theme_inheritance_enabled() {
+    [[ "${CONFIG_THEME_INHERITANCE_ENABLED:-false}" == "true" ]] && \
+    [[ -n "${CONFIG_THEME_INHERITANCE_BASE:-}" ]]
+}
+
+# Convert hex color (#RRGGBB) to ANSI 24-bit escape sequence
+# Returns: \033[38;2;R;G;Bm
+hex_to_ansi() {
+    local hex="$1"
+
+    # Remove # prefix if present
+    hex="${hex#\#}"
+
+    # Validate hex format (6 characters)
+    if [[ ! "$hex" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+        debug_log "Invalid hex color: $hex" "WARN"
+        echo ""
+        return 1
+    fi
+
+    # Extract RGB components
+    local r g b
+    r=$((16#${hex:0:2}))
+    g=$((16#${hex:2:2}))
+    b=$((16#${hex:4:2}))
+
+    # Return ANSI 24-bit color escape
+    printf '\033[38;2;%d;%d;%dm' "$r" "$g" "$b"
+}
+
+# Convert color value to ANSI escape (handles both hex and existing ANSI)
+normalize_color() {
+    local color="$1"
+
+    if [[ -z "$color" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # If it starts with #, convert from hex
+    if [[ "$color" == \#* ]]; then
+        hex_to_ansi "$color"
+    else
+        # Assume it's already an ANSI code or escape sequence
+        echo "$color"
+    fi
+}
+
+# Apply color overrides from inheritance configuration
+apply_color_overrides() {
+    debug_log "Applying color overrides from inheritance" "INFO"
+
+    local color_vars=(
+        "RED" "BLUE" "GREEN" "YELLOW" "MAGENTA" "CYAN" "WHITE"
+        "ORANGE" "PURPLE" "TEAL" "GOLD" "PINK"
+    )
+
+    for color_name in "${color_vars[@]}"; do
+        # Get override value from config
+        local override_var="CONFIG_THEME_INHERITANCE_COLORS_${color_name}"
+        local override_value="${!override_var:-}"
+
+        if [[ -n "$override_value" ]]; then
+            # Normalize color (convert hex to ANSI if needed)
+            local normalized
+            normalized=$(normalize_color "$override_value")
+
+            if [[ -n "$normalized" ]]; then
+                # Map to actual CONFIG variable
+                local config_var="CONFIG_${color_name}"
+
+                # Handle special cases (PINK -> PINK_BRIGHT)
+                case "$color_name" in
+                    "PINK") config_var="CONFIG_PINK_BRIGHT" ;;
+                esac
+
+                # Apply the override
+                export "$config_var"="$normalized"
+                debug_log "Color override: $color_name = $override_value" "INFO"
+            fi
+        fi
+    done
+}
+
+# Apply theme inheritance: load base theme, then apply overrides
+apply_inherited_theme() {
+    if ! is_theme_inheritance_enabled; then
+        debug_log "Theme inheritance disabled or no base theme specified" "INFO"
         return 0
     fi
 
-    # This would be implemented if theme inheritance is needed
-    # For now, it's a placeholder for future enhancement
-    debug_log "Theme inheritance system ready (not implemented in refactor)" "INFO"
+    local base_theme="${CONFIG_THEME_INHERITANCE_BASE:-}"
+
+    # Validate base theme
+    if ! is_valid_theme "$base_theme"; then
+        debug_log "Invalid base theme for inheritance: $base_theme" "WARN"
+        return 1
+    fi
+
+    debug_log "Applying inherited theme from base: $base_theme" "INFO"
+
+    # Step 1: Apply the base theme (loads all colors from base)
+    case "$base_theme" in
+        "classic")
+            apply_classic_theme
+            ;;
+        "garden")
+            apply_garden_theme
+            ;;
+        "catppuccin")
+            apply_catppuccin_theme
+            ;;
+        "ocean")
+            apply_ocean_theme
+            ;;
+        *)
+            debug_log "Unknown base theme: $base_theme" "WARN"
+            return 1
+            ;;
+    esac
+
+    # Step 2: Apply color overrides on top of base theme
+    apply_color_overrides
+
+    debug_log "Theme inheritance applied successfully (base: $base_theme)" "INFO"
     return 0
+}
+
+# Get inheritance status for display/debugging
+get_theme_inheritance_status() {
+    if ! is_theme_inheritance_enabled; then
+        echo "disabled"
+        return 0
+    fi
+
+    local base="${CONFIG_THEME_INHERITANCE_BASE:-none}"
+    local override_count=0
+
+    # Count active overrides
+    local color_vars=("RED" "BLUE" "GREEN" "YELLOW" "MAGENTA" "CYAN" "WHITE"
+                      "ORANGE" "PURPLE" "TEAL" "GOLD" "PINK")
+
+    for color_name in "${color_vars[@]}"; do
+        local override_var="CONFIG_THEME_INHERITANCE_COLORS_${color_name}"
+        if [[ -n "${!override_var:-}" ]]; then
+            ((override_count++))
+        fi
+    done
+
+    echo "base:$base,overrides:$override_count"
+}
+
+# Legacy compatibility wrapper
+apply_theme_inheritance() {
+    apply_inherited_theme
 }
 
 # ============================================================================
@@ -551,3 +710,6 @@ export -f is_valid_theme get_current_theme preview_theme_colors apply_theme_inhe
 export -f is_dynamic_theme_enabled get_dynamic_theme get_current_theme_period
 export -f is_daytime is_daytime_by_time is_daytime_by_sun is_daytime_by_prayer
 export -f get_minutes_since_midnight time_to_minutes
+# Theme inheritance exports (Issue #85)
+export -f is_theme_inheritance_enabled hex_to_ansi normalize_color
+export -f apply_color_overrides apply_inherited_theme get_theme_inheritance_status
