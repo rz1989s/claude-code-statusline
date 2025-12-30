@@ -1,0 +1,21 @@
+claude-code-statusline (2.13.0-1) unstable; urgency=medium
+
+  * Add GitHub Actions integration component
+  * Add plugin system for custom components
+  * Add npm wrapper package
+  * Add Debian package support
+
+ -- The Rector <rector@rectorspace.com>  Mon, 30 Dec 2024 10:00:00 +0700
+
+claude-code-statusline (2.12.0-1) unstable; urgency=medium
+
+  * Initial Debian package release
+  * Feature-rich statusline for Claude Code CLI
+  * Multiple themes support
+  * Git integration with commit tracking
+  * MCP server monitoring
+  * Cost tracking and analytics
+  * Islamic prayer times component
+  * Cross-platform support (Linux, macOS)
+
+ -- The Rector <rector@rectorspace.com>  Wed, 18 Dec 2024 12:00:00 +0700
