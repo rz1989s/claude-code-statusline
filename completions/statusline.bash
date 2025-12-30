@@ -18,7 +18,7 @@ _statusline_completions() {
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
   # Main options
-  opts="--help --version --modules --test-display --health --health=json --health-json --metrics --metrics=json --metrics=prometheus --metrics=prom --list-themes --preview-theme"
+  opts="--help --version --modules --test-display --health --health=json --health-json --metrics --metrics=json --metrics=prometheus --metrics=prom --list-themes --preview-theme --check-updates"
 
   # Available themes
   themes="classic garden catppuccin ocean custom"

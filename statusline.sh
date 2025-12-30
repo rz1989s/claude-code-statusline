@@ -201,6 +201,7 @@ USAGE:
     statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
     statusline.sh --list-themes             - List available themes
     statusline.sh --preview-theme <name>    - Preview a theme's colors
+    statusline.sh --check-updates           - Check for new versions
 
 THEMES:
     Available: classic, garden, catppuccin, ocean, custom
@@ -483,6 +484,88 @@ EOF
     return 0
 }
 
+# Check for updates against GitHub releases
+check_for_updates() {
+    local current_version="$STATUSLINE_VERSION"
+    local repo="rz1989s/claude-code-statusline"
+    local api_url="https://api.github.com/repos/${repo}/releases/latest"
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║           Claude Code Statusline - Update Check            ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Current version: v$current_version"
+    echo ""
+
+    # Check if curl is available
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required to check for updates" >&2
+        return 1
+    fi
+
+    echo "Checking for updates..."
+    echo ""
+
+    # Fetch latest release from GitHub API
+    local response
+    response=$(curl -fsSL --connect-timeout 10 "$api_url" 2>/dev/null)
+
+    if [[ -z "$response" ]]; then
+        echo "Error: Could not connect to GitHub API" >&2
+        echo "Check your internet connection and try again." >&2
+        return 1
+    fi
+
+    # Extract version and release info
+    local latest_version release_url published_at release_notes
+    latest_version=$(echo "$response" | jq -r '.tag_name // empty' 2>/dev/null | sed 's/^v//')
+    release_url=$(echo "$response" | jq -r '.html_url // empty' 2>/dev/null)
+    published_at=$(echo "$response" | jq -r '.published_at // empty' 2>/dev/null | cut -d'T' -f1)
+    release_notes=$(echo "$response" | jq -r '.body // empty' 2>/dev/null | head -5)
+
+    if [[ -z "$latest_version" ]]; then
+        echo "Error: Could not parse version from GitHub API" >&2
+        return 1
+    fi
+
+    echo "Latest version:  v$latest_version (released $published_at)"
+    echo ""
+
+    # Compare versions (simple string comparison works for semver)
+    if [[ "$current_version" == "$latest_version" ]]; then
+        echo "✓ You are running the latest version!"
+        return 0
+    fi
+
+    # Check if current is newer (dev version)
+    if [[ "$(printf '%s\n' "$current_version" "$latest_version" | sort -V | tail -1)" == "$current_version" ]]; then
+        echo "✓ You are running a development version (ahead of latest release)"
+        return 0
+    fi
+
+    # New version available
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║              New Version Available: v$latest_version"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    if [[ -n "$release_notes" ]]; then
+        echo "Release notes:"
+        echo "$release_notes" | sed 's/^/  /'
+        echo ""
+    fi
+
+    echo "To upgrade, run:"
+    echo ""
+    echo "  curl -sSfL https://raw.githubusercontent.com/${repo}/main/install.sh | bash"
+    echo ""
+    echo "Or visit: $release_url"
+    echo ""
+
+    return 0
+}
+
 # ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
@@ -603,6 +686,10 @@ if [[ $# -gt 0 ]]; then
         echo "  ENV_CONFIG_THEME=$theme_name ./statusline.sh"
         echo "  Or set in Config.toml: theme.name = \"$theme_name\""
         exit 0
+        ;;
+    "--check-updates"|"--update-check")
+        check_for_updates
+        exit $?
         ;;
     *)
         echo "Unknown option: $1" >&2
