@@ -1,0 +1,18 @@
+# VS Code
+vscode/node_modules/
+vscode/out/
+vscode/*.vsix
+vscode/.vscode-test/
+
+# Neovim
+neovim/.luarocks/
+neovim/*.rock
+
+# Emacs
+emacs/*.elc
+emacs/*-autoloads.el
+emacs/*-pkg.el
+
+# General
+.DS_Store
+*.log
