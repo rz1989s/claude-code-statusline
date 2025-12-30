@@ -701,6 +701,7 @@ download_directory_comprehensive() {
     mkdir -p "$local_path"
     mkdir -p "$local_path/prayer"
     mkdir -p "$local_path/cache"
+    mkdir -p "$local_path/config"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -734,6 +735,13 @@ download_directory_comprehensive() {
         # 🆕 ADD NEW CACHE MODULES HERE (lib/cache/*.sh files)
     )
 
+    # Config system modules (lib/config/) - modular config architecture
+    local config_modules=(
+        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
+        "config/extract.sh" "config/toml_parser.sh"
+        # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
+    )
+
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -750,7 +758,7 @@ download_directory_comprehensive() {
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -1021,6 +1029,13 @@ download_lib_fallback() {
         # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
     )
 
+    # Config system modules (lib/config/) - modular config architecture
+    local config_modules=(
+        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
+        "config/extract.sh" "config/toml_parser.sh"
+        # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
+    )
+
     # Component modules (lib/components/) - all 22 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
@@ -1036,9 +1051,9 @@ download_lib_fallback() {
         "components/session_info.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
-    
+
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
@@ -1048,6 +1063,7 @@ download_lib_fallback() {
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/cache"
+    mkdir -p "$LIB_DIR/config"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
