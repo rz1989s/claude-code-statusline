@@ -1,0 +1,78 @@
+#compdef statusline.sh statusline
+
+# ============================================================================
+# Zsh Completion for Claude Code Statusline
+# ============================================================================
+#
+# Installation:
+#   Add to ~/.zshrc:
+#   fpath=(~/.claude/statusline/completions $fpath)
+#   autoload -Uz compinit && compinit
+#
+# Or copy to system completions:
+#   sudo cp _statusline /usr/local/share/zsh/site-functions/
+# ============================================================================
+
+_statusline() {
+  local -a opts themes formats
+
+  # Main options with descriptions
+  opts=(
+    '--help[Show help message]'
+    '--version[Show version information]'
+    '--modules[Show loaded modules status]'
+    '--test-display[Test display formatting]'
+    '--health[Show system health status]'
+    '--health=[Show health status in format]:format:(json)'
+    '--health-json[Show health status in JSON format]'
+    '--metrics[Show performance metrics in JSON]'
+    '--metrics=[Show metrics in format]:format:(json prometheus prom)'
+  )
+
+  # Available themes
+  themes=(
+    'classic:Traditional ANSI colors'
+    'garden:Soft pastel colors'
+    'catppuccin:Catppuccin Mocha theme'
+    'custom:User-defined custom theme'
+  )
+
+  # Parse arguments
+  _arguments -s \
+    $opts \
+    '*:: :->args'
+
+  case "$state" in
+    args)
+      # Additional argument handling if needed
+      ;;
+  esac
+}
+
+# Environment variable completion
+_statusline_env() {
+  local -a env_vars
+
+  env_vars=(
+    'ENV_CONFIG_THEME:Theme name (classic, garden, catppuccin, custom)'
+    'ENV_CONFIG_DISPLAY_LINES:Number of status lines (1-9)'
+    'STATUSLINE_DEBUG:Enable debug mode (true/false)'
+    'STATUSLINE_LOG_FORMAT:Log format (text, json)'
+  )
+
+  _describe 'environment variable' env_vars
+}
+
+# Theme completion for ENV_CONFIG_THEME=
+_statusline_themes() {
+  local -a themes
+  themes=(
+    'classic:Traditional ANSI colors'
+    'garden:Soft pastel colors'
+    'catppuccin:Catppuccin Mocha theme'
+    'custom:User-defined custom theme'
+  )
+  _describe 'theme' themes
+}
+
+_statusline "$@"
