@@ -7,7 +7,7 @@
 # This module handles location detection, caching, and coordinate resolution
 # for Islamic prayer times.
 #
-# Error Suppression Patterns (Issue #76):
+# Error Suppression Patterns (Issue #108):
 # - curl 2>/dev/null: Network ops may fail (offline, timeout, DNS issues)
 # - jq -r '.field // fallback' 2>/dev/null: JSON parsing with safe defaults
 # - CoreLocationCLI/geoclue 2>/dev/null: GPS tools may not be installed
@@ -23,6 +23,65 @@ export STATUSLINE_PRAYER_LOCATION_LOADED=true
 
 # Load timezone method mappings
 source "$(dirname "${BASH_SOURCE[0]}")/timezone_methods.sh"
+
+# ============================================================================
+# TIMEZONE TO COORDINATES MAPPING (DRY - Issue #106)
+# ============================================================================
+
+# Get coordinates from system timezone
+# Returns: "latitude,longitude" string
+# Usage: coordinates=$(get_coordinates_from_timezone "Asia/Jakarta")
+get_coordinates_from_timezone() {
+    local system_tz="${1:-}"
+
+    case "$system_tz" in
+        # Southeast Asia (450M Muslims)
+        Asia/Jakarta*|Asia/Pontianak*|Asia/Makassar*|Asia/Jayapura*)
+            echo "-6.2088,106.8456" ;;  # Jakarta, Indonesia
+        Asia/Kuala_Lumpur*|Asia/Kuching*)
+            echo "3.1390,101.6869" ;;   # Kuala Lumpur, Malaysia
+        Asia/Singapore*)
+            echo "1.3521,103.8198" ;;   # Singapore
+
+        # South Asia (620M Muslims)
+        Asia/Karachi*)
+            echo "24.8607,67.0011" ;;   # Karachi, Pakistan
+        Asia/Dhaka*)
+            echo "23.8103,90.4125" ;;   # Dhaka, Bangladesh
+        Asia/Kolkata*|Asia/Delhi*|Asia/Mumbai*|Asia/Chennai*|Asia/Bangalore*)
+            echo "28.6139,77.2090" ;;   # Delhi, India
+
+        # Middle East (120M Muslims)
+        Asia/Riyadh*)
+            echo "24.7136,46.6753" ;;   # Riyadh, Saudi Arabia
+        Asia/Kuwait*)
+            echo "29.3117,47.4818" ;;   # Kuwait City
+        Asia/Dubai*)
+            echo "25.2048,55.2708" ;;   # Dubai, UAE
+        Asia/Tehran*)
+            echo "35.6892,51.3890" ;;   # Tehran, Iran
+        Asia/Istanbul*|Europe/Istanbul*)
+            echo "41.0082,28.9784" ;;   # Istanbul, Turkey
+
+        # Africa (280M Muslims)
+        Africa/Cairo*)
+            echo "30.0444,31.2357" ;;   # Cairo, Egypt
+        Africa/Lagos*)
+            echo "6.5244,3.3792" ;;     # Lagos, Nigeria
+
+        # Regional defaults
+        Europe/*)
+            echo "48.8566,2.3522" ;;    # Paris (Europe default)
+        America/*)
+            echo "40.7128,-74.0060" ;;  # New York (Americas default)
+        Australia/*)
+            echo "-33.8688,151.2093" ;; # Sydney (Oceania default)
+
+        # Ultimate fallback (Indonesian coordinates - largest Muslim population)
+        *)
+            echo "-6.2349,106.9896" ;;  # Jakarta/Bekasi fallback
+    esac
+}
 
 # ============================================================================
 # CONNECTIVITY AND IP GEOLOCATION
@@ -436,27 +495,9 @@ get_location_coordinates() {
 
             debug_log "Both local GPS and IP geolocation failed, using timezone fallback..." "WARN"
 
-            # Ultimate fallback: Use timezone to guess coordinates
+            # Timezone fallback using shared function (Issue #106)
             local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
-            local coordinates
-            case "$system_tz" in
-                # Major city coordinates for common timezones
-                Asia/Jakarta|Asia/Pontianak|Asia/Makassar|Asia/Jayapura) coordinates="-6.2088,106.8456" ;;  # Jakarta
-                Asia/Kuala_Lumpur|Asia/Kuching) coordinates="3.1390,101.6869" ;;                             # Kuala Lumpur
-                Asia/Singapore) coordinates="1.3521,103.8198" ;;                                             # Singapore
-                Asia/Karachi) coordinates="24.8607,67.0011" ;;                                               # Karachi
-                Asia/Dhaka) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
-                Asia/Kolkata|Asia/Delhi|Asia/Mumbai|Asia/Chennai|Asia/Bangalore) coordinates="28.6139,77.2090" ;; # Delhi
-                Asia/Riyadh) coordinates="24.7136,46.6753" ;;                                                # Riyadh
-                Asia/Kuwait) coordinates="29.3117,47.4818" ;;                                                # Kuwait City
-                Asia/Dubai) coordinates="25.2048,55.2708" ;;                                                 # Dubai
-                Asia/Tehran) coordinates="35.6892,51.3890" ;;                                                # Tehran
-                Asia/Istanbul|Europe/Istanbul) coordinates="41.0082,28.9784" ;;                              # Istanbul
-                Africa/Cairo) coordinates="30.0444,31.2357" ;;                                               # Cairo
-                Africa/Lagos) coordinates="6.5244,3.3792" ;;                                                 # Lagos
-                # Ultimate fallback (Indonesian coordinates)
-                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
-            esac
+            local coordinates=$(get_coordinates_from_timezone "$system_tz")
 
             export_location_data "$coordinates" "timezone_fallback" "REGIONAL_ESTIMATE"
             echo "$coordinates"
@@ -490,28 +531,10 @@ get_location_coordinates() {
             fi
             
             debug_log "IP geolocation failed, using timezone-based fallback coordinates..." "INFO"
-            
-            # Fallback: Use timezone to guess coordinates
+
+            # Timezone fallback using shared function (Issue #106)
             local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
-            local coordinates
-            case "$system_tz" in
-                # Major city coordinates for common timezones
-                Asia/Jakarta|Asia/Pontianak|Asia/Makassar|Asia/Jayapura) coordinates="-6.2088,106.8456" ;;  # Jakarta
-                Asia/Kuala_Lumpur|Asia/Kuching) coordinates="3.1390,101.6869" ;;                             # Kuala Lumpur
-                Asia/Singapore) coordinates="1.3521,103.8198" ;;                                             # Singapore
-                Asia/Karachi) coordinates="24.8607,67.0011" ;;                                               # Karachi
-                Asia/Dhaka) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
-                Asia/Kolkata|Asia/Delhi|Asia/Mumbai|Asia/Chennai|Asia/Bangalore) coordinates="28.6139,77.2090" ;; # Delhi
-                Asia/Riyadh) coordinates="24.7136,46.6753" ;;                                                # Riyadh
-                Asia/Kuwait) coordinates="29.3117,47.4818" ;;                                                # Kuwait City
-                Asia/Dubai) coordinates="25.2048,55.2708" ;;                                                 # Dubai
-                Asia/Tehran) coordinates="35.6892,51.3890" ;;                                                # Tehran
-                Asia/Istanbul|Europe/Istanbul) coordinates="41.0082,28.9784" ;;                              # Istanbul
-                Africa/Cairo) coordinates="30.0444,31.2357" ;;                                               # Cairo
-                Africa/Lagos) coordinates="6.5244,3.3792" ;;                                                 # Lagos
-                # Ultimate fallback (Indonesian coordinates)
-                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
-            esac
+            local coordinates=$(get_coordinates_from_timezone "$system_tz")
 
             export_location_data "$coordinates" "timezone_fallback" "POSSIBLE_VPN"
             echo "$coordinates"
@@ -586,26 +609,9 @@ get_location_coordinates() {
                 local detected_method=$(get_prayer_method_from_timezone "$system_tz")
                 CONFIG_PRAYER_CALCULATION_METHOD="$detected_method"
             fi
-            
-            local coordinates
-            case "$system_tz" in
-                # Major Islamic population centers
-                Asia/Jakarta*|Asia/Pontianak*|Asia/Makassar*|Asia/Jayapura*) coordinates="-6.2088,106.8456" ;; # Jakarta
-                Asia/Kuala_Lumpur*|Asia/Kuching*) coordinates="3.1390,101.6869" ;;                            # Kuala Lumpur
-                Asia/Singapore*) coordinates="1.3521,103.8198" ;;                                             # Singapore
-                Asia/Karachi*) coordinates="24.8607,67.0011" ;;                                               # Karachi
-                Asia/Dhaka*) coordinates="23.8103,90.4125" ;;                                                 # Dhaka
-                Asia/Kolkata*|Asia/Delhi*|Asia/Mumbai*) coordinates="28.6139,77.2090" ;;                      # Delhi
-                Asia/Riyadh*) coordinates="24.7136,46.6753" ;;                                                # Riyadh
-                Asia/Istanbul*|Europe/Istanbul*) coordinates="41.0082,28.9784" ;;                             # Istanbul
-                Africa/Cairo*) coordinates="30.0444,31.2357" ;;                                               # Cairo
-                Europe/*) coordinates="48.8566,2.3522" ;;      # Default to Paris for Europe
-                America/*) coordinates="40.7128,-74.0060" ;;   # Default to New York for Americas
-                Australia/*) coordinates="-33.8688,151.2093" ;; # Default to Sydney for Oceania
 
-                # Ultimate fallback (Indonesian coordinates)
-                *) coordinates="-6.2349,106.9896" ;;           # Jakarta/Bekasi fallback
-            esac
+            # Use shared timezone-to-coordinates function (Issue #106)
+            local coordinates=$(get_coordinates_from_timezone "$system_tz")
 
             export_location_data "$coordinates" "timezone_fallback" "REGIONAL_ESTIMATE"
             echo "$coordinates"

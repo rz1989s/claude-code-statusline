@@ -1,0 +1,33 @@
+#!/bin/bash
+# Post-installation script for claude-code-statusline
+
+set -e
+
+case "$1" in
+    configure)
+        # Create user configuration directory
+        INSTALL_DIR="/usr/share/claude-code-statusline"
+
+        echo "Claude Code Statusline installed successfully!"
+        echo ""
+        echo "To set up for your user, run:"
+        echo "  mkdir -p ~/.claude/statusline"
+        echo "  cp $INSTALL_DIR/examples/Config.toml ~/.claude/statusline/"
+        echo "  ln -sf $INSTALL_DIR/statusline.sh ~/.claude/statusline/statusline.sh"
+        echo ""
+        echo "Then add to your Claude Code settings.json:"
+        echo '  {"env": {"CLAUDE_CODE_STATUSLINE": "~/.claude/statusline/statusline.sh"}}'
+        echo ""
+        echo "Run 'claude-statusline --help' for usage information."
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument '$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

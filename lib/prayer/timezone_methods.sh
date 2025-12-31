@@ -3,9 +3,12 @@
 # ============================================================================
 # Claude Code Statusline - Prayer Method Timezone Mappings
 # ============================================================================
-# 
-# This file contains structured mappings from timezones to Islamic prayer 
+#
+# This file contains structured mappings from timezones to Islamic prayer
 # calculation methods, replacing the large hardcoded function.
+#
+# Error Suppression Patterns (Issue #108):
+# - declare -A 2>/dev/null: Associative array (may already exist on reload)
 #
 # ============================================================================
 

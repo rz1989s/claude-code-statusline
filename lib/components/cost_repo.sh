@@ -19,20 +19,38 @@ COMPONENT_COST_REPO_COST=""
 # Collect repository cost data
 collect_cost_repo_data() {
     debug_log "Collecting cost_repo component data" "INFO"
-    
+
     COMPONENT_COST_REPO_COST="-.--"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get usage info and extract session cost
-        local usage_info
-        usage_info=$(get_claude_usage_info)
-        
-        if [[ -n "$usage_info" ]]; then
-            # Parse usage info (format: session:month:week:today:block:reset)
-            COMPONENT_COST_REPO_COST="${usage_info%%:*}"
+
+    # Issue #99: Debug comparison mode - log native vs ccusage side-by-side
+    # This runs ONLY when STATUSLINE_DEBUG=true to validate native data
+    if is_debug_mode && is_module_loaded "cost"; then
+        compare_native_vs_ccusage_cost >/dev/null
+    fi
+
+    if is_module_loaded "cost"; then
+        # Issue #104: Use hybrid cost source (native + ccusage fallback)
+        # Session cost prefers native data for zero-latency, real-time accuracy
+        local source="${CONFIG_COST_SESSION_SOURCE:-auto}"
+        local session_cost
+
+        session_cost=$(get_session_cost_with_source "$source")
+
+        if [[ -n "$session_cost" && "$session_cost" != "0.00" ]]; then
+            COMPONENT_COST_REPO_COST="$session_cost"
+            debug_log "Using hybrid session cost ($source): \$$session_cost" "INFO"
+        elif is_ccusage_available; then
+            # Fallback to ccusage if hybrid returns zero/empty
+            local usage_info
+            usage_info=$(get_claude_usage_info)
+
+            if [[ -n "$usage_info" ]]; then
+                COMPONENT_COST_REPO_COST="${usage_info%%:*}"
+                debug_log "Fallback to ccusage session cost: \$$COMPONENT_COST_REPO_COST" "INFO"
+            fi
         fi
     fi
-    
+
     debug_log "cost_repo data: cost=$COMPONENT_COST_REPO_COST" "INFO"
     return 0
 }

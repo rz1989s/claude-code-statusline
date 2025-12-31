@@ -7,6 +7,11 @@
 # This module provides file locking for cache concurrency control including
 # lock acquisition with retry logic and release mechanisms.
 #
+# Error Suppression Patterns (Issue #108):
+# - rm -f 2>/dev/null: Lock cleanup where file may already be released
+# - kill -0 2>/dev/null: Check if lock holder PID exists (expected to fail)
+# - echo > lockfile 2>/dev/null: Lock creation (race condition handling)
+#
 # Dependencies: config.sh (for CACHE_CONFIG_MAX_LOCK_RETRIES), integrity.sh (for report_cache_warning)
 #               security.sh (for cleanup_stale_locks)
 # ============================================================================

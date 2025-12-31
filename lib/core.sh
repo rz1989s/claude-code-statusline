@@ -3,9 +3,14 @@
 # ============================================================================
 # Claude Code Statusline - Core Module
 # ============================================================================
-# 
+#
 # This module contains core constants, shared utilities, and foundational
 # functions that other modules depend on.
+#
+# Error Suppression Patterns (Issue #108):
+# - command -v 2>/dev/null: Check if command exists (expected to fail if not)
+# - rm -rf temp_dir 2>/dev/null: Cleanup temp directories (may not exist)
+# - type -t 2>/dev/null: Check function/command type (expected to fail)
 #
 # Dependencies: None (this is the base module)
 # ============================================================================
@@ -112,7 +117,8 @@ export DEFAULT_CCUSAGE_TIMEOUT="10s"
 
 # Default cache settings
 export DEFAULT_VERSION_CACHE_DURATION=3600
-export DEFAULT_VERSION_CACHE_FILE="/tmp/.claude_version_cache"
+# Note: Version cache file location determined dynamically by cache module
+# Uses XDG-compliant CACHE_BASE_DIR (see lib/cache/directory.sh)
 
 # Common patterns for validation
 export VALID_TIMEOUT_PATTERN='^[0-9]+[sm]?$'

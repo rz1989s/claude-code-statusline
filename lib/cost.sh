@@ -39,8 +39,9 @@ export COST_CACHE_DURATION_SESSION=120    # 2 minutes - repository session cost
 export COST_CACHE_DURATION_DAILY=60       # 1 minute - today's cost
 export COST_CACHE_DURATION_WEEKLY=3600    # 1 hour - 7-day total (major reduction!)
 export COST_CACHE_DURATION_MONTHLY=7200   # 2 hours - 30-day total (huge reduction!)
-# Use the proper XDG-compliant cache directory from cache.sh module
-export COST_CACHE_DIR="${CACHE_BASE_DIR:-/tmp/.claude_statusline_cache}"
+# Use the proper XDG-compliant cache directory from cache.sh module (Issue #110)
+# Fallback uses HOME/.cache instead of /tmp for better security
+export COST_CACHE_DIR="${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}"
 
 # Instance-specific session marker (prevents race conditions between multiple Claude Code instances)
 # Function to get current instance ID dynamically (checks env var each time)
@@ -50,23 +51,42 @@ get_instance_id() {
 }
 
 # Function to get the current session marker (allows dynamic instance ID)
+# Uses XDG-compliant runtime directory (Issue #110)
 get_session_marker() {
     local instance_id
     instance_id=$(get_instance_id)
-    echo "/tmp/.claude_statusline_session_${instance_id}"
+
+    # Use get_session_marker_path from security.sh if available
+    if declare -f get_session_marker_path >/dev/null 2>&1; then
+        get_session_marker_path "$instance_id"
+    else
+        # Fallback to cache directory if security module not loaded
+        echo "${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}/session_${instance_id}"
+    fi
 }
 
 # Cleanup old session markers (older than 24 hours) and orphaned markers
+# Uses XDG-compliant runtime directory (Issue #110)
 cleanup_old_session_markers() {
+    # Use cleanup_runtime_session_markers from security.sh if available
+    if declare -f cleanup_runtime_session_markers >/dev/null 2>&1; then
+        cleanup_runtime_session_markers
+        return
+    fi
+
+    # Fallback: Clean up in cache directory
+    local runtime_dir="${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}"
+    [[ -d "$runtime_dir" ]] || return 0
+
     # Remove old markers (older than 24 hours)
-    find /tmp -name ".claude_statusline_session_*" -mtime +1 -delete 2>/dev/null || true
-    
+    find "$runtime_dir" -name "session_*" -mtime +1 -delete 2>/dev/null || true
+
     # Remove orphaned markers (where the parent process no longer exists)
     local marker
-    for marker in /tmp/.claude_statusline_session_*; do
+    for marker in "$runtime_dir"/session_*; do
         # Skip if glob didn't match any files
         [[ -f "$marker" ]] || continue
-        
+
         local marker_pid="${marker##*_}"
         if [[ "$marker_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$marker_pid" 2>/dev/null; then
             rm -f "$marker" 2>/dev/null
@@ -733,6 +753,938 @@ get_unified_block_metrics() {
     echo "$unified_metrics"
     return 0
 }
+
+# ============================================================================
+# NATIVE COST EXTRACTION (Issue #99)
+# ============================================================================
+# Extract cost data directly from Anthropic's native statusline JSON input.
+# This provides zero-latency cost data without external ccusage calls.
+# Available in Claude Code v1.0.85+
+
+# Extract native session cost from Anthropic JSON input
+# Returns: cost value or empty string if unavailable
+get_native_session_cost() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        debug_log "No native JSON input available for cost extraction" "INFO"
+        echo ""
+        return 1
+    fi
+
+    local native_cost
+    native_cost=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_cost_usd // empty' 2>/dev/null)
+
+    if [[ -n "$native_cost" && "$native_cost" != "null" ]]; then
+        # Format to 2 decimal places
+        printf "%.2f" "$native_cost" 2>/dev/null || echo ""
+        return 0
+    else
+        echo ""
+        return 1
+    fi
+}
+
+# Extract native duration from Anthropic JSON input
+# Returns: duration in ms or empty string if unavailable
+get_native_session_duration() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_duration_ms // empty' 2>/dev/null
+}
+
+# Extract native API duration from Anthropic JSON input
+# Returns: API duration in ms or empty string if unavailable
+get_native_api_duration() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_api_duration_ms // empty' 2>/dev/null
+}
+
+# Debug comparison: Log native vs ccusage cost side-by-side
+# This helps validate that native data matches ccusage before production use
+compare_native_vs_ccusage_cost() {
+    local native_cost ccusage_cost
+
+    # Get native cost
+    native_cost=$(get_native_session_cost)
+
+    # Get ccusage cost (extract from full usage info)
+    if is_ccusage_available; then
+        local usage_info
+        usage_info=$(get_claude_usage_info)
+        ccusage_cost="${usage_info%%:*}"
+    else
+        ccusage_cost="N/A"
+    fi
+
+    # Format for comparison
+    local native_display="${native_cost:-N/A}"
+    local ccusage_display="${ccusage_cost:-N/A}"
+
+    # Calculate difference if both are available
+    local diff_display="N/A"
+    if [[ -n "$native_cost" && "$ccusage_cost" != "N/A" && "$ccusage_cost" != "-.--" ]]; then
+        local diff
+        diff=$(awk "BEGIN {printf \"%.4f\", $native_cost - $ccusage_cost}" 2>/dev/null)
+        if [[ -n "$diff" ]]; then
+            diff_display="$diff"
+        fi
+    fi
+
+    # Log the comparison (always visible in debug mode)
+    debug_log "[COST COMPARE] Native: \$$native_display | ccusage: \$$ccusage_display | Diff: \$$diff_display" "INFO"
+
+    # Return comparison data for further processing
+    echo "${native_display}:${ccusage_display}:${diff_display}"
+}
+
+# Get session cost with source preference
+# Supports: auto | native | ccusage
+get_session_cost_with_source() {
+    local source="${1:-auto}"
+
+    case "$source" in
+        "native")
+            local native_cost
+            native_cost=$(get_native_session_cost)
+            if [[ -n "$native_cost" ]]; then
+                echo "$native_cost"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+        "ccusage")
+            if is_ccusage_available; then
+                local usage_info
+                usage_info=$(get_claude_usage_info)
+                echo "${usage_info%%:*}"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+        "auto"|*)
+            # Prefer native if available, fallback to ccusage
+            local native_cost
+            native_cost=$(get_native_session_cost)
+
+            if [[ -n "$native_cost" && "$native_cost" != "0.00" ]]; then
+                debug_log "Using native cost source: \$$native_cost" "INFO"
+                echo "$native_cost"
+            elif is_ccusage_available; then
+                local usage_info
+                usage_info=$(get_claude_usage_info)
+                local ccusage_cost="${usage_info%%:*}"
+                debug_log "Using ccusage cost source: \$$ccusage_cost" "INFO"
+                echo "$ccusage_cost"
+            else
+                echo "$DEFAULT_COST"
+            fi
+            ;;
+    esac
+}
+
+# Export native cost functions
+export -f get_native_session_cost get_native_session_duration get_native_api_duration
+export -f compare_native_vs_ccusage_cost get_session_cost_with_source
+
+# ============================================================================
+# NATIVE CACHE EFFICIENCY EXTRACTION (Issue #103)
+# ============================================================================
+# Extract cache token data from Anthropic's native current_usage field.
+# This provides real-time cache efficiency without ccusage calls.
+
+# Extract native cache read tokens from Anthropic JSON input
+get_native_cache_read_tokens() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local tokens
+    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null)
+    echo "${tokens:-0}"
+}
+
+# Extract native cache creation tokens from Anthropic JSON input
+get_native_cache_creation_tokens() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local tokens
+    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_creation_input_tokens // 0' 2>/dev/null)
+    echo "${tokens:-0}"
+}
+
+# Calculate cache efficiency from native data
+# Returns: efficiency percentage (0-100)
+get_native_cache_efficiency() {
+    local cache_read cache_creation total efficiency
+
+    cache_read=$(get_native_cache_read_tokens)
+    cache_creation=$(get_native_cache_creation_tokens)
+
+    # Handle null/empty values
+    [[ -z "$cache_read" || "$cache_read" == "null" ]] && cache_read=0
+    [[ -z "$cache_creation" || "$cache_creation" == "null" ]] && cache_creation=0
+
+    total=$((cache_read + cache_creation))
+
+    if [[ "$total" -gt 0 ]]; then
+        efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total}" 2>/dev/null)
+        echo "${efficiency:-0}"
+    else
+        echo "0"
+    fi
+}
+
+# Debug comparison: Log native vs ccusage cache efficiency side-by-side
+compare_native_vs_ccusage_cache() {
+    local native_read native_creation native_eff
+    local ccusage_read ccusage_creation ccusage_eff
+
+    # Get native values
+    native_read=$(get_native_cache_read_tokens)
+    native_creation=$(get_native_cache_creation_tokens)
+
+    # Calculate native efficiency
+    local native_total=$((native_read + native_creation))
+    if [[ "$native_total" -gt 0 ]]; then
+        native_eff=$(awk "BEGIN {printf \"%.0f\", $native_read * 100 / $native_total}" 2>/dev/null)
+    else
+        native_eff="N/A"
+    fi
+
+    # Get ccusage values
+    if is_ccusage_available; then
+        local metrics
+        metrics=$(get_unified_block_metrics)
+
+        if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
+            ccusage_read=$(echo "$metrics" | cut -d: -f4)
+            ccusage_creation=$(echo "$metrics" | cut -d: -f5)
+
+            local ccusage_total=$((ccusage_read + ccusage_creation))
+            if [[ "$ccusage_total" -gt 0 ]]; then
+                ccusage_eff=$(awk "BEGIN {printf \"%.0f\", $ccusage_read * 100 / $ccusage_total}" 2>/dev/null)
+            else
+                ccusage_eff="N/A"
+            fi
+        else
+            ccusage_read="N/A"
+            ccusage_creation="N/A"
+            ccusage_eff="N/A"
+        fi
+    else
+        ccusage_read="N/A"
+        ccusage_creation="N/A"
+        ccusage_eff="N/A"
+    fi
+
+    # Format displays
+    local native_display="${native_eff}% (read:${native_read}/create:${native_creation})"
+    local ccusage_display="${ccusage_eff}% (read:${ccusage_read}/create:${ccusage_creation})"
+
+    # Log the comparison
+    debug_log "[CACHE COMPARE] Native: $native_display | ccusage: $ccusage_display" "INFO"
+
+    # Return comparison data
+    echo "${native_eff}:${native_read}:${native_creation}:${ccusage_eff}:${ccusage_read}:${ccusage_creation}"
+}
+
+# Export native cache functions
+export -f get_native_cache_read_tokens get_native_cache_creation_tokens
+export -f get_native_cache_efficiency compare_native_vs_ccusage_cache
+
+# ============================================================================
+# NATIVE CODE PRODUCTIVITY EXTRACTION (Issue #100)
+# ============================================================================
+# Extract lines added/removed from Anthropic's native cost object.
+# Provides real-time code productivity metrics.
+
+# Extract lines added from Anthropic JSON input
+get_native_lines_added() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local lines
+    lines=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_lines_added // 0' 2>/dev/null)
+    echo "${lines:-0}"
+}
+
+# Extract lines removed from Anthropic JSON input
+get_native_lines_removed() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local lines
+    lines=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.cost.total_lines_removed // 0' 2>/dev/null)
+    echo "${lines:-0}"
+}
+
+# Get formatted code productivity string
+# Returns: "+X/-Y" format
+get_code_productivity_display() {
+    local added removed
+
+    added=$(get_native_lines_added)
+    removed=$(get_native_lines_removed)
+
+    # Handle null/empty values
+    [[ -z "$added" || "$added" == "null" ]] && added=0
+    [[ -z "$removed" || "$removed" == "null" ]] && removed=0
+
+    echo "+${added}/-${removed}"
+}
+
+# Export native code productivity functions
+export -f get_native_lines_added get_native_lines_removed get_code_productivity_display
+
+# ============================================================================
+# CONTEXT WINDOW VIA TRANSCRIPT PARSING (Issue #101)
+# ============================================================================
+# Parse transcript JSONL file to get accurate context window percentage.
+# This avoids the bug in native context_window JSON (cumulative vs current).
+# Reference: https://codelynx.dev/posts/calculate-claude-code-context
+
+# Context window constants
+export CONTEXT_WINDOW_SIZE=200000  # Claude's context window size
+
+# Get transcript path from Anthropic JSON input or auto-discover
+get_transcript_path() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        debug_log "No JSON input for transcript path" "INFO"
+        echo ""
+        return 1
+    fi
+
+    # Method 1: Try native transcript_path from JSON
+    local transcript_path
+    transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
+
+    if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        debug_log "Found transcript via native JSON path: $transcript_path" "INFO"
+        echo "$transcript_path"
+        return 0
+    fi
+
+    # Method 2: Auto-discover using FULL session_id (not short version)
+    local session_id
+    session_id=$(get_native_session_id)  # Returns full UUID like "75cdeac6-6f3d-4936-8cbe-29f56a3af952"
+
+    if [[ -n "$session_id" ]]; then
+        # Search in Claude projects directory for this session's transcript
+        local claude_projects_dir="$HOME/.claude/projects"
+
+        if [[ -d "$claude_projects_dir" ]]; then
+            # Find transcript file matching session_id (with .jsonl extension)
+            local found_path
+            found_path=$(find "$claude_projects_dir" -name "${session_id}.jsonl" -type f 2>/dev/null | head -1)
+
+            if [[ -n "$found_path" && -f "$found_path" ]]; then
+                debug_log "Auto-discovered transcript: $found_path" "INFO"
+                echo "$found_path"
+                return 0
+            fi
+        fi
+    fi
+
+    debug_log "Could not find transcript path" "INFO"
+    echo ""
+    return 1
+}
+
+# Parse the last usage entry from transcript JSONL file
+# Returns: JSON object with usage data or empty
+parse_transcript_last_usage() {
+    local transcript_path="$1"
+
+    if [[ -z "$transcript_path" || ! -f "$transcript_path" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Use tac (reverse cat) to efficiently find last usage entry
+    # Look for entries with "usage" field, excluding sidechains
+    local last_usage
+
+    # Performance optimization: use tac and grep -m1 for large files
+    # Note: usage is at .message.usage in transcript entries
+    if command_exists tac; then
+        last_usage=$(tac "$transcript_path" 2>/dev/null | \
+            grep -m1 '"usage"' 2>/dev/null | \
+            jq -r '.message.usage // .usage // empty' 2>/dev/null)
+    else
+        # Fallback for systems without tac (macOS uses tail -r)
+        if command_exists tail; then
+            # Try tail -r (BSD/macOS)
+            last_usage=$(tail -r "$transcript_path" 2>/dev/null | \
+                grep -m1 '"usage"' 2>/dev/null | \
+                jq -r '.message.usage // .usage // empty' 2>/dev/null)
+        fi
+
+        # Final fallback: use awk to get last line with usage
+        if [[ -z "$last_usage" ]]; then
+            last_usage=$(awk '/"usage"/' "$transcript_path" 2>/dev/null | \
+                tail -1 | \
+                jq -r '.message.usage // .usage // empty' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -n "$last_usage" && "$last_usage" != "null" ]]; then
+        echo "$last_usage"
+        return 0
+    else
+        debug_log "No usage data found in transcript" "INFO"
+        echo ""
+        return 1
+    fi
+}
+
+# Get context window token count from transcript
+# Returns: total tokens (input + cache_read + cache_creation)
+get_context_tokens_from_transcript() {
+    local transcript_path
+    transcript_path=$(get_transcript_path)
+
+    if [[ -z "$transcript_path" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local usage_data
+    usage_data=$(parse_transcript_last_usage "$transcript_path")
+
+    if [[ -z "$usage_data" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    # Extract token counts
+    local input_tokens cache_read cache_creation
+    input_tokens=$(echo "$usage_data" | jq -r '.input_tokens // 0' 2>/dev/null)
+    cache_read=$(echo "$usage_data" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null)
+    cache_creation=$(echo "$usage_data" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null)
+
+    # Handle null/empty values
+    [[ -z "$input_tokens" || "$input_tokens" == "null" ]] && input_tokens=0
+    [[ -z "$cache_read" || "$cache_read" == "null" ]] && cache_read=0
+    [[ -z "$cache_creation" || "$cache_creation" == "null" ]] && cache_creation=0
+
+    # Calculate total: input_tokens + cache_read + cache_creation
+    local total=$((input_tokens + cache_read + cache_creation))
+
+    debug_log "Context tokens: input=$input_tokens, cache_read=$cache_read, cache_creation=$cache_creation, total=$total" "INFO"
+    echo "$total"
+}
+
+# Get context window percentage from transcript
+# Returns: percentage (0-100+)
+get_context_window_percentage() {
+    local total_tokens
+    total_tokens=$(get_context_tokens_from_transcript)
+
+    if [[ "$total_tokens" -eq 0 ]]; then
+        echo "0"
+        return 1
+    fi
+
+    # Calculate percentage
+    local percentage
+    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+
+    echo "${percentage:-0}"
+}
+
+# Get formatted context window display
+# Returns: "45% (90K/200K)" or "85% ⚠️" format
+get_context_window_display() {
+    local warn_threshold="${CONFIG_CONTEXT_WARN_THRESHOLD:-75}"
+    local critical_threshold="${CONFIG_CONTEXT_CRITICAL_THRESHOLD:-90}"
+
+    local total_tokens percentage
+    total_tokens=$(get_context_tokens_from_transcript)
+
+    if [[ "$total_tokens" -eq 0 ]]; then
+        echo "N/A"
+        return 1
+    fi
+
+    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+
+    # Format tokens for display (K/M suffix)
+    local formatted_tokens formatted_max
+    formatted_tokens=$(format_tokens_compact "$total_tokens")
+    formatted_max=$(format_tokens_compact "$CONTEXT_WINDOW_SIZE")
+
+    # Add warning indicator based on threshold
+    local indicator=""
+    if [[ "$percentage" -ge "$critical_threshold" ]]; then
+        indicator=" 🔴"
+    elif [[ "$percentage" -ge "$warn_threshold" ]]; then
+        indicator=" ⚠️"
+    fi
+
+    echo "${percentage}% (${formatted_tokens}/${formatted_max})${indicator}"
+}
+
+# Export transcript parsing functions
+export -f get_transcript_path parse_transcript_last_usage
+export -f get_context_tokens_from_transcript get_context_window_percentage
+export -f get_context_window_display
+
+# ============================================================================
+# SESSION INFO EXTRACTION (Issue #102)
+# ============================================================================
+# Extract session ID and project name from Anthropic's native JSON input.
+# Provides session identification for multi-session awareness.
+
+# Get full session ID from Anthropic JSON input
+get_native_session_id() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local session_id
+    session_id=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.session_id // empty' 2>/dev/null)
+    echo "${session_id:-}"
+}
+
+# Get short session ID (first N characters)
+# Default: 8 characters for easy resume: claude -r abc12345
+get_short_session_id() {
+    local length="${1:-8}"
+    local full_id
+    full_id=$(get_native_session_id)
+
+    if [[ -n "$full_id" ]]; then
+        echo "${full_id:0:$length}"
+    else
+        echo ""
+    fi
+}
+
+# Get project directory from workspace
+get_native_project_dir() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local project_dir
+    project_dir=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.workspace.project_dir // empty' 2>/dev/null)
+    echo "${project_dir:-}"
+}
+
+# Get project name (basename of project directory)
+get_native_project_name() {
+    local project_dir
+    project_dir=$(get_native_project_dir)
+
+    if [[ -n "$project_dir" ]]; then
+        basename "$project_dir"
+    else
+        echo ""
+    fi
+}
+
+# Get session title from first user message in transcript (Issue #105)
+# Returns: First user message content (truncated to ~40 chars) or project name fallback
+get_session_title() {
+    local max_length="${1:-40}"
+
+    # Try to get transcript path
+    local transcript_path
+    transcript_path=$(get_transcript_path)
+
+    if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        # Find first user message and extract content
+        # Content can be string or array format: {"type":"text","text":"..."}
+        local first_message
+        first_message=$(grep -m1 '"type":"user"' "$transcript_path" 2>/dev/null | \
+            jq -r '
+                if .message.content | type == "string" then
+                    .message.content
+                elif .message.content | type == "array" then
+                    (.message.content[] | select(.type == "text") | .text) // ""
+                else
+                    ""
+                end
+            ' 2>/dev/null | head -1)
+
+        if [[ -n "$first_message" ]]; then
+            # Strip command tags (e.g., <command-message>...</command-message>)
+            first_message=$(echo "$first_message" | sed 's/<[^>]*>//g')
+
+            # Truncate to max_length and add ellipsis if needed
+            if [[ ${#first_message} -gt $max_length ]]; then
+                first_message="${first_message:0:$((max_length - 3))}..."
+            fi
+
+            # Remove newlines and trim whitespace
+            first_message=$(echo "$first_message" | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            if [[ -n "$first_message" ]]; then
+                echo "$first_message"
+                return 0
+            fi
+        fi
+    fi
+
+    # Fallback to project name
+    get_native_project_name
+}
+
+# Get current working directory from workspace
+get_native_current_dir() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local current_dir
+    current_dir=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.workspace.current_dir // empty' 2>/dev/null)
+    echo "${current_dir:-}"
+}
+
+# Get formatted session info display
+# Format: "abc12345 • session title..."
+get_session_info_display() {
+    local separator="${CONFIG_SESSION_INFO_SEPARATOR:- • }"
+    local id_length="${CONFIG_SESSION_INFO_ID_LENGTH:-8}"
+    local title_length="${CONFIG_SESSION_INFO_TITLE_LENGTH:-40}"
+
+    local short_id session_title
+    short_id=$(get_short_session_id "$id_length")
+    session_title=$(get_session_title "$title_length")
+
+    local output=""
+
+    if [[ -n "$short_id" ]]; then
+        output="$short_id"
+    fi
+
+    if [[ -n "$session_title" ]]; then
+        if [[ -n "$output" ]]; then
+            output="${output}${separator}${session_title}"
+        else
+            output="$session_title"
+        fi
+    fi
+
+    echo "$output"
+}
+
+# Export session info functions
+export -f get_native_session_id get_short_session_id
+export -f get_native_project_dir get_native_project_name get_native_current_dir
+export -f get_session_title get_session_info_display
+
+# ============================================================================
+# COST THRESHOLD ALERTS (Issue #93)
+# ============================================================================
+# Monitor costs against configured thresholds and provide visual warnings
+# and optional desktop notifications when limits are approached/exceeded.
+
+# Configuration defaults for cost alerts
+CONFIG_COST_ALERTS_ENABLED="${CONFIG_COST_ALERTS_ENABLED:-false}"
+CONFIG_COST_DAILY_THRESHOLD="${CONFIG_COST_DAILY_THRESHOLD:-5.00}"
+CONFIG_COST_WEEKLY_THRESHOLD="${CONFIG_COST_WEEKLY_THRESHOLD:-25.00}"
+CONFIG_COST_MONTHLY_THRESHOLD="${CONFIG_COST_MONTHLY_THRESHOLD:-100.00}"
+CONFIG_COST_SESSION_THRESHOLD="${CONFIG_COST_SESSION_THRESHOLD:-2.00}"
+CONFIG_COST_WARN_PERCENT="${CONFIG_COST_WARN_PERCENT:-80}"
+CONFIG_COST_CRITICAL_PERCENT="${CONFIG_COST_CRITICAL_PERCENT:-100}"
+CONFIG_COST_DESKTOP_NOTIFY="${CONFIG_COST_DESKTOP_NOTIFY:-false}"
+CONFIG_COST_NOTIFY_COOLDOWN="${CONFIG_COST_NOTIFY_COOLDOWN:-300}"
+CONFIG_COST_NOTIFY_ON_WARN="${CONFIG_COST_NOTIFY_ON_WARN:-false}"
+CONFIG_COST_NOTIFY_ON_CRITICAL="${CONFIG_COST_NOTIFY_ON_CRITICAL:-true}"
+
+# Cost alert state tracking (prevents notification spam)
+COST_ALERT_LAST_NOTIFY_FILE="${CACHE_BASE_DIR:-${HOME:-/tmp}/.cache/claude-code-statusline}/cost_alert_last_notify"
+
+# Check if cost alerts are enabled
+is_cost_alerts_enabled() {
+    [[ "${CONFIG_COST_ALERTS_ENABLED:-false}" == "true" ]]
+}
+
+# Calculate cost percentage against threshold
+# Returns: percentage (0-100+), or "N/A" if invalid
+get_cost_percentage() {
+    local cost="$1"
+    local threshold="$2"
+
+    # Validate inputs
+    if [[ -z "$cost" || "$cost" == "-.--" || -z "$threshold" || "$threshold" == "0" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local percentage
+    percentage=$(awk "BEGIN {printf \"%.0f\", ($cost / $threshold) * 100}" 2>/dev/null)
+    echo "${percentage:-0}"
+}
+
+# Determine alert level for a cost value
+# Returns: "normal", "warn", or "critical"
+get_cost_alert_level() {
+    local cost="$1"
+    local threshold="$2"
+    local warn_percent="${CONFIG_COST_WARN_PERCENT:-80}"
+    local critical_percent="${CONFIG_COST_CRITICAL_PERCENT:-100}"
+
+    if ! is_cost_alerts_enabled; then
+        echo "normal"
+        return 0
+    fi
+
+    local percentage
+    percentage=$(get_cost_percentage "$cost" "$threshold")
+
+    if [[ "$percentage" -ge "$critical_percent" ]]; then
+        echo "critical"
+    elif [[ "$percentage" -ge "$warn_percent" ]]; then
+        echo "warn"
+    else
+        echo "normal"
+    fi
+}
+
+# Get color code for cost display based on alert level
+# Returns: ANSI color escape sequence
+get_cost_alert_color() {
+    local alert_level="$1"
+
+    case "$alert_level" in
+        "critical")
+            # Red for critical
+            echo "${CONFIG_RED:-\033[31m}"
+            ;;
+        "warn")
+            # Yellow for warning
+            echo "${CONFIG_YELLOW:-\033[33m}"
+            ;;
+        *)
+            # Default color (green for normal)
+            echo "${CONFIG_GREEN:-\033[32m}"
+            ;;
+    esac
+}
+
+# Check all cost thresholds and return highest alert level
+# Returns: "normal", "warn", or "critical"
+check_all_cost_thresholds() {
+    local session_cost="$1"
+    local daily_cost="$2"
+    local weekly_cost="$3"
+    local monthly_cost="$4"
+
+    if ! is_cost_alerts_enabled; then
+        echo "normal"
+        return 0
+    fi
+
+    local highest_level="normal"
+
+    # Check session threshold
+    local session_level
+    session_level=$(get_cost_alert_level "$session_cost" "$CONFIG_COST_SESSION_THRESHOLD")
+    [[ "$session_level" == "critical" ]] && highest_level="critical"
+    [[ "$session_level" == "warn" && "$highest_level" != "critical" ]] && highest_level="warn"
+
+    # Check daily threshold
+    local daily_level
+    daily_level=$(get_cost_alert_level "$daily_cost" "$CONFIG_COST_DAILY_THRESHOLD")
+    [[ "$daily_level" == "critical" ]] && highest_level="critical"
+    [[ "$daily_level" == "warn" && "$highest_level" != "critical" ]] && highest_level="warn"
+
+    # Check weekly threshold
+    local weekly_level
+    weekly_level=$(get_cost_alert_level "$weekly_cost" "$CONFIG_COST_WEEKLY_THRESHOLD")
+    [[ "$weekly_level" == "critical" ]] && highest_level="critical"
+    [[ "$weekly_level" == "warn" && "$highest_level" != "critical" ]] && highest_level="warn"
+
+    # Check monthly threshold
+    local monthly_level
+    monthly_level=$(get_cost_alert_level "$monthly_cost" "$CONFIG_COST_MONTHLY_THRESHOLD")
+    [[ "$monthly_level" == "critical" ]] && highest_level="critical"
+    [[ "$monthly_level" == "warn" && "$highest_level" != "critical" ]] && highest_level="warn"
+
+    echo "$highest_level"
+}
+
+# Send desktop notification (cross-platform)
+send_cost_notification() {
+    local title="$1"
+    local message="$2"
+    local urgency="${3:-normal}"  # low, normal, critical
+
+    if [[ "${CONFIG_COST_DESKTOP_NOTIFY:-false}" != "true" ]]; then
+        return 0
+    fi
+
+    # macOS notification
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null &
+        return 0
+    fi
+
+    # Linux notification (notify-send)
+    if command_exists notify-send; then
+        notify-send -u "$urgency" "$title" "$message" 2>/dev/null &
+        return 0
+    fi
+
+    debug_log "No notification system available" "WARN"
+    return 1
+}
+
+# Check notification cooldown (prevent spam)
+is_notification_cooldown_expired() {
+    local cooldown="${CONFIG_COST_NOTIFY_COOLDOWN:-300}"
+
+    if [[ ! -f "$COST_ALERT_LAST_NOTIFY_FILE" ]]; then
+        return 0  # No previous notification, cooldown expired
+    fi
+
+    local last_notify_time current_time elapsed
+    last_notify_time=$(cat "$COST_ALERT_LAST_NOTIFY_FILE" 2>/dev/null)
+    current_time=$(date +%s)
+
+    if [[ -z "$last_notify_time" ]]; then
+        return 0
+    fi
+
+    elapsed=$((current_time - last_notify_time))
+
+    if [[ "$elapsed" -ge "$cooldown" ]]; then
+        return 0  # Cooldown expired
+    else
+        debug_log "Notification cooldown active: ${elapsed}s / ${cooldown}s" "INFO"
+        return 1  # Still in cooldown
+    fi
+}
+
+# Update notification timestamp
+update_notification_timestamp() {
+    local dir
+    dir=$(dirname "$COST_ALERT_LAST_NOTIFY_FILE")
+    [[ -d "$dir" ]] || mkdir -p "$dir" 2>/dev/null
+    date +%s > "$COST_ALERT_LAST_NOTIFY_FILE" 2>/dev/null
+}
+
+# Process cost alerts and send notifications if needed
+process_cost_alerts() {
+    local session_cost="$1"
+    local daily_cost="$2"
+    local weekly_cost="$3"
+    local monthly_cost="$4"
+
+    if ! is_cost_alerts_enabled; then
+        return 0
+    fi
+
+    local alert_level
+    alert_level=$(check_all_cost_thresholds "$session_cost" "$daily_cost" "$weekly_cost" "$monthly_cost")
+
+    # Determine if notification should be sent
+    local should_notify=false
+
+    if [[ "$alert_level" == "critical" && "${CONFIG_COST_NOTIFY_ON_CRITICAL:-true}" == "true" ]]; then
+        should_notify=true
+    elif [[ "$alert_level" == "warn" && "${CONFIG_COST_NOTIFY_ON_WARN:-false}" == "true" ]]; then
+        should_notify=true
+    fi
+
+    # Send notification if conditions met and cooldown expired
+    if [[ "$should_notify" == "true" ]] && is_notification_cooldown_expired; then
+        local title message urgency
+
+        if [[ "$alert_level" == "critical" ]]; then
+            title="💸 Cost Threshold Exceeded!"
+            message="Daily: \$${daily_cost} | Monthly: \$${monthly_cost}"
+            urgency="critical"
+        else
+            title="⚠️ Cost Warning"
+            message="Approaching threshold - Daily: \$${daily_cost}"
+            urgency="normal"
+        fi
+
+        send_cost_notification "$title" "$message" "$urgency"
+        update_notification_timestamp
+
+        debug_log "Cost alert notification sent: $alert_level" "INFO"
+    fi
+
+    echo "$alert_level"
+}
+
+# Get formatted cost with alert coloring
+format_cost_with_alert() {
+    local cost="$1"
+    local threshold="$2"
+    local prefix="${3:-\$}"
+
+    if ! is_cost_alerts_enabled; then
+        format_cost "$cost" "$prefix"
+        return 0
+    fi
+
+    local alert_level color reset
+    alert_level=$(get_cost_alert_level "$cost" "$threshold")
+    color=$(get_cost_alert_color "$alert_level")
+    reset="${CONFIG_RESET:-\033[0m}"
+
+    if [[ "$cost" == "-.--" ]] || [[ -z "$cost" ]]; then
+        echo "${prefix}-.--"
+    else
+        printf "%s%s%.2f%s" "$color" "$prefix" "$cost" "$reset" 2>/dev/null || echo "${prefix}-.--"
+    fi
+}
+
+# Get cost status summary with indicators
+get_cost_status_summary() {
+    local session_cost="$1"
+    local daily_cost="$2"
+    local weekly_cost="$3"
+    local monthly_cost="$4"
+
+    if ! is_cost_alerts_enabled; then
+        echo ""
+        return 0
+    fi
+
+    local alert_level
+    alert_level=$(check_all_cost_thresholds "$session_cost" "$daily_cost" "$weekly_cost" "$monthly_cost")
+
+    case "$alert_level" in
+        "critical")
+            echo " 🔴"
+            ;;
+        "warn")
+            echo " ⚠️"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# Export cost alert functions
+export -f is_cost_alerts_enabled get_cost_percentage get_cost_alert_level
+export -f get_cost_alert_color check_all_cost_thresholds
+export -f send_cost_notification is_notification_cooldown_expired update_notification_timestamp
+export -f process_cost_alerts format_cost_with_alert get_cost_status_summary
 
 # ============================================================================
 # MODULE INITIALIZATION

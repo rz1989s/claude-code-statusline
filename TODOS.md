@@ -6,7 +6,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ---
 
-## ✅ **COMPLETED IN v2.0.6** 
+## ✅ **COMPLETED IN v2.12.0**
 *Major architectural achievements and core functionality*
 
 ### 🏗️ **Core Architecture** `[COMPLETED]`
@@ -51,6 +51,50 @@ This document outlines planned features, improvements, and maintenance tasks for
    - **Status**: COMPLETED - Comprehensive security hardening
    - **Implementation**: Input sanitization, path validation, secure external command handling
    - **Features**: Timeout protection, safe file operations
+
+9. **Modular Cache Architecture** ✅ `[Issue #75]`
+   - **Status**: COMPLETED in v2.12.0 - Split 1663-line cache.sh into 8 focused sub-modules
+   - **Implementation**: lib/cache/ directory with config.sh, directory.sh, keys.sh, validation.sh, statistics.sh, integrity.sh, locking.sh, operations.sh
+   - **Features**: Single Responsibility Principle, facade pattern, backward compatible API
+
+### 🔧 **Infrastructure & DevOps** `[COMPLETED]`
+
+10. **CI/CD Pipeline** ✅ `[Issue #61]`
+    - **Status**: COMPLETED - Full GitHub Actions workflow
+    - **Implementation**: `.github/workflows/ci.yml` with lint, validate, test (Ubuntu + macOS)
+    - **Features**: Multi-OS testing, shellcheck integration, automated PR checks
+
+11. **Release Automation** ✅ `[Issue #64]`
+    - **Status**: COMPLETED - Automated release workflow
+    - **Implementation**: `.github/workflows/release.yml` with version validation, testing, GitHub releases
+    - **Features**: Tag-based releases, automated changelog, asset publishing
+
+12. **Docker Integration** ✅ `[Issue #66]`
+    - **Status**: COMPLETED - Containerized testing environment
+    - **Implementation**: `Dockerfile`, `Dockerfile.ubuntu`, `docker-compose.yml`
+    - **Features**: Multi-platform containers, isolated testing, CI integration
+
+13. **Homebrew Package Manager** ✅ `[Issue #70]`
+    - **Status**: COMPLETED - Full Homebrew tap integration
+    - **Implementation**: `homebrew/claude-code-statusline.rb`, tap at `rz1989s/homebrew-tap`
+    - **Features**: `brew install rz1989s/tap/claude-code-statusline`, automatic updates
+
+### 🩺 **Diagnostics & Monitoring** `[COMPLETED]`
+
+14. **Health Diagnostics Flag** ✅ `[Issue #65]`
+    - **Status**: COMPLETED - Self-diagnostic system
+    - **Implementation**: `./statusline.sh --health` command
+    - **Features**: Dependency checks, configuration validation, system status
+
+15. **Metrics Export Flag** ✅ `[Issue #71]`
+    - **Status**: COMPLETED - Performance metrics export
+    - **Implementation**: `./statusline.sh --metrics` command
+    - **Features**: JSON/text output, execution timing, cache statistics
+
+16. **Structured Logging** ✅ `[Issue #73]`
+    - **Status**: COMPLETED - JSON log format option
+    - **Implementation**: `STATUSLINE_LOG_FORMAT=json` environment variable
+    - **Features**: Machine-parseable logs, ISO timestamps, log levels
 
 ### 🎯 **User Interface & Experience** `[COMPLETED]`
 
@@ -118,31 +162,6 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Impact**: Medium - More theme variety for users
   - **Complexity**: Low
   - **Dependencies**: None
-
-### 🚨 **Critical Infrastructure Gaps**
-
-4. **CI/CD Pipeline Setup** `[MISSING]`
-  - **Status**: No `.github/workflows/` directory exists
-  - **Description**: Automated testing, linting, and release process
-  - **Implementation**:
-    - Create `.github/workflows/ci.yml` for testing
-    - Create `.github/workflows/release.yml` for automated releases
-    - Multi-OS testing (macOS, Ubuntu, WSL)
-    - Version bump automation
-  - **Impact**: High - Essential for project quality and maintenance
-  - **Complexity**: Medium
-  - **Dependencies**: Current npm test scripts
-
-5. **Release Automation** `[MISSING]`
-  - **Status**: Manual release process currently
-  - **Description**: Automated version bumping, changelog generation, and GitHub releases
-  - **Implementation**:
-    - Integrate with centralized version management (`version.txt`)
-    - Automated changelog generation from conventional commits
-    - GitHub release creation with assets
-  - **Impact**: High - Reduces maintenance burden
-  - **Complexity**: Medium
-  - **Dependencies**: CI/CD pipeline, version.txt system
 
 ---
 
@@ -270,15 +289,9 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ### 🌐 **Ecosystem Integration**
 
-17. **Docker Integration** `[NEW]`
-  - **Description**: Docker container with statusline for consistent environments
-  - **Implementation**:
-    - Dockerfile with all dependencies
-    - Docker Compose for development
-    - Container registry publishing
-  - **Impact**: Low - Useful for containerized workflows
-  - **Complexity**: Low-Medium
-  - **Files to create**: `Dockerfile`, `docker-compose.yml`
+17. **Docker Integration** ✅ `[COMPLETED - Issue #66]`
+  - **Status**: COMPLETED in v2.12.0
+  - **See**: Completed items section above
 
 18. **IDE Plugins** `[NEW]`
   - **Description**: VS Code, Vim, Emacs plugins showing statusline info
@@ -316,15 +329,13 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Impact**: Medium - Enables community growth
   - **Complexity**: Low
 
-20. **Package Manager Integration** `[NEW]`
-  - **Description**: Publish to Homebrew, apt repositories, npm
-  - **Implementation**:
-    - Homebrew formula creation
-    - Debian package building
+20. **Package Manager Integration** ✅ `[PARTIAL - Homebrew COMPLETED]`
+  - **Homebrew**: ✅ COMPLETED - `brew install rz1989s/tap/claude-code-statusline`
+  - **Remaining**:
+    - Debian package building (apt repositories)
     - npm wrapper package
   - **Impact**: Medium - Easier installation for users
   - **Complexity**: Medium
-  - **Dependencies**: Release automation
 
 ---
 
@@ -471,16 +482,19 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ## 🔧 **Implementation Notes**
 
-### 🏁 **Getting Started** *(Updated for v2.0.6)*
+### 🏁 **Getting Started** *(Updated for v2.12.0)*
 
-**Current State**: Core architecture and functionality are COMPLETE ✅
-- Modular system (9 modules), TOML config, themes, caching, git/MCP/cost tracking all working
+**Current State**: Core architecture, infrastructure, and diagnostics are COMPLETE ✅
+- Modular system (11 modules + 8 cache sub-modules), TOML config, themes, caching all working
+- CI/CD pipeline, release automation, Docker, Homebrew all operational
+- Health diagnostics, metrics export, structured logging all available
 
 **Recommended Next Steps**:
-1. **GitHub Issues #28 & #29** - New user-requested features with high impact
-2. **CI/CD Pipeline** - Critical infrastructure gap (no `.github/workflows/` exists)
-3. **Profile System** - Most requested advanced feature (mentioned in codebase)
-4. **Ocean Theme** - Low-hanging fruit (theme exists in examples/, needs integration)
+1. **GitHub Issues #28 & #29** - Modular layout config & burn rate (user-requested)
+2. **Profile System** - Automatic config switching (work/personal/demo)
+3. **Ocean Theme** - Low-hanging fruit (theme exists in examples/, needs integration)
+4. **Theme Preview Mode** - Simple CLI addition (`--preview-theme`)
+5. **Auto-Update System** - Check for updates (`--check-updates`)
 
 ### 📝 **Development Guidelines**
 
@@ -500,12 +514,12 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 ---
 
-**Last Updated**: 2025-01-28 (Updated for v2.0.6 modular architecture completion)  
+**Last Updated**: 2025-12-18 (Updated for v2.12.0 with infrastructure completion)
 **Next Review**: Plan quarterly review of priorities based on user feedback and development progress
 
-**Contributing**: Core architecture is complete! Focus on GitHub Issues #28 & #29 for immediate user impact, or tackle CI/CD infrastructure. See individual TODO items for implementation hints.
+**Contributing**: Infrastructure is complete! Focus on user-facing features: Profile System, Theme enhancements, Auto-Update. See individual TODO items for implementation hints.
 
-**Architecture Note**: v2.0.6 represents a major milestone - the transition from monolithic to modular architecture is complete with 91.5% code reduction and full feature parity. Future development can focus on enhancements rather than core infrastructure.
+**Architecture Note**: v2.12.0 represents infrastructure maturity - CI/CD, release automation, Docker, Homebrew, diagnostics all operational. The modular cache refactoring (Issue #75) demonstrates continued architectural improvements. Future development focuses on user experience enhancements.
 
 ---
 

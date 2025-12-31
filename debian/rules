@@ -1,0 +1,43 @@
+#!/usr/bin/make -f
+
+# Debian rules file for claude-code-statusline
+# See debhelper(7) for documentation
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# No build step needed for shell scripts
+
+override_dh_auto_install:
+	# Install to debian/claude-code-statusline
+	install -d debian/claude-code-statusline/usr/share/claude-code-statusline
+	install -d debian/claude-code-statusline/usr/share/claude-code-statusline/lib
+	install -d debian/claude-code-statusline/usr/share/claude-code-statusline/lib/components
+	install -d debian/claude-code-statusline/usr/share/claude-code-statusline/examples
+	install -d debian/claude-code-statusline/usr/share/claude-code-statusline/plugins
+	install -d debian/claude-code-statusline/usr/bin
+
+	# Install main script
+	install -m 755 statusline.sh debian/claude-code-statusline/usr/share/claude-code-statusline/
+	install -m 644 version.txt debian/claude-code-statusline/usr/share/claude-code-statusline/
+
+	# Install library modules
+	install -m 755 lib/*.sh debian/claude-code-statusline/usr/share/claude-code-statusline/lib/
+	install -m 644 lib/components/*.sh debian/claude-code-statusline/usr/share/claude-code-statusline/lib/components/
+
+	# Install examples
+	install -m 644 examples/Config.toml debian/claude-code-statusline/usr/share/claude-code-statusline/examples/
+
+	# Install example plugins
+	if [ -d plugins ]; then \
+		cp -r plugins/* debian/claude-code-statusline/usr/share/claude-code-statusline/plugins/; \
+	fi
+
+	# Create wrapper script
+	echo '#!/bin/bash' > debian/claude-code-statusline/usr/bin/claude-statusline
+	echo 'exec /usr/share/claude-code-statusline/statusline.sh "$$@"' >> debian/claude-code-statusline/usr/bin/claude-statusline
+	chmod 755 debian/claude-code-statusline/usr/bin/claude-statusline
+
+override_dh_auto_test:
+	# Skip tests during package build

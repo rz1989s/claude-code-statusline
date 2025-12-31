@@ -7,6 +7,10 @@
 # This module handles cache configuration loading from TOML and environment
 # variables with intelligent defaults.
 #
+# Error Suppression Patterns (Issue #108):
+# - jq 2>/dev/null: JSON parsing with fallback to defaults on invalid config
+# - source 2>/dev/null: Config file may not exist (use defaults)
+#
 # Dependencies: core.sh (for debug_log)
 # ============================================================================
 

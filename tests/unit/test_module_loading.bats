@@ -89,14 +89,14 @@ teardown_file() {
 
 @test "should load core module independently" {
     # Test loading core.sh directly in a subshell
-    run bash -c 'cd /Users/rz/local-dev/claude-code-statusline && source lib/core.sh && echo "loaded"'
+    run bash -c "cd '$STATUSLINE_ROOT' && source lib/core.sh && echo 'loaded'"
     assert_success
     [[ "$output" == "loaded" ]]
 }
 
 @test "should fail for non-existent required module" {
     # Verify load_module fails for non-existent required modules
-    run bash -c 'cd /Users/rz/local-dev/claude-code-statusline && source lib/core.sh && load_module "nonexistent_required" true 2>&1'
+    run bash -c "cd '$STATUSLINE_ROOT' && source lib/core.sh && load_module 'nonexistent_required' true 2>&1"
     assert_failure
 }
 

@@ -1,0 +1,23 @@
+# Example Plugin - System Information
+# This plugin demonstrates the plugin system architecture
+
+[plugin]
+name = "example-sysinfo"
+version = "1.0.0"
+description = "Displays system information like uptime and load average"
+author = "Claude Code Statusline"
+license = "MIT"
+
+[plugin.config]
+# Show system load (1-minute average)
+show_load = true
+# Show uptime
+show_uptime = true
+# Compact mode (shorter output)
+compact = true
+
+[plugin.requirements]
+# Minimum statusline version
+min_version = "2.0.0"
+# Required commands (checked before loading)
+requires = ["uptime"]

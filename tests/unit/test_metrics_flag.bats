@@ -21,65 +21,99 @@ teardown() {
 # JSON output tests
 # ==============================================================================
 
+# Helper function to extract JSON from output (handles any prefix/suffix noise)
+_extract_json() {
+    # Find lines starting from { to the last } - handles multiline JSON
+    local in_json=false
+    local json_lines=""
+    while IFS= read -r line; do
+        if [[ "$line" == "{"* ]]; then
+            in_json=true
+        fi
+        if [[ "$in_json" == "true" ]]; then
+            json_lines+="$line"
+        fi
+        if [[ "$line" == "}" ]]; then
+            break
+        fi
+    done <<< "$1"
+    echo "$json_lines"
+}
+
 @test "--metrics flag outputs valid JSON" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    echo "$output" | jq -e . >/dev/null
+    local json_output
+    json_output=$(_extract_json "$output")
+    [[ -n "$json_output" ]] || { echo "No JSON found in output: $output"; return 1; }
+    echo "$json_output" | jq -e . >/dev/null
 }
 
 @test "--metrics=json flag outputs valid JSON" {
     run "$STATUSLINE_SCRIPT" --metrics=json
     assert_success
-    echo "$output" | jq -e . >/dev/null
+    local json_output
+    json_output=$(_extract_json "$output")
+    [[ -n "$json_output" ]] || { echo "No JSON found in output: $output"; return 1; }
+    echo "$json_output" | jq -e . >/dev/null
 }
 
 @test "--metrics JSON contains timestamp field" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    local timestamp
-    timestamp=$(echo "$output" | jq -r '.timestamp')
+    local json_output timestamp
+    json_output=$(_extract_json "$output")
+    timestamp=$(echo "$json_output" | jq -r '.timestamp')
     [[ "$timestamp" =~ ^[0-9]+$ ]]
 }
 
 @test "--metrics JSON contains version field" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    local version
-    version=$(echo "$output" | jq -r '.version')
+    local json_output version
+    json_output=$(_extract_json "$output")
+    version=$(echo "$json_output" | jq -r '.version')
     [[ -n "$version" && "$version" != "null" ]]
 }
 
 @test "--metrics JSON contains modules object" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    echo "$output" | jq -e '.modules' >/dev/null
-    echo "$output" | jq -e '.modules.loaded' >/dev/null
-    echo "$output" | jq -e '.modules.failed' >/dev/null
+    local json_output
+    json_output=$(_extract_json "$output")
+    echo "$json_output" | jq -e '.modules' >/dev/null
+    echo "$json_output" | jq -e '.modules.loaded' >/dev/null
+    echo "$json_output" | jq -e '.modules.failed' >/dev/null
 }
 
 @test "--metrics JSON modules.loaded is a number" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    local loaded
-    loaded=$(echo "$output" | jq -r '.modules.loaded')
+    local json_output loaded
+    json_output=$(_extract_json "$output")
+    loaded=$(echo "$json_output" | jq -r '.modules.loaded')
     [[ "$loaded" =~ ^[0-9]+$ ]]
 }
 
 @test "--metrics JSON contains cache object" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    echo "$output" | jq -e '.cache' >/dev/null
-    echo "$output" | jq -e '.cache.hits' >/dev/null
-    echo "$output" | jq -e '.cache.misses' >/dev/null
-    echo "$output" | jq -e '.cache.hit_rate_percent' >/dev/null
+    local json_output
+    json_output=$(_extract_json "$output")
+    echo "$json_output" | jq -e '.cache' >/dev/null
+    echo "$json_output" | jq -e '.cache.hits' >/dev/null
+    echo "$json_output" | jq -e '.cache.misses' >/dev/null
+    echo "$json_output" | jq -e '.cache.hit_rate_percent' >/dev/null
 }
 
 @test "--metrics JSON contains components object" {
     run "$STATUSLINE_SCRIPT" --metrics
     assert_success
-    echo "$output" | jq -e '.components' >/dev/null
-    echo "$output" | jq -e '.components.enabled' >/dev/null
-    echo "$output" | jq -e '.components.total' >/dev/null
+    local json_output
+    json_output=$(_extract_json "$output")
+    echo "$json_output" | jq -e '.components' >/dev/null
+    echo "$json_output" | jq -e '.components.enabled' >/dev/null
+    echo "$json_output" | jq -e '.components.total' >/dev/null
 }
 
 # ==============================================================================

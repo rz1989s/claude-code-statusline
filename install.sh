@@ -701,6 +701,7 @@ download_directory_comprehensive() {
     mkdir -p "$local_path"
     mkdir -p "$local_path/prayer"
     mkdir -p "$local_path/cache"
+    mkdir -p "$local_path/config"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -718,8 +719,9 @@ download_directory_comprehensive() {
     
     # Define ALL modules based on known structure (eliminates API dependency)
     local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+        "github.sh" "plugins.sh" "profiles.sh"
         # 🆕 ADD NEW MAIN MODULES HERE (lib/*.sh files)
     )
     
@@ -734,6 +736,13 @@ download_directory_comprehensive() {
         # 🆕 ADD NEW CACHE MODULES HERE (lib/cache/*.sh files)
     )
 
+    # Config system modules (lib/config/) - modular config architecture
+    local config_modules=(
+        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
+        "config/extract.sh" "config/toml_parser.sh"
+        # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
+    )
+
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -743,11 +752,14 @@ download_directory_comprehensive() {
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
         "components/location_display.sh"
+        # v2.13.0: Native Anthropic data components
+        "components/code_productivity.sh" "components/context_window.sh"
+        "components/session_info.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -922,8 +934,8 @@ download_statusline() {
         current_version=$(cat "$local_version_path" 2>/dev/null | tr -d '[:space:]')
     fi
     
-    # Download latest version to temp location first
-    local temp_version="/tmp/statusline_version_check.txt"
+    # Download latest version to temp location first (Issue #110: use TMPDIR)
+    local temp_version="${TMPDIR:-/tmp}/statusline_version_check.txt"
     if curl -fsSL "$version_url" -o "$temp_version"; then
         new_version=$(cat "$temp_version" 2>/dev/null | tr -d '[:space:]')
         
@@ -1000,9 +1012,10 @@ download_lib_fallback() {
     
     # ALL modules that must exist - comprehensive list for 100% functionality
     local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
-        # 🆕 ADD NEW MAIN MODULES HERE (must match line 500-504 arrays)
+        "github.sh" "plugins.sh" "profiles.sh"
+        # 🆕 ADD NEW MAIN MODULES HERE (must match line 720-725 arrays)
     )
     
     # Prayer system modules (lib/prayer/)
@@ -1018,7 +1031,14 @@ download_lib_fallback() {
         # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
     )
 
-    # Component modules (lib/components/) - all 18 components
+    # Config system modules (lib/config/) - modular config architecture
+    local config_modules=(
+        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
+        "config/extract.sh" "config/toml_parser.sh"
+        # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
+    )
+
+    # Component modules (lib/components/) - all 22 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -1028,11 +1048,14 @@ download_lib_fallback() {
         "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
         "components/cache_efficiency.sh" "components/block_projection.sh"
         "components/location_display.sh"
+        # v2.13.0: Native Anthropic data components
+        "components/code_productivity.sh" "components/context_window.sh"
+        "components/session_info.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
-    
+
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
@@ -1042,6 +1065,7 @@ download_lib_fallback() {
     # Create subdirectories
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/cache"
+    mkdir -p "$LIB_DIR/config"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
@@ -1408,9 +1432,9 @@ safe_remove_directory() {
         return 0
     fi
 
-    # Step 5: Emergency fallback - move to temp location instead of removing
+    # Step 5: Emergency fallback - move to temp location instead of removing (Issue #110: use TMPDIR)
     print_debug "Emergency fallback: Moving directory to temp location"
-    local temp_path="/tmp/statusline_removal_$(date +%s)_$$"
+    local temp_path="${TMPDIR:-/tmp}/statusline_removal_$(date +%s)_$$"
     if mv "$dir_path" "$temp_path" 2>/dev/null; then
         print_success "✅ Directory moved to temp location: $temp_path"
         print_status "💡 Directory will be cleaned up by system later"

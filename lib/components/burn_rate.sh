@@ -39,7 +39,7 @@ collect_burn_rate_data() {
                 local formatted_rate formatted_cost
                 formatted_rate=$(format_tokens_per_minute "$burn_rate")
                 formatted_cost=$(printf "%.2f" "$cost_per_hour" 2>/dev/null || echo "0.00")
-                COMPONENT_BURN_RATE_INFO="🔥${formatted_rate} (\$${formatted_cost}/hr)"
+                COMPONENT_BURN_RATE_INFO="🔥\$${formatted_cost}/hr"
             else
                 COMPONENT_BURN_RATE_INFO="🔥No active burn"
             fi
