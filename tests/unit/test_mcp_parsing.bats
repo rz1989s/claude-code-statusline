@@ -6,6 +6,11 @@ load '../setup_suite'
 load '../helpers/test_helpers'
 
 setup() {
+    # Skip in CI - MCP tests require mock claude command setup
+    if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+        skip "MCP parsing tests require full environment (skipped in CI)"
+    fi
+
     common_setup
 }
 

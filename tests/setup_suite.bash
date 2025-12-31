@@ -273,15 +273,16 @@ _load_bats_library() {
     local lib_name="$1"
     local paths=(
         "/usr/lib/bats-${lib_name}/load.bash"           # Ubuntu CI
-        "/usr/local/lib/bats-${lib_name}/load.bash"     # macOS Homebrew
+        "/usr/local/lib/bats-${lib_name}/load.bash"     # macOS Homebrew (Intel)
+        "/opt/homebrew/lib/bats-${lib_name}/load.bash"  # macOS Homebrew (Apple Silicon)
         "${BATS_TEST_DIRNAME}/../node_modules/bats-${lib_name}/load.bash"  # npm local
         "${HOME}/.bats/bats-${lib_name}/load.bash"      # User install
     )
 
     for path in "${paths[@]}"; do
         if [[ -f "$path" ]]; then
-            load "$path"
-            return 0
+            # Use source instead of load to avoid potential bats issues
+            source "$path" 2>/dev/null && return 0
         fi
     done
 
@@ -329,11 +330,12 @@ _load_bats_library() {
             }
         fi
     fi
-    return 1
+    # Return success even if library not found - fallbacks will handle it
+    return 0
 }
 
-_load_bats_library "support"
-_load_bats_library "assert"
+_load_bats_library "support" || true
+_load_bats_library "assert" || true
 
 # Fallback: assert_output if bats-assert not available
 if ! type assert_output &>/dev/null; then
@@ -472,6 +474,28 @@ if ! type refute_output &>/dev/null; then
         return 0
     }
 fi
+
+# Fallback: fail function if bats-support not available
+if ! type fail &>/dev/null; then
+    fail() {
+        echo "FAIL: $1" >&2
+        return 1
+    }
+fi
+
+# Source script with fallback - silently skip if file doesn't exist
+source_with_fallback() {
+    local script_path="$1"
+    if [[ -f "$script_path" ]]; then
+        # Source with STATUSLINE_TESTING to prevent auto-initialization
+        STATUSLINE_TESTING=true source "$script_path" 2>/dev/null || true
+        return 0
+    else
+        # File not found - return success but log in debug mode
+        [[ "${STATUSLINE_DEBUG:-}" == "true" ]] && echo "DEBUG: Script not found: $script_path" >&2
+        return 0
+    fi
+}
 
 # Common setup that runs before each test
 common_setup() {

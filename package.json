@@ -1,12 +1,19 @@
 {
   "name": "claude-code-statusline",
+  "version": "2.13.0",
   "description": "Enhanced statusline for Claude Code with universal bash compatibility, comprehensive monitoring and beautiful themes",
   "main": "statusline.sh",
+  "bin": {
+    "claude-statusline": "./bin/cli.js"
+  },
   "scripts": {
+    "postinstall": "node scripts/npm-setup.js",
     "test": "bats tests/**/*.bats",
     "test:unit": "bats tests/unit/*.bats",
     "test:integration": "bats tests/integration/*.bats",
     "test:watch": "bats tests/**/*.bats --tap",
+    "test:coverage": "scripts/coverage.sh",
+    "test:coverage:html": "scripts/coverage.sh --html",
     "lint": "shellcheck --exclude=SC2034 --severity=error statusline.sh",
     "lint:tests": "shellcheck tests/**/*.bash tests/**/*.bats",
     "lint:all": "npm run lint && npm run lint:tests",
@@ -37,9 +44,6 @@
   "devDependencies": {
     "bats": "^1.10.0"
   },
-  "optionalDependencies": {
-    "@commander-js/extra-typings": "^11.1.0"
-  },
   "engines": {
     "node": ">=16.0.0",
     "bash": ">=3.2.0"
@@ -59,9 +63,12 @@
   "files": [
     "statusline.sh",
     "version.txt",
+    "bin/",
     "lib/",
+    "scripts/npm-setup.js",
     "docs/",
     "examples/",
+    "plugins/",
     "README.md",
     "LICENSE"
   ]

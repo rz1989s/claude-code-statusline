@@ -4,8 +4,11 @@
 # Bash Compatibility Check and Auto-Upgrade
 # ============================================================================
 
-# Check if we need modern bash for associative arrays (bash 4.0+)
-if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
+# Wrapped in function to satisfy ShellCheck SC2168 (local only valid in functions)
+_upgrade_bash_if_needed() {
+    # Check if we need modern bash for associative arrays (bash 4.0+)
+    [[ "${BASH_VERSION%%.*}" -ge 4 ]] && return 0
+
     # Try to find and use modern bash automatically - platform-aware
     local bash_candidates=()
 
@@ -25,7 +28,7 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
             exec "$bash_candidate" "$0" "$@"
         fi
     done
-    
+
     # If no modern bash found, warn but continue with degraded functionality
     echo "WARNING: Bash ${BASH_VERSION} detected. Advanced caching features disabled." >&2
 
@@ -36,7 +39,8 @@ if [[ "${BASH_VERSION%%.*}" -lt 4 ]]; then
         echo "For full functionality, install bash 4+: sudo apt install bash (or equivalent)" >&2
     fi
     export STATUSLINE_COMPATIBILITY_MODE=true
-fi
+}
+_upgrade_bash_if_needed "$@"
 
 # ============================================================================
 # Claude Code Enhanced Statusline - Main Orchestrator (v2.1.0-refactored)
@@ -110,6 +114,12 @@ load_module "config" || {
     exit 1
 }
 
+# Load profiles module (Issue #84)
+# Must load after config but before themes (profiles can affect theme selection)
+load_module "profiles" || {
+    handle_warning "Profiles module failed to load - profile switching disabled." "main"
+}
+
 # Load theme module
 load_module "themes" || {
     handle_error "Failed to load themes module - theme system disabled. Check lib/themes.sh for color support." 1 "main"
@@ -119,6 +129,12 @@ load_module "themes" || {
 # Load git integration module
 load_module "git" || {
     handle_warning "Git module failed to load - git features disabled. Repository status unavailable." "main"
+}
+
+# Load GitHub integration module (Issue #92)
+# Must load after git module (depends on git remote detection)
+load_module "github" || {
+    handle_warning "GitHub module failed to load - GitHub integration disabled." "main"
 }
 
 # Load MCP monitoring module
@@ -145,6 +161,12 @@ load_module "components" || {
 if is_module_loaded "components"; then
     init_component_system
 fi
+
+# Load plugins module (Issue #90)
+# Must load after components (plugins can register custom components)
+load_module "plugins" || {
+    handle_warning "Plugins module failed to load - custom plugins disabled." "main"
+}
 
 # Load display/formatting module
 load_module "display" || {
@@ -189,17 +211,25 @@ USAGE:
     statusline.sh [options]                 - Run statusline (default)
     statusline.sh --help                    - Show this help message
     statusline.sh --version                 - Show version information
+    statusline.sh --json                    - Output JSON for IDE integrations
     statusline.sh --test-display            - Test display formatting
     statusline.sh --modules                 - Show loaded modules
     statusline.sh --health                  - Show system health status
     statusline.sh --health=json             - Show health status (JSON format)
     statusline.sh --metrics                 - Show performance metrics (JSON)
     statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
+    statusline.sh --list-themes             - List available themes
+    statusline.sh --preview-theme <name>    - Preview a theme's colors
+    statusline.sh --check-updates           - Check for new versions
+    statusline.sh --setup-wizard            - Interactive setup wizard
 
 THEMES:
+    Available: classic, garden, catppuccin, ocean, custom
+
     ENV_CONFIG_THEME=classic ./statusline.sh    - Use classic theme
-    ENV_CONFIG_THEME=garden ./statusline.sh     - Use garden theme  
-    ENV_CONFIG_THEME=catppuccin ./statusline.sh  - Use catppuccin theme
+    ENV_CONFIG_THEME=garden ./statusline.sh     - Use garden theme
+    ENV_CONFIG_THEME=catppuccin ./statusline.sh - Use catppuccin theme
+    ENV_CONFIG_THEME=ocean ./statusline.sh      - Use ocean theme
 
 DEBUGGING:
     STATUSLINE_DEBUG=true ./statusline.sh        - Enable debug logging
@@ -474,6 +504,411 @@ EOF
     return 0
 }
 
+# Check for updates against GitHub releases
+check_for_updates() {
+    local current_version="$STATUSLINE_VERSION"
+    local repo="rz1989s/claude-code-statusline"
+    local api_url="https://api.github.com/repos/${repo}/releases/latest"
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║           Claude Code Statusline - Update Check            ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Current version: v$current_version"
+    echo ""
+
+    # Check if curl is available
+    if ! command -v curl &>/dev/null; then
+        echo "Error: curl is required to check for updates" >&2
+        return 1
+    fi
+
+    echo "Checking for updates..."
+    echo ""
+
+    # Fetch latest release from GitHub API
+    local response
+    response=$(curl -fsSL --connect-timeout 10 "$api_url" 2>/dev/null)
+
+    if [[ -z "$response" ]]; then
+        echo "Error: Could not connect to GitHub API" >&2
+        echo "Check your internet connection and try again." >&2
+        return 1
+    fi
+
+    # Extract version and release info
+    local latest_version release_url published_at release_notes
+    latest_version=$(echo "$response" | jq -r '.tag_name // empty' 2>/dev/null | sed 's/^v//')
+    release_url=$(echo "$response" | jq -r '.html_url // empty' 2>/dev/null)
+    published_at=$(echo "$response" | jq -r '.published_at // empty' 2>/dev/null | cut -d'T' -f1)
+    release_notes=$(echo "$response" | jq -r '.body // empty' 2>/dev/null | head -5)
+
+    if [[ -z "$latest_version" ]]; then
+        echo "Error: Could not parse version from GitHub API" >&2
+        return 1
+    fi
+
+    echo "Latest version:  v$latest_version (released $published_at)"
+    echo ""
+
+    # Compare versions (simple string comparison works for semver)
+    if [[ "$current_version" == "$latest_version" ]]; then
+        echo "✓ You are running the latest version!"
+        return 0
+    fi
+
+    # Check if current is newer (dev version)
+    if [[ "$(printf '%s\n' "$current_version" "$latest_version" | sort -V | tail -1)" == "$current_version" ]]; then
+        echo "✓ You are running a development version (ahead of latest release)"
+        return 0
+    fi
+
+    # New version available
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║              New Version Available: v$latest_version"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    if [[ -n "$release_notes" ]]; then
+        echo "Release notes:"
+        echo "$release_notes" | sed 's/^/  /'
+        echo ""
+    fi
+
+    echo "To upgrade, run:"
+    echo ""
+    echo "  curl -sSfL https://raw.githubusercontent.com/${repo}/main/install.sh | bash"
+    echo ""
+    echo "Or visit: $release_url"
+    echo ""
+
+    return 0
+}
+
+# Interactive setup wizard for new users
+run_setup_wizard() {
+    local config_file="$HOME/.claude/statusline/Config.toml"
+
+    clear
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║       Claude Code Statusline - Setup Wizard                ║"
+    echo "║                    v$STATUSLINE_VERSION                             ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "Welcome! This wizard will help you configure your statusline."
+    echo ""
+    echo "Press Enter to continue or Ctrl+C to exit..."
+    read -r
+
+    # Step 1: Dependency Check
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 1/4: Checking Dependencies"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    local deps_ok=true
+
+    # Required
+    if command -v jq &>/dev/null; then
+        echo "  ✓ jq $(jq --version 2>/dev/null | sed 's/jq-//')"
+    else
+        echo "  ✗ jq (REQUIRED - install with: brew install jq)"
+        deps_ok=false
+    fi
+
+    if command -v git &>/dev/null; then
+        echo "  ✓ git $(git --version 2>/dev/null | awk '{print $3}')"
+    else
+        echo "  ✗ git (REQUIRED)"
+        deps_ok=false
+    fi
+
+    if command -v curl &>/dev/null; then
+        echo "  ✓ curl $(curl --version 2>/dev/null | head -1 | awk '{print $2}')"
+    else
+        echo "  ✗ curl (REQUIRED)"
+        deps_ok=false
+    fi
+
+    # Optional
+    echo ""
+    echo "  Optional dependencies:"
+    if command -v ccusage &>/dev/null; then
+        echo "  ✓ ccusage (cost tracking enabled)"
+    else
+        echo "  ○ ccusage (install for cost tracking: npm install -g ccusage)"
+    fi
+
+    if [[ "$deps_ok" == "false" ]]; then
+        echo ""
+        echo "  ⚠ Some required dependencies are missing."
+        echo "  Please install them and run the wizard again."
+        return 1
+    fi
+
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 2: Theme Selection
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 2/4: Choose Your Theme"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  1) catppuccin  - Catppuccin Mocha (warm, cozy colors)"
+    echo "  2) ocean       - Deep sea blues and teals"
+    echo "  3) garden      - Soft pastel colors"
+    echo "  4) classic     - Traditional ANSI colors"
+    echo ""
+
+    local theme_choice theme_name="catppuccin"
+    echo -n "  Select theme [1-4, default=1]: "
+    read -r theme_choice
+
+    case "$theme_choice" in
+        2) theme_name="ocean" ;;
+        3) theme_name="garden" ;;
+        4) theme_name="classic" ;;
+        *) theme_name="catppuccin" ;;
+    esac
+
+    echo ""
+    echo "  Selected: $theme_name"
+    echo ""
+    echo "  Preview:"
+    apply_theme "$theme_name"
+    echo -e "    ${CONFIG_BLUE}■ Blue${CONFIG_RESET}  ${CONFIG_GREEN}■ Green${CONFIG_RESET}  ${CONFIG_RED}■ Red${CONFIG_RESET}  ${CONFIG_YELLOW}■ Yellow${CONFIG_RESET}  ${CONFIG_CYAN}■ Cyan${CONFIG_RESET}"
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 3: Feature Configuration
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 3/4: Configure Features"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    local enable_prayer="false"
+    local enable_cost="true"
+    local display_lines="5"
+
+    echo -n "  Enable Islamic prayer times? [y/N]: "
+    read -r prayer_choice
+    [[ "$prayer_choice" =~ ^[Yy] ]] && enable_prayer="true"
+
+    echo -n "  Enable cost tracking? [Y/n]: "
+    read -r cost_choice
+    [[ "$cost_choice" =~ ^[Nn] ]] && enable_cost="false"
+
+    echo -n "  Number of display lines [1-9, default=5]: "
+    read -r lines_choice
+    [[ "$lines_choice" =~ ^[1-9]$ ]] && display_lines="$lines_choice"
+
+    echo ""
+    echo "Press Enter to continue..."
+    read -r
+
+    # Step 4: Summary and Apply
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Step 4/4: Configuration Summary"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "  Theme:          $theme_name"
+    echo "  Display lines:  $display_lines"
+    echo "  Prayer times:   $enable_prayer"
+    echo "  Cost tracking:  $enable_cost"
+    echo ""
+    echo "  Config file:    $config_file"
+    echo ""
+
+    echo -n "  Apply these settings? [Y/n]: "
+    read -r apply_choice
+
+    if [[ "$apply_choice" =~ ^[Nn] ]]; then
+        echo ""
+        echo "  Setup cancelled. No changes made."
+        return 0
+    fi
+
+    # Apply settings to Config.toml
+    if [[ -f "$config_file" ]]; then
+        # Update existing config
+        sed -i.bak "s/^name = \".*\"/name = \"$theme_name\"/" "$config_file" 2>/dev/null || true
+        sed -i.bak "s/^lines = .*/lines = $display_lines/" "$config_file" 2>/dev/null || true
+        sed -i.bak "s/^enabled = .* # prayer/enabled = $enable_prayer # prayer/" "$config_file" 2>/dev/null || true
+        rm -f "${config_file}.bak" 2>/dev/null
+        echo ""
+        echo "  ✓ Configuration updated!"
+    else
+        echo ""
+        echo "  ⚠ Config file not found. Settings will be applied via environment."
+        echo ""
+        echo "  Add to your shell profile:"
+        echo "    export ENV_CONFIG_THEME=$theme_name"
+        echo "    export ENV_CONFIG_DISPLAY_LINES=$display_lines"
+    fi
+
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║                  Setup Complete!                           ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  Your statusline is now configured."
+    echo ""
+    echo "  Quick commands:"
+    echo "    ./statusline.sh --help          Show all options"
+    echo "    ./statusline.sh --list-themes   List available themes"
+    echo "    ./statusline.sh --check-updates Check for updates"
+    echo ""
+
+    return 0
+}
+
+# ============================================================================
+# JSON API OUTPUT (Issue #95)
+# ============================================================================
+# Provides structured JSON output for IDE integrations (VS Code, Vim, Emacs)
+# Usage: ./statusline.sh --json
+
+output_json_api() {
+    local json_output=""
+
+    # Get current directory (for context)
+    local current_dir="${PWD}"
+
+    # Repository info
+    local repo_name=""
+    local repo_branch=""
+    local repo_status="not_git"
+    local repo_commits_today="0"
+    local repo_has_submodules="false"
+
+    if is_module_loaded "git" && is_git_repository; then
+        repo_name=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null)
+        repo_branch=$(get_git_branch 2>/dev/null)
+        repo_status=$(get_git_status 2>/dev/null)
+        repo_commits_today=$(get_commits_today 2>/dev/null)
+        [[ -f ".gitmodules" ]] && repo_has_submodules="true"
+    fi
+
+    # Cost info
+    local cost_session="0.00"
+    local cost_daily="0.00"
+    local cost_weekly="0.00"
+    local cost_monthly="0.00"
+
+    if is_module_loaded "cost" && is_ccusage_available; then
+        cost_session=$(get_session_cost 2>/dev/null || echo "0.00")
+        cost_daily=$(get_daily_cost 2>/dev/null || echo "0.00")
+        cost_weekly=$(get_weekly_cost 2>/dev/null || echo "0.00")
+        cost_monthly=$(get_monthly_cost 2>/dev/null || echo "0.00")
+    fi
+
+    # MCP info
+    local mcp_connected="0"
+    local mcp_total="0"
+    local mcp_servers="[]"
+
+    if is_module_loaded "mcp" && is_claude_cli_available; then
+        local mcp_status
+        mcp_status=$(get_mcp_status 2>/dev/null)
+        if [[ "$mcp_status" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+            mcp_connected="${BASH_REMATCH[1]}"
+            mcp_total="${BASH_REMATCH[2]}"
+        fi
+        # Get server names as JSON array
+        local servers_raw
+        servers_raw=$(get_all_mcp_servers 2>/dev/null)
+        if [[ -n "$servers_raw" && "$servers_raw" != "none" ]]; then
+            mcp_servers=$(echo "$servers_raw" | tr ',' '\n' | jq -R . | jq -s .)
+        fi
+    fi
+
+    # GitHub info
+    local github_ci_status=""
+    local github_pr_count="0"
+    local github_release=""
+
+    if is_module_loaded "github" && is_github_enabled; then
+        github_ci_status=$(get_ci_status 2>/dev/null)
+        github_pr_count=$(get_open_pr_count 2>/dev/null || echo "0")
+        github_release=$(get_latest_release 2>/dev/null)
+    fi
+
+    # Prayer info (if enabled)
+    local prayer_enabled="false"
+    local prayer_next=""
+    local prayer_time=""
+
+    if is_module_loaded "prayer" && [[ "${CONFIG_PRAYER_ENABLED:-false}" == "true" ]]; then
+        prayer_enabled="true"
+        # Get next prayer info if available
+        if declare -f get_next_prayer_info &>/dev/null; then
+            local prayer_info
+            prayer_info=$(get_next_prayer_info 2>/dev/null)
+            prayer_next=$(echo "$prayer_info" | cut -d'|' -f1)
+            prayer_time=$(echo "$prayer_info" | cut -d'|' -f2)
+        fi
+    fi
+
+    # System info
+    local theme_name
+    theme_name=$(get_current_theme 2>/dev/null || echo "default")
+    local modules_count="${#STATUSLINE_MODULES_LOADED[@]}"
+
+    # Build JSON output using jq for proper escaping
+    cat <<EOF | jq -c .
+{
+  "version": "$STATUSLINE_VERSION",
+  "timestamp": $(date +%s),
+  "repository": {
+    "name": "$repo_name",
+    "branch": "$repo_branch",
+    "status": "$repo_status",
+    "commits_today": $repo_commits_today,
+    "has_submodules": $repo_has_submodules,
+    "path": "$current_dir"
+  },
+  "cost": {
+    "session": $cost_session,
+    "daily": $cost_daily,
+    "weekly": $cost_weekly,
+    "monthly": $cost_monthly,
+    "currency": "USD"
+  },
+  "mcp": {
+    "connected": $mcp_connected,
+    "total": $mcp_total,
+    "servers": $mcp_servers
+  },
+  "github": {
+    "enabled": $(is_github_enabled && echo "true" || echo "false"),
+    "ci_status": "$github_ci_status",
+    "open_prs": $github_pr_count,
+    "latest_release": "$github_release"
+  },
+  "prayer": {
+    "enabled": $prayer_enabled,
+    "next": "$prayer_next",
+    "time": "$prayer_time"
+  },
+  "system": {
+    "theme": "$theme_name",
+    "modules_loaded": $modules_count,
+    "platform": "$(uname -s)"
+  }
+}
+EOF
+
+    return 0
+}
+
 # ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
@@ -537,6 +972,77 @@ if [[ $# -gt 0 ]]; then
         show_metrics "prometheus"
         exit $?
         ;;
+    "--list-themes")
+        echo "Available themes:"
+        for theme in $(get_available_themes); do
+            if [[ "$theme" == "$(get_current_theme)" ]]; then
+                echo "  ✓ $theme (current)"
+            else
+                echo "    $theme"
+            fi
+        done
+        exit 0
+        ;;
+    "--preview-theme")
+        if [[ -z "${2:-}" ]]; then
+            echo "Error: --preview-theme requires a theme name" >&2
+            echo "Usage: statusline.sh --preview-theme <theme>" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        if ! is_valid_theme "$2"; then
+            echo "Error: Unknown theme '$2'" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              THEME PREVIEW: $2"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        preview_theme_colors "$2"
+        echo ""
+        echo "To use this theme permanently:"
+        echo "  ENV_CONFIG_THEME=$2 ./statusline.sh"
+        echo "  Or set in Config.toml: theme.name = \"$2\""
+        exit 0
+        ;;
+    --preview-theme=*)
+        theme_name="${1#--preview-theme=}"
+        if [[ -z "$theme_name" ]]; then
+            echo "Error: --preview-theme requires a theme name" >&2
+            exit 1
+        fi
+        if ! is_valid_theme "$theme_name"; then
+            echo "Error: Unknown theme '$theme_name'" >&2
+            echo "Available themes: $(get_available_themes)" >&2
+            exit 1
+        fi
+        echo ""
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║              THEME PREVIEW: $theme_name"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        preview_theme_colors "$theme_name"
+        echo ""
+        echo "To use this theme permanently:"
+        echo "  ENV_CONFIG_THEME=$theme_name ./statusline.sh"
+        echo "  Or set in Config.toml: theme.name = \"$theme_name\""
+        exit 0
+        ;;
+    "--check-updates"|"--update-check")
+        check_for_updates
+        exit $?
+        ;;
+    "--json")
+        # JSON API output for IDE integrations (Issue #95)
+        output_json_api
+        exit $?
+        ;;
+    "--setup-wizard"|"--setup"|"--wizard")
+        run_setup_wizard
+        exit $?
+        ;;
     *)
         echo "Unknown option: $1" >&2
         echo "Use --help for usage information" >&2
@@ -561,6 +1067,19 @@ start_timer "statusline_generation"
 # Read input from Claude Code
 # Performance optimization: 64 individual jq calls replaced with 1 optimized operation
 input=$(cat)
+
+# ============================================================================
+# STORE RAW JSON INPUT GLOBALLY (Issue #99)
+# ============================================================================
+# Export the full JSON input for component access to native Anthropic data.
+# This enables components to extract native fields like:
+# - cost.total_cost_usd (native session cost)
+# - cost.total_lines_added/removed (code productivity)
+# - current_usage.cache_read_input_tokens (cache efficiency)
+# - session_id, transcript_path (session info)
+# See: https://github.com/rz1989s/claude-code-statusline/issues/99
+export STATUSLINE_INPUT_JSON="$input"
+
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 

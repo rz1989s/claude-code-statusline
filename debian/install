@@ -1,0 +1,8 @@
+# Installation paths for claude-code-statusline
+# Format: source destination
+
+statusline.sh usr/share/claude-code-statusline/
+version.txt usr/share/claude-code-statusline/
+lib/*.sh usr/share/claude-code-statusline/lib/
+lib/components/*.sh usr/share/claude-code-statusline/lib/components/
+examples/Config.toml usr/share/claude-code-statusline/examples/

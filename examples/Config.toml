@@ -80,6 +80,77 @@ timeouts.version = "10s"
 timeouts.ccusage = "10s"
 timeouts.prayer = "10s"
 
+# === COST TRACKING CONFIGURATION (Issue #99) ===
+# Control how session cost data is sourced and displayed
+#
+# Session cost source options:
+# • "auto"    - Prefer native Anthropic data, fallback to ccusage (RECOMMENDED)
+# • "native"  - Use only native cost.total_cost_usd from Anthropic JSON
+# • "ccusage" - Use only ccusage tool (legacy behavior)
+#
+# Note: Debug comparison mode (STATUSLINE_DEBUG=true) logs both sources
+# side-by-side for validation before production use.
+cost.session_source = "auto"
+
+# === COST THRESHOLD ALERTS (Issue #93) ===
+# Alert users when costs exceed configured thresholds
+# Visual warnings change cost display color when approaching limits
+
+cost.alerts.enabled = false                # Enable cost threshold monitoring
+cost.alerts.daily_threshold = 5.00         # Alert if daily cost > $5.00
+cost.alerts.weekly_threshold = 25.00       # Alert if weekly cost > $25.00
+cost.alerts.monthly_threshold = 100.00     # Alert if monthly cost > $100.00
+cost.alerts.session_threshold = 2.00       # Alert if session cost > $2.00
+
+# Visual warning settings
+cost.alerts.warn_percent = 80              # Yellow warning at 80% of threshold
+cost.alerts.critical_percent = 100         # Red critical at 100% of threshold
+
+# Desktop notification settings (optional)
+cost.alerts.desktop_notify = false         # Enable desktop notifications
+cost.alerts.notify_cooldown = 300          # Seconds between repeated notifications (5 min)
+cost.alerts.notify_on_warn = false         # Notify at warning level (80%)
+cost.alerts.notify_on_critical = true      # Notify at critical level (100%)
+
+# Cache efficiency source (Issue #103)
+# • "auto"    - Prefer native current_usage data, fallback to ccusage
+# • "native"  - Use only native cache_read/cache_creation tokens
+# • "ccusage" - Use only ccusage block metrics (legacy behavior)
+cache.efficiency_source = "auto"
+
+# Code productivity metrics (Issue #100)
+# Display lines added/removed during session
+features.show_code_productivity = true
+code_productivity.show_zero = false   # Hide when +0/-0
+code_productivity.emoji = ""          # Optional emoji prefix (e.g., "")
+
+# === CONTEXT WINDOW CONFIGURATION (Issue #101) ===
+# Display accurate context window usage via transcript parsing.
+# This avoids the bug in native context_window JSON (cumulative vs current).
+# Reference: https://codelynx.dev/posts/calculate-claude-code-context
+#
+# Display format: 🧠 45% (90K/200K) or 🧠 85% ⚠️
+features.show_context_window = true
+context_window.emoji = "🧠"            # Brain emoji for context
+context_window.show_tokens = true      # Show raw token count (90K/200K)
+context_window.show_when_empty = false # Hide when no transcript data
+context_window.warn_threshold = 75     # Yellow warning above this %
+context_window.critical_threshold = 90 # Red critical above this %
+context_window.medium_threshold = 50   # Yellow medium (50-75%)
+
+# === SESSION INFO CONFIGURATION (Issue #102) ===
+# Display session identification for multi-session awareness.
+# Useful for: resume sessions (claude -r abc12345), debug correlation.
+#
+# Display format: 🔗 abc12345 • project-name
+session_info.show_id = true            # Show short session ID
+session_info.show_project = true       # Show derived project name
+session_info.id_length = 8             # Characters to show from session ID
+session_info.separator = " • "         # Separator between ID and project
+session_info.emoji_session = "🔗"      # Session ID emoji
+session_info.emoji_project = "📁"      # Project name emoji
+session_info.show_when_empty = false   # Hide when no session data
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!
@@ -362,10 +433,10 @@ hijri.show_weekday = true              # Include day of week in display
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components
 
-# Number of lines to display (1-9) - SHOWCASING ALL 21 ATOMIC COMPONENTS!
+# Number of lines to display (1-9) - SHOWCASING ALL 24 ATOMIC COMPONENTS!
 display.lines = 6
 
-# Line 1: Repository Core (atomic git components + info)
+# Line 1: Repository Core
 display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
@@ -375,8 +446,8 @@ display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_wee
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
-# Line 3: Block Metrics (v2.10.0 features - no icons)
-display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection"]
+# Line 3: Block Metrics + Code Stats (v2.13.0: added code_productivity, context_window)
+display.line3.components = ["burn_rate", "token_usage", "cache_efficiency", "block_projection", "code_productivity", "context_window"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
@@ -415,7 +486,7 @@ display.line9.show_when_empty = false
 # When updating component counts, descriptions, or categories here, update CLAUDE.md too!
 # ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
 #
-# === LOGICAL COMPONENT CATEGORIES (20 Total) ===
+# === LOGICAL COMPONENT CATEGORIES (24 Total) ===
 #
 # Repository & Git Components (5):
 # - "repo_info"      - Repository directory and git branch/status
@@ -424,23 +495,26 @@ display.line9.show_when_empty = false
 # - "git_stats"      - Combined commits + submodules (legacy format)
 # - "version_info"   - Claude Code version display
 #
-# Model & Session Components (4):
+# Model & Session Components (5):
 # - "model_info"     - Claude model name with emoji
-# - "cost_repo"      - Repository cost tracking
+# - "cost_repo"      - Repository cost tracking (hybrid: native + ccusage)
 # - "cost_live"      - Live block cost monitoring
 # - "reset_timer"    - Block reset countdown timer
+# - "session_info"   - Session ID + project name (🔗 abc12345 • project) [v2.13.0]
 #
 # Cost Analytics Components (4):
 # - "cost_monthly"   - 30-day cost summary
-# - "cost_weekly"    - 7-day cost summary  
+# - "cost_weekly"    - 7-day cost summary
 # - "cost_daily"     - Daily cost summary
 # - "cost_period"    - Combined 30day/7day/daily costs (legacy format)
 #
-# Block Metrics Components (4):
-# - "burn_rate"        - Token consumption rate (🔥3.5k/min $2.10/hr)
-# - "token_usage"      - Total tokens in current 5-hour block (📊9.5M)
-# - "cache_efficiency" - Cache hit percentage for optimization (💾91% hit)
-# - "block_projection" - Projected cost and tokens (📈$8.25 10.5M)
+# Block Metrics Components (6):
+# - "burn_rate"         - Token consumption rate (🔥3.5k/min $2.10/hr)
+# - "token_usage"       - Total tokens in current 5-hour block (📊9.5M)
+# - "cache_efficiency"  - Cache hit percentage (hybrid: native + ccusage)
+# - "block_projection"  - Projected cost and tokens (📈$8.25 10.5M)
+# - "code_productivity" - Lines added/removed (+156/-23) [v2.13.0]
+# - "context_window"    - Context usage via transcript (🧠 45% 90K/200K) [v2.13.0]
 #
 # System Components (2):
 # - "mcp_status"     - MCP server health and connection status
@@ -596,12 +670,79 @@ debug.log_validation_details = false
 debug.benchmark_performance = false
 debug.export_debug_info = false
 
-# === THEME INHERITANCE SYSTEM ===
-# Advanced theme customization with inheritance
-theme.inheritance.enabled = true
-theme.inheritance.base_theme = ""
-theme.inheritance.override_colors = []
-theme.inheritance.merge_strategy = "override"
+# === DYNAMIC THEME SYSTEM ===
+# Automatic theme switching based on time of day or prayer times
+# Issue #94: Time-based, sunrise/sunset, and prayer-based theme switching
+
+theme.dynamic.enabled = false              # Enable dynamic theme switching
+theme.dynamic.mode = "time"                # time, sunrise_sunset, prayer
+
+# Time-based switching (mode = "time")
+# Switches between day/night themes at specified times
+theme.dynamic.day_theme = "garden"         # Theme during daytime
+theme.dynamic.night_theme = "catppuccin"   # Theme during nighttime
+theme.dynamic.day_start = "06:00"          # When day theme starts (24h format)
+theme.dynamic.night_start = "18:00"        # When night theme starts (24h format)
+
+# Sunrise/sunset mode (mode = "sunrise_sunset")
+# Uses location coordinates to calculate actual sunrise/sunset times
+# Requires prayer system or manual coordinates
+theme.dynamic.sunrise_offset = 30          # Minutes after sunrise for day theme
+theme.dynamic.sunset_offset = 30           # Minutes after sunset for night theme
+
+# Prayer-based mode (mode = "prayer")
+# Uses Islamic prayer times for switching
+# Day theme: After Fajr, Night theme: After Maghrib
+theme.dynamic.prayer_day_trigger = "fajr"  # Prayer that triggers day theme
+theme.dynamic.prayer_night_trigger = "maghrib"  # Prayer that triggers night theme
+
+# Manual override
+# Set to a specific theme name to override dynamic switching temporarily
+# Clear/empty to resume dynamic switching
+theme.dynamic.manual_override = ""
+
+# === THEME INHERITANCE SYSTEM (Issue #85) ===
+# Create custom themes by inheriting from a base theme and overriding colors
+# This avoids duplicating entire theme definitions for small tweaks
+
+theme.inheritance.enabled = false          # Enable theme inheritance
+theme.inheritance.base_theme = ""          # Base theme to inherit from (classic/garden/catppuccin/ocean)
+theme.inheritance.merge_strategy = "override"  # How to merge: "override" (child wins) or "merge" (blend)
+
+# Individual color overrides (only specified colors are changed)
+# Use hex colors (#RRGGBB) or ANSI codes (\033[38;2;R;G;Bm)
+theme.inheritance.colors.red = ""          # Override red color
+theme.inheritance.colors.blue = ""         # Override blue color
+theme.inheritance.colors.green = ""        # Override green color
+theme.inheritance.colors.yellow = ""       # Override yellow color
+theme.inheritance.colors.magenta = ""      # Override magenta color
+theme.inheritance.colors.cyan = ""         # Override cyan color
+theme.inheritance.colors.white = ""        # Override white color
+theme.inheritance.colors.orange = ""       # Override orange color
+theme.inheritance.colors.purple = ""       # Override purple color
+theme.inheritance.colors.teal = ""         # Override teal color
+theme.inheritance.colors.gold = ""         # Override gold color
+theme.inheritance.colors.pink = ""         # Override pink color
+
+# === THEME INHERITANCE EXAMPLES ===
+#
+# Example 1: Catppuccin with custom accent colors
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "catppuccin"
+# theme.inheritance.colors.green = "#00ff88"    # Brighter green for success
+# theme.inheritance.colors.red = "#ff4444"      # More vibrant red for errors
+#
+# Example 2: Garden theme with ocean-inspired tweaks
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "garden"
+# theme.inheritance.colors.blue = "#48cae4"     # Ocean blue
+# theme.inheritance.colors.cyan = "#00b4d8"     # Bright cyan
+#
+# Example 3: Classic with modern pastel touches
+# theme.inheritance.enabled = true
+# theme.inheritance.base_theme = "classic"
+# theme.inheritance.colors.yellow = "#ffd166"   # Softer yellow
+# theme.inheritance.colors.magenta = "#bd93f9"  # Pastel purple
 
 # === CONDITIONAL CONFIGURATION ===
 # Context-aware configuration
@@ -620,35 +761,107 @@ conditional.git_context.enabled = false
 conditional.git_context.work_repos = []
 conditional.git_context.personal_repos = []
 
-# === CONFIGURATION PROFILES ===
-# Different configurations for different contexts
+# === CONFIGURATION PROFILES (Issue #84) ===
+# Automatic configuration switching based on context
+# Supports: directory matching, git remote matching, time-based switching
+
 profiles.enabled = false
-profiles.default_profile = "default"
+profiles.default_profile = "personal"
 profiles.auto_switch = true
 
-# Profile definitions (examples)
+# Detection priority: 1=git_remote, 2=directory, 3=time, 4=default
+profiles.detection_priority = ["git_remote", "directory", "time"]
+
+# === WORK PROFILE ===
+# Automatically activates for work directories/repos
 profiles.work.theme = "classic"
 profiles.work.show_cost_tracking = true
 profiles.work.show_reset_info = true
 profiles.work.mcp_timeout = "10s"
 
+# Directory patterns (glob-style matching)
+# Matches: /work/*, ~/projects/company/*, ~/src/work-*
+profiles.work.directories = ["/work/*", "~/projects/company/*", "~/src/work-*"]
+
+# Git remote patterns (substring matching)
+# Matches: github.com/mycompany/*, gitlab.com/work/*
+profiles.work.git_remotes = ["github.com/mycompany/", "gitlab.com/work/"]
+
+# Time-based activation (24h format, optional)
+profiles.work.time_start = "09:00"
+profiles.work.time_end = "17:00"
+profiles.work.time_days = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+
+# === PERSONAL PROFILE ===
 profiles.personal.theme = "catppuccin"
 profiles.personal.show_cost_tracking = false
 profiles.personal.show_reset_info = false
 profiles.personal.mcp_timeout = "10s"
 
+# Directory patterns
+profiles.personal.directories = ["~/personal/*", "~/projects/personal/*", "~/hobby/*"]
+
+# Git remote patterns
+profiles.personal.git_remotes = ["github.com/myusername/"]
+
+# === DEMO PROFILE ===
+# For presentations and screen sharing
 profiles.demo.theme = "garden"
 profiles.demo.show_cost_tracking = false
 profiles.demo.show_commits = false
+profiles.demo.show_reset_info = false
 
-# === PLUGIN SYSTEM ===
-# Extensible data source system (Phase 3 foundation)
-plugins.enabled = false
-plugins.auto_discovery = true
-plugins.plugin_dirs = ["~/.config/claude-code-statusline/plugins", "./plugins"]
-plugins.timeout_per_plugin = "10s"
+# Activate demo profile in specific directories
+profiles.demo.directories = ["~/demo/*", "~/presentations/*"]
 
-# Built-in plugin configurations
+# === DEFAULT PROFILE ===
+# Fallback when no other profile matches
+profiles.default.theme = "catppuccin"
+profiles.default.show_cost_tracking = true
+profiles.default.show_reset_info = true
+
+# === PLUGIN SYSTEM (Issue #90) ===
+# Extensible component system for custom data sources
+# Plugins can add new components to the statusline
+
+plugins.enabled = false                    # Enable plugin system
+plugins.auto_discovery = true              # Scan plugin directories on startup
+plugins.plugin_dirs = ["~/.claude/statusline/plugins", "./plugins"]
+plugins.timeout_per_plugin = "5s"          # Max execution time per plugin
+plugins.validate_plugins = true            # Security validation (recommended)
+plugins.allow_network = false              # Allow plugins to make network calls
+plugins.debug_plugins = false              # Log plugin execution details
+
+# === PLUGIN STRUCTURE ===
+# Plugins are directories with a plugin.sh file and optional plugin.toml metadata
+#
+# ~/.claude/statusline/plugins/
+# ├── my-plugin/
+# │   ├── plugin.toml      # Metadata (name, version, description)
+# │   └── plugin.sh        # Implementation (must define get_<name>_component)
+#
+# === PLUGIN API ===
+# Your plugin.sh must define a component function:
+#
+# #!/bin/bash
+# # plugins/weather/plugin.sh
+#
+# get_weather_component() {
+#     echo "🌤️ 72°F"
+# }
+#
+# # Plugin is auto-registered based on directory name
+# # Component will be available as "weather" in display.lineX.components
+#
+# === PLUGIN METADATA (plugin.toml) ===
+# name = "weather"
+# version = "1.0.0"
+# description = "Display current weather"
+# author = "Your Name"
+# requires_network = true
+# dependencies = ["curl", "jq"]
+
+# Built-in plugin configurations (examples)
 plugins.git_extended.enabled = false
 plugins.git_extended.show_stash_count = false
 plugins.git_extended.show_ahead_behind = false
@@ -663,6 +876,38 @@ plugins.weather.enabled = false
 plugins.weather.api_key = ""
 plugins.weather.location = "auto"
 plugins.weather.units = "metric"
+
+# === GITHUB INTEGRATION (Issue #92) ===
+# Display CI/CD status, PR information, workflow status in statusline
+# Requires: gh CLI (GitHub CLI) - install with: brew install gh
+# Note: For private repos, ensure gh is authenticated: gh auth login
+
+github.enabled = false                    # Enable GitHub integration
+github.show_ci_status = true              # Show CI/CD workflow status (passing/failing)
+github.show_open_prs = true               # Show count of open pull requests
+github.show_latest_release = false        # Show latest release version tag
+github.cache_ttl = 300                    # Cache duration in seconds (5 minutes)
+github.timeout = 10                       # API timeout in seconds
+
+# Status indicators (customize symbols)
+github.ci_passing = "✓"                   # Shown when CI passes
+github.ci_failing = "✗"                   # Shown when CI fails
+github.ci_pending = "●"                   # Shown when CI is running
+github.ci_unknown = "?"                   # Shown when status unknown
+
+# === GITHUB DISPLAY EXAMPLES ===
+# With show_ci_status and show_open_prs enabled:
+#   CI: ✓ │ PRs: 3
+#
+# With show_latest_release also enabled:
+#   CI: ✓ │ PRs: 3 │ Release: v2.1.0
+#
+# Compact summary (for constrained lines):
+#   ✓ 3PR
+#
+# === USAGE ===
+# Add "github" to your line components:
+#   display.line2.components = ["model_info", "github", "cost_repo"]
 
 # ============================================================================
 # TEMPLATE MAINTENANCE NOTES

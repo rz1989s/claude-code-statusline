@@ -1,0 +1,72 @@
+{
+  "name": "claude-code-statusline",
+  "displayName": "Claude Code Statusline",
+  "description": "Display Claude Code metrics in VS Code status bar",
+  "version": "0.1.0",
+  "publisher": "rz1989s",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rz1989s/claude-code-statusline"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claude-statusline.show",
+        "title": "Claude Statusline: Show Details"
+      },
+      {
+        "command": "claude-statusline.refresh",
+        "title": "Claude Statusline: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "Claude Code Statusline",
+      "properties": {
+        "claudeStatusline.refreshInterval": {
+          "type": "number",
+          "default": 5000,
+          "description": "Refresh interval in milliseconds"
+        },
+        "claudeStatusline.statuslinePath": {
+          "type": "string",
+          "default": "~/.claude/statusline/statusline.sh",
+          "description": "Path to statusline.sh script"
+        },
+        "claudeStatusline.showCost": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show session cost in status bar"
+        },
+        "claudeStatusline.showMcp": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show MCP server count in status bar"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  }
+}

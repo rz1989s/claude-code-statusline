@@ -89,10 +89,12 @@ export CACHE_DURATION_PRAYER_CALCULATION=3600 # 1 hour - calculation method chan
 SANITIZED_USER=$(sanitize_variable_name "${USER}")
 export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${SANITIZED_USER}_claude_statusline}}"
 
-# Update session marker location to be more secure
-if [[ "$CACHE_BASE_DIR" =~ ^/tmp ]]; then
-    export CACHE_SESSION_MARKER="/tmp/.cache_session_${CACHE_INSTANCE_ID}"
+# Session marker uses XDG-compliant runtime directory (Issue #110)
+# get_secure_runtime_dir() provides XDG_RUNTIME_DIR -> CACHE_BASE_DIR -> secure fallback
+if declare -f get_secure_runtime_dir >/dev/null 2>&1; then
+    export CACHE_SESSION_MARKER="$(get_secure_runtime_dir)/.session_${CACHE_INSTANCE_ID}"
 else
+    # Fallback if security module not loaded yet
     export CACHE_SESSION_MARKER="${CACHE_BASE_DIR}/.session_${CACHE_INSTANCE_ID}"
 fi
 

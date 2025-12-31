@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Code Statusline JSON API",
+  "description": "Schema for the --json output of statusline.sh",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Statusline version (e.g., 2.13.0)"
+    },
+    "timestamp": {
+      "type": "integer",
+      "description": "Unix timestamp of when data was collected"
+    },
+    "repository": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Repository name"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Current git branch"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["clean", "dirty"],
+          "description": "Working tree status"
+        },
+        "commits_today": {
+          "type": "integer",
+          "description": "Number of commits made today"
+        }
+      },
+      "required": ["name", "branch", "status", "commits_today"]
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "session": {
+          "type": "number",
+          "description": "Cost of current session in USD"
+        },
+        "daily": {
+          "type": "number",
+          "description": "Total cost today in USD"
+        },
+        "weekly": {
+          "type": "number",
+          "description": "Total cost this week in USD"
+        },
+        "monthly": {
+          "type": "number",
+          "description": "Total cost this month in USD"
+        }
+      },
+      "required": ["session", "daily", "weekly", "monthly"]
+    },
+    "mcp": {
+      "type": "object",
+      "properties": {
+        "connected": {
+          "type": "integer",
+          "description": "Number of connected MCP servers"
+        },
+        "total": {
+          "type": "integer",
+          "description": "Total configured MCP servers"
+        },
+        "servers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of connected server names"
+        }
+      },
+      "required": ["connected", "total", "servers"]
+    },
+    "github": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether GitHub integration is enabled"
+        },
+        "ci_status": {
+          "type": "string",
+          "enum": ["success", "failure", "pending", "unknown"],
+          "description": "Latest CI run status"
+        },
+        "open_prs": {
+          "type": "integer",
+          "description": "Number of open pull requests"
+        }
+      },
+      "required": ["enabled"]
+    },
+    "prayer": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether prayer times are enabled"
+        },
+        "current": {
+          "type": "string",
+          "description": "Current prayer period"
+        },
+        "next": {
+          "type": "string",
+          "description": "Next prayer name"
+        },
+        "next_time": {
+          "type": "string",
+          "description": "Time until next prayer (e.g., 2h 15m)"
+        },
+        "hijri_date": {
+          "type": "string",
+          "description": "Current Hijri date"
+        }
+      }
+    },
+    "system": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "Active color theme"
+        },
+        "modules_loaded": {
+          "type": "integer",
+          "description": "Number of loaded modules"
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["Darwin", "Linux", "Windows"],
+          "description": "Operating system"
+        }
+      },
+      "required": ["theme", "modules_loaded", "platform"]
+    }
+  },
+  "required": ["version", "timestamp", "repository", "cost", "mcp", "system"]
+}

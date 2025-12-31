@@ -1,0 +1,26 @@
+Source: claude-code-statusline
+Section: utils
+Priority: optional
+Maintainer: The Rector <rector@rectorspace.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.0
+Homepage: https://github.com/rz1989s/claude-code-statusline
+Vcs-Browser: https://github.com/rz1989s/claude-code-statusline
+Vcs-Git: https://github.com/rz1989s/claude-code-statusline.git
+Rules-Requires-Root: no
+
+Package: claude-code-statusline
+Architecture: all
+Depends: bash (>= 4.0), jq, curl, git, ${misc:Depends}
+Recommends: ccusage
+Description: Enhanced statusline for Claude Code CLI
+ A beautiful, feature-rich statusline for Claude Code with:
+  - Git repository status and commit tracking
+  - MCP server monitoring
+  - Cost tracking and usage analytics
+  - Islamic prayer times and Hijri calendar
+  - Multiple themes (catppuccin, ocean, garden, classic)
+  - Plugin system for custom components
+  - GitHub Actions integration
+ .
+ Supports macOS, Ubuntu, Debian, Fedora, Arch Linux, and Alpine.

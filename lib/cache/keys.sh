@@ -7,6 +7,9 @@
 # This module handles cache key generation with support for different
 # isolation modes (repository, instance, shared).
 #
+# Error Suppression Patterns (Issue #108):
+# - pwd 2>/dev/null: Working directory may be deleted (rare but possible)
+#
 # Dependencies: config.sh (for CACHE_CONFIG_*_ISOLATION)
 # ============================================================================
 
