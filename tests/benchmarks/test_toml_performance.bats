@@ -24,98 +24,90 @@ teardown() {
     rm -rf "$TEST_PERF_DIR"
 }
 
+# Cross-platform time function (seconds for macOS compatibility)
+get_timestamp_seconds() {
+    date +%s
+}
+
 # Benchmark current jq usage pattern (40+ sequential calls)
 @test "benchmark: current jq usage overhead in config loading" {
     skip_if_no_jq
     
     local perf_config="$TEST_PERF_DIR/benchmark.toml"
     
-    # Create comprehensive config to trigger all jq calls
+    # Create comprehensive config to trigger all jq calls (flat format, no ANSI escapes)
     cat > "$perf_config" << 'EOF'
-[theme]
-name = "custom"
+theme.name = "custom"
 
-[colors.basic]
-red = "\033[31m"
-blue = "\033[34m"
-green = "\033[32m"
-yellow = "\033[33m"
-magenta = "\033[35m"
-cyan = "\033[36m"
-white = "\033[37m"
+colors.basic.red = "red"
+colors.basic.blue = "blue"
+colors.basic.green = "green"
+colors.basic.yellow = "yellow"
+colors.basic.magenta = "magenta"
+colors.basic.cyan = "cyan"
+colors.basic.white = "white"
 
-[colors.extended]
-orange = "\033[38;5;208m"
-purple = "\033[95m"
-light_gray = "\033[38;5;248m"
-bright_green = "\033[92m"
-teal = "\033[38;5;73m"
+colors.extended.orange = "orange"
+colors.extended.purple = "purple"
+colors.extended.light_gray = "light_gray"
+colors.extended.bright_green = "bright_green"
+colors.extended.teal = "teal"
 
-[colors.formatting]
-dim = "\033[2m"
-italic = "\033[3m"
-reset = "\033[0m"
+colors.formatting.dim = "dim"
+colors.formatting.italic = "italic"
+colors.formatting.reset = "reset"
 
-[features]
-show_commits = true
-show_version = true
-show_submodules = true
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
-show_session_info = true
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_session_info = true
 
-[timeouts]
-mcp = "3s"
-version = "2s"
-ccusage = "3s"
+timeouts.mcp = "3s"
+timeouts.version = "2s"
+timeouts.ccusage = "3s"
 
-[emojis]
-opus = "🧠"
-haiku = "⚡"
-sonnet = "🎵"
-default_model = "🤖"
-clean_status = "✅"
-dirty_status = "📁"
-clock = "🕐"
-live_block = "🔥"
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
+emojis.default_model = "🤖"
+emojis.clean_status = "✅"
+emojis.dirty_status = "📁"
+emojis.clock = "🕐"
+emojis.live_block = "🔥"
 
-[labels]
-commits = "Commits:"
-repo = "REPO"
-monthly = "30DAY"
-weekly = "7DAY"
-daily = "DAY"
-mcp = "MCP"
-version_prefix = "ver"
-submodule = "SUB:"
-session_prefix = "S:"
-live = "LIVE"
-reset = "RESET"
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
+labels.weekly = "7DAY"
+labels.daily = "DAY"
+labels.mcp = "MCP"
+labels.version_prefix = "ver"
+labels.submodule = "SUB:"
+labels.session_prefix = "S:"
+labels.live = "LIVE"
+labels.reset = "RESET"
 
-[cache]
-version_duration = 3600
-version_file = "/tmp/.claude_version_cache"
+cache.version_duration = 3600
+cache.version_file = "/tmp/.claude_version_cache"
 
-[display]
-time_format = "%H:%M"
-date_format = "%Y-%m-%d"
+display.time_format = "%H:%M"
+display.date_format = "%Y-%m-%d"
 
-[messages]
-no_ccusage = "No ccusage"
-ccusage_install = "Run: npm install -g ccusage"
-no_active_block = "No active block"
-mcp_unknown = "unknown"
-mcp_none = "none"
+messages.no_ccusage = "No ccusage"
+messages.ccusage_install = "Run: npm install -g ccusage"
+messages.no_active_block = "No active block"
+messages.mcp_unknown = "unknown"
+messages.mcp_none = "none"
 
-[debug]
-log_level = "info"
-benchmark_performance = false
+debug.log_level = "info"
+debug.benchmark_performance = false
 
-[platform]
-prefer_gtimeout = true
-use_gdate = false
-color_support_level = "full"
+platform.prefer_gtimeout = true
+platform.use_gdate = false
+platform.color_support_level = "full"
 EOF
 
     echo "# Benchmarking current jq usage pattern..." >&3
@@ -126,72 +118,72 @@ EOF
     [[ "$config_json" != "{}" ]]
     
     # Benchmark multiple individual jq calls (current pattern)
-    local start_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local start_time=$(get_timestamp_seconds)
     
-    # Simulate current 40+ jq usage pattern
+    # Simulate current 40+ jq usage pattern (flat TOML keys)
     local theme_name
-    theme_name=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"')
+    theme_name=$(echo "$config_json" | jq -r '.["theme.name"] // "catppuccin"')
     
     # Basic colors (8 calls)
     local red blue green yellow magenta cyan white black
-    red=$(echo "$config_json" | jq -r '.colors.basic.red // "\033[31m"')
-    blue=$(echo "$config_json" | jq -r '.colors.basic.blue // "\033[34m"')
-    green=$(echo "$config_json" | jq -r '.colors.basic.green // "\033[32m"')
-    yellow=$(echo "$config_json" | jq -r '.colors.basic.yellow // "\033[33m"')
-    magenta=$(echo "$config_json" | jq -r '.colors.basic.magenta // "\033[35m"')
-    cyan=$(echo "$config_json" | jq -r '.colors.basic.cyan // "\033[36m"')
-    white=$(echo "$config_json" | jq -r '.colors.basic.white // "\033[37m"')
-    black=$(echo "$config_json" | jq -r '.colors.basic.black // "\033[30m"')
-    
+    red=$(echo "$config_json" | jq -r '.["colors.basic.red"] // "red"')
+    blue=$(echo "$config_json" | jq -r '.["colors.basic.blue"] // "blue"')
+    green=$(echo "$config_json" | jq -r '.["colors.basic.green"] // "green"')
+    yellow=$(echo "$config_json" | jq -r '.["colors.basic.yellow"] // "yellow"')
+    magenta=$(echo "$config_json" | jq -r '.["colors.basic.magenta"] // "magenta"')
+    cyan=$(echo "$config_json" | jq -r '.["colors.basic.cyan"] // "cyan"')
+    white=$(echo "$config_json" | jq -r '.["colors.basic.white"] // "white"')
+    black=$(echo "$config_json" | jq -r '.["colors.basic.black"] // "black"')
+
     # Extended colors (5 calls)
     local orange purple light_gray bright_green teal
-    orange=$(echo "$config_json" | jq -r '.colors.extended.orange // "\033[38;5;208m"')
-    purple=$(echo "$config_json" | jq -r '.colors.extended.purple // "\033[95m"')
-    light_gray=$(echo "$config_json" | jq -r '.colors.extended.light_gray // "\033[38;5;248m"')
-    bright_green=$(echo "$config_json" | jq -r '.colors.extended.bright_green // "\033[92m"')
-    teal=$(echo "$config_json" | jq -r '.colors.extended.teal // "\033[38;5;73m"')
+    orange=$(echo "$config_json" | jq -r '.["colors.extended.orange"] // "orange"')
+    purple=$(echo "$config_json" | jq -r '.["colors.extended.purple"] // "purple"')
+    light_gray=$(echo "$config_json" | jq -r '.["colors.extended.light_gray"] // "light_gray"')
+    bright_green=$(echo "$config_json" | jq -r '.["colors.extended.bright_green"] // "bright_green"')
+    teal=$(echo "$config_json" | jq -r '.["colors.extended.teal"] // "teal"')
     
     # Features (7 calls)
     local show_commits show_version show_submodules show_mcp show_cost show_reset show_session
-    show_commits=$(echo "$config_json" | jq -r '.features.show_commits // true')
-    show_version=$(echo "$config_json" | jq -r '.features.show_version // true')
-    show_submodules=$(echo "$config_json" | jq -r '.features.show_submodules // true')
-    show_mcp=$(echo "$config_json" | jq -r '.features.show_mcp_status // true')
-    show_cost=$(echo "$config_json" | jq -r '.features.show_cost_tracking // true')
-    show_reset=$(echo "$config_json" | jq -r '.features.show_reset_info // true')
-    show_session=$(echo "$config_json" | jq -r '.features.show_session_info // false')
+    show_commits=$(echo "$config_json" | jq -r '.["features.show_commits"] // true')
+    show_version=$(echo "$config_json" | jq -r '.["features.show_version"] // true')
+    show_submodules=$(echo "$config_json" | jq -r '.["features.show_submodules"] // true')
+    show_mcp=$(echo "$config_json" | jq -r '.["features.show_mcp_status"] // true')
+    show_cost=$(echo "$config_json" | jq -r '.["features.show_cost_tracking"] // true')
+    show_reset=$(echo "$config_json" | jq -r '.["features.show_reset_info"] // true')
+    show_session=$(echo "$config_json" | jq -r '.["features.show_session_info"] // false')
     
     # Timeouts (3 calls)
     local mcp_timeout version_timeout ccusage_timeout
-    mcp_timeout=$(echo "$config_json" | jq -r '.timeouts.mcp // "3s"')
-    version_timeout=$(echo "$config_json" | jq -r '.timeouts.version // "2s"')
-    ccusage_timeout=$(echo "$config_json" | jq -r '.timeouts.ccusage // "3s"')
+    mcp_timeout=$(echo "$config_json" | jq -r '.["timeouts.mcp"] // "3s"')
+    version_timeout=$(echo "$config_json" | jq -r '.["timeouts.version"] // "2s"')
+    ccusage_timeout=$(echo "$config_json" | jq -r '.["timeouts.ccusage"] // "3s"')
     
     # Emojis (8 calls)
     local opus_emoji haiku_emoji sonnet_emoji default_emoji clean_emoji dirty_emoji clock_emoji live_emoji
-    opus_emoji=$(echo "$config_json" | jq -r '.emojis.opus // "🧠"')
-    haiku_emoji=$(echo "$config_json" | jq -r '.emojis.haiku // "⚡"')
-    sonnet_emoji=$(echo "$config_json" | jq -r '.emojis.sonnet // "🎵"')
-    default_emoji=$(echo "$config_json" | jq -r '.emojis.default_model // "🤖"')
-    clean_emoji=$(echo "$config_json" | jq -r '.emojis.clean_status // "✅"')
-    dirty_emoji=$(echo "$config_json" | jq -r '.emojis.dirty_status // "📁"')
-    clock_emoji=$(echo "$config_json" | jq -r '.emojis.clock // "🕐"')
-    live_emoji=$(echo "$config_json" | jq -r '.emojis.live_block // "🔥"')
+    opus_emoji=$(echo "$config_json" | jq -r '.["emojis.opus"] // "🧠"')
+    haiku_emoji=$(echo "$config_json" | jq -r '.["emojis.haiku"] // "⚡"')
+    sonnet_emoji=$(echo "$config_json" | jq -r '.["emojis.sonnet"] // "🎵"')
+    default_emoji=$(echo "$config_json" | jq -r '.["emojis.default_model"] // "🤖"')
+    clean_emoji=$(echo "$config_json" | jq -r '.["emojis.clean_status"] // "✅"')
+    dirty_emoji=$(echo "$config_json" | jq -r '.["emojis.dirty_status"] // "📁"')
+    clock_emoji=$(echo "$config_json" | jq -r '.["emojis.clock"] // "🕐"')
+    live_emoji=$(echo "$config_json" | jq -r '.["emojis.live_block"] // "🔥"')
     
     # Labels (10 calls)
     local commits_label repo_label monthly_label weekly_label daily_label mcp_label version_prefix submodule_label session_prefix live_label
-    commits_label=$(echo "$config_json" | jq -r '.labels.commits // "Commits:"')
-    repo_label=$(echo "$config_json" | jq -r '.labels.repo // "REPO"')
-    monthly_label=$(echo "$config_json" | jq -r '.labels.monthly // "30DAY"')
-    weekly_label=$(echo "$config_json" | jq -r '.labels.weekly // "7DAY"')
-    daily_label=$(echo "$config_json" | jq -r '.labels.daily // "DAY"')
-    mcp_label=$(echo "$config_json" | jq -r '.labels.mcp // "MCP"')
-    version_prefix=$(echo "$config_json" | jq -r '.labels.version_prefix // "ver"')
-    submodule_label=$(echo "$config_json" | jq -r '.labels.submodule // "SUB:"')
-    session_prefix=$(echo "$config_json" | jq -r '.labels.session_prefix // "S:"')
-    live_label=$(echo "$config_json" | jq -r '.labels.live // "LIVE"')
+    commits_label=$(echo "$config_json" | jq -r '.["labels.commits"] // "Commits:"')
+    repo_label=$(echo "$config_json" | jq -r '.["labels.repo"] // "REPO"')
+    monthly_label=$(echo "$config_json" | jq -r '.["labels.monthly"] // "30DAY"')
+    weekly_label=$(echo "$config_json" | jq -r '.["labels.weekly"] // "7DAY"')
+    daily_label=$(echo "$config_json" | jq -r '.["labels.daily"] // "DAY"')
+    mcp_label=$(echo "$config_json" | jq -r '.["labels.mcp"] // "MCP"')
+    version_prefix=$(echo "$config_json" | jq -r '.["labels.version_prefix"] // "ver"')
+    submodule_label=$(echo "$config_json" | jq -r '.["labels.submodule"] // "SUB:"')
+    session_prefix=$(echo "$config_json" | jq -r '.["labels.session_prefix"] // "S:"')
+    live_label=$(echo "$config_json" | jq -r '.["labels.live"] // "LIVE"')
     
-    local end_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local end_time=$(get_timestamp_seconds)
     
     # Calculate overhead of multiple jq calls
     if [[ "$start_time" != "$end_time" ]]; then
@@ -214,40 +206,33 @@ EOF
     
     local perf_config="$TEST_PERF_DIR/optimized.toml"
     
-    # Same comprehensive config as above
+    # Same comprehensive config as above (flat format, no ANSI escapes)
     cat > "$perf_config" << 'EOF'
-[theme]
-name = "custom"
+theme.name = "custom"
 
-[colors.basic]
-red = "\033[31m"
-blue = "\033[34m"
-green = "\033[32m"
-yellow = "\033[33m"
+colors.basic.red = "red"
+colors.basic.blue = "blue"
+colors.basic.green = "green"
+colors.basic.yellow = "yellow"
 
-[colors.extended]
-orange = "\033[38;5;208m"
-purple = "\033[95m"
+colors.extended.orange = "orange"
+colors.extended.purple = "purple"
 
-[features]
-show_commits = true
-show_version = true
-show_submodules = true
-show_mcp_status = true
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
 
-[timeouts]
-mcp = "3s"
-version = "2s"
+timeouts.mcp = "3s"
+timeouts.version = "2s"
 
-[emojis]
-opus = "🧠"
-haiku = "⚡"
-sonnet = "🎵"
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
 
-[labels]
-commits = "Commits:"
-repo = "REPO"
-monthly = "30DAY"
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
 EOF
 
     echo "# Benchmarking optimized jq usage pattern..." >&3
@@ -258,34 +243,34 @@ EOF
     [[ "$config_json" != "{}" ]]
     
     # Benchmark single optimized jq call
-    local start_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local start_time=$(get_timestamp_seconds)
     
-    # Single jq operation extracting all values at once
+    # Single jq operation extracting all values at once (flat TOML keys)
     local all_config
     all_config=$(echo "$config_json" | jq -r '
     {
-        theme_name: (.theme.name // "catppuccin"),
-        color_red: (.colors.basic.red // "\033[31m"),
-        color_blue: (.colors.basic.blue // "\033[34m"),
-        color_green: (.colors.basic.green // "\033[32m"),
-        color_yellow: (.colors.basic.yellow // "\033[33m"),
-        color_orange: (.colors.extended.orange // "\033[38;5;208m"),
-        color_purple: (.colors.extended.purple // "\033[95m"),
-        feature_commits: (.features.show_commits // true),
-        feature_version: (.features.show_version // true),
-        feature_submodules: (.features.show_submodules // true),
-        feature_mcp: (.features.show_mcp_status // true),
-        timeout_mcp: (.timeouts.mcp // "3s"),
-        timeout_version: (.timeouts.version // "2s"),
-        emoji_opus: (.emojis.opus // "🧠"),
-        emoji_haiku: (.emojis.haiku // "⚡"),
-        emoji_sonnet: (.emojis.sonnet // "🎵"),
-        label_commits: (.labels.commits // "Commits:"),
-        label_repo: (.labels.repo // "REPO"),
-        label_monthly: (.labels.monthly // "30DAY")
+        theme_name: (.["theme.name"] // "catppuccin"),
+        color_red: (.["colors.basic.red"] // "red"),
+        color_blue: (.["colors.basic.blue"] // "blue"),
+        color_green: (.["colors.basic.green"] // "green"),
+        color_yellow: (.["colors.basic.yellow"] // "yellow"),
+        color_orange: (.["colors.extended.orange"] // "orange"),
+        color_purple: (.["colors.extended.purple"] // "purple"),
+        feature_commits: (.["features.show_commits"] // true),
+        feature_version: (.["features.show_version"] // true),
+        feature_submodules: (.["features.show_submodules"] // true),
+        feature_mcp: (.["features.show_mcp_status"] // true),
+        timeout_mcp: (.["timeouts.mcp"] // "3s"),
+        timeout_version: (.["timeouts.version"] // "2s"),
+        emoji_opus: (.["emojis.opus"] // "🧠"),
+        emoji_haiku: (.["emojis.haiku"] // "⚡"),
+        emoji_sonnet: (.["emojis.sonnet"] // "🎵"),
+        label_commits: (.["labels.commits"] // "Commits:"),
+        label_repo: (.["labels.repo"] // "REPO"),
+        label_monthly: (.["labels.monthly"] // "30DAY")
     } | to_entries | map("\(.key)=\(.value)") | .[]')
     
-    local end_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local end_time=$(get_timestamp_seconds)
     
     # Calculate optimized performance
     if [[ "$start_time" != "$end_time" ]]; then
@@ -309,64 +294,56 @@ EOF
     
     local parse_config="$TEST_PERF_DIR/parse_benchmark.toml"
     
-    # Create large TOML for parsing benchmark
+    # Create large TOML for parsing benchmark (flat format, no ANSI escapes)
     cat > "$parse_config" << 'EOF'
-[theme]
-name = "catppuccin"
+theme.name = "catppuccin"
 
-[colors.basic]
-red = "\033[31m"
-blue = "\033[34m"
-green = "\033[32m"
-yellow = "\033[33m"
-magenta = "\033[35m"
-cyan = "\033[36m"
-white = "\033[37m"
-black = "\033[30m"
-
-[colors.extended]
+colors.basic.red = "red"
+colors.basic.blue = "blue"
+colors.basic.green = "green"
+colors.basic.yellow = "yellow"
+colors.basic.magenta = "magenta"
+colors.basic.cyan = "cyan"
+colors.basic.white = "white"
+colors.basic.black = "black"
 EOF
-    
+
     # Add many extended colors to test parsing performance
     for i in {1..30}; do
-        echo "color$i = \"\\033[38;5;${i}m\"" >> "$parse_config"
+        echo "colors.extended.color$i = \"color_$i\"" >> "$parse_config"
     done
-    
+
     cat >> "$parse_config" << 'EOF'
 
-[features]
-show_commits = true
-show_version = true
-show_submodules = true
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
 
-[timeouts]
-mcp = "3s"
-version = "2s"
-ccusage = "3s"
+timeouts.mcp = "3s"
+timeouts.version = "2s"
+timeouts.ccusage = "3s"
 
-[emojis]
-opus = "🧠"
-haiku = "⚡"
-sonnet = "🎵"
+emojis.opus = "🧠"
+emojis.haiku = "⚡"
+emojis.sonnet = "🎵"
 
-[labels]
-commits = "Commits:"
-repo = "REPO"
-monthly = "30DAY"
+labels.commits = "Commits:"
+labels.repo = "REPO"
+labels.monthly = "30DAY"
 EOF
 
     echo "# Benchmarking TOML parsing..." >&3
     
     # Benchmark TOML parsing
-    local start_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local start_time=$(get_timestamp_seconds)
     
     local config_json
     config_json=$(parse_toml_to_json "$parse_config")
     
-    local end_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local end_time=$(get_timestamp_seconds)
     
     # Calculate parsing performance
     if [[ "$start_time" != "$end_time" ]]; then
@@ -394,18 +371,14 @@ EOF
     local comparison_config="$TEST_PERF_DIR/comparison.toml"
     
     cat > "$comparison_config" << 'EOF'
-[theme]
-name = "garden"
+theme.name = "garden"
 
-[features]
-show_commits = true
-show_version = false
+features.show_commits = true
+features.show_version = false
 
-[timeouts]
-mcp = "5s"
+timeouts.mcp = "5s"
 
-[emojis]
-opus = "🌿"
+emojis.opus = "🌿"
 EOF
 
     # Parse TOML once
@@ -415,28 +388,28 @@ EOF
     echo "# Performance comparison test..." >&3
     
     # Test multiple jq calls (current pattern)
-    local multi_start=$(date +%s%3N 2>/dev/null || date +%s)
+    local multi_start=$(get_timestamp_seconds)
     
     local theme_name feature_commits timeout_mcp emoji_opus
-    theme_name=$(echo "$config_json" | jq -r '.theme.name // "catppuccin"')
-    feature_commits=$(echo "$config_json" | jq -r '.features.show_commits // true')
-    timeout_mcp=$(echo "$config_json" | jq -r '.timeouts.mcp // "3s"')
-    emoji_opus=$(echo "$config_json" | jq -r '.emojis.opus // "🧠"')
-    
-    local multi_end=$(date +%s%3N 2>/dev/null || date +%s)
-    
-    # Test single jq call (optimized pattern)
-    local single_start=$(date +%s%3N 2>/dev/null || date +%s)
-    
+    theme_name=$(echo "$config_json" | jq -r '.["theme.name"] // "catppuccin"')
+    feature_commits=$(echo "$config_json" | jq -r '.["features.show_commits"] // true')
+    timeout_mcp=$(echo "$config_json" | jq -r '.["timeouts.mcp"] // "3s"')
+    emoji_opus=$(echo "$config_json" | jq -r '.["emojis.opus"] // "🧠"')
+
+    local multi_end=$(get_timestamp_seconds)
+
+    # Test single jq call (optimized pattern, flat TOML keys)
+    local single_start=$(get_timestamp_seconds)
+
     local single_result
     single_result=$(echo "$config_json" | jq -r '{
-        theme_name: (.theme.name // "catppuccin"),
-        feature_commits: (.features.show_commits // true),
-        timeout_mcp: (.timeouts.mcp // "3s"),
-        emoji_opus: (.emojis.opus // "🧠")
+        theme_name: (.["theme.name"] // "catppuccin"),
+        feature_commits: (.["features.show_commits"] // true),
+        timeout_mcp: (.["timeouts.mcp"] // "3s"),
+        emoji_opus: (.["emojis.opus"] // "🧠")
     } | to_entries | map("\(.key)=\(.value)") | .[]')
     
-    local single_end=$(date +%s%3N 2>/dev/null || date +%s)
+    local single_end=$(get_timestamp_seconds)
     
     # Calculate and compare
     if [[ "$multi_start" != "$multi_end" && "$single_start" != "$single_end" ]]; then
@@ -463,58 +436,51 @@ EOF
     
     local memory_config="$TEST_PERF_DIR/memory_test.toml"
     
-    # Create very large config to test memory usage
+    # Create very large config to test memory usage (flat format, no ANSI escapes)
     cat > "$memory_config" << 'EOF'
-[theme]
-name = "custom"
+theme.name = "custom"
 
-[colors.basic]
-red = "\033[31m"
-blue = "\033[34m"
-green = "\033[32m"
-yellow = "\033[33m"
-magenta = "\033[35m"
-cyan = "\033[36m"
-white = "\033[37m"
-black = "\033[30m"
-
-[colors.extended]
+colors.basic.red = "red"
+colors.basic.blue = "blue"
+colors.basic.green = "green"
+colors.basic.yellow = "yellow"
+colors.basic.magenta = "magenta"
+colors.basic.cyan = "cyan"
+colors.basic.white = "white"
+colors.basic.black = "black"
 EOF
-    
+
     # Add 100 extended colors for memory test
     for i in {1..100}; do
-        echo "color$i = \"\\033[38;5;${i}m\"" >> "$memory_config"
-        echo "bright_color$i = \"\\033[38;5;$((i+100))m\"" >> "$memory_config"
+        echo "colors.extended.color$i = \"color_$i\"" >> "$memory_config"
+        echo "colors.extended.bright_color$i = \"bright_$i\"" >> "$memory_config"
     done
-    
+
     cat >> "$memory_config" << 'EOF'
 
-[features]
-show_commits = true
-show_version = true
-show_submodules = true
-show_mcp_status = true
-show_cost_tracking = true
-show_reset_info = true
-show_session_info = true
-
-[labels]
+features.show_commits = true
+features.show_version = true
+features.show_submodules = true
+features.show_mcp_status = true
+features.show_cost_tracking = true
+features.show_reset_info = true
+features.show_session_info = true
 EOF
-    
+
     # Add many labels
     for i in {1..50}; do
-        echo "label$i = \"Label $i\"" >> "$memory_config"
+        echo "labels.label$i = \"Label $i\"" >> "$memory_config"
     done
     
     echo "# Testing memory usage with large config..." >&3
     
     # Parse large config (this tests memory usage indirectly)
-    local start_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local start_time=$(get_timestamp_seconds)
     
     local config_json
     config_json=$(parse_toml_to_json "$memory_config")
     
-    local end_time=$(date +%s%3N 2>/dev/null || date +%s)
+    local end_time=$(get_timestamp_seconds)
     
     # Should handle large configs without excessive delay
     if [[ "$start_time" != "$end_time" ]]; then
