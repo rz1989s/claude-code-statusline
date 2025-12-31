@@ -32,7 +32,8 @@ teardown() {
     assert_output_contains "main"            # Git branch
     assert_output_contains "✅"              # Clean status emoji
     assert_output_contains "Commits:"        # Commit label
-    assert_output_contains "ver"             # Version prefix
+    assert_output_contains "CC:"             # Claude Code version prefix
+    assert_output_contains "SL:"             # Statusline version prefix
     assert_output_contains "🎵"              # Sonnet emoji
     assert_output_contains "MCP"             # MCP status
     assert_output_contains "\$"              # Cost indicators

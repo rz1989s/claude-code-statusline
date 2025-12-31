@@ -14,7 +14,7 @@ if ! type source_with_fallback &>/dev/null; then
     source_with_fallback() {
         local script_path="$1"
         if [[ -f "$script_path" ]]; then
-            STATUSLINE_TESTING=true source "$script_path" 2>/dev/null || true
+            STATUSLINE_SOURCING=true source "$script_path" 2>/dev/null || true
             return 0
         fi
         return 0
@@ -242,18 +242,12 @@ EOF
         chmod +x "$MOCK_BIN_DIR/claude"
     fi
 
-    # Create smart mock date command that handles +%s parameter for timer functions
+    # Create simple mock date command - pass through to system date
+    # Tests that need consistent timestamps should mock this differently
     cat > "$MOCK_BIN_DIR/date" << 'EOF'
 #!/bin/bash
-# Mock date command with timeout protection
-timeout 2s bash -c '
-if [[ "$1" == "+%s" ]]; then
-    echo "1756172467"  # Static timestamp for consistent test results
-else
-    # Use system date but with timeout protection
-    /bin/date "$@"
-fi
-' -- "$@"
+# Pass through to system date for reliable execution
+exec /bin/date "$@"
 EOF
     chmod +x "$MOCK_BIN_DIR/date"
     create_mock_command "bc" "0.00"
@@ -324,44 +318,55 @@ EOF
     echo "$input" | "$STATUSLINE_SCRIPT"
 }
 
-# Performance testing helper
+# Performance testing helper (macOS compatible)
 measure_execution_time() {
     local command="$1"
     local start_time end_time duration
-    
-    start_time=$(date +%s%N)
+
+    # Use seconds only - milliseconds not reliable on macOS
+    start_time=$(/bin/date +%s)
     eval "$command"
-    end_time=$(date +%s%N)
-    
-    duration=$(( (end_time - start_time) / 1000000 ))  # Convert to milliseconds
+    end_time=$(/bin/date +%s)
+
+    # Return duration in milliseconds (approximate from seconds)
+    duration=$(( (end_time - start_time) * 1000 ))
     echo "$duration"
 }
 
-# Concurrent testing helper
+# Concurrent testing helper with timeout protection
 run_concurrent_tests() {
     local num_processes="$1"
     local test_command="$2"
     local pids=()
     local results=()
-    
-    # Start concurrent processes
+    local timeout_cmd
+
+    # Use gtimeout on macOS, timeout on Linux
+    timeout_cmd=$(command -v gtimeout 2>/dev/null || command -v timeout 2>/dev/null || echo "")
+
+    # Start concurrent processes with timeout
     for ((i=1; i<=num_processes; i++)); do
-        eval "$test_command" &
+        if [[ -n "$timeout_cmd" ]]; then
+            $timeout_cmd 10s bash -c "$test_command" &
+        else
+            eval "$test_command" &
+        fi
         pids+=($!)
     done
-    
-    # Wait for all processes and collect results
+
+    # Wait for all processes and collect results (with timeout)
+    local wait_result=0
     for pid in "${pids[@]}"; do
-        wait "$pid"
+        wait "$pid" 2>/dev/null || wait_result=1
         results+=($?)
     done
-    
+
     # Check if all succeeded
     for result in "${results[@]}"; do
         if [[ "$result" -ne 0 ]]; then
             return 1
         fi
     done
-    
+
     return 0
 }

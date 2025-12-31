@@ -1055,9 +1055,11 @@ fi
 # MAIN STATUSLINE GENERATION
 # ============================================================================
 
-# Skip main execution when sourced for testing
-if [[ "${STATUSLINE_TESTING:-}" == "true" ]]; then
-    debug_log "Test mode enabled - skipping main execution" "INFO"
+# Skip main execution when sourced for function access
+# STATUSLINE_SOURCING: Skip main execution when sourcing for function testing
+# STATUSLINE_TESTING:  General test mode (but runs main for integration tests)
+if [[ "${STATUSLINE_SOURCING:-}" == "true" ]]; then
+    debug_log "Sourcing mode enabled - skipping main execution" "INFO"
     return 0 2>/dev/null || exit 0
 fi
 
