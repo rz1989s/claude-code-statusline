@@ -549,7 +549,14 @@ print(local_time.strftime('%H.%M'))
 # Get comprehensive Claude usage information
 get_claude_usage_info() {
     start_timer "cost_tracking"
-    
+
+    # Fast mock data for testing (skips all ccusage calls)
+    if [[ "${STATUSLINE_MOCK_COST_DATA:-}" == "true" ]]; then
+        end_timer "cost_tracking"
+        echo "0.00:0.00:0.00:0.00:No ccusage:Mock mode"
+        return 0
+    fi
+
     # Check if ccusage is available
     if ! is_ccusage_available; then
         local no_ccusage_info="-.--:-.--:-.--:-.--:$CONFIG_NO_CCUSAGE_MESSAGE:$CONFIG_CCUSAGE_INSTALL_MESSAGE"

@@ -197,11 +197,38 @@ EOF
     esac
 }
 
-# Setup comprehensive mock environment
+# Setup comprehensive mock environment for FAST test execution
+# This mocks ALL external commands to avoid slow network/disk operations
 setup_full_mock_environment() {
     local git_status="${1:-clean}"
     local mcp_status="${2:-connected}"
     local ccusage_status="${3:-success}"
+
+    # Set short timeouts for test mode
+    export CONFIG_MCP_TIMEOUT="1s"
+    export CONFIG_VERSION_TIMEOUT="1s"
+    export CONFIG_CCUSAGE_TIMEOUT="1s"
+
+    # Disable expensive features in test mode (use correct ENV_CONFIG format)
+    export ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES="false"
+    export ENV_CONFIG_FEATURES_SHOW_HIJRI_DATE="false"
+    export CONFIG_PRAYER_ENABLED="false"
+    export CONFIG_LOCATION_ENABLED="false"
+    export CONFIG_GITHUB_ENABLED="false"
+
+    # Skip slow TOML parsing (saves 6+ seconds per test)
+    export STATUSLINE_SKIP_TOML="true"
+
+    # Use mock cost data ONLY when ccusage is available
+    # This allows proper testing of "not_available" scenarios
+    if [[ "$ccusage_status" != "not_available" ]]; then
+        export STATUSLINE_MOCK_COST_DATA="true"
+    else
+        export STATUSLINE_MOCK_COST_DATA="false"
+    fi
+
+    # Force disable cache for predictable tests
+    export ENV_CONFIG_CACHE_ENABLE_UNIVERSAL_CACHING="false"
 
     setup_mock_git_repo "$TEST_TMP_DIR/mock_repo" "$git_status"
     setup_mock_ccusage "$ccusage_status"
@@ -242,14 +269,60 @@ EOF
         chmod +x "$MOCK_BIN_DIR/claude"
     fi
 
+    # Mock curl to avoid network calls (prayer API, location API)
+    cat > "$MOCK_BIN_DIR/curl" << 'EOF'
+#!/bin/bash
+# Fast mock curl - return empty JSON for any request
+echo '{}'
+exit 0
+EOF
+    chmod +x "$MOCK_BIN_DIR/curl"
+
+    # Mock gh (GitHub CLI) to avoid API calls
+    cat > "$MOCK_BIN_DIR/gh" << 'EOF'
+#!/bin/bash
+# Fast mock gh - return success with minimal data
+case "$1" in
+    "api")
+        echo '{"login":"test-user"}'
+        ;;
+    "auth")
+        echo "Logged in as test-user"
+        ;;
+    *)
+        echo "mock gh: $*"
+        ;;
+esac
+exit 0
+EOF
+    chmod +x "$MOCK_BIN_DIR/gh"
+
+    # Mock CoreLocationCLI (macOS GPS)
+    cat > "$MOCK_BIN_DIR/CoreLocationCLI" << 'EOF'
+#!/bin/bash
+echo "-6.2088 106.8456"
+exit 0
+EOF
+    chmod +x "$MOCK_BIN_DIR/CoreLocationCLI"
+
+    # Mock timeout/gtimeout to just run command directly (faster)
+    cat > "$MOCK_BIN_DIR/timeout" << 'EOF'
+#!/bin/bash
+# Skip timeout wrapper, run command directly for speed
+shift  # Remove timeout duration
+exec "$@"
+EOF
+    chmod +x "$MOCK_BIN_DIR/timeout"
+    cp "$MOCK_BIN_DIR/timeout" "$MOCK_BIN_DIR/gtimeout"
+
     # Create simple mock date command - pass through to system date
-    # Tests that need consistent timestamps should mock this differently
     cat > "$MOCK_BIN_DIR/date" << 'EOF'
 #!/bin/bash
-# Pass through to system date for reliable execution
 exec /bin/date "$@"
 EOF
     chmod +x "$MOCK_BIN_DIR/date"
+
+    # Mock bc and python3 for calculations
     create_mock_command "bc" "0.00"
     create_mock_command "python3" "12.34"
 }

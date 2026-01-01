@@ -146,7 +146,12 @@ load_configuration() {
     init_default_config
 
     # 2. Load TOML configuration (if available)
-    load_toml_configuration || debug_log "TOML configuration not loaded, using defaults" "INFO"
+    # Skip TOML parsing in test mode for faster execution (6+ seconds saved)
+    if [[ "${STATUSLINE_SKIP_TOML:-}" == "true" ]]; then
+        debug_log "Skipping TOML loading (test mode)" "INFO"
+    else
+        load_toml_configuration || debug_log "TOML configuration not loaded, using defaults" "INFO"
+    fi
 
     # 3. Apply environment overrides
     apply_env_overrides
