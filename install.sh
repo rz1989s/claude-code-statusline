@@ -739,7 +739,7 @@ download_directory_comprehensive() {
     # Config system modules (lib/config/) - modular config architecture
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh"
+        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
     )
 
@@ -1034,7 +1034,7 @@ download_lib_fallback() {
     # Config system modules (lib/config/) - modular config architecture
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh"
+        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
     )
 
