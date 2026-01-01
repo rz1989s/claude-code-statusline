@@ -91,8 +91,8 @@ get_coordinates_from_timezone() {
 check_internet_connection() {
     # Quick connectivity check using multiple methods
     if command_exists curl; then
-        # Try to connect to a reliable DNS server with minimal timeout
-        if curl -s --max-time 3 --connect-timeout 2 "http://1.1.1.1" > /dev/null 2>&1; then
+        # Try to connect to a reliable endpoint with minimal timeout (HTTPS for consistency)
+        if curl -s --max-time 3 --connect-timeout 2 "https://1.1.1.1" > /dev/null 2>&1; then
             debug_log "Internet connectivity confirmed via curl" "INFO"
             return 0
         fi
@@ -111,76 +111,119 @@ check_internet_connection() {
 }
 
 # Get location data from IP geolocation API
-# PRIVACY NOTE: This function uses ip-api.com to determine location based on IP address
+# PRIVACY NOTE: This function uses geolocation APIs to determine location based on IP address
 # This sends your IP address to a third-party service. Location data is cached locally.
 # To disable IP-based location detection, set CONFIG_PRAYER_LOCATION_MODE=manual
+# Security fix (Issue #130): Uses HTTPS with fallback APIs
 get_ip_location() {
-    local api_url="http://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone,query"
     local response
-    
+    local api_source=""
+
     debug_log "Fetching location data from IP geolocation API..." "INFO"
-    
+
     if ! command_exists curl; then
         debug_log "curl not available for IP geolocation" "WARN"
         return 1
     fi
-    
-    # Make API request with timeout and user agent
-    response=$(curl -s --max-time 8 --connect-timeout 3 \
-        -H "User-Agent: Claude-Code-Statusline/2.4.0" \
-        "$api_url" 2>/dev/null)
-    
-    if [[ $? -ne 0 || -z "$response" ]]; then
-        debug_log "IP geolocation API request failed" "WARN"
-        return 1
-    fi
-    
+
     # Check if jq is available for JSON parsing
     if ! command_exists jq; then
         debug_log "jq not available for JSON parsing" "WARN"
         return 1
     fi
-    
-    # Parse and validate API response
-    local status=$(echo "$response" | jq -r '.status // "fail"' 2>/dev/null)
-    if [[ "$status" != "success" ]]; then
-        local message=$(echo "$response" | jq -r '.message // "Unknown error"' 2>/dev/null)
-        debug_log "IP geolocation API returned error: $message" "WARN"
+
+    # Dynamic User-Agent with current version (Issue #130, #133)
+    local user_agent="Claude-Code-Statusline/${STATUSLINE_VERSION:-unknown}"
+
+    # Primary API: ip-api.com over HTTPS (Issue #130: Security fix)
+    local primary_url="https://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone,query"
+
+    response=$(curl -s --max-time 8 --connect-timeout 3 \
+        -H "User-Agent: $user_agent" \
+        "$primary_url" 2>/dev/null)
+
+    if [[ $? -eq 0 && -n "$response" ]]; then
+        local status=$(echo "$response" | jq -r '.status // "fail"' 2>/dev/null)
+        if [[ "$status" == "success" ]]; then
+            api_source="ip-api.com"
+            debug_log "Primary API (ip-api.com) responded successfully" "INFO"
+        else
+            response=""  # Clear to trigger fallback
+            debug_log "Primary API returned error, trying fallback..." "WARN"
+        fi
+    else
+        debug_log "Primary API request failed, trying fallback..." "WARN"
+    fi
+
+    # Fallback API: ipinfo.io (free HTTPS tier)
+    if [[ -z "$response" || "$api_source" == "" ]]; then
+        local fallback_url="https://ipinfo.io/json"
+
+        response=$(curl -s --max-time 8 --connect-timeout 3 \
+            -H "User-Agent: $user_agent" \
+            "$fallback_url" 2>/dev/null)
+
+        if [[ $? -eq 0 && -n "$response" ]]; then
+            # ipinfo.io has different field names - check for valid data
+            local ip_check=$(echo "$response" | jq -r '.ip // ""' 2>/dev/null)
+            if [[ -n "$ip_check" ]]; then
+                api_source="ipinfo.io"
+                debug_log "Fallback API (ipinfo.io) responded successfully" "INFO"
+            fi
+        fi
+    fi
+
+    if [[ -z "$response" || -z "$api_source" ]]; then
+        debug_log "All IP geolocation APIs failed" "WARN"
         return 1
     fi
-    
-    # Extract location data
-    local country=$(echo "$response" | jq -r '.country // "Unknown"' 2>/dev/null)
-    local country_code=$(echo "$response" | jq -r '.countryCode // "XX"' 2>/dev/null)
-    local city=$(echo "$response" | jq -r '.city // "Unknown"' 2>/dev/null)
-    local latitude=$(echo "$response" | jq -r '.lat // 0' 2>/dev/null)
-    local longitude=$(echo "$response" | jq -r '.lon // 0' 2>/dev/null)
-    local timezone=$(echo "$response" | jq -r '.timezone // "UTC"' 2>/dev/null)
-    local ip=$(echo "$response" | jq -r '.query // "unknown"' 2>/dev/null)
-    
+
+    # Parse response based on API source
+    local country country_code city latitude longitude timezone ip
+
+    if [[ "$api_source" == "ip-api.com" ]]; then
+        country=$(echo "$response" | jq -r '.country // "Unknown"' 2>/dev/null)
+        country_code=$(echo "$response" | jq -r '.countryCode // "XX"' 2>/dev/null)
+        city=$(echo "$response" | jq -r '.city // "Unknown"' 2>/dev/null)
+        latitude=$(echo "$response" | jq -r '.lat // 0' 2>/dev/null)
+        longitude=$(echo "$response" | jq -r '.lon // 0' 2>/dev/null)
+        timezone=$(echo "$response" | jq -r '.timezone // "UTC"' 2>/dev/null)
+        ip=$(echo "$response" | jq -r '.query // "unknown"' 2>/dev/null)
+    elif [[ "$api_source" == "ipinfo.io" ]]; then
+        country=$(echo "$response" | jq -r '.country // "Unknown"' 2>/dev/null)
+        country_code="$country"  # ipinfo.io uses country code directly
+        city=$(echo "$response" | jq -r '.city // "Unknown"' 2>/dev/null)
+        # ipinfo.io returns "lat,lon" as single "loc" field
+        local loc=$(echo "$response" | jq -r '.loc // "0,0"' 2>/dev/null)
+        latitude="${loc%,*}"
+        longitude="${loc#*,}"
+        timezone=$(echo "$response" | jq -r '.timezone // "UTC"' 2>/dev/null)
+        ip=$(echo "$response" | jq -r '.ip // "unknown"' 2>/dev/null)
+    fi
+
     # Validate essential data
-    if [[ "$country_code" == "XX" || "$latitude" == "0" || "$longitude" == "0" ]]; then
+    if [[ "$latitude" == "0" || "$longitude" == "0" || -z "$latitude" || -z "$longitude" ]]; then
         debug_log "Invalid location data received from API" "WARN"
         return 1
     fi
-    
+
     # Create structured location data
     local location_data=$(cat <<EOF
 {
     "country": "$country",
-    "countryCode": "$country_code", 
+    "countryCode": "$country_code",
     "city": "$city",
     "latitude": $latitude,
     "longitude": $longitude,
     "timezone": "$timezone",
     "ip": "$ip",
     "timestamp": $(date +%s),
-    "source": "ip-geolocation"
+    "source": "$api_source"
 }
 EOF
     )
-    
-    debug_log "IP geolocation successful: $country ($country_code) - $city" "INFO"
+
+    debug_log "IP geolocation successful via $api_source: $country ($country_code) - $city" "INFO"
     echo "$location_data"
     return 0
 }
