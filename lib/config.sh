@@ -54,6 +54,11 @@ source "${_CONFIG_DIR}/config/env_overrides.sh" || {
     return 1
 }
 
+source "${_CONFIG_DIR}/config/schema_validator.sh" || {
+    echo "ERROR: Failed to load config/schema_validator.sh" >&2
+    return 1
+}
+
 # ============================================================================
 # TOML CONFIGURATION LOADING
 # ============================================================================
@@ -97,7 +102,10 @@ load_toml_configuration() {
     # Handle different error codes from parse_toml_to_json
     case $parse_result in
     0)
-        # Success - extract configuration values
+        # Success - validate schema and extract configuration values
+        # Schema validation runs in non-strict mode (warnings only)
+        validate_config_schema "$config_file" "false"
+
         if extract_config_values "$config_json"; then
             debug_log "Configuration loaded successfully from TOML" "INFO"
             return 0
