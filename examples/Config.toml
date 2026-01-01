@@ -832,6 +832,13 @@ plugins.validate_plugins = true            # Security validation (recommended)
 plugins.allow_network = false              # Allow plugins to make network calls
 plugins.debug_plugins = false              # Log plugin execution details
 
+# === SIGNATURE VERIFICATION (Issue #120) ===
+# GPG signature verification for plugin security
+plugins.require_signature = false          # Require valid GPG signatures (strict mode)
+plugins.warn_unsigned = true               # Show warning for unsigned plugins
+plugins.trusted_keys = ""                  # Comma-separated list of trusted GPG key IDs
+plugins.keyserver = "hkps://keys.openpgp.org"  # GPG keyserver for key retrieval
+
 # === PLUGIN STRUCTURE ===
 # Plugins are directories with a plugin.sh file and optional plugin.toml metadata
 #
@@ -860,6 +867,31 @@ plugins.debug_plugins = false              # Log plugin execution details
 # author = "Your Name"
 # requires_network = true
 # dependencies = ["curl", "jq"]
+#
+# === PLUGIN SIGNING (Issue #120) ===
+# Sign your plugins with GPG for enhanced security:
+#
+# 1. Create a detached signature:
+#    gpg --detach-sign --armor plugin.sh
+#    # Creates plugin.sh.asc
+#
+# 2. Or use binary signature:
+#    gpg --detach-sign plugin.sh
+#    # Creates plugin.sh.sig
+#
+# 3. Share your public key:
+#    gpg --export --armor YOUR_KEY_ID > public.key
+#
+# Users can then:
+# - Add your key ID to plugins.trusted_keys
+# - Import your key: gpg --import public.key
+#
+# Signature verification flow:
+# - Valid signature: Plugin loads normally
+# - Invalid signature: Plugin REJECTED (always)
+# - Unsigned + require_signature=true: Plugin REJECTED
+# - Unsigned + warn_unsigned=true: Warning logged, plugin loads
+# - Untrusted key: Plugin REJECTED (when trusted_keys configured)
 
 # Built-in plugin configurations (examples)
 plugins.git_extended.enabled = false

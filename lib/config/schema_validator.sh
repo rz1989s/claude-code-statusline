@@ -363,6 +363,11 @@ CONFIG_SCHEMA=(
     "plugins.validate_plugins:boolean:optional"
     "plugins.allow_network:boolean:optional"
     "plugins.debug_plugins:boolean:optional"
+    # Signature verification (Issue #120)
+    "plugins.require_signature:boolean:optional"
+    "plugins.warn_unsigned:boolean:optional"
+    "plugins.trusted_keys:string:optional"
+    "plugins.keyserver:string:optional"
     "plugins.git_extended.enabled:boolean:optional"
     "plugins.git_extended.show_stash_count:boolean:optional"
     "plugins.git_extended.show_ahead_behind:boolean:optional"
