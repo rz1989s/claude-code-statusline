@@ -32,8 +32,11 @@ CONFIG_PLUGINS_VALIDATE="${CONFIG_PLUGINS_VALIDATE:-true}"
 CONFIG_PLUGINS_ALLOW_NETWORK="${CONFIG_PLUGINS_ALLOW_NETWORK:-false}"
 CONFIG_PLUGINS_DEBUG="${CONFIG_PLUGINS_DEBUG:-false}"
 
-# Signature verification settings (Issue #120)
-CONFIG_PLUGINS_REQUIRE_SIGNATURE="${CONFIG_PLUGINS_REQUIRE_SIGNATURE:-false}"
+# Signature verification settings (Issue #120, #131)
+# Security-first: Require signatures by default to prevent supply chain attacks
+# To allow unsigned plugins (NOT RECOMMENDED), set CONFIG_PLUGINS_REQUIRE_SIGNATURE=false
+# See docs/PLUGIN_SIGNING.md for signing instructions
+CONFIG_PLUGINS_REQUIRE_SIGNATURE="${CONFIG_PLUGINS_REQUIRE_SIGNATURE:-true}"
 CONFIG_PLUGINS_WARN_UNSIGNED="${CONFIG_PLUGINS_WARN_UNSIGNED:-true}"
 CONFIG_PLUGINS_TRUSTED_KEYS="${CONFIG_PLUGINS_TRUSTED_KEYS:-}"
 CONFIG_PLUGINS_KEYSERVER="${CONFIG_PLUGINS_KEYSERVER:-hkps://keys.openpgp.org}"
@@ -369,9 +372,11 @@ load_plugin() {
             plugin_debug "Plugin $plugin_name has valid signature"
             ;;
         1)
-            # Unsigned plugin
+            # Unsigned plugin (Issue #131: Signatures required by default)
             if ! should_allow_unsigned; then
-                debug_log "SECURITY: Plugin $plugin_name is unsigned (signatures required)" "ERROR"
+                debug_log "SECURITY: Plugin '$plugin_name' is unsigned and cannot be loaded" "ERROR"
+                debug_log "  To sign this plugin: gpg --detach-sign ${plugin_script}" "ERROR"
+                debug_log "  To allow unsigned (NOT RECOMMENDED): set CONFIG_PLUGINS_REQUIRE_SIGNATURE=false" "ERROR"
                 return 1
             elif [[ "${CONFIG_PLUGINS_WARN_UNSIGNED:-true}" == "true" ]]; then
                 debug_log "WARNING: Plugin $plugin_name is unsigned" "WARN"
@@ -379,20 +384,25 @@ load_plugin() {
             ;;
         2)
             # Invalid signature - always reject
-            debug_log "SECURITY: Plugin $plugin_name has INVALID signature - refusing to load" "ERROR"
+            debug_log "SECURITY: Plugin '$plugin_name' has INVALID signature - refusing to load" "ERROR"
+            debug_log "  The signature file exists but verification failed" "ERROR"
+            debug_log "  Re-sign with: gpg --detach-sign ${plugin_script}" "ERROR"
             return 1
             ;;
         3)
-            # GPG not available
+            # GPG not available (Issue #131: Require GPG when signatures mandatory)
             if ! should_allow_unsigned; then
-                debug_log "SECURITY: Cannot verify plugin $plugin_name (GPG unavailable, signatures required)" "ERROR"
+                debug_log "SECURITY: Cannot verify plugin '$plugin_name' - GPG not installed" "ERROR"
+                debug_log "  Install GPG: brew install gnupg (macOS) or apt install gnupg (Linux)" "ERROR"
+                debug_log "  Or allow unsigned (NOT RECOMMENDED): set CONFIG_PLUGINS_REQUIRE_SIGNATURE=false" "ERROR"
                 return 1
             fi
             plugin_debug "GPG unavailable, skipping signature check for $plugin_name"
             ;;
         4)
             # Untrusted key
-            debug_log "SECURITY: Plugin $plugin_name signed by untrusted key - refusing to load" "ERROR"
+            debug_log "SECURITY: Plugin '$plugin_name' signed by untrusted key - refusing to load" "ERROR"
+            debug_log "  Add the signing key to trusted keys: CONFIG_PLUGINS_TRUSTED_KEYS=\"KEY_ID\"" "ERROR"
             return 1
             ;;
     esac
