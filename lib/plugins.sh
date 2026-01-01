@@ -409,13 +409,14 @@ load_plugin() {
         local component_func="get_${plugin_name}_component"
 
         if declare -f "$component_func" >/dev/null 2>&1; then
+            # Plugin defines properly named function - use directly
             PLUGIN_COMPONENTS["$plugin_name"]="$component_func"
             plugin_debug "Registered component: $plugin_name -> $component_func"
         elif declare -f "get_component" >/dev/null 2>&1; then
-            # Rename generic function to specific
-            eval "${component_func}() { get_component; }"
-            PLUGIN_COMPONENTS["$plugin_name"]="$component_func"
-            plugin_debug "Registered generic component: $plugin_name -> get_component"
+            # Plugin uses generic function - store marker for deferred execution
+            # Security fix (Issue #129): Removed eval, use deferred sourcing instead
+            PLUGIN_COMPONENTS["$plugin_name"]="__generic__:${plugin_script}"
+            plugin_debug "Registered generic component: $plugin_name (deferred execution)"
         fi
 
         debug_log "Plugin loaded successfully: $plugin_name" "INFO"
@@ -456,9 +457,9 @@ load_all_plugins() {
 # Execute a plugin component with timeout
 execute_plugin_component() {
     local plugin_name="$1"
-    local component_func="${PLUGIN_COMPONENTS[$plugin_name]}"
+    local component_entry="${PLUGIN_COMPONENTS[$plugin_name]}"
 
-    if [[ -z "$component_func" ]]; then
+    if [[ -z "$component_entry" ]]; then
         plugin_debug "No component registered for plugin: $plugin_name"
         echo ""
         return 1
@@ -468,16 +469,38 @@ execute_plugin_component() {
     # Remove 's' suffix if present
     timeout="${timeout%s}"
 
-    plugin_debug "Executing $component_func with ${timeout}s timeout"
-
     local result
-    if command_exists timeout; then
-        result=$(timeout "$timeout" bash -c "$component_func" 2>/dev/null)
-    elif command_exists gtimeout; then
-        result=$(gtimeout "$timeout" bash -c "$component_func" 2>/dev/null)
+
+    # Check if this is a generic component (Issue #129: eval-free approach)
+    if [[ "$component_entry" == __generic__:* ]]; then
+        # Extract plugin script path from marker
+        local plugin_script="${component_entry#__generic__:}"
+        plugin_debug "Executing generic component from $plugin_script with ${timeout}s timeout"
+
+        # Source and execute in subshell - isolates generic get_component per plugin
+        local exec_cmd="source '$plugin_script' && get_component"
+
+        if command_exists timeout; then
+            result=$(timeout "$timeout" bash -c "$exec_cmd" 2>/dev/null)
+        elif command_exists gtimeout; then
+            result=$(gtimeout "$timeout" bash -c "$exec_cmd" 2>/dev/null)
+        else
+            # No timeout available, run in subshell directly
+            result=$(bash -c "$exec_cmd" 2>/dev/null)
+        fi
     else
-        # No timeout available, run directly
-        result=$($component_func 2>/dev/null)
+        # Standard named function - execute directly
+        local component_func="$component_entry"
+        plugin_debug "Executing $component_func with ${timeout}s timeout"
+
+        if command_exists timeout; then
+            result=$(timeout "$timeout" bash -c "$component_func" 2>/dev/null)
+        elif command_exists gtimeout; then
+            result=$(gtimeout "$timeout" bash -c "$component_func" 2>/dev/null)
+        else
+            # No timeout available, run directly
+            result=$($component_func 2>/dev/null)
+        fi
     fi
 
     echo "$result"
