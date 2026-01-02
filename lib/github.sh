@@ -55,7 +55,8 @@ declare -g GITHUB_RATE_RESET=""
 # Returns: 0 if OK to proceed, 1 if rate limited
 check_api_rate_limit() {
     local force_check="${1:-false}"
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_rate_limit_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_rate_limit_cache"
     local cache_ttl="${CONFIG_GITHUB_RATE_LIMIT_CACHE_TTL:-60}"
 
     # Check cached rate limit first (unless forced)
@@ -264,7 +265,8 @@ get_ci_status() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_ci_status_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_ci_status_cache"
     local use_stale_cache="false"
 
     if [[ -f "$cache_file" ]]; then
@@ -358,7 +360,8 @@ get_open_pr_count() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_pr_count_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_pr_count_cache"
     local use_stale_cache="false"
 
     if [[ -f "$cache_file" ]]; then
@@ -428,7 +431,8 @@ get_latest_release() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_release_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_release_cache"
     local use_stale_cache="false"
 
     if [[ -f "$cache_file" ]]; then
