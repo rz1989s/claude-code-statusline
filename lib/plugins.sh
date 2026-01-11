@@ -324,11 +324,15 @@ validate_plugin_structure() {
         return 1
     fi
 
-    # Check for component function
+    # Check for component function using proper function declaration pattern
+    # This matches: function name() { or name() { patterns
     local component_func="get_${plugin_name}_component"
-    if ! grep -q "$component_func" "$plugin_script"; then
+    local func_pattern="^[[:space:]]*(function[[:space:]]+)?${component_func}[[:space:]]*\(\)"
+    local generic_pattern="^[[:space:]]*(function[[:space:]]+)?get_component[[:space:]]*\(\)"
+
+    if ! grep -Eq "$func_pattern" "$plugin_script"; then
         # Also check for generic component function
-        if ! grep -q "get_component" "$plugin_script"; then
+        if ! grep -Eq "$generic_pattern" "$plugin_script"; then
             debug_log "Plugin $plugin_name missing component function ($component_func or get_component)" "WARN"
             return 1
         fi

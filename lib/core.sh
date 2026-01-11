@@ -338,8 +338,13 @@ end_timer() {
     local start_var="STATUSLINE_TIMER_$(echo "$timer_name" | tr '[:lower:]' '[:upper:]')"
     local start_time
     
-    # Use eval for portable variable indirection (works in both bash and zsh)
-    start_time=$(eval echo "\${$start_var:-}")
+    # Use nameref for safe variable indirection (bash 4.3+)
+    # This avoids eval which can be a security concern
+    if [[ -n "${!start_var:-}" ]]; then
+        start_time="${!start_var}"
+    else
+        start_time=""
+    fi
     
     if [[ -n "$start_time" ]] && [[ "$start_time" =~ ^[0-9]+$ ]]; then
         local end_time=$(get_timestamp)
