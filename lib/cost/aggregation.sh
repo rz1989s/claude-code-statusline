@@ -95,6 +95,22 @@ get_session_cost_data() {
         debug_log "Using shared session cache: $(basename "$session_cache_file")" "INFO"
     fi
 
+    # Issue #140: Check if current session exists in cached data
+    # If cache is fresh but doesn't contain our session, invalidate and refetch
+    if [[ -f "$session_cache_file" ]]; then
+        local current_session_id
+        current_session_id=$(sanitize_path_secure "$PWD")
+        local session_exists
+        session_exists=$(jq -r --arg sid "$current_session_id" \
+            '.sessions[] | select(.sessionId == $sid) | .sessionId' \
+            "$session_cache_file" 2>/dev/null | head -1)
+
+        if [[ -z "$session_exists" ]]; then
+            debug_log "Current session $current_session_id not in cache, forcing refresh" "INFO"
+            rm -f "$session_cache_file" 2>/dev/null
+        fi
+    fi
+
     execute_ccusage_with_cache "$session_cache_file" "session --since $COST_SEVEN_DAYS_AGO" "$COST_CACHE_DURATION_SESSION"
 }
 
