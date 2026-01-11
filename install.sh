@@ -702,6 +702,7 @@ download_directory_comprehensive() {
     mkdir -p "$local_path/prayer"
     mkdir -p "$local_path/cache"
     mkdir -p "$local_path/config"
+    mkdir -p "$local_path/cost"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -1080,6 +1081,7 @@ download_lib_fallback() {
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/cache"
     mkdir -p "$LIB_DIR/config"
+    mkdir -p "$LIB_DIR/cost"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
