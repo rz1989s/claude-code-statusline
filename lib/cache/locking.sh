@@ -38,10 +38,11 @@ acquire_cache_lock() {
         [[ -f "$lock_file" ]] && rm -f "$lock_file" 2>/dev/null
 
         # Try to acquire lock atomically
+        # Note: redirect entire subshell stderr to suppress noclobber errors
         if (
             set -C
-            echo "$CACHE_INSTANCE_ID:$$:$(date +%s)" >"$lock_file" 2>/dev/null
-        ); then
+            echo "$CACHE_INSTANCE_ID:$$:$(date +%s)" >"$lock_file"
+        ) 2>/dev/null; then
             [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Acquired cache lock: $(basename "$cache_file")" "INFO"
             return 0
         else
