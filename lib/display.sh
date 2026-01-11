@@ -139,11 +139,14 @@ format_cost_value() {
     local cost="$1"
     local label="$2"
     local color="${3:-$CONFIG_GREEN}"
-    
-    if [[ "$cost" == "-.--" ]] || [[ -z "$cost" ]]; then
+
+    # Sanitize cost - remove any newlines and take first line only
+    cost=$(echo "$cost" | head -1 | tr -d '\n\r')
+
+    if [[ "$cost" == "-.--" ]] || [[ -z "$cost" ]] || [[ ! "$cost" =~ ^[0-9.]+$ ]]; then
         echo "${color}${label} \$-.--${CONFIG_RESET}"
     else
-        printf "${color}%s \$%.2f${CONFIG_RESET}\n" "$label" "$cost"
+        printf "${color}%s \$%.2f${CONFIG_RESET}\n" "$label" "$cost" 2>/dev/null || echo "${color}${label} \$-.--${CONFIG_RESET}"
     fi
 }
 

@@ -103,9 +103,39 @@ init_default_config() {
     CONFIG_PRAYER_MADHAB="2"
     CONFIG_PRAYER_TIMEZONE=""
 
-    # Line configuration defaults removed in v2.8.1+ single source architecture
-    # All configuration now loaded exclusively from Config.toml via auto-regeneration
-    # No hardcoded defaults needed - auto_regenerate_config() ensures Config.toml always exists
+    # Line configuration defaults (for test mode when TOML is skipped)
+    # These provide minimal working configuration for tests
+    if [[ "${STATUSLINE_SKIP_TOML:-}" == "true" ]]; then
+        CONFIG_DISPLAY_LINES="4"
+        CONFIG_LINE1_COMPONENTS="repo_info,commits,version_info,time_display"
+        CONFIG_LINE2_COMPONENTS="model_info,cost_repo,cost_monthly,cost_weekly,cost_daily,cost_live"
+        CONFIG_LINE3_COMPONENTS="mcp_status,reset_timer"
+        CONFIG_LINE4_COMPONENTS=""
+        CONFIG_LINE5_COMPONENTS=""
+        CONFIG_LINE6_COMPONENTS=""
+        CONFIG_LINE7_COMPONENTS=""
+        CONFIG_LINE8_COMPONENTS=""
+        CONFIG_LINE9_COMPONENTS=""
+        CONFIG_LINE1_SEPARATOR=" │ "
+        CONFIG_LINE2_SEPARATOR=" │ "
+        CONFIG_LINE3_SEPARATOR=" │ "
+        CONFIG_LINE4_SEPARATOR=" │ "
+        CONFIG_LINE5_SEPARATOR=" │ "
+        CONFIG_LINE6_SEPARATOR=" │ "
+        CONFIG_LINE7_SEPARATOR=" │ "
+        CONFIG_LINE8_SEPARATOR=" │ "
+        CONFIG_LINE9_SEPARATOR=" │ "
+        CONFIG_LINE1_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE2_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE3_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE4_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE5_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE6_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE7_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE8_SHOW_WHEN_EMPTY="false"
+        CONFIG_LINE9_SHOW_WHEN_EMPTY="false"
+        debug_log "Test mode line configuration defaults applied" "INFO"
+    fi
 
     debug_log "Default configuration initialized" "INFO"
 }

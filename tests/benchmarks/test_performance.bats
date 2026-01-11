@@ -72,7 +72,7 @@ teardown() {
     local start_time=$(date +%s)
 
     # Source the script and test parsing
-    STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
+    STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
     parse_toml_to_json "$TEST_CONFIG" >/dev/null
 
     local end_time=$(date +%s)
@@ -92,7 +92,7 @@ teardown() {
     local memory_before=$(ps -o rss= -p $$ 2>/dev/null || echo "0")
     
     # Load configuration multiple times
-STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
+STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
     for i in {1..10}; do
         parse_toml_to_json "$TEST_CONFIG" >/dev/null
     done
@@ -111,7 +111,7 @@ STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
     local start_time=$(date +%s)
 
     # Test error handling paths (ignore exit codes, we're measuring timing)
-    STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
+    STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
     parse_toml_to_json "/nonexistent/file.toml" >/dev/null 2>&1 || true
     parse_toml_to_json "" >/dev/null 2>&1 || true
 
@@ -128,7 +128,7 @@ STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
 @test "path sanitization should be efficient" {
     local start_time=$(date +%s)
     
-STATUSLINE_TESTING="true" source statusline.sh 2>/dev/null
+STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
     
     # Test multiple path sanitizations
     for i in {1..100}; do
