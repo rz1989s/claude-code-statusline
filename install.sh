@@ -743,6 +743,13 @@ download_directory_comprehensive() {
         # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
     )
 
+    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
+    local cost_modules=(
+        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
+        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        # 🆕 ADD NEW COST MODULES HERE (lib/cost/*.sh files)
+    )
+
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
         "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
@@ -759,7 +766,7 @@ download_directory_comprehensive() {
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -1038,6 +1045,13 @@ download_lib_fallback() {
         # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
     )
 
+    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
+    local cost_modules=(
+        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
+        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        # 🆕 ADD NEW COST MODULES HERE (must match optimized function arrays)
+    )
+
     # Component modules (lib/components/) - all 22 components
     local component_modules=(
         "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
@@ -1055,7 +1069,7 @@ download_lib_fallback() {
     )
 
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
