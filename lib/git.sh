@@ -564,12 +564,6 @@ if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
     init_git_module
 fi
 
-# Export git functions
-export -f is_git_repository get_git_root is_git_root
-export -f get_git_branch is_main_branch get_git_status
-export -f has_uncommitted_changes has_untracked_files get_detailed_git_status
-export -f get_total_commit_count get_commits_since get_commits_today get_commits_this_week
-export -f get_last_commit_info has_submodules get_submodule_count get_submodule_status
-export -f get_detailed_submodule_info are_submodules_updated
-export -f get_remote_url get_remote_status execute_git_command get_git_config
-export -f is_bare_repository format_git_status_display get_formatted_git_branch
+# Issue #134: Only export functions used in cached subshells
+# Internal functions called via cache_git_operation need export
+export -f _get_git_branch_direct _get_git_status_direct

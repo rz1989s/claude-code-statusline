@@ -454,10 +454,4 @@ if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
     init_profiles_module
 fi
 
-# Export profile functions
-export -f expand_home_path match_directory_pattern detect_profile_by_directory
-export -f get_git_remote_url detect_profile_by_git_remote
-export -f get_current_day_abbrev is_within_time_range is_current_day_in_list detect_profile_by_time
-export -f detect_active_profile apply_profile
-export -f get_current_profile is_profiles_enabled get_available_profiles set_profile
-export -f get_profile_detection_reason
+# Issue #134: exports removed - profile functions run in main process only

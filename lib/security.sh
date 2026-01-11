@@ -162,8 +162,8 @@ create_secure_cache_file() {
     local cache_file="$1"
     local content="$2"
     local lock_file="${cache_file}.lock"
-    local max_wait_time=5 # Maximum seconds to wait for lock
-    local wait_count=0
+    local max_retries=5
+    local retry_count=0
 
     # Check required parameters
     if [[ -z "$cache_file" || -z "$content" ]]; then
@@ -175,25 +175,32 @@ create_secure_cache_file() {
     local cache_dir
     cache_dir=$(dirname "$cache_file")
     if [[ ! -d "$cache_dir" ]]; then
-        # Note: mkdir/chmod stderr suppressed - parent may not exist or lack permissions
-        # Function will fail gracefully on write if directory creation fails
         mkdir -p "$cache_dir" 2>/dev/null
-        chmod 700 "$cache_dir" 2>/dev/null # Secure permissions to prevent other users from reading cost data
+        chmod 700 "$cache_dir" 2>/dev/null
     fi
 
-    # Acquire exclusive file lock to prevent race conditions
-    # Note: set -C + redirect stderr suppressed - expected to fail when lock exists
-    while ! (
-        set -C
-        echo $$ >"$lock_file"
-    ) 2>/dev/null; do
-        if [[ $wait_count -ge $max_wait_time ]]; then
-            handle_warning "Failed to acquire lock for cache file after ${max_wait_time}s, proceeding without lock: $cache_file" "create_secure_cache_file"
-            break
+    # Acquire exclusive file lock using atomic noclobber (Issue #138)
+    # Uses retry with random backoff instead of sleep polling
+    while [[ $retry_count -lt $max_retries ]]; do
+        # Clean up stale lock before attempting
+        if [[ -f "$lock_file" ]]; then
+            local lock_age=$(($(date +%s) - $(stat -f %m "$lock_file" 2>/dev/null || stat -c %Y "$lock_file" 2>/dev/null || echo 0)))
+            [[ $lock_age -gt 30 ]] && rm -f "$lock_file" 2>/dev/null
         fi
-        sleep 0.1
-        wait_count=$((wait_count + 1))
+
+        # Try atomic lock acquisition
+        if (set -C; echo "$$:$(date +%s)" >"$lock_file") 2>/dev/null; then
+            break  # Lock acquired
+        fi
+
+        retry_count=$((retry_count + 1))
+        # Random backoff to prevent thundering herd
+        sleep "0.$((RANDOM % 3 + 1))"
     done
+
+    if [[ $retry_count -ge $max_retries ]]; then
+        handle_warning "Failed to acquire lock after $max_retries attempts, proceeding without lock: $cache_file" "create_secure_cache_file"
+    fi
 
     # Create file with content atomically
     local write_status=1

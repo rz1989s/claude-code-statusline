@@ -353,11 +353,6 @@ init_component_system() {
 # Note: init_component_system should be called explicitly from the main script
 # after SCRIPT_DIR is properly set. Do not auto-initialize here.
 
-# Export component functions
-export -f register_component is_component_registered is_component_enabled
-export -f get_registered_components get_component_description
-export -f collect_component_data collect_all_component_data render_component
-export -f build_component_line get_component_config set_component_enabled
-export -f load_component_modules show_component_status
+# Issue #134: exports removed - component functions run in main process only
 
 debug_log "Component system module loaded successfully" "INFO"
