@@ -29,25 +29,19 @@ collect_cost_repo_data() {
     fi
 
     if is_module_loaded "cost"; then
-        # Issue #104: Use hybrid cost source (native + ccusage fallback)
-        # Session cost prefers native data for zero-latency, real-time accuracy
-        local source="${CONFIG_COST_SESSION_SOURCE:-auto}"
-        local session_cost
-
-        session_cost=$(get_session_cost_with_source "$source")
-
-        if [[ -n "$session_cost" && "$session_cost" != "0.00" ]]; then
-            COMPONENT_COST_REPO_COST="$session_cost"
-            debug_log "Using hybrid session cost ($source): \$$session_cost" "INFO"
-        elif is_ccusage_available; then
-            # Fallback to ccusage if hybrid returns zero/empty
+        # Issue #XXX: REPO shows cumulative repository cost (all sessions in this repo)
+        # This is different from SESSION cost which shows current conversation only.
+        # Always use ccusage session data for cumulative repo cost.
+        if is_ccusage_available; then
             local usage_info
             usage_info=$(get_claude_usage_info)
 
             if [[ -n "$usage_info" ]]; then
                 COMPONENT_COST_REPO_COST="${usage_info%%:*}"
-                debug_log "Fallback to ccusage session cost: \$$COMPONENT_COST_REPO_COST" "INFO"
+                debug_log "Using ccusage for cumulative repo cost: \$$COMPONENT_COST_REPO_COST" "INFO"
             fi
+        else
+            debug_log "ccusage not available for repo cost" "WARN"
         fi
     fi
 
