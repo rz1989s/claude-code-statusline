@@ -56,25 +56,32 @@ teardown_file() {
     assert_success
 }
 
-@test "should export themes module functions" {
-    # Check that key theme functions are available
-    run type apply_theme
+@test "should define themes module functions" {
+    # Issue #134: Theme functions are defined but NOT exported (run in main process only)
+    # Unset module guards (exported from setup_file) so modules can be sourced fresh
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && type apply_theme >/dev/null && echo ok"
     assert_success
+    [[ "$output" == "ok" ]]
 
-    run type get_current_theme
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && type get_current_theme >/dev/null && echo ok"
     assert_success
+    [[ "$output" == "ok" ]]
 }
 
-@test "should export display module functions" {
-    # Check that key display functions are available
-    run type build_line1
+@test "should define display module functions" {
+    # Issue #134: Display functions are defined but NOT exported (run in main process only)
+    # Unset module guards (exported from setup_file) so modules can be sourced fresh
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED STATUSLINE_DISPLAY_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && source lib/display.sh && type build_line1 >/dev/null && echo ok"
     assert_success
+    [[ "$output" == "ok" ]]
 
-    run type build_line2
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED STATUSLINE_DISPLAY_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && source lib/display.sh && type build_line2 >/dev/null && echo ok"
     assert_success
+    [[ "$output" == "ok" ]]
 
-    run type build_line3
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED STATUSLINE_DISPLAY_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && source lib/display.sh && type build_line3 >/dev/null && echo ok"
     assert_success
+    [[ "$output" == "ok" ]]
 }
 
 @test "should have is_module_loaded function working" {
@@ -106,8 +113,9 @@ teardown_file() {
     assert_success
 }
 
-@test "should have all expected functions exported" {
-    # Comprehensive check of key exported functions
+@test "should have key functions defined" {
+    # Issue #134: Only check functions that actually need to be available
+    # Core/security functions are exported; theme/display run in main process only
     local expected_functions=(
         "load_module"
         "is_module_loaded"
@@ -115,14 +123,17 @@ teardown_file() {
         "handle_error"
         "handle_warning"
         "sanitize_path_secure"
-        "apply_theme"
-        "get_current_theme"
     )
 
     for func in "${expected_functions[@]}"; do
         run type "$func"
         assert_success
     done
+
+    # Theme functions are defined but not exported - test via bash -c
+    # Unset module guards (exported from setup_file) so modules can be sourced fresh
+    run bash -c "unset STATUSLINE_CORE_LOADED STATUSLINE_SECURITY_LOADED STATUSLINE_CONFIG_LOADED STATUSLINE_THEMES_LOADED && cd '$STATUSLINE_ROOT' && source lib/core.sh && source lib/security.sh && source lib/config.sh && source lib/themes.sh && type apply_theme >/dev/null && echo ok"
+    assert_success
 }
 
 @test "should have strict mode functions available" {
