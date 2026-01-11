@@ -218,6 +218,8 @@ USAGE:
     statusline.sh --health=json             - Show health status (JSON format)
     statusline.sh --metrics                 - Show performance metrics (JSON)
     statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
+    statusline.sh --validate                - Validate Config.toml schema
+    statusline.sh --validate=strict         - Strict validation (exit on errors)
     statusline.sh --list-themes             - List available themes
     statusline.sh --preview-theme <name>    - Preview a theme's colors
     statusline.sh --check-updates           - Check for new versions
@@ -972,6 +974,33 @@ if [[ $# -gt 0 ]]; then
         show_metrics "prometheus"
         exit $?
         ;;
+    "--validate")
+        # Validate Config.toml schema (Issue #122)
+        _validate_config_file=$(discover_config_file)
+        if [[ -n "$_validate_config_file" ]]; then
+            validate_config_detailed "$_validate_config_file"
+            exit $?
+        else
+            echo "No Config.toml found to validate"
+            exit 1
+        fi
+        ;;
+    "--validate=strict")
+        # Strict validation - exit with error on any issues
+        _validate_config_file=$(discover_config_file)
+        if [[ -n "$_validate_config_file" ]]; then
+            if validate_config_schema "$_validate_config_file" "true"; then
+                echo "✅ Configuration is valid"
+                exit 0
+            else
+                echo "❌ Configuration has errors"
+                exit 1
+            fi
+        else
+            echo "No Config.toml found to validate"
+            exit 1
+        fi
+        ;;
     "--list-themes")
         echo "Available themes:"
         for theme in $(get_available_themes); do
@@ -1055,9 +1084,11 @@ fi
 # MAIN STATUSLINE GENERATION
 # ============================================================================
 
-# Skip main execution when sourced for testing
-if [[ "${STATUSLINE_TESTING:-}" == "true" ]]; then
-    debug_log "Test mode enabled - skipping main execution" "INFO"
+# Skip main execution when sourced for function access
+# STATUSLINE_SOURCING: Skip main execution when sourcing for function testing
+# STATUSLINE_TESTING:  General test mode (but runs main for integration tests)
+if [[ "${STATUSLINE_SOURCING:-}" == "true" ]]; then
+    debug_log "Sourcing mode enabled - skipping main execution" "INFO"
     return 0 2>/dev/null || exit 0
 fi
 

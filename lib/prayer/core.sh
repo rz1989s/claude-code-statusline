@@ -232,9 +232,12 @@ fetch_prayer_data_single() {
     fi
     
     # Make API request with shorter timeout for better retry behavior
+    # Dynamic User-Agent with current version (Issue #133)
+    local user_agent="Claude-Code-Statusline/${STATUSLINE_VERSION:-unknown}"
+
     local response
     response=$(curl -s --max-time 5 --connect-timeout 3 \
-        -H "User-Agent: Claude-Code-Statusline/2.4.0" \
+        -H "User-Agent: $user_agent" \
         "$api_url" 2>/dev/null)
     
     if [[ $? -ne 0 || -z "$response" ]]; then

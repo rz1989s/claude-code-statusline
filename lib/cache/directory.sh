@@ -53,16 +53,21 @@ determine_cache_base_dir() {
     echo "$cache_dir"
 }
 
-# Legacy cache directory for migration
-export LEGACY_CACHE_DIR="/tmp/.claude_statusline_cache"
+# Legacy cache directory for migration (Issue #135)
+# DEPRECATED: This path exists ONLY to migrate pre-v2.0 installations
+# The hardcoded /tmp path is intentional - it matches where old versions stored data
+# After migration, this directory is cleaned up and no longer used
+# TODO: Remove migration code entirely in v3.0.0
+_LEGACY_CACHE_DIR_V1="/tmp/.claude_statusline_cache"
 
 # ============================================================================
 # CACHE FILE MANAGEMENT
 # ============================================================================
 
 # Migrate cache files from legacy location to XDG-compliant location
+# This handles pre-v2.0 installations that used /tmp
 migrate_legacy_cache() {
-    local legacy_dir="$LEGACY_CACHE_DIR"
+    local legacy_dir="$_LEGACY_CACHE_DIR_V1"
     local new_dir="$CACHE_BASE_DIR"
 
     # Skip migration if legacy directory doesn't exist or is the same as new directory

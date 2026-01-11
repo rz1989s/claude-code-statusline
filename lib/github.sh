@@ -30,11 +30,144 @@ CONFIG_GITHUB_SHOW_LATEST_RELEASE="${CONFIG_GITHUB_SHOW_LATEST_RELEASE:-false}"
 CONFIG_GITHUB_CACHE_TTL="${CONFIG_GITHUB_CACHE_TTL:-300}"  # 5 minutes
 CONFIG_GITHUB_TIMEOUT="${CONFIG_GITHUB_TIMEOUT:-10}"       # 10 seconds
 
+# Rate limiting configuration
+CONFIG_GITHUB_RATE_LIMIT_THRESHOLD="${CONFIG_GITHUB_RATE_LIMIT_THRESHOLD:-100}"  # Warn when below this
+CONFIG_GITHUB_RATE_LIMIT_CRITICAL="${CONFIG_GITHUB_RATE_LIMIT_CRITICAL:-10}"     # Stop API calls below this
+CONFIG_GITHUB_RATE_LIMIT_CACHE_TTL="${CONFIG_GITHUB_RATE_LIMIT_CACHE_TTL:-60}"   # Cache rate limit for 60s
+CONFIG_GITHUB_SHOW_RATE_LIMIT_WARNING="${CONFIG_GITHUB_SHOW_RATE_LIMIT_WARNING:-true}"
+
 # Status indicators
 CONFIG_GITHUB_CI_PASSING="${CONFIG_GITHUB_CI_PASSING:-✓}"
 CONFIG_GITHUB_CI_FAILING="${CONFIG_GITHUB_CI_FAILING:-✗}"
 CONFIG_GITHUB_CI_PENDING="${CONFIG_GITHUB_CI_PENDING:-●}"
 CONFIG_GITHUB_CI_UNKNOWN="${CONFIG_GITHUB_CI_UNKNOWN:-?}"
+
+# ============================================================================
+# RATE LIMITING (Issue #121)
+# ============================================================================
+
+# Global rate limit state
+declare -g GITHUB_RATE_LIMITED="false"
+declare -g GITHUB_RATE_REMAINING=""
+declare -g GITHUB_RATE_RESET=""
+
+# Check API rate limit status
+# Returns: 0 if OK to proceed, 1 if rate limited
+check_api_rate_limit() {
+    local force_check="${1:-false}"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_rate_limit_cache"
+    local cache_ttl="${CONFIG_GITHUB_RATE_LIMIT_CACHE_TTL:-60}"
+
+    # Check cached rate limit first (unless forced)
+    if [[ "$force_check" != "true" && -f "$cache_file" ]]; then
+        local file_age=$(($(date +%s) - $(get_file_mtime "$cache_file")))
+        if [[ $file_age -lt $cache_ttl ]]; then
+            local cached_data
+            cached_data=$(cat "$cache_file" 2>/dev/null)
+            GITHUB_RATE_REMAINING=$(echo "$cached_data" | cut -d: -f1)
+            GITHUB_RATE_RESET=$(echo "$cached_data" | cut -d: -f2)
+            GITHUB_RATE_LIMITED=$(echo "$cached_data" | cut -d: -f3)
+
+            if [[ "$GITHUB_RATE_LIMITED" == "true" ]]; then
+                debug_log "Rate limit cached: $GITHUB_RATE_REMAINING remaining, reset at $GITHUB_RATE_RESET" "WARN"
+                return 1
+            fi
+            return 0
+        fi
+    fi
+
+    # Query GitHub API for rate limit
+    local rate_data
+    if command_exists timeout; then
+        rate_data=$(timeout 5 gh api rate_limit 2>/dev/null)
+    elif command_exists gtimeout; then
+        rate_data=$(gtimeout 5 gh api rate_limit 2>/dev/null)
+    else
+        rate_data=$(gh api rate_limit 2>/dev/null)
+    fi
+
+    if [[ -z "$rate_data" ]]; then
+        debug_log "Failed to get rate limit info" "WARN"
+        # Assume OK if we can't check
+        return 0
+    fi
+
+    # Parse rate limit response
+    GITHUB_RATE_REMAINING=$(echo "$rate_data" | jq -r '.rate.remaining // 5000' 2>/dev/null)
+    GITHUB_RATE_RESET=$(echo "$rate_data" | jq -r '.rate.reset // 0' 2>/dev/null)
+
+    local critical_threshold="${CONFIG_GITHUB_RATE_LIMIT_CRITICAL:-10}"
+
+    # Check if critically rate limited
+    if [[ -n "$GITHUB_RATE_REMAINING" && "$GITHUB_RATE_REMAINING" -lt "$critical_threshold" ]]; then
+        GITHUB_RATE_LIMITED="true"
+        debug_log "GitHub API rate limit critical: $GITHUB_RATE_REMAINING remaining" "WARN"
+
+        # Cache the rate limited state
+        echo "${GITHUB_RATE_REMAINING}:${GITHUB_RATE_RESET}:true" > "$cache_file" 2>/dev/null
+
+        return 1
+    fi
+
+    GITHUB_RATE_LIMITED="false"
+
+    # Cache the OK state
+    echo "${GITHUB_RATE_REMAINING}:${GITHUB_RATE_RESET}:false" > "$cache_file" 2>/dev/null
+
+    # Log warning if approaching threshold
+    local warn_threshold="${CONFIG_GITHUB_RATE_LIMIT_THRESHOLD:-100}"
+    if [[ -n "$GITHUB_RATE_REMAINING" && "$GITHUB_RATE_REMAINING" -lt "$warn_threshold" ]]; then
+        debug_log "GitHub API quota low: $GITHUB_RATE_REMAINING remaining" "WARN"
+    fi
+
+    return 0
+}
+
+# Get rate limit warning for display (if enabled)
+get_rate_limit_warning() {
+    if [[ "${CONFIG_GITHUB_SHOW_RATE_LIMIT_WARNING:-true}" != "true" ]]; then
+        echo ""
+        return 0
+    fi
+
+    local warn_threshold="${CONFIG_GITHUB_RATE_LIMIT_THRESHOLD:-100}"
+
+    if [[ -n "$GITHUB_RATE_REMAINING" && "$GITHUB_RATE_REMAINING" -lt "$warn_threshold" ]]; then
+        local reset_time=""
+        if [[ -n "$GITHUB_RATE_RESET" && "$GITHUB_RATE_RESET" != "0" ]]; then
+            reset_time=$(date -r "$GITHUB_RATE_RESET" "+%H:%M" 2>/dev/null || echo "")
+        fi
+
+        if [[ -n "$reset_time" ]]; then
+            echo "⚠️ GH:${GITHUB_RATE_REMAINING}@${reset_time}"
+        else
+            echo "⚠️ GH:${GITHUB_RATE_REMAINING}"
+        fi
+    else
+        echo ""
+    fi
+}
+
+# Get time until rate limit reset (human readable)
+get_rate_limit_reset_time() {
+    if [[ -z "$GITHUB_RATE_RESET" || "$GITHUB_RATE_RESET" == "0" ]]; then
+        echo ""
+        return 0
+    fi
+
+    local now reset_in
+    now=$(date +%s)
+    reset_in=$((GITHUB_RATE_RESET - now))
+
+    if [[ $reset_in -lt 0 ]]; then
+        echo "now"
+    elif [[ $reset_in -lt 60 ]]; then
+        echo "${reset_in}s"
+    else
+        echo "$((reset_in / 60))m"
+    fi
+}
 
 # ============================================================================
 # GITHUB UTILITIES
@@ -92,11 +225,18 @@ get_github_repo_info() {
     echo "$repo_info"
 }
 
-# Execute gh command with timeout
+# Execute gh command with timeout and rate limit checking
 execute_gh_command() {
     local timeout="${CONFIG_GITHUB_TIMEOUT:-10}"
     local cmd="$1"
     shift
+
+    # Check rate limit before making API call
+    if ! check_api_rate_limit; then
+        debug_log "Skipping GitHub API call due to rate limit" "WARN"
+        echo ""
+        return 1
+    fi
 
     local result
     if command_exists timeout; then
@@ -125,13 +265,18 @@ get_ci_status() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_ci_status_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_ci_status_cache"
+    local use_stale_cache="false"
+
     if [[ -f "$cache_file" ]]; then
         local file_age=$(($(date +%s) - $(get_file_mtime "$cache_file")))
         if [[ $file_age -lt $cache_ttl ]]; then
             cat "$cache_file"
             return 0
         fi
+        # Cache is stale but usable as fallback
+        use_stale_cache="true"
     fi
 
     # Get current branch
@@ -146,6 +291,13 @@ get_ci_status() {
     # Get workflow run status using gh CLI
     local run_status
     run_status=$(execute_gh_command run list --branch "$branch" --limit 1 --json conclusion,status 2>/dev/null)
+
+    # If API call failed (rate limited), use stale cache
+    if [[ -z "$run_status" && "$use_stale_cache" == "true" ]]; then
+        debug_log "Using stale cache for CI status (rate limited)" "INFO"
+        cat "$cache_file"
+        return 0
+    fi
 
     if [[ -z "$run_status" || "$run_status" == "[]" ]]; then
         debug_log "No CI runs found for branch: $branch" "INFO"
@@ -208,18 +360,33 @@ get_open_pr_count() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_pr_count_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_pr_count_cache"
+    local use_stale_cache="false"
+
     if [[ -f "$cache_file" ]]; then
         local file_age=$(($(date +%s) - $(get_file_mtime "$cache_file")))
         if [[ $file_age -lt $cache_ttl ]]; then
             cat "$cache_file"
             return 0
         fi
+        # Cache is stale but usable as fallback
+        use_stale_cache="true"
     fi
 
     # Get open PR count using gh CLI
+    local pr_list
+    pr_list=$(execute_gh_command pr list --state open --json number 2>/dev/null)
+
+    # If API call failed (rate limited), use stale cache
+    if [[ -z "$pr_list" && "$use_stale_cache" == "true" ]]; then
+        debug_log "Using stale cache for PR count (rate limited)" "INFO"
+        cat "$cache_file"
+        return 0
+    fi
+
     local pr_count
-    pr_count=$(execute_gh_command pr list --state open --json number 2>/dev/null | jq 'length' 2>/dev/null)
+    pr_count=$(echo "$pr_list" | jq 'length' 2>/dev/null)
 
     if [[ -z "$pr_count" || "$pr_count" == "null" ]]; then
         pr_count="0"
@@ -264,18 +431,33 @@ get_latest_release() {
     local cache_ttl="${CONFIG_GITHUB_CACHE_TTL:-300}"
 
     # Try cache first using file-based caching
-    local cache_file="${CACHE_BASE_DIR:-/tmp}/github_release_cache"
+    # Issue #135: Use XDG-compliant fallback instead of /tmp
+    local cache_file="${CACHE_BASE_DIR:-${HOME:-.}/.cache/claude-code-statusline}/github_release_cache"
+    local use_stale_cache="false"
+
     if [[ -f "$cache_file" ]]; then
         local file_age=$(($(date +%s) - $(get_file_mtime "$cache_file")))
         if [[ $file_age -lt $cache_ttl ]]; then
             cat "$cache_file"
             return 0
         fi
+        # Cache is stale but usable as fallback
+        use_stale_cache="true"
     fi
 
     # Get latest release using gh CLI
+    local release_data
+    release_data=$(execute_gh_command release view --json tagName 2>/dev/null)
+
+    # If API call failed (rate limited), use stale cache
+    if [[ -z "$release_data" && "$use_stale_cache" == "true" ]]; then
+        debug_log "Using stale cache for release info (rate limited)" "INFO"
+        cat "$cache_file"
+        return 0
+    fi
+
     local release_tag
-    release_tag=$(execute_gh_command release view --json tagName 2>/dev/null | jq -r '.tagName // empty' 2>/dev/null)
+    release_tag=$(echo "$release_data" | jq -r '.tagName // empty' 2>/dev/null)
 
     if [[ -z "$release_tag" ]]; then
         release_tag=""
@@ -331,6 +513,11 @@ get_github_component() {
     fi
 
     local parts=()
+
+    # Rate limit warning (if enabled and quota low)
+    local rate_warning
+    rate_warning=$(get_rate_limit_warning)
+    [[ -n "$rate_warning" ]] && parts+=("$rate_warning")
 
     # CI Status
     if [[ "${CONFIG_GITHUB_SHOW_CI_STATUS:-true}" == "true" ]]; then
@@ -425,3 +612,4 @@ export -f execute_gh_command get_ci_status get_ci_status_display
 export -f get_open_pr_count get_pr_count_display
 export -f get_latest_release get_release_display
 export -f get_github_component get_github_status_summary
+export -f check_api_rate_limit get_rate_limit_warning get_rate_limit_reset_time

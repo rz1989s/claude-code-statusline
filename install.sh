@@ -702,6 +702,7 @@ download_directory_comprehensive() {
     mkdir -p "$local_path/prayer"
     mkdir -p "$local_path/cache"
     mkdir -p "$local_path/config"
+    mkdir -p "$local_path/cost"
     mkdir -p "$local_path/components"
     
     # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
@@ -739,8 +740,15 @@ download_directory_comprehensive() {
     # Config system modules (lib/config/) - modular config architecture
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh"
+        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
+    )
+
+    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
+    local cost_modules=(
+        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
+        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        # 🆕 ADD NEW COST MODULES HERE (lib/cost/*.sh files)
     )
 
     local component_modules=(
@@ -759,7 +767,7 @@ download_directory_comprehensive() {
     )
     
     # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
     local files_downloaded=0
     local total_files=${#all_modules[@]}
     local failed_files=()
@@ -1034,8 +1042,15 @@ download_lib_fallback() {
     # Config system modules (lib/config/) - modular config architecture
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh"
+        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
+    )
+
+    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
+    local cost_modules=(
+        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
+        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        # 🆕 ADD NEW COST MODULES HERE (must match optimized function arrays)
     )
 
     # Component modules (lib/components/) - all 22 components
@@ -1055,7 +1070,7 @@ download_lib_fallback() {
     )
 
     # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${component_modules[@]}")
+    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
     local failed_modules=()
     local successful_downloads=0
     local total_modules=${#all_modules[@]}
@@ -1066,6 +1081,7 @@ download_lib_fallback() {
     mkdir -p "$LIB_DIR/prayer"
     mkdir -p "$LIB_DIR/cache"
     mkdir -p "$LIB_DIR/config"
+    mkdir -p "$LIB_DIR/cost"
     mkdir -p "$LIB_DIR/components"
     
     # Download each module with retry mechanism
