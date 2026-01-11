@@ -102,12 +102,13 @@ parse_mcp_server_list() {
         if server_name=$(parse_mcp_server_name_secure "$line" 2>/dev/null); then
             local server_status="$MCP_STATUS_DISCONNECTED"
             
-            # Determine connection status
-            if echo "$line" | grep -q "$MCP_CONNECTED_PATTERN"; then
+            # Determine connection status using bash pattern matching (Issue #136)
+            # Avoids spawning subshell+grep for each pattern check
+            if [[ "$line" == *"$MCP_CONNECTED_PATTERN"* ]]; then
                 server_status="$MCP_STATUS_CONNECTED"
-            elif echo "$line" | grep -q "$MCP_DISCONNECTED_PATTERN"; then
+            elif [[ "$line" == *"$MCP_DISCONNECTED_PATTERN"* ]]; then
                 server_status="$MCP_STATUS_DISCONNECTED"
-            elif echo "$line" | grep -q "$MCP_ERROR_PATTERN"; then
+            elif [[ "$line" == *"$MCP_ERROR_PATTERN"* ]]; then
                 server_status="$MCP_STATUS_ERROR"
             else
                 server_status="$MCP_STATUS_UNKNOWN"

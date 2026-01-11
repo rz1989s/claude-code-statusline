@@ -22,18 +22,11 @@ export STATUSLINE_COST_AGGREGATION_LOADED=true
 calculate_cost_dates() {
     local seven_days_ago thirty_days_ago today
 
-    # CRITICAL FIX: Ensure date format variables are never empty (fallback to hardcoded defaults)
-    # This fixes the DAY $0.00 issue when TOML configuration fails to load
-    if [[ -z "$CONFIG_DATE_FORMAT" || "$CONFIG_DATE_FORMAT" == "" ]]; then
-        export CONFIG_DATE_FORMAT="%Y-%m-%d"
-        debug_log "Applied fallback for CONFIG_DATE_FORMAT: %Y-%m-%d" "INFO"
-    fi
-    if [[ -z "$CONFIG_DATE_FORMAT_COMPACT" || "$CONFIG_DATE_FORMAT_COMPACT" == "" ]]; then
-        export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
-        debug_log "Applied fallback for CONFIG_DATE_FORMAT_COMPACT: %Y%m%d" "INFO"
-    fi
+    # Safety fallback if config not loaded (defaults in lib/config/defaults.sh)
+    : "${CONFIG_DATE_FORMAT:=%Y-%m-%d}"
+    : "${CONFIG_DATE_FORMAT_COMPACT:=%Y%m%d}"
 
-    # Calculate dates with proper fallbacks
+    # Calculate dates with platform-specific commands
     if date -d '7 days ago' "+$CONFIG_DATE_FORMAT_COMPACT" >/dev/null 2>&1; then
         # GNU date (Linux)
         seven_days_ago=$(date -d '7 days ago' "+$CONFIG_DATE_FORMAT_COMPACT")

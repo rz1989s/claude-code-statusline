@@ -17,10 +17,7 @@ export STATUSLINE_COST_CORE_LOADED=true
 # ============================================================================
 # COST TRACKING CONSTANTS
 # ============================================================================
-
-# CRITICAL FIX: Set date format defaults immediately to fix DAY $0.00 bug
-[[ -z "$CONFIG_DATE_FORMAT" ]] && export CONFIG_DATE_FORMAT="%Y-%m-%d"
-[[ -z "$CONFIG_DATE_FORMAT_COMPACT" ]] && export CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
+# Note: CONFIG_DATE_FORMAT defaults are in lib/config/defaults.sh (Issue #137)
 
 # Cache settings for cost data - differentiated by data type
 export COST_CACHE_DURATION_LIVE=30        # 30 seconds - active blocks (real-time)

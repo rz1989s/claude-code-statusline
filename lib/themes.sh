@@ -702,14 +702,4 @@ if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
     init_themes_module
 fi
 
-# Export theme functions
-export -f apply_theme apply_classic_theme apply_garden_theme apply_catppuccin_theme apply_ocean_theme
-export -f apply_custom_theme_defaults validate_theme get_available_themes
-export -f is_valid_theme get_current_theme preview_theme_colors apply_theme_inheritance
-# Dynamic theme exports
-export -f is_dynamic_theme_enabled get_dynamic_theme get_current_theme_period
-export -f is_daytime is_daytime_by_time is_daytime_by_sun is_daytime_by_prayer
-export -f get_minutes_since_midnight time_to_minutes
-# Theme inheritance exports (Issue #85)
-export -f is_theme_inheritance_enabled hex_to_ansi normalize_color
-export -f apply_color_overrides apply_inherited_theme get_theme_inheritance_status
+# Issue #134: exports removed - theme functions run in main process only, no subshell usage
