@@ -24,20 +24,20 @@ export STATUSLINE_CACHE_LOCKING_LOADED=true
 # ENHANCED LOCKING SYSTEM
 # ============================================================================
 
-# Acquire cache lock with retry logic
+# Acquire cache lock with retry logic (Issue #142: Fixed race condition)
 acquire_cache_lock() {
     local cache_file="$1"
     local max_retries="${2:-${CACHE_CONFIG_MAX_LOCK_RETRIES:-10}}"
     local lock_file="${cache_file}.lock"
 
+    # Clean up stale locks from dead processes only (not active ones)
     cleanup_stale_locks "$lock_file"
 
     local retry_count=0
-    while [[ $retry_count -lt $max_retries ]]; do
-        # Additional aggressive cleanup right before lock attempt
-        [[ -f "$lock_file" ]] && rm -f "$lock_file" 2>/dev/null
+    local base_delay=50  # Base delay in milliseconds (0.05s)
 
-        # Try to acquire lock atomically
+    while [[ $retry_count -lt $max_retries ]]; do
+        # Try to acquire lock atomically using noclobber
         # Note: redirect entire subshell stderr to suppress noclobber errors
         if (
             set -C
@@ -49,8 +49,15 @@ acquire_cache_lock() {
             retry_count=$((retry_count + 1))
             [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Cache lock attempt $retry_count/$max_retries failed: $(basename "$cache_file")" "INFO"
 
-            # Random backoff to prevent thundering herd
-            sleep "0.$(( (RANDOM % 5) + 1 ))"
+            # Exponential backoff with jitter to prevent thundering herd (Issue #142)
+            # Formula: base_delay * 2^retry + random_jitter
+            local delay_ms=$(( base_delay * (1 << retry_count) + (RANDOM % 50) ))
+            # Cap at 500ms to avoid excessive delays
+            [[ $delay_ms -gt 500 ]] && delay_ms=500
+            sleep "0.$(printf '%03d' $delay_ms)"
+
+            # Re-check for stale locks between retries (process may have died)
+            cleanup_stale_locks "$lock_file"
         fi
     done
 

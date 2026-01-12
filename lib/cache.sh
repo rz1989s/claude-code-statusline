@@ -84,10 +84,11 @@ export CACHE_DURATION_PRAYER_CALCULATION=3600 # 1 hour - calculation method chan
 # ============================================================================
 
 # Instance-specific cache management with XDG compliance
-# Use a more stable session identifier for better cache sharing across statusline calls
+# Use PPID (parent process ID) for unique per-Claude-Code-instance isolation (Issue #142)
+# This ensures each Claude Code instance gets its own cache files and locks
 # Sanitize USER to ensure valid variable names (issue #51: dots in username)
 SANITIZED_USER=$(sanitize_variable_name "${USER}")
-export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${SANITIZED_USER}_claude_statusline}}"
+export CACHE_INSTANCE_ID="${CACHE_INSTANCE_ID:-${CLAUDE_INSTANCE_ID:-${SANITIZED_USER}_claude_${PPID}}}"
 
 # Session marker uses XDG-compliant runtime directory (Issue #110)
 # get_secure_runtime_dir() provides XDG_RUNTIME_DIR -> CACHE_BASE_DIR -> secure fallback
