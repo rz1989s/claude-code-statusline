@@ -59,11 +59,17 @@ source "${_CONFIG_DIR}/config/schema_validator.sh" || {
     return 1
 }
 
+source "${_CONFIG_DIR}/config/cache.sh" || {
+    echo "ERROR: Failed to load config/cache.sh" >&2
+    return 1
+}
+
 # ============================================================================
 # TOML CONFIGURATION LOADING
 # ============================================================================
 
 # Load configuration from TOML file and set variables
+# Performance optimized: Uses pre-compiled cache when available (Issue #145, #146)
 load_toml_configuration() {
     # Check if jq is available for TOML configuration
     if ! command_exists jq; then
@@ -86,6 +92,8 @@ load_toml_configuration() {
                 return 1
             fi
             debug_log "Config.toml auto-regenerated successfully" "INFO"
+            # Invalidate cache since config was regenerated
+            invalidate_config_cache "$config_file"
         else
             handle_warning "No Config.toml found and auto-regeneration failed" "load_toml_configuration"
             return 1
@@ -94,7 +102,18 @@ load_toml_configuration() {
 
     debug_log "Loading configuration from: $config_file" "INFO"
 
-    # Parse TOML to JSON
+    # Fast path: Try to load from pre-compiled cache (Issue #145, #146)
+    # This avoids expensive TOML parsing (12+ seconds → <0.1 seconds)
+    if is_config_cache_valid "$config_file"; then
+        if load_config_from_cache "$config_file"; then
+            debug_log "Configuration loaded from cache (fast path)" "INFO"
+            return 0
+        fi
+    fi
+
+    # Slow path: Parse TOML, generate cache, then load
+    debug_log "Cache miss - parsing TOML (slow path)" "INFO"
+
     local config_json
     config_json=$(parse_toml_to_json "$config_file")
     local parse_result=$?
@@ -102,7 +121,16 @@ load_toml_configuration() {
     # Handle different error codes from parse_toml_to_json
     case $parse_result in
     0)
-        # Success - validate schema and extract configuration values
+        # Success - generate cache for next time
+        generate_config_cache "$config_file" "$config_json"
+
+        # Try to load from freshly generated cache
+        if load_config_from_cache "$config_file"; then
+            debug_log "Configuration loaded from fresh cache" "INFO"
+            return 0
+        fi
+
+        # Fallback: extract directly if cache load fails
         # Schema validation runs in non-strict mode (warnings only)
         validate_config_schema "$config_file" "false"
 
