@@ -41,11 +41,12 @@ get_claude_oauth_token() {
     fi
 
     if [[ -n "$token" ]]; then
-        # Parse JSON to extract access_token
+        # Parse JSON to extract access_token (handle nested structure)
         local access_token
-        access_token=$(echo "$token" | jq -r '.accessToken // .access_token // empty' 2>/dev/null)
+        # Try nested path first (claudeAiOauth.accessToken), then flat paths
+        access_token=$(echo "$token" | jq -r '.claudeAiOauth.accessToken // .accessToken // .access_token // empty' 2>/dev/null)
 
-        if [[ -n "$access_token" ]]; then
+        if [[ -n "$access_token" && "$access_token" != "null" ]]; then
             echo "$access_token"
             return 0
         fi
