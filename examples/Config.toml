@@ -144,10 +144,9 @@ context_window.medium_threshold = 50   # Yellow medium (50-75%)
 # Reference: https://codelynx.dev/posts/claude-code-usage-limits-statusline
 #
 # Display format (Line 3): Limit: 5h:22% 7d:54%
-# Display format (Line 4): Reset: 5h:2h15m 7d:Jan18
+# Display format (Line 4): ↻5h:2h15m ↻7d:Jan18 (uses ↻ symbol to avoid "double reset")
 features.show_usage_limits = true
 usage_limits.label = "Limit:"          # Label prefix for percentages
-usage_limits.reset_label = "Reset:"    # Label prefix for reset countdown
 usage_limits.warn_threshold = 50       # Yellow warning above this %
 usage_limits.critical_threshold = 80   # Red critical above this %
 usage_limits.cache_ttl = 300           # API cache TTL in seconds (5 min)

@@ -279,6 +279,7 @@ render_usage_limits() {
 # ============================================================================
 
 # Render usage reset times (separate component for line 4)
+# Uses ↻ symbol to avoid conflict with existing "RESET" block timer
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
@@ -288,7 +289,6 @@ render_usage_reset() {
     fi
 
     local output=""
-    local label="${CONFIG_USAGE_RESET_LABEL:-Reset:}"
     local dim_color=""
     local reset_color=""
 
@@ -297,12 +297,12 @@ render_usage_reset() {
         reset_color="${COLOR_RESET:-}"
     fi
 
-    # Build output with reset times
+    # Build output with reset times (↻ symbol, no label to avoid "double reset")
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
         local formatted_reset
         formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
         if [[ -n "$formatted_reset" ]]; then
-            output="${label} ${dim_color}5h:${formatted_reset}${reset_color}"
+            output="${dim_color}↻5h:${formatted_reset}${reset_color}"
         fi
     fi
 
@@ -311,9 +311,9 @@ render_usage_reset() {
         formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
         if [[ -n "$formatted_reset" ]]; then
             if [[ -n "$output" ]]; then
-                output="${output} ${dim_color}7d:${formatted_reset}${reset_color}"
+                output="${output} ${dim_color}↻7d:${formatted_reset}${reset_color}"
             else
-                output="${label} ${dim_color}7d:${formatted_reset}${reset_color}"
+                output="${dim_color}↻7d:${formatted_reset}${reset_color}"
             fi
         fi
     fi
