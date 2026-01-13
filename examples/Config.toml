@@ -140,16 +140,17 @@ context_window.medium_threshold = 50   # Yellow medium (50-75%)
 
 # === USAGE LIMITS CONFIGURATION (v2.15.0) ===
 # Display Claude Code rate limit usage from Anthropic OAuth API.
-# Shows 5-hour session and 7-day weekly usage percentages with optional reset times.
+# Shows 5-hour session and 7-day weekly usage percentages.
 # Reference: https://codelynx.dev/posts/claude-code-usage-limits-statusline
 #
-# Display format: Limit: 5h:22%(↻2h15m) 7d:54%(↻Jan18)
+# Display format (Line 3): Limit: 5h:22% 7d:54%
+# Display format (Line 4): Reset: 5h:2h15m 7d:Jan18
 features.show_usage_limits = true
-usage_limits.label = "Limit:"          # Label prefix
+usage_limits.label = "Limit:"          # Label prefix for percentages
+usage_limits.reset_label = "Reset:"    # Label prefix for reset countdown
 usage_limits.warn_threshold = 50       # Yellow warning above this %
 usage_limits.critical_threshold = 80   # Red critical above this %
 usage_limits.cache_ttl = 300           # API cache TTL in seconds (5 min)
-usage_limits.show_reset_times = true   # Show reset countdown (e.g., "↻2h15m")
 
 # === SESSION INFO CONFIGURATION (Issue #102) ===
 # Display session identification for multi-session awareness.
@@ -465,7 +466,7 @@ display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
 # Line 4: System Status & Timer
-display.line4.components = ["mcp_status", "reset_timer"]
+display.line4.components = ["mcp_status", "reset_timer", "usage_reset"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 

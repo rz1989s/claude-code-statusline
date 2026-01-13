@@ -221,7 +221,7 @@ collect_usage_limits_data() {
 # COMPONENT RENDERING
 # ============================================================================
 
-# Render usage limits display
+# Render usage limits display (percentages only - reset times in separate component)
 render_usage_limits() {
     local theme_enabled="${1:-true}"
 
@@ -230,10 +230,9 @@ render_usage_limits() {
         return 1  # No content - skip this component
     fi
 
-    # Get thresholds and settings from config
+    # Get thresholds from config
     local warn_threshold="${CONFIG_USAGE_WARN_THRESHOLD:-50}"
     local critical_threshold="${CONFIG_USAGE_CRITICAL_THRESHOLD:-80}"
-    local show_reset_times="${CONFIG_USAGE_SHOW_RESET_TIMES:-true}"
 
     local output=""
     local label="${CONFIG_USAGE_LABEL:-Limit:}"
@@ -250,17 +249,7 @@ render_usage_limits() {
                 five_hour_color="${CONFIG_GREEN:-}"
             fi
         fi
-
-        local five_hour_reset_str=""
-        if [[ "$show_reset_times" == "true" && -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
-            local formatted_reset
-            formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
-            if [[ -n "$formatted_reset" ]]; then
-                five_hour_reset_str="(↻${formatted_reset})"
-            fi
-        fi
-
-        output="${label} ${five_hour_color}5h:${COMPONENT_USAGE_FIVE_HOUR}%${five_hour_reset_str}${COLOR_RESET:-}"
+        output="${label} ${five_hour_color}5h:${COMPONENT_USAGE_FIVE_HOUR}%${COLOR_RESET:-}"
     fi
 
     if [[ -n "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
@@ -275,23 +264,66 @@ render_usage_limits() {
             fi
         fi
 
-        local seven_day_reset_str=""
-        if [[ "$show_reset_times" == "true" && -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
-            local formatted_reset
-            formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
-            if [[ -n "$formatted_reset" ]]; then
-                seven_day_reset_str="(↻${formatted_reset})"
-            fi
-        fi
-
         if [[ -n "$output" ]]; then
-            output="${output} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${seven_day_reset_str}${COLOR_RESET:-}"
+            output="${output} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         else
-            output="${label} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${seven_day_reset_str}${COLOR_RESET:-}"
+            output="${label} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         fi
     fi
 
     echo "$output"
+}
+
+# ============================================================================
+# USAGE RESET COMPONENT (Separate display for reset countdown)
+# ============================================================================
+
+# Render usage reset times (separate component for line 4)
+render_usage_reset() {
+    local theme_enabled="${1:-true}"
+
+    # Skip if no reset data available
+    if [[ -z "$COMPONENT_USAGE_FIVE_HOUR_RESET" && -z "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+        return 1  # No content - skip this component
+    fi
+
+    local output=""
+    local label="${CONFIG_USAGE_RESET_LABEL:-Reset:}"
+    local dim_color=""
+    local reset_color=""
+
+    if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
+        dim_color="${CONFIG_LIGHT_GRAY:-}"
+        reset_color="${COLOR_RESET:-}"
+    fi
+
+    # Build output with reset times
+    if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
+        local formatted_reset
+        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+        if [[ -n "$formatted_reset" ]]; then
+            output="${label} ${dim_color}5h:${formatted_reset}${reset_color}"
+        fi
+    fi
+
+    if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+        local formatted_reset
+        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+        if [[ -n "$formatted_reset" ]]; then
+            if [[ -n "$output" ]]; then
+                output="${output} ${dim_color}7d:${formatted_reset}${reset_color}"
+            else
+                output="${label} ${dim_color}7d:${formatted_reset}${reset_color}"
+            fi
+        fi
+    fi
+
+    if [[ -n "$output" ]]; then
+        echo "$output"
+        return 0
+    fi
+
+    return 1  # No content
 }
 
 # Get usage limits configuration
@@ -318,8 +350,8 @@ get_usage_limits_config() {
         "cache_ttl")
             echo "${USAGE_LIMITS_CACHE_TTL:-${default:-300}}"
             ;;
-        "show_reset_times")
-            echo "${CONFIG_USAGE_SHOW_RESET_TIMES:-${default:-true}}"
+        "reset_label")
+            echo "${CONFIG_USAGE_RESET_LABEL:-${default:-Reset:}}"
             ;;
         "description")
             echo "Claude Code rate limit usage (5h session, 7d weekly)"
@@ -344,15 +376,22 @@ USAGE_LIMITS_COMPONENT_DEPENDENCIES=("cache")
 # COMPONENT REGISTRATION
 # ============================================================================
 
-# Register the usage_limits component
+# Register the usage_limits component (percentages)
 register_component \
     "usage_limits" \
     "Claude Code rate limit usage (5h session, 7d weekly)" \
     "cache" \
     "true"
 
+# Register the usage_reset component (reset countdown times)
+register_component \
+    "usage_reset" \
+    "Claude Code rate limit reset countdown (5h session, 7d weekly)" \
+    "cache" \
+    "true"
+
 # Export component functions
 export -f get_claude_oauth_token fetch_usage_limits format_reset_time
-export -f collect_usage_limits_data render_usage_limits get_usage_limits_config
+export -f collect_usage_limits_data render_usage_limits render_usage_reset get_usage_limits_config
 
 debug_log "Usage limits component loaded" "INFO"
