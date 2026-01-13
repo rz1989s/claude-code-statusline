@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Smart fallback: Automatically uses native percentages when available (v2.1.6+), falls back to transcript parsing for older versions
 - `COMPONENT_CONTEXT_REMAINING` and `COMPONENT_CONTEXT_SOURCE` variables for richer context data
 - **Usage limits component** (`usage_limits`): Display Claude Code rate limits (5h session, 7d weekly) from Anthropic OAuth API
-- New functions: `get_claude_oauth_token()`, `fetch_usage_limits()`, `collect_usage_limits_data()`, `render_usage_limits()`
-- Display format: `Quota: 5h:22% 7d:54%` with color-coded thresholds
+- New functions: `get_claude_oauth_token()`, `fetch_usage_limits()`, `collect_usage_limits_data()`, `render_usage_limits()`, `format_reset_time()`
+- Display format: `Limit: 5h:22%(↻2h15m) 7d:54%(↻Jan18)` with color-coded thresholds and reset countdowns
+- Reset time display: Shows relative time (<24h: "2h15m") or date (>24h: "Jan18") with configurable `show_reset_times` option
 - GitHub Actions CI/CD workflow for automated testing
 - Pre-commit hooks configuration (.pre-commit-config.yaml)
 - Architecture documentation with Mermaid diagrams
