@@ -464,8 +464,8 @@ display.line3.components = ["burn_rate", "cache_efficiency", "block_projection",
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: System Status & Timer
-display.line4.components = ["mcp_status", "usage_reset"]
+# Line 4: System Status & Usage Limits (includes reset timer)
+display.line4.components = ["mcp_status", "usage_limits"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
