@@ -29,7 +29,7 @@ collect_cost_repo_data() {
     fi
 
     if is_module_loaded "cost"; then
-        # Issue #XXX: REPO shows cumulative repository cost (all sessions in this repo)
+        # REPO shows cumulative repository cost (all sessions in this repo)
         # This is different from SESSION cost which shows current conversation only.
         # Always use ccusage session data for cumulative repo cost.
         if is_ccusage_available; then
