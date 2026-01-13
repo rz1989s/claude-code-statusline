@@ -138,6 +138,18 @@ context_window.warn_threshold = 75     # Yellow warning above this %
 context_window.critical_threshold = 90 # Red critical above this %
 context_window.medium_threshold = 50   # Yellow medium (50-75%)
 
+# === USAGE LIMITS CONFIGURATION (v2.15.0) ===
+# Display Claude Code rate limit usage from Anthropic OAuth API.
+# Shows 5-hour session and 7-day weekly usage percentages.
+# Reference: https://codelynx.dev/posts/claude-code-usage-limits-statusline
+#
+# Display format: Quota: 5h:22% 7d:54%
+features.show_usage_limits = true
+usage_limits.label = "Quota:"          # Label prefix
+usage_limits.warn_threshold = 50       # Yellow warning above this %
+usage_limits.critical_threshold = 80   # Red critical above this %
+usage_limits.cache_ttl = 300           # API cache TTL in seconds (5 min)
+
 # === SESSION INFO CONFIGURATION (Issue #102) ===
 # Display session identification for multi-session awareness.
 # Useful for: resume sessions (claude -r abc12345), debug correlation.

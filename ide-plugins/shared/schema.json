@@ -97,6 +97,33 @@
       },
       "required": ["enabled"]
     },
+    "context_window": {
+      "type": "object",
+      "description": "Context window usage information (native v2.1.6+ or transcript fallback)",
+      "properties": {
+        "used_percentage": {
+          "type": ["integer", "null"],
+          "description": "Percentage of context window used (0-100), null if no messages yet"
+        },
+        "remaining_percentage": {
+          "type": ["integer", "null"],
+          "description": "Percentage of context window remaining (0-100), null if no messages yet"
+        },
+        "tokens_used": {
+          "type": "integer",
+          "description": "Approximate tokens used in context"
+        },
+        "context_window_size": {
+          "type": "integer",
+          "description": "Total context window size in tokens (e.g., 200000)"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["native", "transcript"],
+          "description": "Data source: 'native' (v2.1.6+) or 'transcript' (fallback parsing)"
+        }
+      }
+    },
     "prayer": {
       "type": "object",
       "properties": {
