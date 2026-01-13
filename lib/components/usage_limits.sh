@@ -97,6 +97,40 @@ format_reset_time() {
     fi
 }
 
+# Get absolute clock time from ISO timestamp: "13:00"
+get_reset_clock_time() {
+    local iso_timestamp="$1"
+
+    if [[ -z "$iso_timestamp" || "$iso_timestamp" == "null" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local normalized_ts
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+    local reset_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    else
+        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Return clock time in HH:MM format
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -j -f "%s" "$reset_epoch" "+%H:%M" 2>/dev/null
+    else
+        date -d "@$reset_epoch" "+%H:%M" 2>/dev/null
+    fi
+}
+
 # Format reset time in long format: "1 hr 52 min" or "Sun 8:00 AM"
 format_reset_time_long() {
     local iso_timestamp="$1"
@@ -343,6 +377,7 @@ render_usage_limits() {
 
 # Render combined usage info (reset time + percentage) for line 4
 # Format: ⏱ 5H 1 hr 52 min (28%) • 7DAY Sun 8:00 AM (55%)
+# Monochrome style (light gray + italic) to match old RESET component
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
@@ -351,62 +386,46 @@ render_usage_reset() {
         return 1  # No content - skip this component
     fi
 
-    # Get colors
-    local cyan_color="" dim_color="" green_color="" yellow_color="" red_color="" reset_color=""
-    local warn_threshold="${CONFIG_USAGE_WARN_THRESHOLD:-50}"
-    local critical_threshold="${CONFIG_USAGE_CRITICAL_THRESHOLD:-80}"
+    # Monochrome styling (light gray + italic)
+    local dim_color="" italic="" reset_color=""
 
     if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
-        cyan_color="${CONFIG_CYAN:-\033[36m}"
         dim_color="${CONFIG_LIGHT_GRAY:-\033[90m}"
-        green_color="${CONFIG_GREEN:-\033[32m}"
-        yellow_color="${CONFIG_YELLOW:-\033[33m}"
-        red_color="${CONFIG_RED:-\033[31m}"
+        italic="${CONFIG_ITALIC:-\033[3m}"
         reset_color="${COLOR_RESET:-\033[0m}"
     fi
 
     local output=""
 
-    # 5-hour window
+    # 5-hour window: show "at HH:MM (X hr Y min) Z%"
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
-        local pct_color="$green_color"
-        if [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$critical_threshold" ]]; then
-            pct_color="$red_color"
-        elif [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$warn_threshold" ]]; then
-            pct_color="$yellow_color"
-        fi
-
-        local reset_time=""
+        local clock_time="" remaining=""
         if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
-            reset_time=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            clock_time=$(get_reset_clock_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            remaining=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
         fi
-
-        output="⏱ ${cyan_color}5H${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_FIVE_HOUR}%)${reset_color}"
+        if [[ -n "$clock_time" && "$remaining" != "now" ]]; then
+            output="⏱ 5H at ${clock_time} (${remaining}) ${COMPONENT_USAGE_FIVE_HOUR}%"
+        else
+            output="⏱ 5H ${remaining:-now} (${COMPONENT_USAGE_FIVE_HOUR}%)"
+        fi
     fi
 
     # 7-day window
     if [[ -n "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
-        local pct_color="$green_color"
-        if [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$critical_threshold" ]]; then
-            pct_color="$red_color"
-        elif [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$warn_threshold" ]]; then
-            pct_color="$yellow_color"
-        fi
-
         local reset_time=""
         if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
             reset_time=$(format_reset_time_long "$COMPONENT_USAGE_SEVEN_DAY_RESET")
         fi
-
         if [[ -n "$output" ]]; then
-            output="${output} • ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
+            output="${output} • 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
         else
-            output="⏱ ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
+            output="⏱ 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
         fi
     fi
 
     if [[ -n "$output" ]]; then
-        echo -e "$output"
+        echo -e "${dim_color}${italic}${output}${reset_color}"
         return 0
     fi
 
