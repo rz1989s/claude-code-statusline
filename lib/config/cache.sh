@@ -148,12 +148,19 @@ CACHE_HEADER
 )
 
     # Extract all config values and generate exports
+    # Variable name mapping to match extract.sh expectations:
+    #   display.line1.components → LINE1_COMPONENTS (strip display. prefix)
+    #   display.line1.separator → LINE1_SEPARATOR (strip display. prefix)
+    #   theme.name → THEME_NAME (unchanged)
+    #   features.show_commits → FEATURES_SHOW_COMMITS (unchanged)
     local exports
     exports=$(echo "$config_json" | jq -r '
         to_entries |
         map(
             "export CONFIG_" +
-            (.key | gsub("\\."; "_") | ascii_upcase) +
+            (.key | gsub("\\."; "_") | ascii_upcase |
+             # Strip DISPLAY_ prefix for line configurations
+             gsub("^DISPLAY_LINE"; "LINE")) +
             "=" +
             (if .value == null then "\"\""
              elif .value | type == "string" then "\"" + (.value | gsub("\""; "\\\"")) + "\""
