@@ -741,6 +741,7 @@ download_directory_comprehensive() {
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
         "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
+        "config/cache.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
     )
 
@@ -1043,6 +1044,7 @@ download_lib_fallback() {
     local config_modules=(
         "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
         "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
+        "config/cache.sh"
         # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
     )
 
