@@ -25,6 +25,77 @@ COMPONENT_USAGE_SEVEN_DAY_RESET=""
 USAGE_LIMITS_CACHE_TTL="${USAGE_LIMITS_CACHE_TTL:-300}"
 
 # ============================================================================
+# RESET TIME FORMATTING
+# ============================================================================
+
+# Format ISO timestamp to human-readable relative time
+# Input: ISO 8601 timestamp (e.g., "2026-01-13T05:59:59.519761+00:00")
+# Output: "2h15m" for <24h, "Jan13" for >24h
+format_reset_time() {
+    local iso_timestamp="$1"
+
+    if [[ -z "$iso_timestamp" || "$iso_timestamp" == "null" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Parse ISO timestamp to epoch (handle various formats)
+    local reset_epoch
+    # Remove fractional seconds and normalize timezone for date parsing
+    local normalized_ts
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//; s/+00:00/Z/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        # macOS date command
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$normalized_ts" "+%s" 2>/dev/null) ||
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$normalized_ts" "+%s" 2>/dev/null)
+    else
+        # GNU date command (Linux)
+        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        debug_log "Could not parse reset timestamp: $iso_timestamp" "WARN"
+        echo ""
+        return 1
+    fi
+
+    local now_epoch
+    now_epoch=$(date "+%s")
+
+    local diff_seconds=$((reset_epoch - now_epoch))
+
+    # If already past, return empty
+    if [[ "$diff_seconds" -le 0 ]]; then
+        echo "now"
+        return 0
+    fi
+
+    # Format based on time remaining
+    if [[ "$diff_seconds" -lt 3600 ]]; then
+        # Less than 1 hour: show minutes
+        local minutes=$((diff_seconds / 60))
+        echo "${minutes}m"
+    elif [[ "$diff_seconds" -lt 86400 ]]; then
+        # Less than 24 hours: show hours and minutes
+        local hours=$((diff_seconds / 3600))
+        local minutes=$(((diff_seconds % 3600) / 60))
+        if [[ "$minutes" -gt 0 ]]; then
+            echo "${hours}h${minutes}m"
+        else
+            echo "${hours}h"
+        fi
+    else
+        # More than 24 hours: show date
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            date -j -f "%s" "$reset_epoch" "+%b%d" 2>/dev/null
+        else
+            date -d "@$reset_epoch" "+%b%d" 2>/dev/null
+        fi
+    fi
+}
+
+# ============================================================================
 # OAUTH TOKEN RETRIEVAL
 # ============================================================================
 
@@ -150,7 +221,7 @@ collect_usage_limits_data() {
 # COMPONENT RENDERING
 # ============================================================================
 
-# Render usage limits display
+# Render usage limits display (percentages only - reset times in separate component)
 render_usage_limits() {
     local theme_enabled="${1:-true}"
 
@@ -203,6 +274,58 @@ render_usage_limits() {
     echo "$output"
 }
 
+# ============================================================================
+# USAGE RESET COMPONENT (Separate display for reset countdown)
+# ============================================================================
+
+# Render usage reset times (separate component for line 4)
+render_usage_reset() {
+    local theme_enabled="${1:-true}"
+
+    # Skip if no reset data available
+    if [[ -z "$COMPONENT_USAGE_FIVE_HOUR_RESET" && -z "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+        return 1  # No content - skip this component
+    fi
+
+    local output=""
+    local label="${CONFIG_USAGE_RESET_LABEL:-Reset:}"
+    local dim_color=""
+    local reset_color=""
+
+    if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
+        dim_color="${CONFIG_LIGHT_GRAY:-}"
+        reset_color="${COLOR_RESET:-}"
+    fi
+
+    # Build output with reset times
+    if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
+        local formatted_reset
+        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+        if [[ -n "$formatted_reset" ]]; then
+            output="${label} ${dim_color}5h:${formatted_reset}${reset_color}"
+        fi
+    fi
+
+    if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+        local formatted_reset
+        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+        if [[ -n "$formatted_reset" ]]; then
+            if [[ -n "$output" ]]; then
+                output="${output} ${dim_color}7d:${formatted_reset}${reset_color}"
+            else
+                output="${label} ${dim_color}7d:${formatted_reset}${reset_color}"
+            fi
+        fi
+    fi
+
+    if [[ -n "$output" ]]; then
+        echo "$output"
+        return 0
+    fi
+
+    return 1  # No content
+}
+
 # Get usage limits configuration
 get_usage_limits_config() {
     local key="${1:-component_name}"
@@ -227,6 +350,9 @@ get_usage_limits_config() {
         "cache_ttl")
             echo "${USAGE_LIMITS_CACHE_TTL:-${default:-300}}"
             ;;
+        "reset_label")
+            echo "${CONFIG_USAGE_RESET_LABEL:-${default:-Reset:}}"
+            ;;
         "description")
             echo "Claude Code rate limit usage (5h session, 7d weekly)"
             ;;
@@ -250,15 +376,22 @@ USAGE_LIMITS_COMPONENT_DEPENDENCIES=("cache")
 # COMPONENT REGISTRATION
 # ============================================================================
 
-# Register the usage_limits component
+# Register the usage_limits component (percentages)
 register_component \
     "usage_limits" \
     "Claude Code rate limit usage (5h session, 7d weekly)" \
     "cache" \
     "true"
 
+# Register the usage_reset component (reset countdown times)
+register_component \
+    "usage_reset" \
+    "Claude Code rate limit reset countdown (5h session, 7d weekly)" \
+    "cache" \
+    "true"
+
 # Export component functions
-export -f get_claude_oauth_token fetch_usage_limits
-export -f collect_usage_limits_data render_usage_limits get_usage_limits_config
+export -f get_claude_oauth_token fetch_usage_limits format_reset_time
+export -f collect_usage_limits_data render_usage_limits render_usage_reset get_usage_limits_config
 
 debug_log "Usage limits component loaded" "INFO"
