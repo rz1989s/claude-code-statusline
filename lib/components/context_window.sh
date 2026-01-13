@@ -4,8 +4,11 @@
 # Claude Code Statusline - Context Window Component (Issue #101)
 # ============================================================================
 #
-# This component displays accurate context window percentage by parsing
-# the transcript JSONL file, avoiding the bug in native context_window JSON.
+# This component displays accurate context window percentage.
+#
+# Data Sources (priority order):
+#   1. Native percentages (Claude Code v2.1.6+): used_percentage, remaining_percentage
+#   2. Fallback: Transcript JSONL parsing (pre-v2.1.6 compatibility)
 #
 # Display Format: 🧠 45% (90K/200K) or 🧠 85% ⚠️
 #
@@ -14,7 +17,7 @@
 #   - Yellow: 50-75%
 #   - Red: 75%+ (with warning indicator)
 #
-# Dependencies: cost.sh (transcript parsing functions)
+# Dependencies: cost.sh (transcript parsing functions, native percentage extraction)
 # Reference: https://codelynx.dev/posts/calculate-claude-code-context
 # ============================================================================
 
@@ -22,31 +25,62 @@
 COMPONENT_CONTEXT_PERCENTAGE=""
 COMPONENT_CONTEXT_TOKENS=""
 COMPONENT_CONTEXT_DISPLAY=""
+COMPONENT_CONTEXT_REMAINING=""   # New in v2.15.0: remaining percentage (v2.1.6+)
+COMPONENT_CONTEXT_SOURCE=""       # "native" (v2.1.6+) or "transcript" (fallback)
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect context window data from transcript
+# Collect context window data - native (v2.1.6+) with transcript fallback
 collect_context_window_data() {
     debug_log "Collecting context_window component data" "INFO"
 
     COMPONENT_CONTEXT_PERCENTAGE="0"
     COMPONENT_CONTEXT_TOKENS="0"
     COMPONENT_CONTEXT_DISPLAY="N/A"
+    COMPONENT_CONTEXT_REMAINING=""
+    COMPONENT_CONTEXT_SOURCE=""
 
     if is_module_loaded "cost"; then
-        local transcript_path
-        transcript_path=$(get_transcript_path)
+        # Method 1: Try native percentages (Claude Code v2.1.6+)
+        if has_native_context_percentages 2>/dev/null; then
+            COMPONENT_CONTEXT_PERCENTAGE=$(get_native_context_used_percentage)
+            COMPONENT_CONTEXT_REMAINING=$(get_native_context_remaining_percentage)
+            COMPONENT_CONTEXT_SOURCE="native"
 
-        if [[ -n "$transcript_path" ]]; then
-            COMPONENT_CONTEXT_TOKENS=$(get_context_tokens_from_transcript)
-            COMPONENT_CONTEXT_PERCENTAGE=$(get_context_window_percentage)
-            COMPONENT_CONTEXT_DISPLAY=$(get_context_window_display)
+            # Get context window size for display
+            local ctx_size
+            ctx_size=$(get_native_context_window_size)
 
-            debug_log "context_window data: ${COMPONENT_CONTEXT_PERCENTAGE}% (${COMPONENT_CONTEXT_TOKENS} tokens)" "INFO"
+            if [[ -n "$COMPONENT_CONTEXT_PERCENTAGE" && "$COMPONENT_CONTEXT_PERCENTAGE" != "0" ]]; then
+                # Calculate approximate tokens for display (optional)
+                local approx_tokens=$((ctx_size * COMPONENT_CONTEXT_PERCENTAGE / 100))
+                COMPONENT_CONTEXT_TOKENS="$approx_tokens"
+                COMPONENT_CONTEXT_DISPLAY="${COMPONENT_CONTEXT_PERCENTAGE}%"
+            fi
+
+            debug_log "context_window via native v2.1.6+: ${COMPONENT_CONTEXT_PERCENTAGE}% used, ${COMPONENT_CONTEXT_REMAINING}% remaining" "INFO"
         else
-            debug_log "No transcript path available for context window" "INFO"
+            # Method 2: Fall back to transcript parsing (pre-v2.1.6)
+            COMPONENT_CONTEXT_SOURCE="transcript"
+            local transcript_path
+            transcript_path=$(get_transcript_path)
+
+            if [[ -n "$transcript_path" ]]; then
+                COMPONENT_CONTEXT_TOKENS=$(get_context_tokens_from_transcript)
+                COMPONENT_CONTEXT_PERCENTAGE=$(get_context_window_percentage)
+                COMPONENT_CONTEXT_DISPLAY=$(get_context_window_display)
+
+                # Calculate remaining from used
+                if [[ -n "$COMPONENT_CONTEXT_PERCENTAGE" && "$COMPONENT_CONTEXT_PERCENTAGE" =~ ^[0-9]+$ ]]; then
+                    COMPONENT_CONTEXT_REMAINING=$((100 - COMPONENT_CONTEXT_PERCENTAGE))
+                fi
+
+                debug_log "context_window via transcript: ${COMPONENT_CONTEXT_PERCENTAGE}% (${COMPONENT_CONTEXT_TOKENS} tokens)" "INFO"
+            else
+                debug_log "No transcript path available for context window" "INFO"
+            fi
         fi
     fi
 
@@ -141,8 +175,8 @@ get_context_window_config() {
 
 # Component metadata
 CONTEXT_WINDOW_COMPONENT_NAME="context_window"
-CONTEXT_WINDOW_COMPONENT_DESCRIPTION="Context window usage percentage"
-CONTEXT_WINDOW_COMPONENT_VERSION="2.13.0"
+CONTEXT_WINDOW_COMPONENT_DESCRIPTION="Context window usage percentage (native v2.1.6+ or transcript fallback)"
+CONTEXT_WINDOW_COMPONENT_VERSION="2.15.0"
 CONTEXT_WINDOW_COMPONENT_DEPENDENCIES=("cost")
 
 # ============================================================================

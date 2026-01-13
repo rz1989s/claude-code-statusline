@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.12.0 with modular cache architecture, structured logging, and diagnostic flags
+**Current**: v2.15.0 with native context window percentages (Claude Code v2.1.6+)
 **Branch Strategy**: dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular cache system (8 sub-modules), 91.5% code reduction from v1
-**Key Features**: 5-line statusline, Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation, health diagnostics (--health), metrics export (--metrics), JSON logging
+**Key Features**: 5-line statusline, native context window percentages (v2.1.6+), Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation, health diagnostics (--health), metrics export (--metrics), JSON logging
 **Platform Support**: 100% compatibility on macOS, Ubuntu, Arch, Fedora, Alpine Linux with automatic platform detection
 
 ## Essential Commands
@@ -55,6 +55,7 @@ bats tests/unit/test_platform_compatibility.bats
 - `load_toml_configuration()` - Single-source TOML parsing
 - `apply_theme()` - Color theme management
 - `execute_cached_command()` - Universal caching with TTL
+- `get_context_window_percentage_smart()` - Native percentages (v2.1.6+) with transcript fallback
 
 ## Development Workflow
 

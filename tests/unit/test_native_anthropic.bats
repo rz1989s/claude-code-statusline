@@ -431,3 +431,125 @@ teardown() {
     [[ "$status" -eq 0 ]]
     [[ "$output" == "1.00" ]]
 }
+
+# ============================================================================
+# NATIVE CONTEXT WINDOW PERCENTAGE TESTS (Claude Code v2.1.6+)
+# ============================================================================
+
+@test "get_native_context_used_percentage returns empty when no JSON input" {
+    unset STATUSLINE_INPUT_JSON
+
+    run get_native_context_used_percentage
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_context_used_percentage extracts used_percentage correctly" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":42,"remaining_percentage":58}}'
+
+    run get_native_context_used_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "42" ]]
+}
+
+@test "get_native_context_used_percentage returns empty when null" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":null}}'
+
+    run get_native_context_used_percentage
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_context_remaining_percentage extracts correctly" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":35,"remaining_percentage":65}}'
+
+    run get_native_context_remaining_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "65" ]]
+}
+
+@test "get_native_context_remaining_percentage returns empty when missing" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{}}'
+
+    run get_native_context_remaining_percentage
+    [[ "$status" -eq 1 ]]
+    [[ "$output" == "" ]]
+}
+
+@test "get_native_context_window_size extracts size correctly" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"context_window_size":200000}}'
+
+    run get_native_context_window_size
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "200000" ]]
+}
+
+@test "get_native_context_window_size returns default when missing" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_native_context_window_size
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "200000" ]]  # Default CONTEXT_WINDOW_SIZE
+}
+
+@test "has_native_context_percentages returns true when available" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":50,"remaining_percentage":50}}'
+
+    run has_native_context_percentages
+    [[ "$status" -eq 0 ]]
+}
+
+@test "has_native_context_percentages returns false when null" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":null}}'
+
+    run has_native_context_percentages
+    [[ "$status" -eq 1 ]]
+}
+
+@test "has_native_context_percentages returns false when missing context_window" {
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run has_native_context_percentages
+    [[ "$status" -eq 1 ]]
+}
+
+@test "get_context_window_percentage_smart prefers native when available" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":75,"remaining_percentage":25}}'
+
+    run get_context_window_percentage_smart
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "75" ]]
+}
+
+@test "get_context_window_percentage_smart falls back to transcript when native unavailable" {
+    # JSON without native percentages (simulating pre-v2.1.6)
+    export STATUSLINE_INPUT_JSON='{"workspace":{"current_dir":"/tmp"}}'
+
+    run get_context_window_percentage_smart
+    # Will return 0 since there's no transcript, but function should work
+    [[ "$output" == "0" ]]
+}
+
+@test "native context percentages handle 0% correctly" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":0,"remaining_percentage":100}}'
+
+    run get_native_context_used_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0" ]]
+
+    run get_native_context_remaining_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "100" ]]
+}
+
+@test "native context percentages handle 100% correctly" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"used_percentage":100,"remaining_percentage":0}}'
+
+    run get_native_context_used_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "100" ]]
+
+    run get_native_context_remaining_percentage
+    [[ "$status" -eq 0 ]]
+    [[ "$output" == "0" ]]
+}
