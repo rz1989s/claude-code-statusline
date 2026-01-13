@@ -159,8 +159,9 @@ CACHE_HEADER
         map(
             "export CONFIG_" +
             (.key | gsub("\\."; "_") | ascii_upcase |
-             # Strip DISPLAY_ prefix for line configurations
-             gsub("^DISPLAY_LINE"; "LINE")) +
+             # Strip DISPLAY_ prefix only for line configurations with numbers (LINE1, LINE2, etc.)
+             # But keep DISPLAY_LINES intact for display.lines setting
+             if test("^DISPLAY_LINE[0-9]") then gsub("^DISPLAY_"; "") else . end) +
             "=" +
             (if .value == null then "\"\""
              elif .value | type == "string" then "\"" + (.value | gsub("\""; "\\\"")) + "\""
