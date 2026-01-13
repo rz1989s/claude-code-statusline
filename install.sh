@@ -764,6 +764,8 @@ download_directory_comprehensive() {
         # v2.13.0: Native Anthropic data components
         "components/code_productivity.sh" "components/context_window.sh"
         "components/session_info.sh"
+        # v2.15.0: Usage limits component (OAuth API)
+        "components/usage_limits.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
     )
     
@@ -1068,6 +1070,8 @@ download_lib_fallback() {
         # v2.13.0: Native Anthropic data components
         "components/code_productivity.sh" "components/context_window.sh"
         "components/session_info.sh"
+        # v2.15.0: Usage limits component (OAuth API)
+        "components/usage_limits.sh"
         # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
     )
 

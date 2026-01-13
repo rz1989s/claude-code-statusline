@@ -8,15 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Native context window percentages** (Claude Code v2.1.6+): Now uses official `used_percentage` and `remaining_percentage` fields from Claude Code's statusline input
+- New functions: `get_native_context_used_percentage()`, `get_native_context_remaining_percentage()`, `get_native_context_window_size()`, `has_native_context_percentages()`, `get_context_window_percentage_smart()`
+- Smart fallback: Automatically uses native percentages when available (v2.1.6+), falls back to transcript parsing for older versions
+- `COMPONENT_CONTEXT_REMAINING` and `COMPONENT_CONTEXT_SOURCE` variables for richer context data
+- **Usage limits component** (`usage_limits`): Display Claude Code rate limits (5h session, 7d weekly) from Anthropic OAuth API
+- **Usage reset component** (`usage_reset`): Separate component for reset countdown display
+- New functions: `get_claude_oauth_token()`, `fetch_usage_limits()`, `collect_usage_limits_data()`, `render_usage_limits()`, `render_usage_reset()`, `format_reset_time()`
+- Display format (Line 3): `Limit: 5h:22% 7d:54%` with color-coded thresholds
+- Display format (Line 4): `Reset: 5h:2h15m 7d:Jan18` with reset countdown
+- Reset time formatting: Shows relative time (<24h: "2h15m") or date (>24h: "Jan18")
 - GitHub Actions CI/CD workflow for automated testing
 - Pre-commit hooks configuration (.pre-commit-config.yaml)
 - Architecture documentation with Mermaid diagrams
 - `is_debug_mode()` helper function for standardized debug checks
 
 ### Changed
+- Context window component updated to v2.15.0 with native percentage support
+- Schema.json updated with new `context_window` object including `used_percentage`, `remaining_percentage`, `tokens_used`, `context_window_size`, and `source` fields
 - Standardized debug variable to `STATUSLINE_DEBUG` (removed `STATUSLINE_DEBUG_MODE`)
 
 ### Fixed
+- Context window accuracy: Native percentages avoid the cumulative token bug in pre-v2.1.6 implementations
 - Documented all intentional error suppressions (Issue #76)
 
 ## [2.11.6] - 2025-12-15

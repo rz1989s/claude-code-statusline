@@ -206,6 +206,108 @@ get_context_window_display() {
 }
 
 # ============================================================================
+# NATIVE CONTEXT WINDOW PERCENTAGES (Claude Code v2.1.6+)
+# ============================================================================
+# Claude Code v2.1.6 introduced pre-calculated percentage fields:
+# - context_window.used_percentage (0-100, null if no messages)
+# - context_window.remaining_percentage (0-100, null if no messages)
+# These are more accurate than transcript parsing and much faster.
+
+# Get native used percentage from Claude Code v2.1.6+ JSON input
+# Returns: percentage (0-100) or empty if not available
+get_native_context_used_percentage() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local used_pct
+    used_pct=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.context_window.used_percentage // empty' 2>/dev/null)
+
+    if [[ -n "$used_pct" && "$used_pct" != "null" ]]; then
+        debug_log "Native context used_percentage: ${used_pct}%" "INFO"
+        echo "$used_pct"
+        return 0
+    fi
+
+    debug_log "Native used_percentage not available (pre-v2.1.6?)" "INFO"
+    echo ""
+    return 1
+}
+
+# Get native remaining percentage from Claude Code v2.1.6+ JSON input
+# Returns: percentage (0-100) or empty if not available
+get_native_context_remaining_percentage() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local remaining_pct
+    remaining_pct=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.context_window.remaining_percentage // empty' 2>/dev/null)
+
+    if [[ -n "$remaining_pct" && "$remaining_pct" != "null" ]]; then
+        debug_log "Native context remaining_percentage: ${remaining_pct}%" "INFO"
+        echo "$remaining_pct"
+        return 0
+    fi
+
+    debug_log "Native remaining_percentage not available (pre-v2.1.6?)" "INFO"
+    echo ""
+    return 1
+}
+
+# Get native context window size from JSON input
+# Returns: context window size (tokens) or default 200000
+get_native_context_window_size() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        echo "$CONTEXT_WINDOW_SIZE"
+        return 0
+    fi
+
+    local size
+    size=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.context_window.context_window_size // empty' 2>/dev/null)
+
+    if [[ -n "$size" && "$size" != "null" && "$size" -gt 0 ]]; then
+        debug_log "Native context_window_size: $size" "INFO"
+        echo "$size"
+        return 0
+    fi
+
+    echo "$CONTEXT_WINDOW_SIZE"
+}
+
+# Check if native percentages are available (Claude Code v2.1.6+)
+has_native_context_percentages() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 1
+    fi
+
+    local has_used
+    has_used=$(echo "$STATUSLINE_INPUT_JSON" | jq -r 'has("context_window") and .context_window.used_percentage != null' 2>/dev/null)
+
+    [[ "$has_used" == "true" ]]
+}
+
+# Get context window percentage with native fallback
+# Prefers native used_percentage (v2.1.6+), falls back to transcript parsing
+get_context_window_percentage_smart() {
+    # First, try native percentage (v2.1.6+)
+    local native_pct
+    native_pct=$(get_native_context_used_percentage)
+
+    if [[ -n "$native_pct" ]]; then
+        debug_log "Using native context percentage: ${native_pct}%" "INFO"
+        echo "$native_pct"
+        return 0
+    fi
+
+    # Fall back to transcript parsing (pre-v2.1.6)
+    debug_log "Falling back to transcript parsing for context percentage" "INFO"
+    get_context_window_percentage
+}
+
+# ============================================================================
 # SESSION INFO EXTRACTION (Issue #102)
 # ============================================================================
 # Extract session ID and project name from Anthropic's native JSON input.
@@ -352,6 +454,11 @@ get_session_info_display() {
 export -f get_transcript_path parse_transcript_last_usage
 export -f get_context_tokens_from_transcript get_context_window_percentage
 export -f get_context_window_display
+
+# Export native context percentage functions (Claude Code v2.1.6+)
+export -f get_native_context_used_percentage get_native_context_remaining_percentage
+export -f get_native_context_window_size has_native_context_percentages
+export -f get_context_window_percentage_smart
 
 # Export session info functions
 export -f get_native_session_id get_short_session_id
