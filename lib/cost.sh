@@ -83,26 +83,54 @@ source "${COST_LIB_DIR}/cost/alerts.sh" 2>/dev/null || {
 }
 
 # ============================================================================
+# FILE-BASED CACHE FOR STATUSLINE RENDER (Issue #147)
+# ============================================================================
+# Cache result of get_claude_usage_info() to avoid redundant calls
+# Multiple components call this function - cache ensures single execution
+# Uses file cache because bash subshells don't share variables
+
+_COST_RENDER_CACHE_FILE="${TMPDIR:-/tmp}/.statusline_cost_render_$$"
+
+# ============================================================================
 # MAIN COST INFORMATION FUNCTION
 # ============================================================================
 
 # Get comprehensive Claude usage information
 # This is the main entry point for cost data
+# Performance: Caches result per statusline render (Issue #147)
 get_claude_usage_info() {
+    # Fast path: Return cached result if file exists and is fresh (<30 seconds old)
+    # This eliminates 6 redundant calls (~12s saved)
+    # 30s TTL ensures cache covers entire statusline render cycle
+    if [[ -f "$_COST_RENDER_CACHE_FILE" ]]; then
+        local cache_age
+        local cache_mtime
+        cache_mtime=$(stat -f "%m" "$_COST_RENDER_CACHE_FILE" 2>/dev/null || stat -c "%Y" "$_COST_RENDER_CACHE_FILE" 2>/dev/null)
+        cache_age=$(( $(date +%s) - cache_mtime ))
+        if [[ $cache_age -lt 30 ]]; then
+            debug_log "Cost data returned from render cache (fast path, age=${cache_age}s)" "DEBUG"
+            cat "$_COST_RENDER_CACHE_FILE"
+            return 0
+        fi
+    fi
+
     start_timer "cost_tracking"
 
     # Fast mock data for testing (skips all ccusage calls)
     if [[ "${STATUSLINE_MOCK_COST_DATA:-}" == "true" ]]; then
         end_timer "cost_tracking"
-        echo "0.00:0.00:0.00:0.00:No ccusage:Mock mode"
+        local result="0.00:0.00:0.00:0.00:No ccusage:Mock mode"
+        echo "$result" > "$_COST_RENDER_CACHE_FILE"
+        echo "$result"
         return 0
     fi
 
     # Check if ccusage is available
     if ! is_ccusage_available; then
-        local no_ccusage_info="-.--:-.--:-.--:-.--:$CONFIG_NO_CCUSAGE_MESSAGE:$CONFIG_CCUSAGE_INSTALL_MESSAGE"
+        local result="-.--:-.--:-.--:-.--:$CONFIG_NO_CCUSAGE_MESSAGE:$CONFIG_CCUSAGE_INSTALL_MESSAGE"
+        echo "$result" > "$_COST_RENDER_CACHE_FILE"
         end_timer "cost_tracking"
-        echo "$no_ccusage_info"
+        echo "$result"
         return 0
     fi
 
@@ -137,8 +165,10 @@ get_claude_usage_info() {
     tracking_time=$(end_timer "cost_tracking")
     debug_log "Cost tracking completed in ${tracking_time}s" "INFO"
 
-    # Return the formatted string
-    echo "${session_cost}:${month_cost}:${week_cost}:${today_cost}:${block_cost_info}:${reset_info}"
+    # Cache and return the formatted string (Issue #147)
+    local result="${session_cost}:${month_cost}:${week_cost}:${today_cost}:${block_cost_info}:${reset_info}"
+    echo "$result" > "$_COST_RENDER_CACHE_FILE"
+    echo "$result"
 }
 
 # ============================================================================
