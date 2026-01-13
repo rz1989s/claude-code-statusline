@@ -30,7 +30,7 @@ USAGE_LIMITS_CACHE_TTL="${USAGE_LIMITS_CACHE_TTL:-300}"
 
 # Format ISO timestamp to human-readable relative time
 # Input: ISO 8601 timestamp (e.g., "2026-01-13T05:59:59.519761+00:00")
-# Output: "2h15m" for <24h, "Jan13" for >24h
+# Output: "2h9m" for <24h, "Sun07:59" for >24h
 format_reset_time() {
     local iso_timestamp="$1"
 
@@ -43,14 +43,16 @@ format_reset_time() {
     local reset_epoch
     # Remove fractional seconds and normalize timezone for date parsing
     local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//; s/+00:00/Z/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
-        # macOS date command
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$normalized_ts" "+%s" 2>/dev/null) ||
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$normalized_ts" "+%s" 2>/dev/null)
+        # macOS date command - handle UTC (Z or +00:00) properly
+        # Convert +00:00 to +0000 format for %z parsing
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
     else
-        # GNU date command (Linux)
+        # GNU date command (Linux) - handles ISO 8601 natively
         reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
     fi
 
@@ -65,7 +67,7 @@ format_reset_time() {
 
     local diff_seconds=$((reset_epoch - now_epoch))
 
-    # If already past, return empty
+    # If already past, return "now"
     if [[ "$diff_seconds" -le 0 ]]; then
         echo "now"
         return 0
@@ -86,11 +88,72 @@ format_reset_time() {
             echo "${hours}h"
         fi
     else
-        # More than 24 hours: show date
+        # More than 24 hours: show day + time (e.g., "Sun 8:00AM")
         if [[ "$(uname -s)" == "Darwin" ]]; then
-            date -j -f "%s" "$reset_epoch" "+%b%d" 2>/dev/null
+            date -j -f "%s" "$reset_epoch" "+%a %-I:%M%p" 2>/dev/null | sed 's/AM/AM/; s/PM/PM/'
         else
-            date -d "@$reset_epoch" "+%b%d" 2>/dev/null
+            date -d "@$reset_epoch" "+%a %-I:%M%p" 2>/dev/null
+        fi
+    fi
+}
+
+# Format reset time in long format: "1 hr 52 min" or "Sun 8:00 AM"
+format_reset_time_long() {
+    local iso_timestamp="$1"
+
+    if [[ -z "$iso_timestamp" || "$iso_timestamp" == "null" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Parse ISO timestamp to epoch
+    local reset_epoch
+    local normalized_ts
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    else
+        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local now_epoch
+    now_epoch=$(date "+%s")
+    local diff_seconds=$((reset_epoch - now_epoch))
+
+    # If already past, return "now"
+    if [[ "$diff_seconds" -le 0 ]]; then
+        echo "now"
+        return 0
+    fi
+
+    # Format based on time remaining
+    if [[ "$diff_seconds" -lt 3600 ]]; then
+        # Less than 1 hour: show minutes
+        local minutes=$((diff_seconds / 60))
+        echo "${minutes} min"
+    elif [[ "$diff_seconds" -lt 86400 ]]; then
+        # Less than 24 hours: show hours and minutes in long format
+        local hours=$((diff_seconds / 3600))
+        local minutes=$(((diff_seconds % 3600) / 60))
+        if [[ "$minutes" -gt 0 ]]; then
+            echo "${hours} hr ${minutes} min"
+        else
+            echo "${hours} hr"
+        fi
+    else
+        # More than 24 hours: show day + time (e.g., "Sun 8:00 AM")
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            date -j -f "%s" "$reset_epoch" "+%a %-I:%M %p" 2>/dev/null
+        else
+            date -d "@$reset_epoch" "+%a %-I:%M %p" 2>/dev/null
         fi
     fi
 }
@@ -265,7 +328,7 @@ render_usage_limits() {
         fi
 
         if [[ -n "$output" ]]; then
-            output="${output} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
+            output="${output} • ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         else
             output="${label} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         fi
@@ -278,48 +341,72 @@ render_usage_limits() {
 # USAGE RESET COMPONENT (Separate display for reset countdown)
 # ============================================================================
 
-# Render usage reset times (separate component for line 4)
+# Render combined usage info (reset time + percentage) for line 4
+# Format: ⏱ 5H 1 hr 52 min (28%) • 7DAY Sun 8:00 AM (55%)
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
-    # Skip if no reset data available
-    if [[ -z "$COMPONENT_USAGE_FIVE_HOUR_RESET" && -z "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+    # Skip if no data available
+    if [[ -z "$COMPONENT_USAGE_FIVE_HOUR" && -z "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
         return 1  # No content - skip this component
     fi
 
-    local output=""
-    local label="${CONFIG_USAGE_RESET_LABEL:-Reset:}"
-    local dim_color=""
-    local reset_color=""
+    # Get colors
+    local cyan_color="" dim_color="" green_color="" yellow_color="" red_color="" reset_color=""
+    local warn_threshold="${CONFIG_USAGE_WARN_THRESHOLD:-50}"
+    local critical_threshold="${CONFIG_USAGE_CRITICAL_THRESHOLD:-80}"
 
     if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
-        dim_color="${CONFIG_LIGHT_GRAY:-}"
-        reset_color="${COLOR_RESET:-}"
+        cyan_color="${CONFIG_CYAN:-\033[36m}"
+        dim_color="${CONFIG_LIGHT_GRAY:-\033[90m}"
+        green_color="${CONFIG_GREEN:-\033[32m}"
+        yellow_color="${CONFIG_YELLOW:-\033[33m}"
+        red_color="${CONFIG_RED:-\033[31m}"
+        reset_color="${COLOR_RESET:-\033[0m}"
     fi
 
-    # Build output with reset times
-    if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
-        local formatted_reset
-        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
-        if [[ -n "$formatted_reset" ]]; then
-            output="${label} ${dim_color}5h:${formatted_reset}${reset_color}"
+    local output=""
+
+    # 5-hour window
+    if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
+        local pct_color="$green_color"
+        if [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$critical_threshold" ]]; then
+            pct_color="$red_color"
+        elif [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$warn_threshold" ]]; then
+            pct_color="$yellow_color"
         fi
+
+        local reset_time=""
+        if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
+            reset_time=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+        fi
+
+        output="⏱ ${cyan_color}5H${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_FIVE_HOUR}%)${reset_color}"
     fi
 
-    if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
-        local formatted_reset
-        formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
-        if [[ -n "$formatted_reset" ]]; then
-            if [[ -n "$output" ]]; then
-                output="${output} ${dim_color}7d:${formatted_reset}${reset_color}"
-            else
-                output="${label} ${dim_color}7d:${formatted_reset}${reset_color}"
-            fi
+    # 7-day window
+    if [[ -n "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
+        local pct_color="$green_color"
+        if [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$critical_threshold" ]]; then
+            pct_color="$red_color"
+        elif [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$warn_threshold" ]]; then
+            pct_color="$yellow_color"
+        fi
+
+        local reset_time=""
+        if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
+            reset_time=$(format_reset_time_long "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+        fi
+
+        if [[ -n "$output" ]]; then
+            output="${output} • ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
+        else
+            output="⏱ ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
         fi
     fi
 
     if [[ -n "$output" ]]; then
-        echo "$output"
+        echo -e "$output"
         return 0
     fi
 
@@ -391,7 +478,7 @@ register_component \
     "true"
 
 # Export component functions
-export -f get_claude_oauth_token fetch_usage_limits format_reset_time
+export -f get_claude_oauth_token fetch_usage_limits format_reset_time format_reset_time_long
 export -f collect_usage_limits_data render_usage_limits render_usage_reset get_usage_limits_config
 
 debug_log "Usage limits component loaded" "INFO"
