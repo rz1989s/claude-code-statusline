@@ -343,6 +343,7 @@ render_usage_limits() {
 
 # Render combined usage info (reset time + percentage) for line 4
 # Format: ⏱ 5H 1 hr 52 min (28%) • 7DAY Sun 8:00 AM (55%)
+# Monochrome style (light gray + italic) to match old RESET component
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
@@ -351,17 +352,12 @@ render_usage_reset() {
         return 1  # No content - skip this component
     fi
 
-    # Get colors
-    local cyan_color="" dim_color="" green_color="" yellow_color="" red_color="" reset_color=""
-    local warn_threshold="${CONFIG_USAGE_WARN_THRESHOLD:-50}"
-    local critical_threshold="${CONFIG_USAGE_CRITICAL_THRESHOLD:-80}"
+    # Monochrome styling (light gray + italic)
+    local dim_color="" italic="" reset_color=""
 
     if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
-        cyan_color="${CONFIG_CYAN:-\033[36m}"
         dim_color="${CONFIG_LIGHT_GRAY:-\033[90m}"
-        green_color="${CONFIG_GREEN:-\033[32m}"
-        yellow_color="${CONFIG_YELLOW:-\033[33m}"
-        red_color="${CONFIG_RED:-\033[31m}"
+        italic="${CONFIG_ITALIC:-\033[3m}"
         reset_color="${COLOR_RESET:-\033[0m}"
     fi
 
@@ -369,44 +365,28 @@ render_usage_reset() {
 
     # 5-hour window
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
-        local pct_color="$green_color"
-        if [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$critical_threshold" ]]; then
-            pct_color="$red_color"
-        elif [[ "$COMPONENT_USAGE_FIVE_HOUR" -ge "$warn_threshold" ]]; then
-            pct_color="$yellow_color"
-        fi
-
         local reset_time=""
         if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
             reset_time=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
         fi
-
-        output="⏱ ${cyan_color}5H${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_FIVE_HOUR}%)${reset_color}"
+        output="⏱ 5H ${reset_time} (${COMPONENT_USAGE_FIVE_HOUR}%)"
     fi
 
     # 7-day window
     if [[ -n "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
-        local pct_color="$green_color"
-        if [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$critical_threshold" ]]; then
-            pct_color="$red_color"
-        elif [[ "$COMPONENT_USAGE_SEVEN_DAY" -ge "$warn_threshold" ]]; then
-            pct_color="$yellow_color"
-        fi
-
         local reset_time=""
         if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
             reset_time=$(format_reset_time_long "$COMPONENT_USAGE_SEVEN_DAY_RESET")
         fi
-
         if [[ -n "$output" ]]; then
-            output="${output} • ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
+            output="${output} • 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
         else
-            output="⏱ ${cyan_color}7DAY${reset_color} ${dim_color}${reset_time}${reset_color} ${pct_color}(${COMPONENT_USAGE_SEVEN_DAY}%)${reset_color}"
+            output="⏱ 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
         fi
     fi
 
     if [[ -n "$output" ]]; then
-        echo -e "$output"
+        echo -e "${dim_color}${italic}${output}${reset_color}"
         return 0
     fi
 
