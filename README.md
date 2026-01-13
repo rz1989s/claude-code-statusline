@@ -172,7 +172,7 @@ echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Te
 - **Unified Data Collection** - Single API call feeds all metrics (burn rate, tokens, cache efficiency, projections)  
 - **Burn Rate Monitoring** - Critical token consumption tracking (🔥3.5k/min $2.10/hr)
 - **Cache Efficiency** - Performance optimization insights (Cache: 94% hit)
-- **Cost Projections** - Budget planning and limit avoidance (Proj: $16.48)
+- **Cost Projections** - Budget planning and limit avoidance (Est: $16.48)
 - **Resource Optimized** - Minimal background processes, smart 30s caching
 
 ---
