@@ -164,7 +164,7 @@ render_usage_limits() {
     local critical_threshold="${CONFIG_USAGE_CRITICAL_THRESHOLD:-80}"
 
     local output=""
-    local label="${CONFIG_USAGE_LABEL:-Quota:}"
+    local label="${CONFIG_USAGE_LABEL:-Limit:}"
 
     # Build output with colors based on usage level
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
@@ -216,7 +216,7 @@ get_usage_limits_config() {
             echo "${CONFIG_FEATURES_SHOW_USAGE_LIMITS:-${default:-true}}"
             ;;
         "label")
-            echo "${CONFIG_USAGE_LABEL:-${default:-Quota:}}"
+            echo "${CONFIG_USAGE_LABEL:-${default:-Limit:}}"
             ;;
         "warn_threshold")
             echo "${CONFIG_USAGE_WARN_THRESHOLD:-${default:-50}}"
