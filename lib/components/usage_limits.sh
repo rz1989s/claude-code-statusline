@@ -43,14 +43,16 @@ format_reset_time() {
     local reset_epoch
     # Remove fractional seconds and normalize timezone for date parsing
     local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//; s/+00:00/Z/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
-        # macOS date command
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$normalized_ts" "+%s" 2>/dev/null) ||
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$normalized_ts" "+%s" 2>/dev/null)
+        # macOS date command - handle UTC (Z or +00:00) properly
+        # Convert +00:00 to +0000 format for %z parsing
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
     else
-        # GNU date command (Linux)
+        # GNU date command (Linux) - handles ISO 8601 natively
         reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
     fi
 
