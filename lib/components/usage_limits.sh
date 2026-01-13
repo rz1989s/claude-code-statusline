@@ -30,7 +30,7 @@ USAGE_LIMITS_CACHE_TTL="${USAGE_LIMITS_CACHE_TTL:-300}"
 
 # Format ISO timestamp to human-readable relative time
 # Input: ISO 8601 timestamp (e.g., "2026-01-13T05:59:59.519761+00:00")
-# Output: "2h15m" for <24h, "Jan13" for >24h
+# Output: "2h9m" for <24h, "Sun07:59" for >24h
 format_reset_time() {
     local iso_timestamp="$1"
 
@@ -65,7 +65,7 @@ format_reset_time() {
 
     local diff_seconds=$((reset_epoch - now_epoch))
 
-    # If already past, return empty
+    # If already past, return "now"
     if [[ "$diff_seconds" -le 0 ]]; then
         echo "now"
         return 0
@@ -86,11 +86,11 @@ format_reset_time() {
             echo "${hours}h"
         fi
     else
-        # More than 24 hours: show date
+        # More than 24 hours: show day + time (e.g., "Sun 8:00AM")
         if [[ "$(uname -s)" == "Darwin" ]]; then
-            date -j -f "%s" "$reset_epoch" "+%b%d" 2>/dev/null
+            date -j -f "%s" "$reset_epoch" "+%a %-I:%M%p" 2>/dev/null | sed 's/AM/AM/; s/PM/PM/'
         else
-            date -d "@$reset_epoch" "+%b%d" 2>/dev/null
+            date -d "@$reset_epoch" "+%a %-I:%M%p" 2>/dev/null
         fi
     fi
 }
@@ -265,7 +265,7 @@ render_usage_limits() {
         fi
 
         if [[ -n "$output" ]]; then
-            output="${output} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
+            output="${output} • ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         else
             output="${label} ${seven_day_color}7d:${COMPONENT_USAGE_SEVEN_DAY}%${COLOR_RESET:-}"
         fi
@@ -279,7 +279,7 @@ render_usage_limits() {
 # ============================================================================
 
 # Render usage reset times (separate component for line 4)
-# Uses ↻ symbol to avoid conflict with existing "RESET" block timer
+# Uses ⏱ timer emoji with bullet separator
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
@@ -297,12 +297,12 @@ render_usage_reset() {
         reset_color="${COLOR_RESET:-}"
     fi
 
-    # Build output with reset times (↻ symbol, no label to avoid "double reset")
+    # Build output with reset times (⏱ timer emoji)
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
         local formatted_reset
         formatted_reset=$(format_reset_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
         if [[ -n "$formatted_reset" ]]; then
-            output="${dim_color}↻5h:${formatted_reset}${reset_color}"
+            output="⏱ ${dim_color}5h:${formatted_reset}${reset_color}"
         fi
     fi
 
@@ -311,9 +311,9 @@ render_usage_reset() {
         formatted_reset=$(format_reset_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
         if [[ -n "$formatted_reset" ]]; then
             if [[ -n "$output" ]]; then
-                output="${output} ${dim_color}↻7d:${formatted_reset}${reset_color}"
+                output="${output} • ${dim_color}7d:${formatted_reset}${reset_color}"
             else
-                output="${dim_color}↻7d:${formatted_reset}${reset_color}"
+                output="⏱ ${dim_color}7d:${formatted_reset}${reset_color}"
             fi
         fi
     fi
