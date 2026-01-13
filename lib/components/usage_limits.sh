@@ -97,6 +97,40 @@ format_reset_time() {
     fi
 }
 
+# Get absolute clock time from ISO timestamp: "13:00"
+get_reset_clock_time() {
+    local iso_timestamp="$1"
+
+    if [[ -z "$iso_timestamp" || "$iso_timestamp" == "null" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local normalized_ts
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+    local reset_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    else
+        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        echo ""
+        return 1
+    fi
+
+    # Return clock time in HH:MM format
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -j -f "%s" "$reset_epoch" "+%H:%M" 2>/dev/null
+    else
+        date -d "@$reset_epoch" "+%H:%M" 2>/dev/null
+    fi
+}
+
 # Format reset time in long format: "1 hr 52 min" or "Sun 8:00 AM"
 format_reset_time_long() {
     local iso_timestamp="$1"
@@ -363,13 +397,18 @@ render_usage_reset() {
 
     local output=""
 
-    # 5-hour window
+    # 5-hour window: show "at HH:MM (X hr Y min) Z%"
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
-        local reset_time=""
+        local clock_time="" remaining=""
         if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
-            reset_time=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            clock_time=$(get_reset_clock_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            remaining=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
         fi
-        output="⏱ 5H ${reset_time} (${COMPONENT_USAGE_FIVE_HOUR}%)"
+        if [[ -n "$clock_time" && "$remaining" != "now" ]]; then
+            output="⏱ 5H at ${clock_time} (${remaining}) ${COMPONENT_USAGE_FIVE_HOUR}%"
+        else
+            output="⏱ 5H ${remaining:-now} (${COMPONENT_USAGE_FIVE_HOUR}%)"
+        fi
     fi
 
     # 7-day window
