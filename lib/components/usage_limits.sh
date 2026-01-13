@@ -314,6 +314,11 @@ collect_usage_limits_data() {
     return 0
 }
 
+# Alias for usage_reset component (shares same data as usage_limits)
+collect_usage_reset_data() {
+    collect_usage_limits_data
+}
+
 # ============================================================================
 # COMPONENT RENDERING
 # ============================================================================
@@ -498,6 +503,6 @@ register_component \
 
 # Export component functions
 export -f get_claude_oauth_token fetch_usage_limits format_reset_time format_reset_time_long
-export -f collect_usage_limits_data render_usage_limits render_usage_reset get_usage_limits_config
+export -f collect_usage_limits_data collect_usage_reset_data render_usage_limits render_usage_reset get_usage_limits_config
 
 debug_log "Usage limits component loaded" "INFO"

@@ -459,12 +459,12 @@ display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_wee
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
-# Line 3: Block Metrics + Context + Usage Limits (v2.15.0: added usage_limits, removed token_usage)
-display.line3.components = ["burn_rate", "cache_efficiency", "block_projection", "context_window"]
+# Line 3: Block Metrics + Code Stats + Context (v2.15.0: restored code_productivity)
+display.line3.components = ["burn_rate", "cache_efficiency", "block_projection", "code_productivity", "context_window"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: System Status & Timer
+# Line 4: System Status & Reset Timer (detailed reset countdown)
 display.line4.components = ["mcp_status", "usage_reset"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
