@@ -447,42 +447,42 @@ hijri.show_weekday = true              # Include day of week in display
 # Each line can contain any combination of available components
 
 # Number of lines to display (1-9) - SHOWCASING ALL 24 ATOMIC COMPONENTS!
-display.lines = 6
+display.lines = 7
 
-# Line 1: Repository Core
-display.line1.components = ["repo_info", "commits", "submodules", "version_info", "time_display"]
+# Line 1: Repository Identity (path, branch, status)
+display.line1.components = ["repo_info"]
 display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
-# Line 2: Model + Cost Analytics (all cost components)
-display.line2.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
+# Line 2: Git Metrics & Versions (commits, submodules, versions, time)
+display.line2.components = ["commits", "submodules", "version_info", "time_display"]
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
-# Line 3: Block Metrics + Code Stats + Context (v2.15.0: restored code_productivity)
-display.line3.components = ["burn_rate", "cache_efficiency", "block_projection", "code_productivity", "context_window"]
+# Line 3: Model + Cost Analytics (all cost components)
+display.line3.components = ["model_info", "cost_repo", "cost_monthly", "cost_weekly", "cost_daily", "cost_live"]
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: System Status & Reset Timer (detailed reset countdown)
-display.line4.components = ["mcp_status", "usage_reset"]
+# Line 4: Block Metrics + Code Stats + Context (v2.15.0: restored code_productivity)
+display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "code_productivity", "context_window"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
-# Line 5: Islamic Prayer Times (spiritual context)
-display.line5.components = ["prayer_times"]
+# Line 5: System Status & Reset Timer (detailed reset countdown)
+display.line5.components = ["mcp_status", "usage_reset"]
 display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
-# Line 6: Location Detection Display (VPN-aware location transparency)
-display.line6.components = ["location_display"]
+# Line 6: Islamic Prayer Times (spiritual context)
+display.line6.components = ["prayer_times"]
 display.line6.separator = " │ "
 display.line6.show_when_empty = true
 
-# Line 7: Legacy Cost Period (for comparison with atomic components)
-display.line7.components = []
+# Line 7: Location Detection Display (VPN-aware location transparency)
+display.line7.components = ["location_display"]
 display.line7.separator = " │ "
-display.line7.show_when_empty = false
+display.line7.show_when_empty = true
 
 # Line 8: Available for future expansion
 display.line8.components = []
