@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Current**: v2.15.0 with native context window percentages (Claude Code v2.1.6+)
 **Branch Strategy**: dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular cache system (8 sub-modules), 91.5% code reduction from v1
-**Key Features**: 5-line statusline, native context window percentages (v2.1.6+), Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation, health diagnostics (--health), metrics export (--metrics), JSON logging
+**Key Features**: 7-line statusline, native context window percentages (v2.1.6+), Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation, health diagnostics (--health), metrics export (--metrics), JSON logging
 **Platform Support**: 100% compatibility on macOS, Ubuntu, Arch, Fedora, Alpine Linux with automatic platform detection
 
 ## Essential Commands
@@ -48,7 +48,7 @@ bats tests/unit/test_platform_compatibility.bats
 - **System** (2): mcp_status, time_display
 - **Spiritual** (2): prayer_times, location_display
 
-**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 6-line with GPS-accurate location display)
+**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 7-line with GPS-accurate location display)
 
 **Key Functions**:
 - `load_module()` - Module loading with dependency checking
@@ -90,9 +90,10 @@ curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev6
 ```toml
 # Theme and Display
 theme.name = "catppuccin"            # classic/garden/catppuccin/custom
-display.lines = 6                    # 1-9 lines supported (now includes location display)
-display.line1.components = ["repo_info", "commits", "version_info", "time_display"]
-display.line6.components = ["location_display"]  # GPS-accurate location display
+display.lines = 7                    # 1-9 lines supported (7-line default)
+display.line1.components = ["repo_info"]  # Repository identity only
+display.line2.components = ["commits", "submodules", "version_info", "time_display"]  # Git metrics & versions
+display.line7.components = ["location_display"]  # GPS-accurate location display
 
 # Features
 features.show_mcp_status = true

@@ -34,6 +34,7 @@ extract_config_values() {
             feature_show_commits: ."features.show_commits",
             feature_show_version: ."features.show_version",
             feature_show_submodules: ."features.show_submodules",
+            feature_hide_submodules_when_empty: ."features.hide_submodules_when_empty",
             feature_show_mcp: ."features.show_mcp_status",
             feature_show_cost: ."features.show_cost_tracking",
             feature_show_reset: ."features.show_reset_info",
@@ -127,6 +128,9 @@ extract_config_values() {
             ;;
         feature_show_submodules)
             [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_SHOW_SUBMODULES="$value"
+            ;;
+        feature_hide_submodules_when_empty)
+            [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_HIDE_SUBMODULES_WHEN_EMPTY="$value"
             ;;
         feature_show_mcp)
             [[ "$value" == "true" || "$value" == "false" ]] && CONFIG_SHOW_MCP_STATUS="$value"
