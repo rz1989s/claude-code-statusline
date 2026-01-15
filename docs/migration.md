@@ -192,7 +192,6 @@ show_cost_tracking = true
 
 # Timeouts section converted to flat format
 mcp = "3s"
-ccusage = "3s"
 version = "2s"
 
 # Emojis section converted to flat format
@@ -317,7 +316,6 @@ cp ~/.claude/statusline/examples/Config.toml ./Config.toml
 # In statusline.sh:
 CONFIG_MCP_TIMEOUT="5s"
 CONFIG_VERSION_TIMEOUT="3s"
-CONFIG_CCUSAGE_TIMEOUT="4s"
 CONFIG_VERSION_CACHE_DURATION=3600
 ```
 
@@ -327,7 +325,6 @@ CONFIG_VERSION_CACHE_DURATION=3600
 # Timeouts section converted to flat format
 mcp = "5s"
 version = "3s"
-ccusage = "4s"
 
 [cache]
 version_duration = 3600

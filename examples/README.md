@@ -77,7 +77,7 @@ labels.monthly = "30DAY"
 # === TIMEOUTS & PERFORMANCE ===
 timeouts.mcp = "10s"
 timeouts.version = "10s"
-timeouts.ccusage = "10s"
+# Cost tracking is now native - no timeout needed
 
 # === CACHE SETTINGS ===
 cache.isolation.mode = "repository"

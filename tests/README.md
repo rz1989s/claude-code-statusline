@@ -96,7 +96,7 @@ Test individual functions in isolation with mocked dependencies:
 
 - **Git Functions**: Repository status, branch detection, commit counting
 - **MCP Parsing**: Server status parsing, connection state detection
-- **Cost Calculations**: ccusage data processing, cost formatting
+- **Cost Calculations**: Native JSONL data processing, cost formatting
 - **Security**: Input validation, path sanitization
 - **Utilities**: Date handling, caching, configuration loading
 
@@ -154,7 +154,7 @@ teardown() {
 Available helper functions from `test_helpers.bash`:
 
 - `setup_mock_git_repo()` - Create mock git repository
-- `setup_mock_ccusage()` - Mock ccusage commands
+- `setup_mock_cost_data()` - Mock native cost data
 - `setup_mock_mcp()` - Mock MCP server responses
 - `validate_statusline_format()` - Validate output structure
 - `strip_ansi_codes()` - Remove color codes for testing

@@ -187,33 +187,27 @@ curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/dev/
 
 ---
 
-### `bunx ccusage --version` fails
+### Cost tracking not showing data
 
-**Problem**: Cost tracking tools are not properly installed.
+**Problem**: Native cost tracking not displaying cost information.
 
 **Solutions**:
 
-1. **Check Node.js installation**:
+1. **Verify JSONL files exist**:
    ```bash
-   node --version
-   npm --version
+   ls -la ~/.claude/projects/*/
+   # Should see .jsonl files
    ```
 
-2. **Install/reinstall bunx**:
+2. **Check Claude Code usage**:
    ```bash
-   npm install -g bunx
-   npm install -g ccusage
+   # Ensure you have used Claude Code in this directory
+   STATUSLINE_DEBUG=true ./statusline.sh
    ```
 
-3. **Clear npm cache**:
+3. **Verify cost module loaded**:
    ```bash
-   npm cache clean --force
-   npm install -g bunx ccusage
-   ```
-
-4. **Permission issues (Linux/macOS)**:
-   ```bash
-   sudo npm install -g bunx ccusage
+   ./statusline.sh --modules | grep cost
    ```
 
 ---
@@ -662,7 +656,6 @@ time ./statusline.sh
    ```toml
    [timeouts]
    mcp = "1s"           # Reduce from default 3s
-   ccusage = "1s"       # Reduce from default 3s
    version = "1s"       # Reduce from default 2s
    ```
 
@@ -670,7 +663,7 @@ time ./statusline.sh
    ```toml
    [features]
    show_mcp_status = false      # Disable MCP server checks
-   show_cost_tracking = false   # Disable ccusage calls
+   show_cost_tracking = false   # Disable cost display
    show_version = false         # Disable version checks
    ```
 
@@ -694,7 +687,7 @@ time ./statusline.sh
 
 ### Network-Related Timeouts
 
-**Problem**: Network operations (MCP, ccusage, version checks) are timing out.
+**Problem**: Network operations (MCP, version checks) are timing out.
 
 **Diagnosis**:
 ```bash
@@ -702,7 +695,7 @@ time ./statusline.sh
 curl -s --max-time 3 https://api.anthropic.com || echo "Network issue"
 
 # Test individual components
-bunx ccusage --version
+./statusline.sh --modules
 ```
 
 **Solutions**:
@@ -711,7 +704,6 @@ bunx ccusage --version
    ```toml
    [timeouts]
    mcp = "10s"          # Increase for slow networks
-   ccusage = "8s"       # Increase for API delays
    version = "5s"       # Increase for slow connections
    ```
 
@@ -968,7 +960,7 @@ chmod +x ~/.claude/statusline/statusline.sh
 
 4. **Check network connectivity**:
    ```bash
-   curl -I https://ccusage.com
+   curl -I https://api.anthropic.com
    claude mcp list
    ```
 
@@ -998,21 +990,22 @@ chmod +x ~/.claude/statusline/statusline.sh
 
 ## 💰 Cost Tracking Issues
 
-### "No ccusage" message appears
+### Cost information not showing
 
-**Problem**: ccusage is not installed or configured.
+**Problem**: Native cost tracking not displaying data.
 
 **Solutions**:
 
-1. **Install ccusage**:
+1. **Verify JSONL files exist**:
    ```bash
-   npm install -g bunx ccusage
+   ls -la ~/.claude/projects/*/
+   # Should see .jsonl files with usage data
    ```
 
-2. **Configure ccusage**:
+2. **Check Claude Code has usage**:
    ```bash
-   # Follow ccusage setup instructions
-   bunx ccusage --help
+   # You need to have used Claude Code in this directory first
+   STATUSLINE_DEBUG=true ./statusline.sh
    ```
 
 3. **Disable cost tracking** (if not needed):
@@ -1024,60 +1017,52 @@ chmod +x ~/.claude/statusline/statusline.sh
 
 ### Cost information shows "$0.00" for everything
 
-**Problem**: ccusage is not properly configured with API credentials.
+**Problem**: No usage data available in JSONL files.
 
 **Solutions**:
 
-1. **Check ccusage configuration**:
+1. **Verify JSONL has data**:
    ```bash
-   bunx ccusage session --help
+   # Check if any JSONL files have content
+   find ~/.claude/projects -name "*.jsonl" -size +0 | head -5
    ```
 
-2. **Verify API credentials**: Follow ccusage documentation for setup
+2. **Use Claude Code first**: The statusline reads usage from Claude Code sessions
 
-3. **Test ccusage manually**:
+3. **Check the working directory**:
    ```bash
-   bunx ccusage daily --since "7 days ago"
+   # Cost tracking is per-repository
+   echo "Current dir: $(pwd)"
    ```
 
 ---
 
-### Reset Timer Shows "waiting API response..."
+### Reset Timer Shows "No active block"
 
-**Problem**: The reset timer displays "waiting API response..." instead of countdown.
+**Problem**: The reset timer displays "No active block" instead of countdown.
 
-**Expected Behavior**: This is **normal behavior** when ccusage API is calculating billing projections.
-
-**When This Happens**:
-- Fresh Claude Code session startup (API still calculating projections)
-- Network delays in API responses
-- ccusage service temporarily processing billing data
+**Expected Behavior**: This is **normal behavior** when:
+- No OAuth API data available
+- No billing block is currently active
+- Session just started
 
 **Display States**:
 ```bash
-RESET at 06.00 (4h 15m left)           # ✅ Normal: API has projection data
-RESET at 06.00 (waiting API response...) # ⏳ Normal: API calculating projections
-(No Line 4 displayed)                    # ✅ Normal: No active billing block
+RESET at 06.00 (4h 15m left)           # ✅ Normal: OAuth API has reset data
+(No reset timer displayed)              # ✅ Normal: No active billing block
+No active block                         # ⏳ Normal: Waiting for OAuth data
 ```
 
 **Solutions** (Only if persistently stuck):
 
-1. **Wait a moment**: Usually resolves within 10-30 seconds
-2. **Test ccusage directly**:
-   ```bash
-   ccusage blocks --json | jq '.blocks[] | select(.isActive == true) | .projection.remainingMinutes'
-   ```
+1. **Wait for OAuth data**: Usually available after first API call
+2. **Check Claude Code OAuth settings**: Ensure OAuth is configured
 3. **Check network connectivity**:
    ```bash
    curl -s --max-time 5 https://api.anthropic.com
    ```
-4. **Increase timeout if slow network**:
-   ```toml
-   [timeouts]
-   ccusage = "10s"  # Increase from default 8s
-   ```
 
-**Note**: This enhancement replaced the confusing "0m left" message that previously appeared during API delays.
+**Note**: Cost tracking is now 100% native using JSONL files - no external dependencies required.
 
 ## 🔗 MCP Server Issues
 
@@ -1210,8 +1195,8 @@ git diff --quiet && echo "Clean" || echo "Dirty"
 # Test MCP status
 timeout 3s claude mcp list
 
-# Test ccusage
-bunx ccusage daily --since "1 day ago" --json
+# Test cost tracking
+STATUSLINE_DEBUG=true ./statusline.sh | grep -i cost
 
 # Test version cache
 cat /tmp/.claude_version_cache
@@ -1233,9 +1218,7 @@ When reporting issues, include:
    ```bash
    jq --version
    timeout --version  # or gtimeout --version
-   node --version
-   npm --version
-   bunx ccusage --version
+   # Cost tracking is built-in (native JSONL)
    ```
 
 3. **Script configuration**:
