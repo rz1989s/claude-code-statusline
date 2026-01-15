@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.1] - 2025-01-16
+
+### Fixed
+- **Installer stale module references**: Removed `cost/ccusage.sh`, `cost/blocks.sh`, `cost/aggregation.sh` from installer module lists (these were removed in native cost calculation refactoring)
+- Updated `lib/cost/session.sh` dependency comment to reference `api_live.sh` instead of removed `blocks.sh`
+
+## [2.15.0] - 2025-01-15
+
 ### Added
 - **Native context window percentages** (Claude Code v2.1.6+): Now uses official `used_percentage` and `remaining_percentage` fields from Claude Code's statusline input
 - New functions: `get_native_context_used_percentage()`, `get_native_context_remaining_percentage()`, `get_native_context_window_size()`, `has_native_context_percentages()`, `get_context_window_percentage_smart()`
