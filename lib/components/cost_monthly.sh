@@ -24,18 +24,19 @@ collect_cost_monthly_data() {
     # Initialize default
     COMPONENT_COST_MONTHLY_AMOUNT="-.--"
     
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         # Get usage info and parse monthly cost
+        # Uses native JSONL calculation (primary) or ccusage (fallback)
         local usage_info
         usage_info=$(get_claude_usage_info)
-        
+
         if [[ -n "$usage_info" ]]; then
             # Parse usage info (format: session:month:week:today:block:reset)
             local remaining="$usage_info"
-            
+
             # Skip session cost
             remaining="${remaining#*:}"
-            
+
             # Extract month cost
             COMPONENT_COST_MONTHLY_AMOUNT="${remaining%%:*}"
         fi

@@ -30,18 +30,13 @@ collect_cost_repo_data() {
 
     if is_module_loaded "cost"; then
         # REPO shows cumulative repository cost (all sessions in this repo)
-        # This is different from SESSION cost which shows current conversation only.
-        # Always use ccusage session data for cumulative repo cost.
-        if is_ccusage_available; then
-            local usage_info
-            usage_info=$(get_claude_usage_info)
+        # Uses native JSONL calculation (primary) or ccusage (fallback)
+        local usage_info
+        usage_info=$(get_claude_usage_info)
 
-            if [[ -n "$usage_info" ]]; then
-                COMPONENT_COST_REPO_COST="${usage_info%%:*}"
-                debug_log "Using ccusage for cumulative repo cost: \$$COMPONENT_COST_REPO_COST" "INFO"
-            fi
-        else
-            debug_log "ccusage not available for repo cost" "WARN"
+        if [[ -n "$usage_info" ]]; then
+            COMPONENT_COST_REPO_COST="${usage_info%%:*}"
+            debug_log "Repo cost: \$$COMPONENT_COST_REPO_COST" "INFO"
         fi
     fi
 

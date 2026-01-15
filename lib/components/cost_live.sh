@@ -3,45 +3,62 @@
 # ============================================================================
 # Claude Code Statusline - Cost Live Component
 # ============================================================================
-# 
-# This component handles live block cost display.
 #
-# Dependencies: cost.sh, display.sh
+# This component handles live cost display, synchronized with the Anthropic
+# API's 5-hour billing window for accurate alignment with reset timer.
+#
+# v2.16.0: Switched from ccusage blocks to API-synced calculation
+# - Uses Anthropic OAuth API's resets_at as time window boundary
+# - Reads JSONL files directly and calculates cost from token usage
+# - Ensures LIVE and reset timer reference the same 5-hour window
+#
+# Dependencies: cost.sh, display.sh, usage_limits.sh (for API data)
 # ============================================================================
 
 # Component data storage
 COMPONENT_COST_LIVE_BLOCK=""
+COMPONENT_COST_LIVE_VALUE=""
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect live block cost data
+# Collect live cost data (API-synced, uses cached values)
 collect_cost_live_data() {
     debug_log "Collecting cost_live component data" "INFO"
-    
+
     COMPONENT_COST_LIVE_BLOCK="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get usage info and extract live block cost
+    COMPONENT_COST_LIVE_VALUE=""
+
+    # PRIMARY: Get from cached usage info (includes LIVE in block field)
+    # This avoids redundant API-synced calculation (~15s savings per call)
+    if declare -f get_claude_usage_info &>/dev/null; then
         local usage_info
         usage_info=$(get_claude_usage_info)
-        
+
         if [[ -n "$usage_info" ]]; then
             # Parse usage info (format: session:month:week:today:block:reset)
             local remaining="$usage_info"
-            
+
             # Skip to block info (5th field)
             for i in {1..4}; do
                 remaining="${remaining#*:}"
             done
-            
-            # Extract block info
-            COMPONENT_COST_LIVE_BLOCK="${remaining%%:*}"
+
+            # Extract block info (contains "🔥LIVE $XX.XX" or "No active block")
+            local block_info="${remaining%%:*}"
+
+            if [[ -n "$block_info" && "$block_info" != "$CONFIG_NO_ACTIVE_BLOCK_MESSAGE" && "$block_info" != "No active block" ]]; then
+                COMPONENT_COST_LIVE_BLOCK="$block_info"
+                # Extract numeric value for COMPONENT_COST_LIVE_VALUE
+                COMPONENT_COST_LIVE_VALUE=$(echo "$block_info" | grep -oE '[0-9]+\.[0-9]+' | head -1)
+                debug_log "cost_live data (cached): $block_info" "INFO"
+                return 0
+            fi
         fi
     fi
-    
-    debug_log "cost_live data: block=$COMPONENT_COST_LIVE_BLOCK" "INFO"
+
+    debug_log "cost_live: no active block or cached data" "DEBUG"
     return 0
 }
 
