@@ -7,7 +7,7 @@
 # This component displays total tokens consumed in the current 5-hour billing block.
 # Shows current usage to help users understand consumption within billing windows.
 #
-# Dependencies: cost.sh (get_unified_block_metrics), display.sh
+# Dependencies: cost.sh (native window tokens from api_live.sh), display.sh
 # ============================================================================
 
 # Component data storage
@@ -17,35 +17,35 @@ COMPONENT_TOKEN_USAGE_INFO=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect token usage data from unified block metrics
+# Collect token usage data from native JSONL calculation
 collect_token_usage_data() {
     debug_log "Collecting token_usage component data" "INFO"
-    
-    COMPONENT_TOKEN_USAGE_INFO="$CONFIG_NO_CCUSAGE_MESSAGE"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get unified metrics from single ccusage call (cached 30s)
-        local metrics
-        metrics=$(get_unified_block_metrics)
-        
-        if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
-            # Parse token usage (field 3)
-            local total_tokens
-            total_tokens=$(echo "$metrics" | cut -d: -f3)
-            
-            # Format token usage display
-            if [[ "$total_tokens" != "0" && "$total_tokens" != "null" ]]; then
-                local formatted_tokens
-                formatted_tokens=$(format_tokens_compact "$total_tokens")
-                COMPONENT_TOKEN_USAGE_INFO="${formatted_tokens} tokens"
-            else
-                COMPONENT_TOKEN_USAGE_INFO="No tokens used"
+
+    COMPONENT_TOKEN_USAGE_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+
+    if is_module_loaded "cost"; then
+        # Get native window tokens from JSONL (cached 30s)
+        if declare -f get_cached_window_tokens &>/dev/null; then
+            local token_data
+            token_data=$(get_cached_window_tokens)
+
+            if [[ -n "$token_data" && "$token_data" != "0:0:0:0:0" ]]; then
+                # Parse token data (total:input:output:cache_read:cache_write)
+                local total_tokens
+                total_tokens=$(echo "$token_data" | cut -d: -f1)
+
+                # Format token usage display
+                if [[ "$total_tokens" != "0" && -n "$total_tokens" ]]; then
+                    local formatted_tokens
+                    formatted_tokens=$(format_tokens_compact "$total_tokens")
+                    COMPONENT_TOKEN_USAGE_INFO="${formatted_tokens} tokens"
+                else
+                    COMPONENT_TOKEN_USAGE_INFO="No tokens used"
+                fi
             fi
-        else
-            COMPONENT_TOKEN_USAGE_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
         fi
     fi
-    
+
     debug_log "token_usage data: info=$COMPONENT_TOKEN_USAGE_INFO" "INFO"
     return 0
 }

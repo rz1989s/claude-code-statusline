@@ -263,10 +263,293 @@ get_api_synced_live_cost() {
 }
 
 # ============================================================================
+# NATIVE BLOCK METRICS (ccusage replacement)
+# ============================================================================
+
+# Calculate token counts in current 5-hour window
+# Returns: total_tokens:input_tokens:output_tokens:cache_read:cache_write
+calculate_window_tokens() {
+    local projects_dir
+    projects_dir=$(get_claude_projects_dir)
+
+    if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
+        echo "0:0:0:0:0"
+        return 1
+    fi
+
+    local window_start_epoch
+    window_start_epoch=$(get_api_window_start)
+
+    if [[ -z "$window_start_epoch" ]]; then
+        echo "0:0:0:0:0"
+        return 1
+    fi
+
+    # Convert epoch to ISO format for string comparison
+    local window_start_iso
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        window_start_iso=$(date -u -r "$window_start_epoch" "+%Y-%m-%dT%H:%M:%S" 2>/dev/null)
+    else
+        window_start_iso=$(date -u -d "@$window_start_epoch" "+%Y-%m-%dT%H:%M:%S" 2>/dev/null)
+    fi
+
+    # Single jq+awk pass to sum all token types
+    local result
+    result=$(find "$projects_dir" -name "*.jsonl" -type f -mmin -360 2>/dev/null | while read -r jsonl_file; do
+        [[ -z "$jsonl_file" ]] && continue
+        jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+            [.timestamp,
+             (.message.usage.input_tokens // 0),
+             (.message.usage.output_tokens // 0),
+             (.message.usage.cache_read_input_tokens // 0),
+             (.message.usage.cache_creation_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+    done | awk -F'\t' -v start="$window_start_iso" '
+    BEGIN {
+        total_input = 0; total_output = 0; cache_read = 0; cache_write = 0
+    }
+    {
+        ts = $1
+        gsub(/\.[0-9]+Z?$/, "", ts)
+        if (ts < start) next
+
+        total_input += $2 + 0
+        total_output += $3 + 0
+        cache_read += $4 + 0
+        cache_write += $5 + 0
+    }
+    END {
+        total = total_input + total_output
+        printf "%d:%d:%d:%d:%d", total, total_input, total_output, cache_read, cache_write
+    }')
+
+    debug_log "Window tokens calculated: $result" "INFO"
+    echo "${result:-0:0:0:0:0}"
+}
+
+# Get cached window tokens (30s TTL)
+get_cached_window_tokens() {
+    local cache_key="window_tokens"
+    local cached_result
+    cached_result=$(get_cached_value "$cache_key" "$API_LIVE_CACHE_TTL" 2>/dev/null)
+
+    if [[ -n "$cached_result" ]]; then
+        echo "$cached_result"
+        return 0
+    fi
+
+    local result
+    result=$(calculate_window_tokens)
+    set_cached_value "$cache_key" "$result" 2>/dev/null
+    echo "$result"
+}
+
+# Calculate native burn rate from JSONL activity in 5-hour window
+# Returns: tokens_per_minute:cost_per_hour
+calculate_native_burn_rate() {
+    local window_start_epoch
+    window_start_epoch=$(get_api_window_start)
+
+    if [[ -z "$window_start_epoch" ]]; then
+        echo "0:0.00"
+        return 1
+    fi
+
+    local now_epoch
+    now_epoch=$(date +%s)
+
+    # Calculate elapsed minutes since window start
+    local elapsed_seconds=$((now_epoch - window_start_epoch))
+    local elapsed_minutes=$((elapsed_seconds / 60))
+
+    # Avoid division by zero
+    if [[ "$elapsed_minutes" -lt 1 ]]; then
+        elapsed_minutes=1
+    fi
+
+    # Get token counts from window
+    local token_data
+    token_data=$(get_cached_window_tokens)
+    local total_tokens
+    total_tokens=$(echo "$token_data" | cut -d: -f1)
+    total_tokens="${total_tokens:-0}"
+
+    # Calculate tokens per minute
+    local tokens_per_minute
+    tokens_per_minute=$((total_tokens / elapsed_minutes))
+
+    # Get cost in window and calculate cost per hour
+    local live_cost
+    live_cost=$(get_api_synced_live_cost)
+    live_cost="${live_cost:-0.00}"
+
+    local cost_per_hour
+    cost_per_hour=$(awk -v cost="$live_cost" -v mins="$elapsed_minutes" \
+        'BEGIN { printf "%.2f", (cost / mins) * 60 }' 2>/dev/null)
+
+    debug_log "Native burn rate: ${tokens_per_minute}/min, \$${cost_per_hour}/hr" "INFO"
+    echo "${tokens_per_minute}:${cost_per_hour}"
+}
+
+# Get cached burn rate (30s TTL)
+get_cached_native_burn_rate() {
+    local cache_key="native_burn_rate"
+    local cached_result
+    cached_result=$(get_cached_value "$cache_key" "$API_LIVE_CACHE_TTL" 2>/dev/null)
+
+    if [[ -n "$cached_result" ]]; then
+        echo "$cached_result"
+        return 0
+    fi
+
+    local result
+    result=$(calculate_native_burn_rate)
+    set_cached_value "$cache_key" "$result" 2>/dev/null
+    echo "$result"
+}
+
+# Get native reset timer info from OAuth API
+# Returns: reset_time_local:remaining_minutes
+get_native_reset_info() {
+    # Get resets_at from usage_limits component
+    local resets_at="${COMPONENT_USAGE_FIVE_HOUR_RESET:-}"
+
+    if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
+        # Try fetching directly if component data not available
+        if declare -f fetch_usage_limits &>/dev/null; then
+            local usage_data
+            usage_data=$(fetch_usage_limits 2>/dev/null)
+            resets_at=$(echo "$usage_data" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
+        echo ":"
+        return 1
+    fi
+
+    # Parse resets_at to epoch
+    local reset_epoch
+    local normalized_ts
+    normalized_ts=$(echo "$resets_at" | sed 's/\.[0-9]*//')
+
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    else
+        reset_epoch=$(date -d "$resets_at" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        echo ":"
+        return 1
+    fi
+
+    # Calculate remaining time
+    local now_epoch
+    now_epoch=$(date +%s)
+    local remaining_seconds=$((reset_epoch - now_epoch))
+    local remaining_minutes=$((remaining_seconds / 60))
+
+    # Handle negative (already reset)
+    if [[ "$remaining_minutes" -lt 0 ]]; then
+        remaining_minutes=0
+    fi
+
+    # Format reset time in local timezone (HH.MM format)
+    local reset_time_local
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        reset_time_local=$(date -r "$reset_epoch" "+%H.%M" 2>/dev/null)
+    else
+        reset_time_local=$(date -d "@$reset_epoch" "+%H.%M" 2>/dev/null)
+    fi
+
+    debug_log "Native reset info: ${reset_time_local}, ${remaining_minutes}m remaining" "INFO"
+    echo "${reset_time_local}:${remaining_minutes}"
+}
+
+# Get cached reset info (30s TTL)
+get_cached_native_reset_info() {
+    local cache_key="native_reset_info"
+    local cached_result
+    cached_result=$(get_cached_value "$cache_key" "$API_LIVE_CACHE_TTL" 2>/dev/null)
+
+    if [[ -n "$cached_result" ]]; then
+        echo "$cached_result"
+        return 0
+    fi
+
+    local result
+    result=$(get_native_reset_info)
+    set_cached_value "$cache_key" "$result" 2>/dev/null
+    echo "$result"
+}
+
+# Calculate native block projection
+# Returns: projected_cost:projected_tokens
+calculate_native_block_projection() {
+    # Get current window data
+    local burn_rate_data
+    burn_rate_data=$(get_cached_native_burn_rate)
+    local tokens_per_minute cost_per_hour
+    IFS=':' read -r tokens_per_minute cost_per_hour <<< "$burn_rate_data"
+
+    # Get remaining time
+    local reset_info
+    reset_info=$(get_cached_native_reset_info)
+    local remaining_minutes
+    remaining_minutes=$(echo "$reset_info" | cut -d: -f2)
+    remaining_minutes="${remaining_minutes:-0}"
+
+    # Get current cost
+    local current_cost
+    current_cost=$(get_api_synced_live_cost)
+    current_cost="${current_cost:-0.00}"
+
+    # Get current tokens
+    local token_data
+    token_data=$(get_cached_window_tokens)
+    local current_tokens
+    current_tokens=$(echo "$token_data" | cut -d: -f1)
+    current_tokens="${current_tokens:-0}"
+
+    # Project to end of window
+    local projected_tokens projected_cost
+    projected_tokens=$((current_tokens + (tokens_per_minute * remaining_minutes)))
+
+    projected_cost=$(awk -v curr="$current_cost" -v rate="$cost_per_hour" -v mins="$remaining_minutes" \
+        'BEGIN { printf "%.2f", curr + (rate * mins / 60) }' 2>/dev/null)
+
+    debug_log "Block projection: \$${projected_cost}, ${projected_tokens} tokens" "INFO"
+    echo "${projected_cost}:${projected_tokens}"
+}
+
+# Get cached block projection (30s TTL)
+get_cached_native_block_projection() {
+    local cache_key="native_block_projection"
+    local cached_result
+    cached_result=$(get_cached_value "$cache_key" "$API_LIVE_CACHE_TTL" 2>/dev/null)
+
+    if [[ -n "$cached_result" ]]; then
+        echo "$cached_result"
+        return 0
+    fi
+
+    local result
+    result=$(calculate_native_block_projection)
+    set_cached_value "$cache_key" "$result" 2>/dev/null
+    echo "$result"
+}
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
 export -f get_model_pricing get_claude_projects_dir calculate_entry_cost
 export -f get_api_window_start calculate_api_synced_live get_api_synced_live_cost
+export -f calculate_window_tokens get_cached_window_tokens
+export -f calculate_native_burn_rate get_cached_native_burn_rate
+export -f get_native_reset_info get_cached_native_reset_info
+export -f calculate_native_block_projection get_cached_native_block_projection
 
 debug_log "API-synced LIVE cost module loaded" "INFO"
