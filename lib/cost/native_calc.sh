@@ -273,18 +273,28 @@ get_native_usage_info() {
 }
 
 # Cached version of get_native_usage_info
-# Uses file-based cache since this is called from multiple components
+# Uses file-based cache (5min TTL) for fast repeated calls
+# Processing 1000+ JSONL files takes ~15-20s, so longer TTL is appropriate
 get_cached_native_usage_info() {
     local current_dir="${1:-$(pwd)}"
-    local cache_file="${TMPDIR:-/tmp}/.statusline_native_usage_$$"
+    local cache_ttl="${NATIVE_CALC_CACHE_TTL:-300}"
 
-    # Return cached if fresh (< 60 seconds)
+    # Use project-based cache key (not PID-based)
+    local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+    local sanitized_dir
+    sanitized_dir=$(echo "$current_dir" | sed 's|/|_|g')
+    local cache_file="${cache_dir}/native_usage_${sanitized_dir}.cache"
+
+    # Ensure cache directory exists
+    [[ -d "$cache_dir" ]] || mkdir -p "$cache_dir" 2>/dev/null
+
+    # Return cached if fresh (< cache_ttl seconds, default 5 minutes)
     if [[ -f "$cache_file" ]]; then
         local cache_mtime cache_age
         cache_mtime=$(stat -f "%m" "$cache_file" 2>/dev/null || stat -c "%Y" "$cache_file" 2>/dev/null)
         cache_age=$(( $(date +%s) - cache_mtime ))
-        if [[ $cache_age -lt 60 ]]; then
-            debug_log "Using cached native usage info (age=${cache_age}s)" "DEBUG"
+        if [[ $cache_age -lt $cache_ttl ]]; then
+            debug_log "Using cached native usage info (age=${cache_age}s, ttl=${cache_ttl}s)" "DEBUG"
             cat "$cache_file"
             return 0
         fi
@@ -301,8 +311,9 @@ get_cached_native_usage_info() {
 # CACHED NATIVE CALCULATIONS
 # ============================================================================
 
-# Cache TTL for native calculations (60 seconds)
-NATIVE_CALC_CACHE_TTL="${NATIVE_CALC_CACHE_TTL:-60}"
+# Cache TTL for native calculations (300 seconds = 5 minutes)
+# Processing 1000+ JSONL files takes ~15-20s, so longer TTL is appropriate
+NATIVE_CALC_CACHE_TTL="${NATIVE_CALC_CACHE_TTL:-300}"
 
 # Get cached daily cost
 get_cached_native_daily_cost() {

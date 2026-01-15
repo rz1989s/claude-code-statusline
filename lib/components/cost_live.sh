@@ -23,28 +23,16 @@ COMPONENT_COST_LIVE_VALUE=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect live cost data (API-synced)
+# Collect live cost data (API-synced, uses cached values)
 collect_cost_live_data() {
-    debug_log "Collecting cost_live component data (API-synced)" "INFO"
+    debug_log "Collecting cost_live component data" "INFO"
 
     COMPONENT_COST_LIVE_BLOCK="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
     COMPONENT_COST_LIVE_VALUE=""
 
-    # Try API-synced calculation first (preferred for sync with reset timer)
-    if declare -f get_api_synced_live_cost &>/dev/null; then
-        local api_live_cost
-        api_live_cost=$(get_api_synced_live_cost 2>/dev/null)
-
-        if [[ -n "$api_live_cost" && "$api_live_cost" != "0.00" ]]; then
-            COMPONENT_COST_LIVE_VALUE="$api_live_cost"
-            COMPONENT_COST_LIVE_BLOCK="${CONFIG_LIVE_BLOCK_EMOJI}${CONFIG_LIVE_LABEL} \$${api_live_cost}"
-            debug_log "cost_live data (API-synced): \$${api_live_cost}" "INFO"
-            return 0
-        fi
-    fi
-
-    # Fallback to ccusage-based calculation if API-sync not available
-    if is_module_loaded "cost" && is_ccusage_available; then
+    # PRIMARY: Get from cached usage info (includes LIVE in block field)
+    # This avoids redundant API-synced calculation (~15s savings per call)
+    if declare -f get_claude_usage_info &>/dev/null; then
         local usage_info
         usage_info=$(get_claude_usage_info)
 
@@ -57,12 +45,20 @@ collect_cost_live_data() {
                 remaining="${remaining#*:}"
             done
 
-            # Extract block info
-            COMPONENT_COST_LIVE_BLOCK="${remaining%%:*}"
+            # Extract block info (contains "🔥LIVE $XX.XX" or "No active block")
+            local block_info="${remaining%%:*}"
+
+            if [[ -n "$block_info" && "$block_info" != "$CONFIG_NO_ACTIVE_BLOCK_MESSAGE" && "$block_info" != "No active block" ]]; then
+                COMPONENT_COST_LIVE_BLOCK="$block_info"
+                # Extract numeric value for COMPONENT_COST_LIVE_VALUE
+                COMPONENT_COST_LIVE_VALUE=$(echo "$block_info" | grep -oE '[0-9]+\.[0-9]+' | head -1)
+                debug_log "cost_live data (cached): $block_info" "INFO"
+                return 0
+            fi
         fi
-        debug_log "cost_live data (ccusage fallback): $COMPONENT_COST_LIVE_BLOCK" "INFO"
     fi
 
+    debug_log "cost_live: no active block or cached data" "DEBUG"
     return 0
 }
 

@@ -24,22 +24,23 @@ collect_cost_daily_data() {
     # Initialize default
     COMPONENT_COST_DAILY_AMOUNT="-.--"
     
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         # Get usage info and parse daily cost
+        # Uses native JSONL calculation (primary) or ccusage (fallback)
         local usage_info
         usage_info=$(get_claude_usage_info)
-        
+
         if [[ -n "$usage_info" ]]; then
             # Parse usage info (format: session:month:week:today:block:reset)
             local remaining="$usage_info"
-            
+
             # Skip session cost
             remaining="${remaining#*:}"
             # Skip month cost
             remaining="${remaining#*:}"
-            # Skip week cost  
+            # Skip week cost
             remaining="${remaining#*:}"
-            
+
             # Extract today cost
             COMPONENT_COST_DAILY_AMOUNT="${remaining%%:*}"
         fi
