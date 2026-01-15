@@ -7,7 +7,7 @@
 # This component displays cache hit percentage for the current billing block.
 # Shows cache efficiency to help users understand cost optimization.
 #
-# Dependencies: cost.sh (get_unified_block_metrics), display.sh
+# Dependencies: cost.sh (native cache from STATUSLINE_INPUT_JSON + JSONL), display.sh
 # ============================================================================
 
 # Component data storage
@@ -17,25 +17,17 @@ COMPONENT_CACHE_EFFICIENCY_INFO=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect cache efficiency data from unified block metrics
+# Collect cache efficiency data from native sources
 collect_cache_efficiency_data() {
     debug_log "Collecting cache_efficiency component data" "INFO"
 
-    COMPONENT_CACHE_EFFICIENCY_INFO="$CONFIG_NO_CCUSAGE_MESSAGE"
-
-    # Issue #103: Debug comparison mode - log native vs ccusage side-by-side
-    # This runs ONLY when STATUSLINE_DEBUG=true to validate native data
-    if is_debug_mode && is_module_loaded "cost"; then
-        compare_native_vs_ccusage_cache >/dev/null
-    fi
+    COMPONENT_CACHE_EFFICIENCY_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
     if is_module_loaded "cost"; then
-        # Issue #104: Use hybrid cache source (native + ccusage fallback)
-        local source="${CONFIG_CACHE_EFFICIENCY_SOURCE:-auto}"
         local got_data=false
 
-        # Try native cache efficiency first (if auto or native)
-        if [[ "$source" == "auto" || "$source" == "native" ]]; then
+        # Try native cache efficiency first (from STATUSLINE_INPUT_JSON)
+        if declare -f get_native_cache_efficiency &>/dev/null; then
             local native_efficiency
             native_efficiency=$(get_native_cache_efficiency)
 
@@ -46,42 +38,32 @@ collect_cache_efficiency_data() {
             fi
         fi
 
-        # Fallback to ccusage if needed
-        if [[ "$got_data" == "false" ]] && is_ccusage_available && [[ "$source" != "native" ]]; then
-            # Get unified metrics from single ccusage call (cached 30s)
-            local metrics
-            metrics=$(get_unified_block_metrics)
+        # Fallback: Calculate from JSONL window tokens
+        if [[ "$got_data" == "false" ]] && declare -f get_cached_window_tokens &>/dev/null; then
+            local token_data
+            token_data=$(get_cached_window_tokens)
 
-            if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
-                # Parse cache metrics (fields 4 and 5)
-                local cache_read cache_creation
-                cache_read=$(echo "$metrics" | cut -d: -f4)
-                cache_creation=$(echo "$metrics" | cut -d: -f5)
+            if [[ -n "$token_data" && "$token_data" != "0:0:0:0:0" ]]; then
+                # Parse token data (total:input:output:cache_read:cache_write)
+                local cache_read cache_write
+                cache_read=$(echo "$token_data" | cut -d: -f4)
+                cache_write=$(echo "$token_data" | cut -d: -f5)
 
                 # Calculate cache efficiency percentage
-                if [[ "$cache_read" != "0" && "$cache_read" != "null" ]] && [[ "$cache_creation" != "0" && "$cache_creation" != "null" ]]; then
+                if [[ "${cache_read:-0}" -gt 0 || "${cache_write:-0}" -gt 0 ]]; then
                     local total_cache_tokens efficiency
-                    total_cache_tokens=$((cache_read + cache_creation))
+                    total_cache_tokens=$((cache_read + cache_write))
 
                     if [[ "$total_cache_tokens" -gt 0 ]]; then
-                        # Calculate percentage using awk for consistency and portability
                         efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total_cache_tokens}" 2>/dev/null || echo "0")
                         COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${efficiency}% hit"
-                        debug_log "Using ccusage cache efficiency: ${efficiency}%" "INFO"
+                        debug_log "Using JSONL cache efficiency: ${efficiency}%" "INFO"
                     else
                         COMPONENT_CACHE_EFFICIENCY_INFO="No cache data"
                     fi
-                elif [[ "$cache_read" != "0" && "$cache_creation" == "0" ]]; then
-                    # All cache hits (100% efficiency)
-                    COMPONENT_CACHE_EFFICIENCY_INFO="Cache: 100% hit"
-                elif [[ "$cache_read" == "0" && "$cache_creation" != "0" ]]; then
-                    # No cache hits (0% efficiency)
-                    COMPONENT_CACHE_EFFICIENCY_INFO="Cache: 0% hit"
                 else
                     COMPONENT_CACHE_EFFICIENCY_INFO="No cache used"
                 fi
-            else
-                COMPONENT_CACHE_EFFICIENCY_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
             fi
         fi
     fi

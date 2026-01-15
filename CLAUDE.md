@@ -185,7 +185,7 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 - **GPS Location (Recommended)**:
   - macOS: CoreLocationCLI (`brew install corelocationcli`)
   - Linux: geoclue2 (`sudo apt install geoclue-2-demo`)
-- **Optional**: ccusage (cost tracking), timeout/gtimeout (platform-specific)
+- **Optional**: timeout/gtimeout (platform-specific)
 
 **Security**: Input sanitization via lib/security.sh, timeout protection, secure path handling
 

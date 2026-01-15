@@ -7,7 +7,7 @@
 # This component displays projected cost and tokens for the current 5-hour block.
 # Shows predictions to help users budget and avoid unexpected costs.
 #
-# Dependencies: cost.sh (get_unified_block_metrics), display.sh
+# Dependencies: cost.sh (native block projection from api_live.sh), display.sh
 # ============================================================================
 
 # Component data storage
@@ -17,37 +17,36 @@ COMPONENT_BLOCK_PROJECTION_INFO=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect block projection data from unified block metrics
+# Collect block projection data from native calculation
 collect_block_projection_data() {
     debug_log "Collecting block_projection component data" "INFO"
-    
-    COMPONENT_BLOCK_PROJECTION_INFO="$CONFIG_NO_CCUSAGE_MESSAGE"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get unified metrics from single ccusage call (cached 30s)
-        local metrics
-        metrics=$(get_unified_block_metrics)
-        
-        if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
-            # Parse projection metrics (fields 6 and 7)
-            local proj_cost proj_tokens
-            proj_cost=$(echo "$metrics" | cut -d: -f6)
-            proj_tokens=$(echo "$metrics" | cut -d: -f7)
-            
-            # Format projection display
-            if [[ "$proj_cost" != "0" && "$proj_cost" != "null" ]] && [[ "$proj_tokens" != "0" && "$proj_tokens" != "null" ]]; then
-                local formatted_cost formatted_tokens
-                formatted_cost=$(printf "%.2f" "$proj_cost" 2>/dev/null || echo "0.00")
-                formatted_tokens=$(format_tokens_compact "$proj_tokens")
-                COMPONENT_BLOCK_PROJECTION_INFO="Est: \$${formatted_cost} (${formatted_tokens})"
-            else
-                COMPONENT_BLOCK_PROJECTION_INFO="No projections"
+
+    COMPONENT_BLOCK_PROJECTION_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+
+    if is_module_loaded "cost"; then
+        # Get native block projection (cached 30s)
+        if declare -f get_cached_native_block_projection &>/dev/null; then
+            local projection_data
+            projection_data=$(get_cached_native_block_projection)
+
+            if [[ -n "$projection_data" ]]; then
+                # Parse projection data (projected_cost:projected_tokens)
+                local proj_cost proj_tokens
+                IFS=':' read -r proj_cost proj_tokens <<< "$projection_data"
+
+                # Format projection display
+                if [[ -n "$proj_cost" && "$proj_cost" != "0.00" ]] && [[ -n "$proj_tokens" && "$proj_tokens" != "0" ]]; then
+                    local formatted_cost formatted_tokens
+                    formatted_cost=$(printf "%.2f" "$proj_cost" 2>/dev/null || echo "0.00")
+                    formatted_tokens=$(format_tokens_compact "$proj_tokens")
+                    COMPONENT_BLOCK_PROJECTION_INFO="Est: \$${formatted_cost} (${formatted_tokens})"
+                else
+                    COMPONENT_BLOCK_PROJECTION_INFO="No projections"
+                fi
             fi
-        else
-            COMPONENT_BLOCK_PROJECTION_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
         fi
     fi
-    
+
     debug_log "block_projection data: info=$COMPONENT_BLOCK_PROJECTION_INFO" "INFO"
     return 0
 }

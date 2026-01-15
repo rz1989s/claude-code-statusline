@@ -7,7 +7,7 @@
 # This component displays token burn rate and cost per hour from active blocks.
 # Shows token consumption speed to help users avoid hitting limits unexpectedly.
 #
-# Dependencies: cost.sh (get_unified_block_metrics), display.sh
+# Dependencies: cost.sh (native burn rate from api_live.sh), display.sh
 # ============================================================================
 
 # Component data storage
@@ -17,37 +17,35 @@ COMPONENT_BURN_RATE_INFO=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect burn rate data from unified block metrics
+# Collect burn rate data from native JSONL calculation
 collect_burn_rate_data() {
     debug_log "Collecting burn_rate component data" "INFO"
-    
-    COMPONENT_BURN_RATE_INFO="$CONFIG_NO_CCUSAGE_MESSAGE"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get unified metrics from single ccusage call (cached 30s)
-        local metrics
-        metrics=$(get_unified_block_metrics)
-        
-        if [[ -n "$metrics" && "$metrics" != "0:0:0:0:0:0:0" ]]; then
-            # Parse burn rate metrics (fields 1 and 2)
-            local burn_rate cost_per_hour
-            burn_rate=$(echo "$metrics" | cut -d: -f1)
-            cost_per_hour=$(echo "$metrics" | cut -d: -f2)
-            
-            # Format burn rate display
-            if [[ "$burn_rate" != "0" && "$burn_rate" != "null" ]] && [[ "$cost_per_hour" != "0" && "$cost_per_hour" != "null" ]]; then
-                local formatted_rate formatted_cost
-                formatted_rate=$(format_tokens_per_minute "$burn_rate")
-                formatted_cost=$(printf "%.2f" "$cost_per_hour" 2>/dev/null || echo "0.00")
-                COMPONENT_BURN_RATE_INFO="🔥\$${formatted_cost}/hr"
-            else
-                COMPONENT_BURN_RATE_INFO="🔥No active burn"
+
+    COMPONENT_BURN_RATE_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
+
+    if is_module_loaded "cost"; then
+        # Get native burn rate from JSONL (cached 30s)
+        if declare -f get_cached_native_burn_rate &>/dev/null; then
+            local burn_rate_data
+            burn_rate_data=$(get_cached_native_burn_rate)
+
+            if [[ -n "$burn_rate_data" && "$burn_rate_data" != "0:0.00" ]]; then
+                # Parse burn rate metrics (tokens_per_minute:cost_per_hour)
+                local tokens_per_minute cost_per_hour
+                IFS=':' read -r tokens_per_minute cost_per_hour <<< "$burn_rate_data"
+
+                # Format burn rate display
+                if [[ "$tokens_per_minute" != "0" && -n "$cost_per_hour" && "$cost_per_hour" != "0.00" ]]; then
+                    local formatted_cost
+                    formatted_cost=$(printf "%.2f" "$cost_per_hour" 2>/dev/null || echo "0.00")
+                    COMPONENT_BURN_RATE_INFO="🔥\$${formatted_cost}/hr"
+                else
+                    COMPONENT_BURN_RATE_INFO="🔥No active burn"
+                fi
             fi
-        else
-            COMPONENT_BURN_RATE_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
         fi
     fi
-    
+
     debug_log "burn_rate data: info=$COMPONENT_BURN_RATE_INFO" "INFO"
     return 0
 }
