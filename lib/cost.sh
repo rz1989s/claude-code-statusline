@@ -4,18 +4,20 @@
 # Claude Code Statusline - Cost Tracking Module (Facade)
 # ============================================================================
 #
-# This module handles all cost tracking and billing information using
-# ccusage integration, including session costs, daily/weekly/monthly totals,
-# and active billing block management.
+# This module handles all cost tracking and billing information.
+# Primary: Native JSONL calculation (no external dependencies)
+# Fallback: ccusage integration (deprecated)
 #
 # Architecture: Thin facade that sources modular sub-components
-# - cost/core.sh       - Constants, session tracking, cache validation
-# - cost/ccusage.sh    - ccusage availability and execution
+# - cost/core.sh        - Constants, session tracking, cache validation
+# - cost/api_live.sh    - Pricing lookup, API-synced LIVE calculation
+# - cost/native_calc.sh - Native JSONL cost calculation (all periods)
+# - cost/ccusage.sh     - ccusage availability (deprecated fallback)
 # - cost/aggregation.sh - Date calculations, cost data retrieval
-# - cost/blocks.sh     - Block processing, unified metrics
-# - cost/native.sh     - Native Anthropic JSON extraction
-# - cost/session.sh    - Session info, transcript parsing
-# - cost/alerts.sh     - Cost threshold alerts, notifications
+# - cost/blocks.sh      - Block processing, unified metrics
+# - cost/native.sh      - Native Anthropic JSON extraction
+# - cost/session.sh     - Session info, transcript parsing
+# - cost/alerts.sh      - Cost threshold alerts, notifications
 #
 # Error Suppression Patterns (Issue #76):
 # - jq empty 2>/dev/null: JSON validation where invalid data returns fallback
@@ -88,6 +90,12 @@ source "${COST_LIB_DIR}/cost/api_live.sh" 2>/dev/null || {
     # Not fatal - API-synced LIVE is optional enhancement
 }
 
+# shellcheck source=cost/native_calc.sh
+source "${COST_LIB_DIR}/cost/native_calc.sh" 2>/dev/null || {
+    debug_log "Failed to load cost/native_calc.sh (optional)" "WARN"
+    # Not fatal - will fallback to ccusage
+}
+
 # ============================================================================
 # FILE-BASED CACHE FOR STATUSLINE RENDER (Issue #147)
 # ============================================================================
@@ -104,6 +112,7 @@ _COST_RENDER_CACHE_FILE="${TMPDIR:-/tmp}/.statusline_cost_render_$$"
 # Get comprehensive Claude usage information
 # This is the main entry point for cost data
 # Performance: Caches result per statusline render (Issue #147)
+# Strategy: Native JSONL calculation (primary) → ccusage (fallback)
 get_claude_usage_info() {
     # Fast path: Return cached result if file exists and is fresh (<30 seconds old)
     # This eliminates 6 redundant calls (~12s saved)
@@ -122,31 +131,56 @@ get_claude_usage_info() {
 
     start_timer "cost_tracking"
 
-    # Fast mock data for testing (skips all ccusage calls)
+    # Fast mock data for testing
     if [[ "${STATUSLINE_MOCK_COST_DATA:-}" == "true" ]]; then
         end_timer "cost_tracking"
-        local result="0.00:0.00:0.00:0.00:No ccusage:Mock mode"
+        local result="0.00:0.00:0.00:0.00:No data:Mock mode"
         echo "$result" > "$_COST_RENDER_CACHE_FILE"
         echo "$result"
         return 0
     fi
 
-    # Check if ccusage is available
+    local result=""
+
+    # =========================================================================
+    # PRIMARY: Native JSONL calculation (no external dependencies)
+    # =========================================================================
+    if declare -f get_cached_native_usage_info &>/dev/null; then
+        debug_log "Using native JSONL cost calculation (primary)" "INFO"
+
+        local current_dir="${STATUSLINE_WORKING_DIR:-$(pwd)}"
+        result=$(get_cached_native_usage_info "$current_dir")
+
+        if [[ -n "$result" && "$result" != *"-.--"* ]]; then
+            local tracking_time
+            tracking_time=$(end_timer "cost_tracking")
+            debug_log "Native cost tracking completed in ${tracking_time}s" "INFO"
+            echo "$result" > "$_COST_RENDER_CACHE_FILE"
+            echo "$result"
+            return 0
+        fi
+
+        debug_log "Native calculation returned empty/invalid, trying ccusage fallback" "WARN"
+    fi
+
+    # =========================================================================
+    # FALLBACK: ccusage-based calculation (deprecated)
+    # =========================================================================
     if ! is_ccusage_available; then
-        local result="-.--:-.--:-.--:-.--:$CONFIG_NO_CCUSAGE_MESSAGE:$CONFIG_CCUSAGE_INSTALL_MESSAGE"
+        local result="-.--:-.--:-.--:-.--:${CONFIG_NO_CCUSAGE_MESSAGE:-No data}:Native calc unavailable"
         echo "$result" > "$_COST_RENDER_CACHE_FILE"
         end_timer "cost_tracking"
         echo "$result"
         return 0
     fi
+
+    debug_log "Using ccusage for cost calculation (fallback)" "INFO"
 
     # Initialize cache
     init_cost_cache
 
-    # Get all cost data in parallel (via caching system)
+    # Get all cost data via ccusage
     local session_data daily_data monthly_data block_data
-
-    debug_log "Fetching cost data..." "INFO"
 
     session_data=$(get_session_cost_data)
     daily_data=$(get_daily_cost_data)
@@ -169,10 +203,10 @@ get_claude_usage_info() {
 
     local tracking_time
     tracking_time=$(end_timer "cost_tracking")
-    debug_log "Cost tracking completed in ${tracking_time}s" "INFO"
+    debug_log "ccusage cost tracking completed in ${tracking_time}s" "INFO"
 
-    # Cache and return the formatted string (Issue #147)
-    local result="${session_cost}:${month_cost}:${week_cost}:${today_cost}:${block_cost_info}:${reset_info}"
+    # Cache and return the formatted string
+    result="${session_cost}:${month_cost}:${week_cost}:${today_cost}:${block_cost_info}:${reset_info}"
     echo "$result" > "$_COST_RENDER_CACHE_FILE"
     echo "$result"
 }
@@ -183,26 +217,29 @@ get_claude_usage_info() {
 
 # Initialize the cost tracking module
 init_cost_module() {
-    debug_log "Cost tracking module initialized (modular architecture)" "INFO"
+    debug_log "Cost tracking module initialized (native primary, ccusage fallback)" "INFO"
 
-    # Check ccusage availability
-    if ! is_ccusage_available; then
-        handle_warning "ccusage not available - cost tracking disabled" "init_cost_module"
-        debug_log "To enable cost tracking: npm install -g ccusage" "INFO"
-        return 1
+    # Check native calculation availability (primary)
+    if declare -f get_native_usage_info &>/dev/null; then
+        debug_log "Native JSONL cost calculation available (primary)" "INFO"
+    else
+        debug_log "Native cost calculation not loaded" "WARN"
     fi
 
-    # Initialize cache
-    init_cost_cache
+    # Check ccusage availability (fallback)
+    if is_ccusage_available; then
+        debug_log "ccusage available as fallback" "INFO"
+        # Initialize cache for ccusage fallback
+        init_cost_cache
 
-    # Log ccusage version for debugging (using universal caching)
-    local ccusage_version
-    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
-        ccusage_version=$(cache_external_command "ccusage_version" "$CACHE_DURATION_VERY_LONG" "validate_command_output" bunx ccusage --version)
-        debug_log "ccusage version: $ccusage_version (cached)" "INFO"
+        # Log ccusage version for debugging
+        if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+            local ccusage_version
+            ccusage_version=$(cache_external_command "ccusage_version" "$CACHE_DURATION_VERY_LONG" "validate_command_output" bunx ccusage --version)
+            debug_log "ccusage version: $ccusage_version (cached)" "INFO"
+        fi
     else
-        ccusage_version=$(bunx ccusage --version 2>/dev/null)
-        debug_log "ccusage version: $ccusage_version" "INFO"
+        debug_log "ccusage not available - using native calculation only" "INFO"
     fi
 
     return 0

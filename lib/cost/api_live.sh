@@ -160,6 +160,7 @@ get_api_window_start() {
 }
 
 # Calculate LIVE cost from JSONL files within API's 5-hour window
+# OPTIMIZED: Single jq+awk pipeline (no per-entry jq calls)
 # Returns: Total cost in USD (e.g., "18.51")
 calculate_api_synced_live() {
     local projects_dir
@@ -180,7 +181,7 @@ calculate_api_synced_live() {
         return 1
     fi
 
-    # Convert epoch to ISO format for string comparison (ISO 8601 is lexicographically sortable)
+    # Convert epoch to ISO format for string comparison
     local window_start_iso
     if [[ "$(uname -s)" == "Darwin" ]]; then
         window_start_iso=$(date -u -r "$window_start_epoch" "+%Y-%m-%dT%H:%M:%S" 2>/dev/null)
@@ -190,56 +191,49 @@ calculate_api_synced_live() {
 
     debug_log "API LIVE window start: $window_start_iso" "INFO"
 
-    # Extract all assistant entries with usage, filter by timestamp using string comparison
-    # jq outputs one JSON per line, then bash filters by timestamp
-    local total_cost=0
-    local entry_count=0
-
-    while IFS= read -r jsonl_file; do
+    # OPTIMIZED: Single jq+awk pipeline
+    local total_cost
+    total_cost=$(find "$projects_dir" -name "*.jsonl" -type f -mmin -360 2>/dev/null | while read -r jsonl_file; do
         [[ -z "$jsonl_file" ]] && continue
+        jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+            [.timestamp, (.message.model // "default"),
+             (.message.usage.input_tokens // 0),
+             (.message.usage.output_tokens // 0),
+             (.message.usage.cache_creation_input_tokens // 0),
+             (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+    done | awk -F'\t' -v start="$window_start_iso" '
+    BEGIN {
+        total = 0
+        # Pricing per million tokens
+        p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
+        p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
+        p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
+        p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
+        p["default"] = "5.00 25.00 6.25 0.50"
+    }
+    {
+        ts = $1
+        gsub(/\.[0-9]+Z?$/, "", ts)
+        if (ts < start) next
 
-        # Extract relevant fields from assistant entries
-        while IFS= read -r entry; do
-            [[ -z "$entry" || "$entry" == "null" ]] && continue
+        model = $2
+        input = $3 + 0
+        output = $4 + 0
+        cache_write = $5 + 0
+        cache_read = $6 + 0
 
-            # Parse entry fields
-            local timestamp model input output cache_write cache_read
-            timestamp=$(echo "$entry" | jq -r '.ts // ""' 2>/dev/null)
+        pricing = p[model]
+        if (pricing == "") pricing = p["default"]
+        split(pricing, pr, " ")
+        cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+        total += cost
+    }
+    END {
+        printf "%.2f", total
+    }')
 
-            # Skip if timestamp is before window start (string comparison works for ISO 8601)
-            [[ -z "$timestamp" ]] && continue
-            # Truncate timestamp for comparison (remove milliseconds)
-            local ts_compare="${timestamp%%.*}"
-            [[ "$ts_compare" < "$window_start_iso" ]] && continue
-
-            model=$(echo "$entry" | jq -r '.model // "default"' 2>/dev/null)
-            input=$(echo "$entry" | jq -r '.input // 0' 2>/dev/null)
-            output=$(echo "$entry" | jq -r '.output // 0' 2>/dev/null)
-            cache_write=$(echo "$entry" | jq -r '.cache_write // 0' 2>/dev/null)
-            cache_read=$(echo "$entry" | jq -r '.cache_read // 0' 2>/dev/null)
-
-            # Calculate entry cost
-            local entry_cost
-            entry_cost=$(calculate_entry_cost "$model" "$input" "$output" "$cache_write" "$cache_read")
-
-            total_cost=$(awk "BEGIN {printf \"%.6f\", $total_cost + $entry_cost}" 2>/dev/null)
-            entry_count=$((entry_count + 1))
-
-        done < <(jq -c 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) | {
-            ts: .timestamp,
-            model: (.message.model // "default"),
-            input: (.message.usage.input_tokens // 0),
-            output: (.message.usage.output_tokens // 0),
-            cache_write: (.message.usage.cache_creation_input_tokens // 0),
-            cache_read: (.message.usage.cache_read_input_tokens // 0)
-        }' "$jsonl_file" 2>/dev/null)
-
-    done < <(find "$projects_dir" -name "*.jsonl" -type f -mmin -360 2>/dev/null)
-
-    debug_log "API LIVE calculated: \$${total_cost} from ${entry_count} entries" "INFO"
-
-    # Format to 2 decimal places
-    printf "%.2f" "$total_cost" 2>/dev/null || echo "0.00"
+    debug_log "API LIVE calculated: \$${total_cost}" "INFO"
+    echo "${total_cost:-0.00}"
 }
 
 # Get API-synced LIVE cost with caching
