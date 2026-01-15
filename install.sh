@@ -747,8 +747,7 @@ download_directory_comprehensive() {
 
     # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
     local cost_modules=(
-        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
-        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        "cost/core.sh" "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
         "cost/api_live.sh" "cost/native_calc.sh"
         # 🆕 ADD NEW COST MODULES HERE (lib/cost/*.sh files)
     )
@@ -1053,8 +1052,7 @@ download_lib_fallback() {
 
     # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
     local cost_modules=(
-        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
-        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
+        "cost/core.sh" "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
         "cost/api_live.sh" "cost/native_calc.sh"
         # 🆕 ADD NEW COST MODULES HERE (must match optimized function arrays)
     )
