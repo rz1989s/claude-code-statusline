@@ -82,6 +82,12 @@ source "${COST_LIB_DIR}/cost/alerts.sh" 2>/dev/null || {
     return 1
 }
 
+# shellcheck source=cost/api_live.sh
+source "${COST_LIB_DIR}/cost/api_live.sh" 2>/dev/null || {
+    debug_log "Failed to load cost/api_live.sh (optional)" "WARN"
+    # Not fatal - API-synced LIVE is optional enhancement
+}
+
 # ============================================================================
 # FILE-BASED CACHE FOR STATUSLINE RENDER (Issue #147)
 # ============================================================================
