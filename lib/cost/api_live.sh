@@ -24,6 +24,30 @@
 export STATUSLINE_COST_API_LIVE_LOADED=true
 
 # ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
+
+# Format tokens in compact notation (e.g., 1.5M, 500K)
+# Used by block_projection, token_usage, and session components
+format_tokens_compact() {
+    local tokens="${1:-0}"
+
+    # Handle empty or non-numeric input
+    if [[ -z "$tokens" || ! "$tokens" =~ ^[0-9]+$ ]]; then
+        echo "0"
+        return
+    fi
+
+    if [[ "$tokens" -ge 1000000 ]]; then
+        awk -v t="$tokens" 'BEGIN { printf "%.1fM", t / 1000000 }'
+    elif [[ "$tokens" -ge 1000 ]]; then
+        awk -v t="$tokens" 'BEGIN { printf "%.1fK", t / 1000 }'
+    else
+        echo "$tokens"
+    fi
+}
+
+# ============================================================================
 # PRICING LOOKUP (bash 3.x compatible - no associative arrays)
 # ============================================================================
 # Prices per million tokens
@@ -545,6 +569,7 @@ get_cached_native_block_projection() {
 # EXPORTS
 # ============================================================================
 
+export -f format_tokens_compact
 export -f get_model_pricing get_claude_projects_dir calculate_entry_cost
 export -f get_api_window_start calculate_api_synced_live get_api_synced_live_cost
 export -f calculate_window_tokens get_cached_window_tokens
