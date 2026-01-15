@@ -145,9 +145,56 @@ execute_ccusage_with_cache() {
         rm -f "$lock_file" 2>/dev/null
     else
         debug_log "Lock acquisition failed after $max_retries attempts: $(basename "$cache_file")" "WARN"
+
+        # Check if another instance is currently refreshing
+        if [[ -f "$lock_file" ]]; then
+            debug_log "Another instance is refreshing, waiting for completion..." "INFO"
+            local wait_count=0
+            local max_wait=60  # Maximum 60 seconds wait (ccusage can be slow on first run)
+
+            # Wait for lock file to disappear (other instance finished) or cache file to appear
+            while [[ -f "$lock_file" ]] && [[ $wait_count -lt $max_wait ]]; do
+                sleep 1
+                wait_count=$((wait_count + 1))
+
+                # Check if cache file appeared while waiting
+                if [[ -f "$cache_file" ]] && validate_cache_file "$cache_file"; then
+                    debug_log "Cache file appeared while waiting (${wait_count}s): $(basename "$cache_file")" "INFO"
+                    cat "$cache_file" 2>/dev/null
+                    return 0
+                fi
+            done
+
+            if [[ $wait_count -ge $max_wait ]]; then
+                debug_log "Timeout waiting for other instance, cleaning stale lock" "WARN"
+                rm -f "$lock_file" 2>/dev/null
+            fi
+        fi
+
+        # Final check for cache file after waiting
         if [[ -f "$cache_file" ]] && validate_cache_file "$cache_file"; then
-            debug_log "Using existing cache while other instance refreshes: $(basename "$cache_file")" "INFO"
+            debug_log "Using cache file after wait: $(basename "$cache_file")" "INFO"
             cat "$cache_file" 2>/dev/null
+        else
+            # Issue #xxx: Last resort - run ccusage directly without caching to avoid returning empty
+            debug_log "No cache available, attempting direct ccusage execution as fallback" "WARN"
+            local fallback_data
+            if command_exists timeout; then
+                fallback_data=$(timeout "$timeout_duration" bunx ccusage $ccusage_command --json 2>/dev/null)
+            elif command_exists gtimeout; then
+                fallback_data=$(gtimeout "$timeout_duration" bunx ccusage $ccusage_command --json 2>/dev/null)
+            else
+                fallback_data=$(bunx ccusage $ccusage_command --json 2>/dev/null)
+            fi
+
+            if [[ -n "$fallback_data" ]]; then
+                debug_log "Fallback ccusage execution succeeded" "INFO"
+                # Try to cache for future use (best effort, don't worry about lock)
+                echo "$fallback_data" > "$cache_file" 2>/dev/null || true
+                echo "$fallback_data"
+            else
+                debug_log "Fallback ccusage execution also failed, returning empty" "ERROR"
+            fi
         fi
     fi
 }
