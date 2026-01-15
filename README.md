@@ -168,7 +168,7 @@ echo '{"workspace": {"current_dir": "'"$(pwd)"'"}, "model": {"display_name": "Te
 ### v2.10.0 - Advanced Block Metrics Integration 🔥📊 **LATEST**
 
 **🚀 REVOLUTIONARY BLOCK METRICS SYSTEM**
-- **4 NEW Block Metrics Components** - Real-time ccusage monitoring with 75% resource reduction
+- **4 NEW Block Metrics Components** - 100% native cost calculation with 75% resource reduction
 - **Unified Data Collection** - Single API call feeds all metrics (burn rate, tokens, cache efficiency, projections)  
 - **Burn Rate Monitoring** - Critical token consumption tracking (🔥3.5k/min $2.10/hr)
 - **Cache Efficiency** - Performance optimization insights (Cache: 94% hit)
@@ -468,7 +468,7 @@ display.line2.components = ["repo_info", "version_info"]
 ### v1.0 - Enhanced Statusline Foundation
 
 - **🎨 Three Stunning Themes** - Classic, Garden (pastels), and Catppuccin Mocha
-- **💰 Real-time Cost Tracking** - Complete integration with [ccusage](https://ccusage.com)
+- **💰 Real-time Cost Tracking** - 100% native JSONL-based cost calculation
 - **🔌 MCP Server Monitoring** - Live status of Model Context Protocol servers
 - **⏰ Block Reset Timer** - Track your 5-hour conversation blocks with countdown
 - **📊 Git Integration** - Repository status, commit counting, and branch information
@@ -538,7 +538,7 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 - Current Claude model with emoji indicators
 - Repository session costs
 - 30-day, 7-day, and daily spending totals
-- Live billing block costs with [ccusage](https://ccusage.com) integration
+- Live billing block costs with native JSONL calculation
 - Real-time financial monitoring
 
 ![MCP Server Monitoring](assets/screenshots/mcp-info.png)
@@ -688,7 +688,7 @@ prayer.location_mode = "manual"      # Use manual coordinates (disable auto-dete
   - `components.sh` - **NEW** Component registry and modular display system
   - `git.sh` - Repository status, branch detection, and commit tracking
   - `mcp.sh` - MCP server monitoring and health checking
-  - `cost.sh` - Cost tracking integration with ccusage
+  - `cost.sh` - Native cost tracking from JSONL files
   - `prayer.sh` - Islamic prayer times and Hijri calendar with AlAdhan API integration
   - `display.sh` - Modular output formatting and 1-9 line statusline generation
   - `cache.sh` - Universal intelligent caching system with enterprise-grade features
@@ -1076,8 +1076,7 @@ Choose your platform and install the required dependencies:
 # Install dependencies via Homebrew
 brew install jq coreutils
 
-# Install optional but recommended tools
-npm install -g bunx ccusage
+# Cost tracking is 100% native - no external tools needed
 ```
 </details>
 
@@ -1088,8 +1087,7 @@ npm install -g bunx ccusage
 # Install required dependencies
 sudo apt update && sudo apt install jq
 
-# Install optional but recommended tools  
-npm install -g bunx ccusage
+# Cost tracking is 100% native - no external tools needed
 ```
 </details>
 
@@ -1100,8 +1098,7 @@ npm install -g bunx ccusage
 # Install required dependencies
 sudo apt update && sudo apt install jq
 
-# Install optional but recommended tools
-npm install -g bunx ccusage
+# Cost tracking is 100% native - no external tools needed
 ```
 </details>
 
@@ -1182,7 +1179,7 @@ claude-statusline --help
 
 **📊 Comprehensive Dependency Analysis:**
 - `curl` + `jq` → Core installation and configuration
-- `bun/bunx` → Cost tracking with ccusage integration  
+- 100% native → No external dependencies for cost tracking  
 - `bc` → Precise cost calculations
 - `python3` → Advanced TOML features and date parsing
 - `timeout/gtimeout` → Network operation protection
@@ -1832,7 +1829,7 @@ Understand every element of your enhanced statusline with this detailed breakdow
 - **🌅 DAY**: Today's accumulated costs
 - **🔥 LIVE**: Active billing block cost (when block is active)
 
-*Powered by [ccusage](https://ccusage.com) for accurate cost monitoring*
+*Powered by native JSONL calculation for accurate cost monitoring*
 
 ### 🔌 **Line 3: MCP Server Health**
 
@@ -1883,7 +1880,7 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 | 🏢 **RHEL/CentOS** | 8+ | ✅ **Full Support** | `dnf`/`yum` | ✅ geoclue2 |
 | 🏔️ **Alpine** | 3.16+ | ✅ **Full Support** | `apk` | ⚠️ Limited |
 | 🔺 **FreeBSD** | 13+ | ⚠️ **Partial** | `pkg` | ❌ None |
-| 🪟 **Windows WSL** | ✅ **Full Support** | `jq` | `bunx` `ccusage` |
+| 🪟 **Windows WSL** | ✅ **Full Support** | `jq` | - |
 | 🪟 **Windows Native** | ❌ **Not Supported** | N/A | *Bash incompatible* |
 
 ### 🛠️ **Required Dependencies**
@@ -1907,12 +1904,11 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 
 ### 🚀 **Recommended Enhancements**
 
-#### Cost Tracking Integration
-- **`bunx`** - Bun package runner for ccusage execution
-  - Install: `npm install -g bunx`
-- **`ccusage`** - Claude Code usage and cost monitoring
-  - Install: `npm install -g ccusage`
+#### Cost Tracking
+- **100% Native** - No external tools required
+  - Cost calculation from JSONL files in `~/.claude/projects/`
   - Purpose: Real-time cost tracking and billing information
+  - Pricing: Official Anthropic rates (Opus $5/$25, Sonnet $3/$15, Haiku $1/$5 per MTok)
 
 #### Performance Optimizations
 - **GNU Coreutils** (macOS) - Enhanced command compatibility
@@ -1934,7 +1930,7 @@ RESET at 06.00 (waiting API response...)  # API calculating projection
 | Bash | 3.2+ | 5.0+ | **Universal compatibility** - auto-detects modern bash |
 | jq | 1.5+ | 1.6+ | JSON processing performance |
 | Git | 2.0+ | 2.30+ | Modern git features |
-| Node.js | 16+ | 18+ | For ccusage integration |
+| Node.js | - | - | Not required (100% native) |
 
 **🎯 Bash Compatibility Revolution:**
 - **Automatic Detection**: Runtime bash detection finds the best available bash version
@@ -1952,9 +1948,7 @@ bash --version && echo "✅ Bash OK" || echo "❌ Bash missing"
 jq --version && echo "✅ jq OK" || echo "❌ jq missing" 
 git --version && echo "✅ Git OK" || echo "❌ Git missing"
 
-# Check optional tools
-bunx --version && echo "✅ bunx OK" || echo "⚠️ bunx missing (install with: npm install -g bunx)"
-ccusage --version && echo "✅ ccusage OK" || echo "⚠️ ccusage missing (install with: npm install -g ccusage)"
+# Cost tracking is 100% native - no external tools needed
 
 # Check GPS location tools
 CoreLocationCLI --version && echo "✅ CoreLocationCLI OK" || echo "⚠️ CoreLocationCLI missing (macOS: brew install corelocationcli)"

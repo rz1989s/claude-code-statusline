@@ -94,15 +94,19 @@ calculate_cost_in_range() {
         total = 0
         count = 0
         # Pricing per million tokens (model -> input output cache_write cache_read)
-        # Opus 4.5
+        # Official Anthropic pricing from https://claude.com/pricing
+        # Opus 4.5: $5/$25 input/output, cache write 1.25x, cache read 0.1x
         p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
-        # Sonnet 4.5 / 4
+        # Sonnet 4.5: $3/$15 input/output (<=200K context)
         p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
+        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
+        # Sonnet 4: $3/$15 input/output
         p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
-        # Haiku 4.5
+        # Haiku 4.5: $1/$5 input/output
         p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        # Default (Opus pricing)
-        p["default"] = "5.00 25.00 6.25 0.50"
+        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
+        # Default fallback (Sonnet pricing - safer than Opus)
+        p["default"] = "3.00 15.00 3.75 0.30"
     }
     {
         ts = $1
@@ -213,12 +217,14 @@ get_native_usage_info() {
     done | awk -F'\t' -v today="$today_start" -v week="$week_start" -v month="$month_start" -v project="$sanitized_project" '
     BEGIN {
         daily = 0; weekly = 0; monthly = 0; repo = 0
-        # Pricing per million tokens
+        # Pricing per million tokens - Official Anthropic pricing
         p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
         p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
+        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
         p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
         p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        p["default"] = "5.00 25.00 6.25 0.50"
+        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
+        p["default"] = "3.00 15.00 3.75 0.30"
     }
     {
         file = $1

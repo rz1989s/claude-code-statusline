@@ -16,31 +16,41 @@ COMPONENT_RESET_TIMER_INFO=""
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect reset timer data
+# Collect reset timer data from native OAuth API
 collect_reset_timer_data() {
     debug_log "Collecting reset_timer component data" "INFO"
-    
+
     COMPONENT_RESET_TIMER_INFO="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
-    
-    if is_module_loaded "cost" && is_ccusage_available; then
-        # Get usage info and extract reset timer
-        local usage_info
-        usage_info=$(get_claude_usage_info)
-        
-        if [[ -n "$usage_info" ]]; then
-            # Parse usage info (format: session:month:week:today:block:reset)
-            local remaining="$usage_info"
-            
-            # Skip to reset info (6th field)
-            for i in {1..5}; do
-                remaining="${remaining#*:}"
-            done
-            
-            # Extract reset info
-            COMPONENT_RESET_TIMER_INFO="${remaining%%:*}"
+
+    if is_module_loaded "cost"; then
+        # Get native reset info from OAuth API (cached 30s)
+        if declare -f get_cached_native_reset_info &>/dev/null; then
+            local reset_info
+            reset_info=$(get_cached_native_reset_info)
+
+            if [[ -n "$reset_info" && "$reset_info" != ":" ]]; then
+                # Parse reset info (reset_time_local:remaining_minutes)
+                local reset_time remaining_minutes
+                IFS=':' read -r reset_time remaining_minutes <<< "$reset_info"
+
+                if [[ -n "$reset_time" && -n "$remaining_minutes" ]]; then
+                    # Format remaining time
+                    local time_str
+                    local hours=$((remaining_minutes / 60))
+                    local mins=$((remaining_minutes % 60))
+
+                    if [[ "$hours" -gt 0 ]]; then
+                        time_str="${hours}h ${mins}m left"
+                    else
+                        time_str="${mins}m left"
+                    fi
+
+                    COMPONENT_RESET_TIMER_INFO="${CONFIG_RESET_LABEL:-⟳ Reset} at ${reset_time} (${time_str})"
+                fi
+            fi
         fi
     fi
-    
+
     debug_log "reset_timer data: info=$COMPONENT_RESET_TIMER_INFO" "INFO"
     return 0
 }
