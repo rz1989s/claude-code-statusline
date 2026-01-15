@@ -33,19 +33,20 @@ export STATUSLINE_COST_API_LIVE_LOADED=true
 get_model_pricing() {
     local model="$1"
 
+    # Official Anthropic pricing from https://claude.com/pricing
     case "$model" in
         claude-opus-4-5-20251101)
             echo "5.00 25.00 6.25 0.50"
             ;;
-        claude-sonnet-4-5-20251101|claude-sonnet-4-20250514)
+        claude-sonnet-4-5-20251101|claude-sonnet-4-5-20250929|claude-sonnet-4-20250514)
             echo "3.00 15.00 3.75 0.30"
             ;;
-        claude-haiku-4-5-20251101)
+        claude-haiku-4-5-20251101|claude-haiku-4-5-20251001)
             echo "1.00 5.00 1.25 0.10"
             ;;
         *)
-            # Default to Opus pricing for safety
-            echo "5.00 25.00 6.25 0.50"
+            # Default to Sonnet pricing (safer middle ground)
+            echo "3.00 15.00 3.75 0.30"
             ;;
     esac
 }
@@ -204,12 +205,14 @@ calculate_api_synced_live() {
     done | awk -F'\t' -v start="$window_start_iso" '
     BEGIN {
         total = 0
-        # Pricing per million tokens
+        # Pricing per million tokens - Official Anthropic pricing
         p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
         p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
+        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
         p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
         p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        p["default"] = "5.00 25.00 6.25 0.50"
+        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
+        p["default"] = "3.00 15.00 3.75 0.30"
     }
     {
         ts = $1
