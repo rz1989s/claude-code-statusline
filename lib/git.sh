@@ -68,6 +68,36 @@ is_git_root() {
 }
 
 # ============================================================================
+# WORKTREE DETECTION
+# ============================================================================
+
+# Check if current directory is a git worktree
+# Worktrees have .git as a FILE (not directory) containing gitdir reference
+is_git_worktree() {
+    [[ -f ".git" ]] && grep -q "^gitdir:" ".git" 2>/dev/null
+}
+
+# Get the name of the current worktree
+# Returns empty string if not in a worktree
+get_git_worktree_name() {
+    if ! is_git_worktree; then
+        echo ""
+        return
+    fi
+
+    # Extract worktree name from git dir path
+    # .git file contains: gitdir: /path/to/repo/.git/worktrees/NAME
+    local git_dir
+    git_dir=$(git rev-parse --git-dir 2>/dev/null)
+
+    if [[ "$git_dir" == *"/worktrees/"* ]]; then
+        basename "$git_dir"
+    else
+        echo ""
+    fi
+}
+
+# ============================================================================
 # BRANCH INFORMATION
 # ============================================================================
 
