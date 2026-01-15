@@ -23,6 +23,9 @@
 [[ "${STATUSLINE_COST_API_LIVE_LOADED:-}" == "true" ]] && return 0
 export STATUSLINE_COST_API_LIVE_LOADED=true
 
+# Load pricing module (single source of truth for model rates)
+source "${BASH_SOURCE[0]%/*}/pricing.sh"
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
@@ -45,34 +48,6 @@ format_tokens_compact() {
     else
         echo "$tokens"
     fi
-}
-
-# ============================================================================
-# PRICING LOOKUP (bash 3.x compatible - no associative arrays)
-# ============================================================================
-# Prices per million tokens
-
-# Get model pricing (returns: input output cache_write cache_read)
-# Uses case statement for bash 3.x compatibility (macOS default bash)
-get_model_pricing() {
-    local model="$1"
-
-    # Official Anthropic pricing from https://claude.com/pricing
-    case "$model" in
-        claude-opus-4-5-20251101)
-            echo "5.00 25.00 6.25 0.50"
-            ;;
-        claude-sonnet-4-5-20251101|claude-sonnet-4-5-20250929|claude-sonnet-4-20250514)
-            echo "3.00 15.00 3.75 0.30"
-            ;;
-        claude-haiku-4-5-20251101|claude-haiku-4-5-20251001)
-            echo "1.00 5.00 1.25 0.10"
-            ;;
-        *)
-            # Default to Sonnet pricing (safer middle ground)
-            echo "3.00 15.00 3.75 0.30"
-            ;;
-    esac
 }
 
 # Cache TTL for API-synced LIVE (30 seconds)
@@ -216,6 +191,10 @@ calculate_api_synced_live() {
 
     debug_log "API LIVE window start: $window_start_iso" "INFO"
 
+    # Get pricing block from single source of truth
+    local awk_pricing
+    awk_pricing=$(get_awk_pricing_block)
+
     # OPTIMIZED: Single jq+awk pipeline
     local total_cost
     total_cost=$(find "$projects_dir" -name "*.jsonl" -type f -mmin -360 2>/dev/null | while read -r jsonl_file; do
@@ -226,38 +205,32 @@ calculate_api_synced_live() {
              (.message.usage.output_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-    done | awk -F'\t' -v start="$window_start_iso" '
+    done | awk -F'\t' -v start="$window_start_iso" "
     BEGIN {
         total = 0
-        # Pricing per million tokens - Official Anthropic pricing
-        p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
-        p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
-        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
-        p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
-        p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
-        p["default"] = "3.00 15.00 3.75 0.30"
+        # Pricing from pricing.sh (single source of truth)
+$awk_pricing
     }
     {
-        ts = $1
-        gsub(/\.[0-9]+Z?$/, "", ts)
+        ts = \$1
+        gsub(/\.[0-9]+Z?\$/, \"\", ts)
         if (ts < start) next
 
-        model = $2
-        input = $3 + 0
-        output = $4 + 0
-        cache_write = $5 + 0
-        cache_read = $6 + 0
+        model = \$2
+        input = \$3 + 0
+        output = \$4 + 0
+        cache_write = \$5 + 0
+        cache_read = \$6 + 0
 
         pricing = p[model]
-        if (pricing == "") pricing = p["default"]
-        split(pricing, pr, " ")
+        if (pricing == \"\") pricing = p[\"default\"]
+        split(pricing, pr, \" \")
         cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
         total += cost
     }
     END {
-        printf "%.2f", total
-    }')
+        printf \"%.2f\", total
+    }")
 
     debug_log "API LIVE calculated: \$${total_cost}" "INFO"
     echo "${total_cost:-0.00}"
@@ -570,7 +543,7 @@ get_cached_native_block_projection() {
 # ============================================================================
 
 export -f format_tokens_compact
-export -f get_model_pricing get_claude_projects_dir calculate_entry_cost
+export -f get_claude_projects_dir calculate_entry_cost
 export -f get_api_window_start calculate_api_synced_live get_api_synced_live_cost
 export -f calculate_window_tokens get_cached_window_tokens
 export -f calculate_native_burn_rate get_cached_native_burn_rate
