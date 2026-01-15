@@ -21,7 +21,7 @@ Get up and running with beautiful statuslines and powerful configuration managem
 
 **Dependency Impact:**
 - **Critical:** `curl` (installation) + `jq` (configuration) → 100% required
-- **Important:** `bun/bunx` (cost tracking with ccusage) → 83% functionality without
+- **Important:** Native cost tracking (built-in) → Full functionality
 - **Helpful:** `bc` (precise calculations) + `python3` (advanced TOML) → 67% functionality without  
 - **Optional:** `timeout/gtimeout` (network protection) → 50% functionality without
 
@@ -125,7 +125,7 @@ chmod +x install.sh
 ```
   ✅ curl     → Download & installation
   ✅ jq       → Configuration & JSON parsing  
-  ❌ bunx     → Cost tracking with ccusage
+  ✅ native   → Cost tracking (built-in JSONL)
   ❌ bc       → Precise cost calculations
   ❌ python3  → Advanced TOML features & date parsing
   ⚠️ timeout  → Network operation protection
@@ -182,17 +182,11 @@ chmod +x install.sh
 
 The Revolutionary 3-Tier Download System handles these automatically, but for manual installation:
 
-#### Node.js and Bun (for cost tracking)
+#### Cost Tracking (Built-in Native)
 ```bash
-# Check if already installed
-node --version && bun --version
-
-# Install Node.js if not available
-# macOS: brew install node
-# Ubuntu: curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs
-
-# Install Bun (for ccusage cost tracking)
-curl -fsSL https://bun.sh/install | bash
+# Cost tracking is now 100% native - no external dependencies required!
+# The statusline reads Claude Code JSONL files directly from ~/.claude/projects/
+# No need for Node.js, Bun, or ccusage
 ```
 
 #### Core Dependencies
@@ -220,13 +214,11 @@ jq --version
 gtimeout --version
 ```
 
-### Step 2: Install Cost Tracking Tools
+### Step 2: Cost Tracking (Built-in)
 ```bash
-# Install bunx and ccusage
-npm install -g bunx ccusage
-
-# Verify installation
-bunx ccusage --version
+# Cost tracking is now 100% native - no installation required!
+# The statusline automatically reads Claude Code JSONL files
+# from ~/.claude/projects/ for accurate cost calculations
 ```
 
 ### Step 3: Download and Install Modular Statusline
@@ -267,17 +259,10 @@ sudo apt update
 # Install jq
 sudo apt install -y jq
 
-# Install Node.js and npm (if not already installed)
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Install bunx and ccusage
-npm install -g bunx ccusage
-
 # Verify installations
 jq --version
 timeout --version
-bunx ccusage --version
+# Cost tracking is built-in via native JSONL parsing
 ```
 
 #### Step 3: Download and Install Modular Statusline
@@ -311,12 +296,8 @@ sudo yum install -y jq
 # Fedora
 sudo dnf install -y jq
 
-# Install Node.js (use NodeSource repository)
-curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
-sudo yum install -y nodejs  # or sudo dnf install -y nodejs
-
-# Install bunx and ccusage
-npm install -g bunx ccusage
+# Cost tracking is built-in via native JSONL parsing
+# No additional dependencies required for cost features
 ```
 
 #### Step 2: Download and Install Modular Statusline
@@ -350,11 +331,8 @@ sudo pacman -Syu
 # Install jq
 sudo pacman -S jq
 
-# Install Node.js and npm
-sudo pacman -S nodejs npm
-
-# Install bunx and ccusage
-npm install -g bunx ccusage
+# Cost tracking is built-in via native JSONL parsing
+# No additional dependencies required
 ```
 
 #### Step 2: Download and Install Modular Statusline
@@ -391,8 +369,8 @@ wsl --install
 # After WSL installation, launch Ubuntu/Debian
 # Follow Ubuntu installation steps above
 sudo apt update
-sudo apt install -y jq nodejs npm
-npm install -g bunx ccusage
+sudo apt install -y jq
+# Cost tracking is built-in via native JSONL parsing
 ```
 
 ### Step 3: Install Modular Statusline in WSL
@@ -584,11 +562,11 @@ echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Sonnet 4"
 brew install coreutils
 ```
 
-#### `bunx ccusage --version` fails
+#### Cost tracking not working
 **Solutions**:
-1. Check Node.js installation: `node --version`
-2. Reinstall bunx: `npm install -g bunx`
-3. Clear npm cache: `npm cache clean --force`
+1. Verify JSONL files exist: `ls ~/.claude/projects/*/`
+2. Check Claude Code is running and has usage data
+3. Enable debug mode: `STATUSLINE_DEBUG=true ./statusline.sh`
 
 #### Colors not displaying properly
 **Solutions**:
@@ -627,10 +605,9 @@ See [🐛 Troubleshooting Guide](troubleshooting.md#installation-hanging-issues)
    ```toml
    [timeouts]
    mcp = "1s"
-   ccusage = "1s"
    version = "1s"
    ```
-2. **Environment Override**: `ENV_CONFIG_MCP_TIMEOUT=1s ~/.claude/statusline.sh`
+2. **Environment Override**: `ENV_CONFIG_MCP_TIMEOUT=1s ./statusline.sh`
 3. **Disable features**: 
    ```toml
    [features]
@@ -690,8 +667,8 @@ After successful installation, explore the **powerful TOML configuration system*
 3. **Customize features** - Enable/disable sections in `[features]`
 4. **Test changes** - `~/.claude/statusline.sh # Configuration is automatically loaded`
 
-### 💰 **Cost Tracking Setup**
-5. **Configure ccusage** - Set up with your Claude API keys
+### 💰 **Cost Tracking (Built-in)**
+5. **Native cost tracking** - Automatically reads Claude Code JSONL files
 6. **Enable cost features** - `show_cost_tracking = true` in Config.toml
 
 ### 📚 **Documentation & Advanced Features**
@@ -723,7 +700,7 @@ show_cost_tracking = true
 
 # Timeouts section converted to flat format
 mcp = "3s"
-ccusage = "3s"
+version = "2s"
 EOF
 
 # Test your configuration

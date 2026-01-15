@@ -142,7 +142,7 @@ graph TD
 5. **themes.sh** - Color theme management
 6. **git.sh** - Repository integration
 7. **mcp.sh** - MCP server monitoring
-8. **cost.sh** - Cost tracking via ccusage
+8. **cost.sh** - Cost tracking (100% native JSONL)
 9. **prayer/** - Islamic prayer times (optional)
 10. **components.sh** - Component registry
 11. **display.sh** - Final output rendering

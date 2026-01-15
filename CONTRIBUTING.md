@@ -123,11 +123,10 @@ We welcome contributions in many forms! Choose what resonates with your skills a
 
 3. **Optional but Recommended**:
    ```bash
-   # For cost tracking features
-   npm install -g bunx ccusage
-   
    # For enhanced macOS compatibility
    brew install coreutils  # (macOS only)
+
+   # Cost tracking is built-in (native JSONL) - no extra dependencies
    ```
 
 ### 🔧 **Project Setup**
