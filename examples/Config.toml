@@ -56,6 +56,7 @@ features.show_commits = true
 features.show_version = true
 features.show_submodules = true
 features.hide_submodules_when_empty = true  # Hide SUB component when no submodules present
+features.show_worktree = true               # Show [WT] indicator for git worktrees
 features.show_mcp_status = true
 features.show_cost_tracking = true
 features.show_reset_info = true

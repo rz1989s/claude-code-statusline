@@ -10,7 +10,7 @@
 # Split from cost.sh as part of Issue #132.
 # Implements Issues #101, #102, #105
 #
-# Dependencies: core.sh, cost/core.sh, cost/blocks.sh (for format_tokens_compact)
+# Dependencies: core.sh, cost/core.sh, cost/api_live.sh (for format_tokens_compact)
 # ============================================================================
 
 # Prevent multiple includes
