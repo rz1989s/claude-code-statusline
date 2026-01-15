@@ -224,7 +224,7 @@ features.show_commits = true          # Show today's commit count
 features.show_version = true          # Display Claude Code version
 features.show_submodules = true       # Show git submodule count
 features.show_mcp_status = true       # MCP server health monitoring
-features.show_cost_tracking = true    # Financial cost tracking (ccusage)
+features.show_cost_tracking = true    # Financial cost tracking (native JSONL)
 features.show_reset_info = true       # Block reset countdown
 features.show_session_info = true     # Session information
 
@@ -241,7 +241,6 @@ emojis.live_block = "🔥"            # Active billing block
 # === TIMEOUTS ===
 timeouts.mcp = "3s"                   # MCP server status check timeout
 timeouts.version = "2s"               # Claude Code version check timeout
-timeouts.ccusage = "3s"               # Cost tracking API timeout
 
 # === DISPLAY LABELS ===
 labels.commits = "Commits:"         # Commit count label
@@ -274,8 +273,6 @@ display.date_format = "%Y-%m-%d"     # ISO format (2024-08-18)
 display.date_format_compact = "%Y%m%d"  # Compact format (20240818)
 
 # === ERROR/FALLBACK MESSAGES ===
-messages.no_ccusage = "No ccusage"
-messages.ccusage_install = "Install ccusage for cost tracking"
 messages.no_active_block = "No active block"
 messages.mcp_unknown = "unknown"
 messages.mcp_none = "none"
@@ -456,7 +453,7 @@ ENV_CONFIG_COMPONENTS_COST_MONTHLY_ENABLED=false ./statusline.sh # Hide 30-day c
 ```bash
 # === TIMEOUT OVERRIDES ===
 ENV_CONFIG_MCP_TIMEOUT=10s ./statusline.sh           # Increase MCP timeout to 10 seconds
-ENV_CONFIG_CCUSAGE_TIMEOUT=1s ./statusline.sh        # Reduce ccusage timeout to 1 second
+# Cost tracking is now native - no timeout needed
 ENV_CONFIG_VERSION_TIMEOUT=5s ./statusline.sh        # Increase version timeout to 5 seconds
 ```
 
@@ -515,8 +512,7 @@ reset_timer.enabled = false
 
 [timeouts]
 mcp = "1s"
-version = "1s" 
-ccusage = "1s"
+version = "1s"
 
 [labels]
 commits = "C:"
@@ -574,7 +570,6 @@ reset_timer.enabled = true
 [timeouts]
 mcp = "5s"
 version = "3s"
-ccusage = "5s"
 
 [display]
 time_format = "%H:%M:%S"        # Include seconds for precision
@@ -607,7 +602,6 @@ show_session_info = false
 [timeouts]
 mcp = "3s"
 version = "2s"
-ccusage = "3s"
 
 [labels]
 commits = "Commits:"
@@ -634,7 +628,6 @@ show_reset_info = false
 [timeouts]
 mcp = "2s"
 version = "1s"
-ccusage = "1s"
 
 [emojis]
 clean_status = "🌿"
