@@ -748,7 +748,7 @@ download_directory_comprehensive() {
     # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
     local cost_modules=(
         "cost/core.sh" "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
-        "cost/api_live.sh" "cost/native_calc.sh"
+        "cost/api_live.sh" "cost/native_calc.sh" "cost/pricing.sh"
         # 🆕 ADD NEW COST MODULES HERE (lib/cost/*.sh files)
     )
 
