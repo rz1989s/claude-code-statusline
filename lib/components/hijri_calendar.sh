@@ -82,16 +82,29 @@ collect_hijri_calendar_data() {
         COMPONENT_HIJRI_CALENDAR_GREGORIAN_DATE=$(date "+%b %d %Y")
     fi
 
-    # Get location from location_display component or prayer system
-    if [[ -n "${COMPONENT_LOCATION_DISPLAY_CITY:-}" ]]; then
-        COMPONENT_HIJRI_CALENDAR_LOCATION="$COMPONENT_LOCATION_DISPLAY_CITY"
-    elif [[ -n "${STATUSLINE_DETECTED_COORDINATES:-}" ]]; then
-        # Try to get city from coordinates
-        local coordinates="${STATUSLINE_DETECTED_COORDINATES}"
-        local latitude="${coordinates%%,*}"
-        local longitude="${coordinates##*,}"
-        if type get_city_from_coordinates &>/dev/null; then
-            COMPONENT_HIJRI_CALENDAR_LOCATION=$(get_city_from_coordinates "$latitude" "$longitude")
+    # Get location from prayer system or location_display component
+    if [[ "$(get_hijri_calendar_config 'show_location' 'true')" == "true" ]]; then
+        # Try to get coordinates from prayer location system
+        local coordinates=""
+        if type get_location_coordinates &>/dev/null; then
+            coordinates=$(get_location_coordinates 2>/dev/null) || coordinates=""
+        fi
+
+        # Fallback to already-detected coordinates
+        if [[ -z "$coordinates" && -n "${STATUSLINE_DETECTED_COORDINATES:-}" ]]; then
+            coordinates="${STATUSLINE_DETECTED_COORDINATES}"
+        fi
+
+        # Fallback to location_display component if available
+        if [[ -z "$coordinates" && -n "${COMPONENT_LOCATION_DISPLAY_CITY:-}" ]]; then
+            COMPONENT_HIJRI_CALENDAR_LOCATION="$COMPONENT_LOCATION_DISPLAY_CITY"
+        elif [[ -n "$coordinates" ]]; then
+            # Get city from coordinates
+            local latitude="${coordinates%%,*}"
+            local longitude="${coordinates##*,}"
+            if type get_city_from_coordinates &>/dev/null; then
+                COMPONENT_HIJRI_CALENDAR_LOCATION=$(get_city_from_coordinates "$latitude" "$longitude")
+            fi
         fi
     fi
 
