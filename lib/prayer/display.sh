@@ -116,6 +116,40 @@ format_hijri_date_display() {
 }
 
 # ============================================================================
+# MOON PHASE ICON
+# ============================================================================
+
+# Get moon phase icon based on Hijri day
+# Lunar phases follow the Islamic calendar cycle:
+#   Day 1: New Moon (🌑) - Start of month
+#   Days 2-7: Waxing Crescent (🌒)
+#   Day 8: First Quarter (🌓)
+#   Days 9-14: Waxing Gibbous (🌔)
+#   Days 15-16: Full Moon (🌕) - Mid-month
+#   Days 17-22: Waning Gibbous (🌖)
+#   Day 23: Third Quarter (🌗)
+#   Days 24-30: Waning Crescent (🌘)
+get_moon_phase_icon() {
+    local hijri_day="$1"
+
+    # Validate input: must be a number
+    [[ -z "$hijri_day" || ! "$hijri_day" =~ ^[0-9]+$ ]] && { echo "🌙"; return 1; }
+
+    case "$hijri_day" in
+        1)              echo "🌑" ;;  # New Moon
+        [2-7])          echo "🌒" ;;  # Waxing Crescent
+        8)              echo "🌓" ;;  # First Quarter
+        9|1[0-4])       echo "🌔" ;;  # Waxing Gibbous (9-14)
+        15|16)          echo "🌕" ;;  # Full Moon
+        1[7-9]|2[0-2])  echo "🌖" ;;  # Waning Gibbous (17-22)
+        23)             echo "🌗" ;;  # Third Quarter
+        2[4-9]|30)      echo "🌘" ;;  # Waning Crescent (24-30)
+        *)              echo "🌙" ;;  # Fallback
+    esac
+    return 0
+}
+
+# ============================================================================
 # PRAYER TIMES FORMATTING
 # ============================================================================
 
