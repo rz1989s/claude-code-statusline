@@ -131,7 +131,7 @@ get_reset_clock_time() {
     fi
 }
 
-# Format reset time in long format: "1 hr 52 min" or "Sun 8:00 AM"
+# Format reset time in long format: "1 hr 52 min" (always shows remaining time)
 format_reset_time_long() {
     local iso_timestamp="$1"
 
@@ -168,28 +168,84 @@ format_reset_time_long() {
         return 0
     fi
 
-    # Format based on time remaining
-    if [[ "$diff_seconds" -lt 3600 ]]; then
-        # Less than 1 hour: show minutes
-        local minutes=$((diff_seconds / 60))
-        echo "${minutes} min"
-    elif [[ "$diff_seconds" -lt 86400 ]]; then
-        # Less than 24 hours: show hours and minutes in long format
-        local hours=$((diff_seconds / 3600))
-        local minutes=$(((diff_seconds % 3600) / 60))
-        if [[ "$minutes" -gt 0 ]]; then
-            echo "${hours} hr ${minutes} min"
-        else
-            echo "${hours} hr"
-        fi
+    # Always format as "X day Y hr Z min" or "Y hr Z min" or "Z min"
+    local days=$((diff_seconds / 86400))
+    local hours=$(((diff_seconds % 86400) / 3600))
+    local minutes=$(((diff_seconds % 3600) / 60))
+
+    if [[ "$days" -gt 0 ]]; then
+        # Show days, hours, and minutes
+        echo "${days} day ${hours} hr ${minutes} min"
+    elif [[ "$hours" -gt 0 ]]; then
+        # Show hours and minutes
+        echo "${hours} hr ${minutes} min"
     else
-        # More than 24 hours: show day + time (e.g., "Sun 8:00 AM")
-        if [[ "$(uname -s)" == "Darwin" ]]; then
-            date -j -f "%s" "$reset_epoch" "+%a %-I:%M %p" 2>/dev/null
-        else
-            date -d "@$reset_epoch" "+%a %-I:%M %p" 2>/dev/null
-        fi
+        # Show only minutes
+        echo "${minutes} min"
     fi
+}
+
+# Get remaining minutes from ISO timestamp
+get_remaining_minutes() {
+    local iso_timestamp="$1"
+
+    if [[ -z "$iso_timestamp" || "$iso_timestamp" == "null" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local reset_epoch
+    local normalized_ts
+    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        local mac_ts
+        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    else
+        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+    fi
+
+    if [[ -z "$reset_epoch" ]]; then
+        echo "0"
+        return 1
+    fi
+
+    local now_epoch
+    now_epoch=$(date "+%s")
+    local diff_seconds=$((reset_epoch - now_epoch))
+
+    if [[ "$diff_seconds" -le 0 ]]; then
+        echo "0"
+    else
+        echo $((diff_seconds / 60))
+    fi
+}
+
+# Calculate fair value percentage based on elapsed time
+# Args: remaining_minutes, total_window_minutes
+# Returns: fair value percentage (what usage "should" be at this point)
+calculate_fair_value_percentage() {
+    local remaining_minutes="$1"
+    local total_window_minutes="$2"
+
+    if [[ -z "$remaining_minutes" || -z "$total_window_minutes" || "$total_window_minutes" -eq 0 ]]; then
+        echo "0"
+        return 1
+    fi
+
+    # elapsed = total - remaining
+    local elapsed_minutes=$((total_window_minutes - remaining_minutes))
+
+    # Ensure elapsed is not negative
+    if [[ "$elapsed_minutes" -lt 0 ]]; then
+        elapsed_minutes=0
+    fi
+
+    # fair_value = (elapsed / total) * 100
+    local fair_value=$((elapsed_minutes * 100 / total_window_minutes))
+
+    echo "$fair_value"
 }
 
 # ============================================================================
@@ -380,8 +436,8 @@ render_usage_limits() {
 # USAGE RESET COMPONENT (Separate display for reset countdown)
 # ============================================================================
 
-# Render combined usage info (reset time + percentage) for line 4
-# Format: ⏱ 5H 1 hr 52 min (28%) • 7DAY Sun 8:00 AM (55%)
+# Render combined usage info (reset time + percentage) for line 5
+# Format: ⏱ 5H at HH:MM (X hr Y min) actual%/fair% • 7DAY at HH:MM (X day Y hr Z min) actual%/fair%
 # Monochrome style (light gray + italic) to match old RESET component
 render_usage_reset() {
     local theme_enabled="${1:-true}"
@@ -402,30 +458,43 @@ render_usage_reset() {
 
     local output=""
 
-    # 5-hour window: show "at HH:MM (X hr Y min) Z%"
+    # 5-hour window (300 minutes): show "at HH:MM (X hr Y min) actual%/fair%"
     if [[ -n "$COMPONENT_USAGE_FIVE_HOUR" ]]; then
-        local clock_time="" remaining=""
+        local clock_time="" remaining="" remaining_mins="" fair_value=""
         if [[ -n "$COMPONENT_USAGE_FIVE_HOUR_RESET" ]]; then
             clock_time=$(get_reset_clock_time "$COMPONENT_USAGE_FIVE_HOUR_RESET")
             remaining=$(format_reset_time_long "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            remaining_mins=$(get_remaining_minutes "$COMPONENT_USAGE_FIVE_HOUR_RESET")
+            fair_value=$(calculate_fair_value_percentage "$remaining_mins" 300)
         fi
         if [[ -n "$clock_time" && "$remaining" != "now" ]]; then
-            output="⏱ 5H at ${clock_time} (${remaining}) ${COMPONENT_USAGE_FIVE_HOUR}%"
+            output="⏱ 5H at ${clock_time} (${remaining}) ${COMPONENT_USAGE_FIVE_HOUR}%/${fair_value}%"
         else
             output="⏱ 5H ${remaining:-now} (${COMPONENT_USAGE_FIVE_HOUR}%)"
         fi
     fi
 
-    # 7-day window
+    # 7-day window (10080 minutes): show "at HH:MM (X day Y hr Z min) actual%/fair%"
     if [[ -n "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
-        local reset_time=""
+        local clock_time="" remaining="" remaining_mins="" fair_value=""
         if [[ -n "$COMPONENT_USAGE_SEVEN_DAY_RESET" ]]; then
-            reset_time=$(format_reset_time_long "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+            clock_time=$(get_reset_clock_time "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+            remaining=$(format_reset_time_long "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+            remaining_mins=$(get_remaining_minutes "$COMPONENT_USAGE_SEVEN_DAY_RESET")
+            fair_value=$(calculate_fair_value_percentage "$remaining_mins" 10080)
         fi
         if [[ -n "$output" ]]; then
-            output="${output} • 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
+            if [[ -n "$clock_time" && "$remaining" != "now" ]]; then
+                output="${output} • 7DAY at ${clock_time} (${remaining}) ${COMPONENT_USAGE_SEVEN_DAY}%/${fair_value}%"
+            else
+                output="${output} • 7DAY ${remaining:-now} (${COMPONENT_USAGE_SEVEN_DAY}%)"
+            fi
         else
-            output="⏱ 7DAY ${reset_time} (${COMPONENT_USAGE_SEVEN_DAY}%)"
+            if [[ -n "$clock_time" && "$remaining" != "now" ]]; then
+                output="⏱ 7DAY at ${clock_time} (${remaining}) ${COMPONENT_USAGE_SEVEN_DAY}%/${fair_value}%"
+            else
+                output="⏱ 7DAY ${remaining:-now} (${COMPONENT_USAGE_SEVEN_DAY}%)"
+            fi
         fi
     fi
 
@@ -503,6 +572,7 @@ register_component \
 
 # Export component functions
 export -f get_claude_oauth_token fetch_usage_limits format_reset_time format_reset_time_long
+export -f get_remaining_minutes calculate_fair_value_percentage get_reset_clock_time
 export -f collect_usage_limits_data collect_usage_reset_data render_usage_limits render_usage_reset get_usage_limits_config
 
 debug_log "Usage limits component loaded" "INFO"
