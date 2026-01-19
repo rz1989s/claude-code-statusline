@@ -17,6 +17,7 @@ COMPONENT_REPO_INFO_DIRECTORY=""
 COMPONENT_REPO_INFO_BRANCH=""
 COMPONENT_REPO_INFO_STATUS=""
 COMPONENT_REPO_INFO_MODE=""
+COMPONENT_REPO_INFO_WORKTREE=""
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
@@ -37,14 +38,25 @@ collect_repo_info_data() {
     if is_module_loaded "git" && is_git_repository; then
         COMPONENT_REPO_INFO_BRANCH=$(get_git_branch)
         COMPONENT_REPO_INFO_STATUS=$(get_git_status)
-        
+
+        # Get git dir (works correctly for both regular repos and worktrees)
+        local git_dir
+        git_dir=$(git rev-parse --git-dir 2>/dev/null)
+
         # Check for any special modes (like merge, rebase, etc.)
-        if [[ -d ".git/rebase-merge" ]] || [[ -d ".git/rebase-apply" ]]; then
+        if [[ -d "${git_dir}/rebase-merge" ]] || [[ -d "${git_dir}/rebase-apply" ]]; then
             COMPONENT_REPO_INFO_MODE="REBASE"
-        elif [[ -f ".git/MERGE_HEAD" ]]; then
+        elif [[ -f "${git_dir}/MERGE_HEAD" ]]; then
             COMPONENT_REPO_INFO_MODE="MERGE"
-        elif [[ -f ".git/CHERRY_PICK_HEAD" ]]; then
+        elif [[ -f "${git_dir}/CHERRY_PICK_HEAD" ]]; then
             COMPONENT_REPO_INFO_MODE="CHERRY"
+        fi
+
+        # Check for worktree
+        if declare -f is_git_worktree &>/dev/null && is_git_worktree; then
+            COMPONENT_REPO_INFO_WORKTREE=$(get_git_worktree_name)
+        else
+            COMPONENT_REPO_INFO_WORKTREE=""
         fi
     fi
     
@@ -64,7 +76,12 @@ render_repo_info() {
     if [[ -n "$COMPONENT_REPO_INFO_MODE" ]]; then
         output="${CONFIG_RED}[$COMPONENT_REPO_INFO_MODE]${CONFIG_RESET} "
     fi
-    
+
+    # Add worktree indicator if in worktree (respects config)
+    if [[ -n "$COMPONENT_REPO_INFO_WORKTREE" ]] && [[ "${CONFIG_SHOW_WORKTREE:-true}" == "true" ]]; then
+        output="${output}${CONFIG_CYAN}[WT]${CONFIG_RESET} "
+    fi
+
     # Format directory path with ~ notation
     local dir_display
     dir_display=$(format_directory_path "$COMPONENT_REPO_INFO_DIRECTORY")

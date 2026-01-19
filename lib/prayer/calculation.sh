@@ -21,6 +21,27 @@
 export STATUSLINE_PRAYER_CALCULATION_LOADED=true
 
 # ============================================================================
+# HIJRI CALENDAR CONSTANTS
+# ============================================================================
+
+# Hijri month lengths (0-indexed, but we use index 1-12)
+# Index 0 is unused placeholder, Index 1=Muharram(30), Index 2=Safar(29), etc.
+# Dhu al-Hijjah is 29 days (30 in leap years, using 29 for safety)
+declare -a HIJRI_MONTH_LENGTHS
+HIJRI_MONTH_LENGTHS[1]=30   # Muharram
+HIJRI_MONTH_LENGTHS[2]=29   # Safar
+HIJRI_MONTH_LENGTHS[3]=30   # Rabi' al-awwal
+HIJRI_MONTH_LENGTHS[4]=29   # Rabi' al-thani
+HIJRI_MONTH_LENGTHS[5]=30   # Jumada al-awwal
+HIJRI_MONTH_LENGTHS[6]=29   # Jumada al-thani
+HIJRI_MONTH_LENGTHS[7]=30   # Rajab
+HIJRI_MONTH_LENGTHS[8]=29   # Sha'ban
+HIJRI_MONTH_LENGTHS[9]=30   # Ramadan
+HIJRI_MONTH_LENGTHS[10]=29  # Shawwal
+HIJRI_MONTH_LENGTHS[11]=30  # Dhu al-Qi'dah
+HIJRI_MONTH_LENGTHS[12]=29  # Dhu al-Hijjah
+
+# ============================================================================
 # TIME UTILITIES
 # ============================================================================
 
@@ -200,13 +221,94 @@ calculate_prayer_statuses() {
 # HIJRI DATE CALCULATION WITH MAGHRIB-BASED DAY CHANGE
 # ============================================================================
 
+# Get month index from month name (1-based)
+get_hijri_month_index() {
+    local month_name="$1"
+
+    case "$month_name" in
+        "Muharram")        echo 1 ;;
+        "Safar")           echo 2 ;;
+        "Rabi' al-awwal")  echo 3 ;;
+        "Rabi' al-thani")  echo 4 ;;
+        "Jumada al-awwal") echo 5 ;;
+        "Jumada al-thani") echo 6 ;;
+        "Rajab")           echo 7 ;;
+        "Sha'ban")         echo 8 ;;
+        "Ramadan")         echo 9 ;;
+        "Shawwal")         echo 10 ;;
+        "Dhu al-Qi'dah")   echo 11 ;;
+        "Dhu al-Hijjah")   echo 12 ;;
+        *)                 echo 0 ;;  # Unknown month
+    esac
+}
+
+# Get month name from index (1-based)
+get_hijri_month_name() {
+    local month_index="$1"
+
+    case "$month_index" in
+        1)  echo "Muharram" ;;
+        2)  echo "Safar" ;;
+        3)  echo "Rabi' al-awwal" ;;
+        4)  echo "Rabi' al-thani" ;;
+        5)  echo "Jumada al-awwal" ;;
+        6)  echo "Jumada al-thani" ;;
+        7)  echo "Rajab" ;;
+        8)  echo "Sha'ban" ;;
+        9)  echo "Ramadan" ;;
+        10) echo "Shawwal" ;;
+        11) echo "Dhu al-Qi'dah" ;;
+        12) echo "Dhu al-Hijjah" ;;
+        *)  echo "Unknown" ;;
+    esac
+}
+
+# Calculate next Hijri date with proper month/year rollover
+# Input: day,month_name,year,weekday
+# Output: next_day,next_month_name,next_year,next_weekday
+calculate_next_hijri_date() {
+    local current_hijri="$1"
+
+    IFS=',' read -r day month_name year weekday <<< "$current_hijri"
+
+    # Get month index and max days for this month
+    local month_index=$(get_hijri_month_index "$month_name")
+    local max_days=${HIJRI_MONTH_LENGTHS[$month_index]:-30}
+
+    debug_log "Calculating next Hijri date: day=$day, month=$month_name (index=$month_index), max_days=$max_days" "DEBUG"
+
+    local next_day=$((day + 1))
+    local next_month_index=$month_index
+    local next_year=$year
+
+    # Check for month rollover
+    if [[ $next_day -gt $max_days ]]; then
+        next_day=1
+        next_month_index=$((month_index + 1))
+
+        # Check for year rollover (Dhu al-Hijjah -> Muharram)
+        if [[ $next_month_index -gt 12 ]]; then
+            next_month_index=1
+            next_year=$((year + 1))
+            debug_log "Year rollover: $year -> $next_year" "INFO"
+        fi
+
+        debug_log "Month rollover: $month_name -> $(get_hijri_month_name $next_month_index)" "INFO"
+    fi
+
+    local next_month_name=$(get_hijri_month_name "$next_month_index")
+
+    # Weekday cycles through (approximate - not calculating actual weekday)
+    echo "$next_day,$next_month_name,$next_year,$weekday"
+}
+
 # Get current Hijri date considering Maghrib-based day changes
 get_current_hijri_date_with_maghrib() {
     local current_time="$1"
-    local maghrib_time="$2" 
+    local maghrib_time="$2"
     local todays_hijri="$3"     # Format: day,month,year,weekday
     local tomorrows_hijri="$4"  # Format: day,month,year,weekday (optional)
-    
+
     # In Islamic calendar, the day changes at Maghrib, not midnight
     # If current time is after Maghrib, we should show tomorrow's Hijri date
     if [[ -n "$maghrib_time" ]] && time_is_after "$current_time" "$maghrib_time"; then
@@ -214,13 +316,9 @@ get_current_hijri_date_with_maghrib() {
             debug_log "Current time is after Maghrib, using tomorrow's Hijri date" "INFO"
             echo "$tomorrows_hijri"
         else
-            # Calculate tomorrow's Hijri date if not provided
-            debug_log "Maghrib passed but tomorrow's Hijri date not available, estimating..." "WARN"
-            IFS=',' read -r day month year weekday <<< "$todays_hijri"
-            
-            # Simple increment (this is approximate, actual Islamic calendar is complex)
-            local next_day=$((day + 1))
-            echo "$next_day,$month,$year,$weekday"
+            # Calculate tomorrow's Hijri date with proper rollover
+            debug_log "Maghrib passed, calculating next Hijri date with rollover logic..." "INFO"
+            calculate_next_hijri_date "$todays_hijri"
         fi
     else
         debug_log "Current time is before Maghrib, using today's Hijri date" "INFO"

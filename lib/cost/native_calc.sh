@@ -22,6 +22,9 @@
 [[ "${STATUSLINE_COST_NATIVE_CALC_LOADED:-}" == "true" ]] && return 0
 export STATUSLINE_COST_NATIVE_CALC_LOADED=true
 
+# Load pricing module (single source of truth for model rates)
+source "${BASH_SOURCE[0]%/*}/pricing.sh"
+
 # ============================================================================
 # TIME BOUNDARY CALCULATIONS
 # ============================================================================
@@ -80,6 +83,9 @@ calculate_cost_in_range() {
 
     # OPTIMIZED: Single jq+awk pipeline for all calculations
     # Output format: timestamp|model|input|output|cache_write|cache_read
+    local awk_pricing
+    awk_pricing=$(get_awk_pricing_block)
+
     local total_cost
     total_cost=$(eval "$find_cmd" 2>/dev/null | while read -r jsonl_file; do
         [[ -z "$jsonl_file" ]] && continue
@@ -89,44 +95,32 @@ calculate_cost_in_range() {
              (.message.usage.output_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-    done | awk -F'\t' -v start="$start_iso" -v end="$end_iso" '
+    done | awk -F'\t' -v start="$start_iso" -v end="$end_iso" "
     BEGIN {
         total = 0
         count = 0
-        # Pricing per million tokens (model -> input output cache_write cache_read)
-        # Official Anthropic pricing from https://claude.com/pricing
-        # Opus 4.5: $5/$25 input/output, cache write 1.25x, cache read 0.1x
-        p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
-        # Sonnet 4.5: $3/$15 input/output (<=200K context)
-        p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
-        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
-        # Sonnet 4: $3/$15 input/output
-        p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
-        # Haiku 4.5: $1/$5 input/output
-        p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
-        # Default fallback (Sonnet pricing - safer than Opus)
-        p["default"] = "3.00 15.00 3.75 0.30"
+        # Pricing from pricing.sh (single source of truth)
+$awk_pricing
     }
     {
-        ts = $1
+        ts = \$1
         # Truncate timestamp for comparison (remove milliseconds and Z)
-        gsub(/\.[0-9]+Z?$/, "", ts)
+        gsub(/\.[0-9]+Z?\$/, \"\", ts)
 
         # Check time range
         if (ts < start) next
-        if (end != "" && ts > end) next
+        if (end != \"\" && ts > end) next
 
-        model = $2
-        input = $3 + 0
-        output = $4 + 0
-        cache_write = $5 + 0
-        cache_read = $6 + 0
+        model = \$2
+        input = \$3 + 0
+        output = \$4 + 0
+        cache_write = \$5 + 0
+        cache_read = \$6 + 0
 
         # Get pricing for model
         pricing = p[model]
-        if (pricing == "") pricing = p["default"]
-        split(pricing, pr, " ")
+        if (pricing == \"\") pricing = p[\"default\"]
+        split(pricing, pr, \" \")
 
         # Calculate cost (prices per million tokens)
         cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
@@ -134,8 +128,8 @@ calculate_cost_in_range() {
         count++
     }
     END {
-        printf "%.2f", total
-    }')
+        printf \"%.2f\", total
+    }")
 
     debug_log "Native calc ($start_iso to ${end_iso:-now}): \$${total_cost}" "INFO"
     echo "${total_cost:-0.00}"
@@ -203,6 +197,10 @@ get_native_usage_info() {
     local sanitized_project
     sanitized_project=$(echo "$current_dir" | sed 's|/|-|g')
 
+    # Get pricing block from single source of truth
+    local awk_pricing
+    awk_pricing=$(get_awk_pricing_block)
+
     # OPTIMIZED: Single jq+awk pass computes ALL periods at once
     local result
     result=$(find "$projects_dir" -name "*.jsonl" -type f -mtime -30 2>/dev/null | while read -r jsonl_file; do
@@ -214,34 +212,28 @@ get_native_usage_info() {
              (.message.usage.output_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-    done | awk -F'\t' -v today="$today_start" -v week="$week_start" -v month="$month_start" -v project="$sanitized_project" '
+    done | awk -F'\t' -v today="$today_start" -v week="$week_start" -v month="$month_start" -v project="$sanitized_project" "
     BEGIN {
         daily = 0; weekly = 0; monthly = 0; repo = 0
-        # Pricing per million tokens - Official Anthropic pricing
-        p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
-        p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
-        p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
-        p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
-        p["claude-haiku-4-5-20251101"] = "1.00 5.00 1.25 0.10"
-        p["claude-haiku-4-5-20251001"] = "1.00 5.00 1.25 0.10"
-        p["default"] = "3.00 15.00 3.75 0.30"
+        # Pricing from pricing.sh (single source of truth)
+$awk_pricing
     }
     {
-        file = $1
-        ts = $2
-        model = $3
-        input = $4 + 0
-        output = $5 + 0
-        cache_write = $6 + 0
-        cache_read = $7 + 0
+        file = \$1
+        ts = \$2
+        model = \$3
+        input = \$4 + 0
+        output = \$5 + 0
+        cache_write = \$6 + 0
+        cache_read = \$7 + 0
 
         # Truncate timestamp
-        gsub(/\.[0-9]+Z?$/, "", ts)
+        gsub(/\.[0-9]+Z?\$/, \"\", ts)
 
         # Get pricing
         pricing = p[model]
-        if (pricing == "") pricing = p["default"]
-        split(pricing, pr, " ")
+        if (pricing == \"\") pricing = p[\"default\"]
+        split(pricing, pr, \" \")
         cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
 
         # Accumulate by period
@@ -253,8 +245,8 @@ get_native_usage_info() {
         if (index(file, project) > 0) repo += cost
     }
     END {
-        printf "%.2f:%.2f:%.2f:%.2f", repo, monthly, weekly, daily
-    }')
+        printf \"%.2f:%.2f:%.2f:%.2f\", repo, monthly, weekly, daily
+    }")
 
     # Parse result
     local repo_cost monthly_cost weekly_cost daily_cost

@@ -690,223 +690,117 @@ create_lib_directory() {
     fi
 }
 
-# Function to download all modules using predefined structure (No API rate limits!)
-download_directory_comprehensive() {
-    local repo_path="$1"
-    local local_path="$2"
-    
-    print_status "📦 Downloading all modules using optimized method (no rate limits)..."
-    
-    # Create local directory structure
-    mkdir -p "$local_path"
-    mkdir -p "$local_path/prayer"
-    mkdir -p "$local_path/cache"
-    mkdir -p "$local_path/config"
-    mkdir -p "$local_path/cost"
-    mkdir -p "$local_path/components"
-    
-    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - UPDATE WHEN ADDING NEW MODULES!
-    # ========================================================================
-    # When adding new modules to the repository, you MUST update these arrays:
-    # 1. Add to appropriate array below (main_modules, prayer_modules, component_modules)
-    # 2. Update the fallback function arrays (in download_lib_fallback function)
-    # 3. Update verification function arrays (in verify_installation function) 
-    # 4. Update expected_modules count (in verify_installation function)
-    # 5. Test installation: curl ... | bash -s -- --branch=YOUR_BRANCH
-    # 
-    # Why hardcoded? Eliminates GitHub API rate limits (60/hour → unlimited)
-    # Provides 100% reliability and fastest installation experience
-    # ========================================================================
-    
-    # Define ALL modules based on known structure (eliminates API dependency)
-    local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
-        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
-        "github.sh" "plugins.sh" "profiles.sh"
-        # 🆕 ADD NEW MAIN MODULES HERE (lib/*.sh files)
-    )
-    
-    local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
-        # 🆕 ADD NEW PRAYER MODULES HERE (lib/prayer/*.sh files)
-    )
+# Function to download all lib/ modules using GitHub tarball (ZERO MAINTENANCE!)
+# This automatically discovers all modules - no hardcoded lists needed
+download_lib_tarball() {
+    local local_path="$1"
 
-    local cache_modules=(
-        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
-        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
-        # 🆕 ADD NEW CACHE MODULES HERE (lib/cache/*.sh files)
-    )
-
-    # Config system modules (lib/config/) - modular config architecture
-    local config_modules=(
-        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
-        "config/cache.sh"
-        # 🆕 ADD NEW CONFIG MODULES HERE (lib/config/*.sh files)
-    )
-
-    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
-    local cost_modules=(
-        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
-        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
-        "cost/api_live.sh" "cost/native_calc.sh"
-        # 🆕 ADD NEW COST MODULES HERE (lib/cost/*.sh files)
-    )
-
-    local component_modules=(
-        "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
-        "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/commits.sh"
-        "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
-        "components/cache_efficiency.sh" "components/block_projection.sh"
-        "components/location_display.sh"
-        # v2.13.0: Native Anthropic data components
-        "components/code_productivity.sh" "components/context_window.sh"
-        "components/session_info.sh"
-        # v2.15.0: Usage limits component (OAuth API)
-        "components/usage_limits.sh"
-        # 🆕 ADD NEW COMPONENT MODULES HERE (lib/components/*.sh files)
-    )
-    
-    # Combine all modules
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
-    local files_downloaded=0
-    local total_files=${#all_modules[@]}
-    local failed_files=()
-    
-    print_status "📊 Downloading $total_files modules directly (bypassing API limits)..."
-    
-    # Download each module using direct raw URL (unlimited requests!)
-    for module in "${all_modules[@]}"; do
-        local raw_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
-        local file_path="$local_path/$module"
-        local file_downloaded=false
-        
-        # Try downloading each file up to 3 times
-        for attempt in {1..3}; do
-            if curl -fsSL "$raw_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
-                print_status "  ✓ Downloaded $module"
-                files_downloaded=$((files_downloaded + 1))
-                file_downloaded=true
-                break
-            else
-                [[ $attempt -lt 3 ]] && sleep 1
-            fi
-        done
-        
-        if [[ "$file_downloaded" == "false" ]]; then
-            print_error "  ✗ Failed to download $module after 3 attempts"
-            failed_files+=("$module")
-        fi
-    done
-    
-    # Report comprehensive results
-    if [[ ${#failed_files[@]} -gt 0 ]]; then
-        print_error "❌ Failed to download ${#failed_files[@]} modules:"
-        for failed_file in "${failed_files[@]}"; do
-            print_error "  • $failed_file"
-        done
-        return 1
-    else
-        print_success "✅ Downloaded $files_downloaded/$total_files modules (100% success, no API limits used)"
-        return 0
-    fi
-}
-
-# Fallback function using GitHub API (only if comprehensive method fails)
-download_directory_with_api_fallback() {
-    local repo_path="$1"
-    local local_path="$2"
-    local depth="${3:-0}"
-    local attempt="${4:-1}"
-    local max_attempts=3
-    
-    # Build curl arguments array (avoids eval for security - Issue #68)
-    local curl_args=(-fsSL)
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        curl_args+=(-H "Authorization: token $GITHUB_TOKEN")
-        print_status "🔑 Using GitHub token for enhanced rate limits (5000/hour)"
-    else
-        print_status "⚠️ No GitHub token - limited to 60 requests/hour"
-    fi
-
-    if [[ $attempt -eq 1 ]]; then
-        print_status "📦 API fallback: discovering files in $repo_path..."
-    else
-        print_status "📦 API retry attempt $attempt/$max_attempts for $repo_path..."
-    fi
-
-    local api_url="https://api.github.com/repos/rz1989s/claude-code-statusline/contents/$repo_path?ref=$INSTALL_BRANCH"
-    curl_args+=("$api_url")
+    print_status "📦 Downloading modules archive (auto-discovery, zero maintenance)..."
 
     # Create local directory
     mkdir -p "$local_path"
 
-    # Get directory contents with array-based curl call
-    local contents
-    contents=$(curl "${curl_args[@]}" 2>/dev/null)
-    
-    if [[ -z "$contents" || "$contents" == "Not Found" || "$contents" == "null" ]]; then
-        if [[ $attempt -lt $max_attempts ]]; then
-            print_warning "API request failed for $repo_path, retrying in $((attempt * 2)) seconds..."
-            sleep $((attempt * 2))
-            return $(download_directory_with_api_fallback "$repo_path" "$local_path" "$depth" $((attempt + 1)))
-        else
-            print_error "Could not fetch directory contents after $max_attempts attempts: $repo_path"
-            return 1
-        fi
-    fi
-    
-    # Check if jq is available for JSON parsing
-    if ! command_exists jq; then
-        print_error "jq is required for API discovery but not available"
+    # GitHub tarball URL - works for any branch
+    local tarball_url="https://github.com/rz1989s/claude-code-statusline/archive/${INSTALL_BRANCH}.tar.gz"
+    local temp_tarball="${TMPDIR:-/tmp}/statusline_modules_$$.tar.gz"
+    local temp_extract="${TMPDIR:-/tmp}/statusline_extract_$$"
+
+    print_status "   ⏳ Fetching from GitHub..."
+
+    # Download tarball
+    if ! curl -fsSL "$tarball_url" -o "$temp_tarball" 2>/dev/null; then
+        print_error "Failed to download tarball from: $tarball_url"
+        rm -f "$temp_tarball" 2>/dev/null
         return 1
     fi
-    
-    local files_downloaded=0
-    local total_files=0
-    local failed_files=()
-    
-    # Download files (only .sh files) with individual retry
-    while IFS='|' read -r download_url filename file_type; do
-        [[ "$file_type" == "file" && "$filename" == *.sh ]] || continue
-        
-        total_files=$((total_files + 1))
-        local file_path="$local_path/$filename"
-        local file_downloaded=false
-        
-        # Try downloading each file up to 3 times
-        for file_attempt in {1..3}; do
-            if curl -fsSL "$download_url" -o "$file_path" 2>/dev/null && [[ -s "$file_path" ]]; then
-                print_status "  ✓ Downloaded $repo_path/$filename"
-                files_downloaded=$((files_downloaded + 1))
-                file_downloaded=true
-                break
-            else
-                [[ $file_attempt -lt 3 ]] && sleep 1
-            fi
-        done
-        
-        if [[ "$file_downloaded" == "false" ]]; then
-            print_error "  ✗ Failed to download $repo_path/$filename after 3 attempts"
-            failed_files+=("$repo_path/$filename")
-        fi
-    done < <(echo "$contents" | jq -r '.[] | select(.type=="file") | "\(.download_url)|\(.name)|\(.type)"' 2>/dev/null)
-    
-    # Report results
-    if [[ ${#failed_files[@]} -gt 0 ]]; then
-        print_error "Failed to download ${#failed_files[@]} files from $repo_path:"
-        for failed_file in "${failed_files[@]}"; do
-            print_error "  • $failed_file"
-        done
+
+    # Verify tarball is valid
+    if [[ ! -s "$temp_tarball" ]]; then
+        print_error "Downloaded tarball is empty"
+        rm -f "$temp_tarball" 2>/dev/null
         return 1
-    elif [[ $files_downloaded -gt 0 ]]; then
-        print_success "Downloaded $files_downloaded/$total_files files from $repo_path via API"
     fi
-    
+
+    print_status "   📂 Extracting modules..."
+
+    # Create temp extraction directory
+    mkdir -p "$temp_extract"
+
+    # Extract tarball
+    if ! tar -xzf "$temp_tarball" -C "$temp_extract" 2>/dev/null; then
+        print_error "Failed to extract tarball"
+        rm -rf "$temp_tarball" "$temp_extract" 2>/dev/null
+        return 1
+    fi
+
+    # Find the extracted directory (format: claude-code-statusline-BRANCH)
+    local extracted_dir=$(find "$temp_extract" -maxdepth 1 -type d -name "claude-code-statusline-*" | head -1)
+
+    if [[ -z "$extracted_dir" || ! -d "$extracted_dir/lib" ]]; then
+        print_error "Could not find lib/ directory in extracted archive"
+        rm -rf "$temp_tarball" "$temp_extract" 2>/dev/null
+        return 1
+    fi
+
+    # Copy lib/ contents to destination
+    if ! cp -r "$extracted_dir/lib/"* "$local_path/" 2>/dev/null; then
+        print_error "Failed to copy modules to $local_path"
+        rm -rf "$temp_tarball" "$temp_extract" 2>/dev/null
+        return 1
+    fi
+
+    # Cleanup temp files
+    rm -rf "$temp_tarball" "$temp_extract" 2>/dev/null
+
+    # Count and report results
+    local total_modules=$(find "$local_path" -name "*.sh" -type f | wc -l | tr -d ' ')
+    local main_count=$(find "$local_path" -maxdepth 1 -name "*.sh" -type f | wc -l | tr -d ' ')
+    local prayer_count=$(find "$local_path/prayer" -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local cache_count=$(find "$local_path/cache" -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local config_count=$(find "$local_path/config" -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local cost_count=$(find "$local_path/cost" -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local component_count=$(find "$local_path/components" -name "*.sh" -type f 2>/dev/null | wc -l | tr -d ' ')
+
+    print_success "✅ Extracted $total_modules modules automatically:"
+    print_status "   • Main modules: $main_count"
+    print_status "   • Prayer: $prayer_count"
+    print_status "   • Cache: $cache_count"
+    print_status "   • Config: $config_count"
+    print_status "   • Cost: $cost_count"
+    print_status "   • Components: $component_count"
+
     return 0
+}
+
+# Simplified API fallback - only used if tarball fails
+download_lib_api_fallback() {
+    local local_path="$1"
+
+    print_status "🔄 API fallback: downloading essential modules individually..."
+
+    # Only download essential modules as fallback
+    local essential_modules=(
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
+        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
+    )
+
+    local files_downloaded=0
+
+    for module in "${essential_modules[@]}"; do
+        local url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
+        if curl -fsSL "$url" -o "$local_path/$module" 2>/dev/null && [[ -s "$local_path/$module" ]]; then
+            print_status "  ✓ Downloaded $module"
+            files_downloaded=$((files_downloaded + 1))
+        fi
+    done
+
+    if [[ $files_downloaded -ge 8 ]]; then
+        print_warning "⚠️ Partial installation: $files_downloaded essential modules (some features may be limited)"
+        return 0
+    else
+        print_error "❌ Failed to download enough modules ($files_downloaded/11)"
+        return 1
+    fi
 }
 
 # Function to download statusline script and modules
@@ -972,177 +866,38 @@ download_statusline() {
     # Create lib directory
     print_status "Creating lib directory for modules..."
     mkdir -p "$LIB_DIR"
-    
-    # Download all lib/ directory contents with multi-tier approach
-    print_status "🚀 Downloading all lib/ modules with optimized strategy..."
-    
-    # Tier 1: Direct download using known structure (NO API limits, fastest)
-    if download_directory_comprehensive "lib" "$LIB_DIR"; then
-        local downloaded_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
-        print_success "✅ Tier 1 success: $downloaded_count modules downloaded (no API limits used)"
+
+    # Download all lib/ modules with 2-tier approach (tarball + fallback)
+    print_status "🚀 Downloading all lib/ modules..."
+
+    # Tier 1: GitHub tarball (fast, complete, auto-discovers all modules)
+    if download_lib_tarball "$LIB_DIR"; then
+        print_success "✅ Tarball download successful"
     else
-        print_warning "⚠️ Tier 1 (direct download) failed"
-        
-        # Tier 2: GitHub API with optional token support
-        print_status "🔄 Trying Tier 2: GitHub API discovery..."
-        if download_directory_with_api_fallback "lib" "$LIB_DIR"; then
-            local downloaded_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
-            print_success "✅ Tier 2 success: $downloaded_count modules downloaded via API"
+        print_warning "⚠️ Tarball download failed, trying fallback..."
+
+        # Tier 2: Individual download of essential modules
+        if download_lib_api_fallback "$LIB_DIR"; then
+            print_warning "⚠️ Using partial installation (essential modules only)"
         else
-            print_warning "⚠️ Tier 2 (API discovery) also failed"
-            
-            # Tier 3: Comprehensive fallback with same known structure
-            print_status "🔄 Tier 3: Final comprehensive fallback..."
-            download_lib_fallback
+            print_error "🚨 CRITICAL: Could not download modules"
+            print_status "🔧 Troubleshooting:"
+            print_status "  1. Check internet connection to GitHub"
+            print_status "  2. Verify branch '$INSTALL_BRANCH' exists"
+            print_status "  3. Try again in a few minutes"
+            exit 1
         fi
     fi
-    
-    # Final verification that we have adequate modules
+
+    # Final verification
     local final_count=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
-    if [[ $final_count -lt 15 ]]; then
+    if [[ $final_count -lt 10 ]]; then
         print_error "🚨 CRITICAL: Only $final_count modules downloaded - installation incomplete"
-        print_error "💡 All modules are required for proper functionality"
-        print_status "🔧 Troubleshooting:"
-        print_status "  1. Check internet connection to GitHub"
-        print_status "  2. Verify branch '$INSTALL_BRANCH' exists"
-        print_status "  3. For rate limit issues, set GITHUB_TOKEN environment variable"
         exit 1
     else
-        print_success "🎉 Module download complete: $final_count modules ready (100% functionality guaranteed)"
+        print_success "🎉 Module download complete: $final_count modules ready"
     fi
 }
-
-# Comprehensive fallback function - downloads ALL modules with retry mechanism
-download_lib_fallback() {
-    print_status "🔄 Using comprehensive fallback download method for ALL modules..."
-    
-    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
-    # ================================================================
-    # These arrays MUST match the arrays in download_directory_comprehensive()
-    # When you add new modules there, add them here too for fallback support
-    # ================================================================
-    
-    # ALL modules that must exist - comprehensive list for 100% functionality
-    local main_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
-        "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
-        "github.sh" "plugins.sh" "profiles.sh"
-        # 🆕 ADD NEW MAIN MODULES HERE (must match line 720-725 arrays)
-    )
-    
-    # Prayer system modules (lib/prayer/)
-    local prayer_modules=(
-        "prayer/location.sh" "prayer/calculation.sh" "prayer/display.sh" "prayer/core.sh" "prayer/timezone_methods.sh"
-        # 🆕 ADD NEW PRAYER MODULES HERE (must match line 506-508 arrays)
-    )
-
-    # Cache system modules (lib/cache/) - modular cache architecture
-    local cache_modules=(
-        "cache/config.sh" "cache/directory.sh" "cache/keys.sh" "cache/validation.sh"
-        "cache/statistics.sh" "cache/integrity.sh" "cache/locking.sh" "cache/operations.sh"
-        # 🆕 ADD NEW CACHE MODULES HERE (must match optimized function arrays)
-    )
-
-    # Config system modules (lib/config/) - modular config architecture
-    local config_modules=(
-        "config/constants.sh" "config/defaults.sh" "config/env_overrides.sh"
-        "config/extract.sh" "config/toml_parser.sh" "config/schema_validator.sh"
-        "config/cache.sh"
-        # 🆕 ADD NEW CONFIG MODULES HERE (must match optimized function arrays)
-    )
-
-    # Cost system modules (lib/cost/) - modular cost architecture (Issue #132)
-    local cost_modules=(
-        "cost/core.sh" "cost/ccusage.sh" "cost/blocks.sh" "cost/aggregation.sh"
-        "cost/native.sh" "cost/alerts.sh" "cost/session.sh"
-        "cost/api_live.sh" "cost/native_calc.sh"
-        # 🆕 ADD NEW COST MODULES HERE (must match optimized function arrays)
-    )
-
-    # Component modules (lib/components/) - all 22 components
-    local component_modules=(
-        "components/repo_info.sh" "components/version_info.sh" "components/time_display.sh"
-        "components/model_info.sh" "components/cost_repo.sh" "components/cost_live.sh"
-        "components/mcp_status.sh" "components/reset_timer.sh" "components/prayer_times.sh"
-        "components/commits.sh"
-        "components/submodules.sh" "components/cost_monthly.sh" "components/cost_weekly.sh"
-        "components/cost_daily.sh" "components/burn_rate.sh" "components/token_usage.sh"
-        "components/cache_efficiency.sh" "components/block_projection.sh"
-        "components/location_display.sh"
-        # v2.13.0: Native Anthropic data components
-        "components/code_productivity.sh" "components/context_window.sh"
-        "components/session_info.sh"
-        # v2.15.0: Usage limits component (OAuth API)
-        "components/usage_limits.sh"
-        # 🆕 ADD NEW COMPONENT MODULES HERE (must match line 508-515 arrays)
-    )
-
-    # Combine all modules for comprehensive download
-    local all_modules=("${main_modules[@]}" "${prayer_modules[@]}" "${cache_modules[@]}" "${config_modules[@]}" "${cost_modules[@]}" "${component_modules[@]}")
-    local failed_modules=()
-    local successful_downloads=0
-    local total_modules=${#all_modules[@]}
-    
-    print_status "📊 Attempting to download $total_modules modules comprehensively..."
-    
-    # Create subdirectories
-    mkdir -p "$LIB_DIR/prayer"
-    mkdir -p "$LIB_DIR/cache"
-    mkdir -p "$LIB_DIR/config"
-    mkdir -p "$LIB_DIR/cost"
-    mkdir -p "$LIB_DIR/components"
-    
-    # Download each module with retry mechanism
-    for module in "${all_modules[@]}"; do
-        local module_url="https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/lib/$module"
-        local module_path="$LIB_DIR/$module"
-        local module_downloaded=false
-        
-        # Try downloading each module up to 3 times
-        for attempt in {1..3}; do
-            if curl -fsSL "$module_url" -o "$module_path" 2>/dev/null && [[ -s "$module_path" ]]; then
-                print_status "✓ Downloaded $module"
-                successful_downloads=$((successful_downloads + 1))
-                module_downloaded=true
-                break
-            else
-                [[ $attempt -lt 3 ]] && sleep 1
-            fi
-        done
-        
-        if [[ "$module_downloaded" == "false" ]]; then
-            print_error "✗ Failed to download $module after 3 attempts"
-            failed_modules+=("$module")
-        fi
-    done
-    
-    # Report comprehensive results
-    echo
-    print_status "📊 Fallback download summary:"
-    print_status "  • Successfully downloaded: $successful_downloads/$total_modules modules"
-    print_status "  • Success rate: $(( successful_downloads * 100 / total_modules ))%"
-    
-    if [[ ${#failed_modules[@]} -gt 0 ]]; then
-        print_error "❌ FALLBACK FAILED: Could not download ${#failed_modules[@]} modules:"
-        for failed_module in "${failed_modules[@]}"; do
-            print_error "  • $failed_module"
-        done
-        echo
-        print_error "🚨 Installation cannot continue with incomplete module set"
-        print_error "💡 All modules are critical for proper functionality"
-        print_status "🔧 Troubleshooting steps:"
-        print_status "  1. Check your internet connection"
-        print_status "  2. Verify GitHub.com is accessible"
-        print_status "  3. Try again in a few minutes"
-        print_status "  4. If issue persists, check if branch '$INSTALL_BRANCH' exists"
-        exit 1
-    else
-        print_success "🎉 FALLBACK SUCCESS: All $total_modules modules downloaded (100% complete)"
-        print_status "💡 Comprehensive fallback ensured full functionality"
-        return 0
-    fi
-}
-
 
 # Function to download all example configurations
 download_examples() {
@@ -1652,31 +1407,23 @@ verify_installation() {
         print_warning "examples directory is missing (configurations will be limited)"
     fi
     
-    # Strict module verification with comprehensive checks
+    # Dynamic module verification (no hardcoded counts - auto-adapts to repo changes)
     local total_modules=0
     local missing_critical_modules=()
-    local expected_modules=43  # 🆕 UPDATE THIS COUNT when adding new modules! (11 main + 5 prayer + 8 cache + 19 components)
-    
-    # ⚠️  CRITICAL REMINDER: HARDCODED MODULE LISTS - KEEP IN SYNC!
-    # ================================================================
-    # These arrays MUST match the arrays in download_directory_comprehensive()
-    # and download_lib_fallback() functions. When you add modules there, add here too.
-    # ================================================================
-    
-    # Define all expected critical modules for verification
-    local all_critical_modules=(
-        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh" 
+
+    # Essential modules that MUST exist for core functionality
+    local essential_modules=(
+        "core.sh" "security.sh" "config.sh" "themes.sh" "cache.sh"
         "git.sh" "mcp.sh" "cost.sh" "display.sh" "prayer.sh" "components.sh"
-        # 🆕 ADD NEW CRITICAL MODULES HERE (must match other functions)
     )
-    
+
     # Count all .sh files in lib/ directory and subdirectories
     if [ -d "$LIB_DIR" ]; then
         total_modules=$(find "$LIB_DIR" -name "*.sh" -type f | wc -l | tr -d ' ')
         print_status "📊 Found $total_modules total modules in lib/ directory"
-        
-        # Verify all critical modules exist
-        for module in "${all_critical_modules[@]}"; do
+
+        # Verify essential modules exist
+        for module in "${essential_modules[@]}"; do
             if [ -f "$LIB_DIR/$module" ]; then
                 print_status "✓ Essential module $module found"
             else
@@ -1684,50 +1431,24 @@ verify_installation() {
                 missing_critical_modules+=("$module")
             fi
         done
-        
-        # Check subdirectories with detailed reporting
-        local prayer_count=0
-        local cache_count=0
-        local component_count=0
 
-        if [ -d "$LIB_DIR/prayer" ]; then
-            prayer_count=$(find "$LIB_DIR/prayer" -name "*.sh" -type f | wc -l | tr -d ' ')
-            print_status "  • Prayer modules: $prayer_count files"
-            [[ $prayer_count -lt 5 ]] && print_warning "    Expected ≥5 prayer modules"
-        else
-            print_warning "  • Prayer directory missing"
-        fi
+        # Report subdirectory counts (informational, no hardcoded expectations)
+        for subdir in prayer cache config cost components; do
+            if [ -d "$LIB_DIR/$subdir" ]; then
+                local subdir_count=$(find "$LIB_DIR/$subdir" -name "*.sh" -type f | wc -l | tr -d ' ')
+                print_status "  • ${subdir^} modules: $subdir_count files"
+            fi
+        done
 
-        if [ -d "$LIB_DIR/cache" ]; then
-            cache_count=$(find "$LIB_DIR/cache" -name "*.sh" -type f | wc -l | tr -d ' ')
-            print_status "  • Cache modules: $cache_count files"
-            [[ $cache_count -lt 8 ]] && print_warning "    Expected 8 cache modules"
-        else
-            print_warning "  • Cache directory missing"
-        fi
-
-        if [ -d "$LIB_DIR/components" ]; then
-            component_count=$(find "$LIB_DIR/components" -name "*.sh" -type f | wc -l | tr -d ' ')
-            print_status "  • Component modules: $component_count files"
-            [[ $component_count -lt 19 ]] && print_warning "    Expected 19 component modules"
-        else
-            print_warning "  • Components directory missing"
-        fi
-        
-        # Strict validation - require ALL modules for success
+        # Validation - only check essentials and minimum threshold
         if [[ ${#missing_critical_modules[@]} -gt 0 ]]; then
             print_error "❌ Missing essential modules: ${missing_critical_modules[*]}"
             return 1
-        elif [[ $total_modules -lt 15 ]]; then
-            print_error "❌ Insufficient modules: $total_modules found (expected ≥15 for full functionality)"
-            print_error "💡 This indicates an incomplete installation"
+        elif [[ $total_modules -lt 10 ]]; then
+            print_error "❌ Insufficient modules: $total_modules found (minimum 10 required)"
             return 1
-        elif [[ $total_modules -lt $expected_modules ]]; then
-            print_warning "⚠️ Module count below optimal: $total_modules found (expected ~$expected_modules)"
-            print_warning "💡 Some advanced features may be unavailable"
-            print_success "✅ Core functionality verified ($total_modules modules)"
         else
-            print_success "✅ Complete installation verified: $total_modules modules (100% functionality)"
+            print_success "✅ Installation verified: $total_modules modules"
         fi
     else
         print_error "❌ lib directory is missing - critical installation failure"
