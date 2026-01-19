@@ -439,6 +439,8 @@ hijri.adjustment_days = 0              # Manual adjustment for moon sighting dif
 hijri.show_arabic = false              # Display Arabic month names instead of English
 hijri.highlight_friday = true          # Special formatting for Jumu'ah (Friday)
 hijri.show_maghrib_indicator = true    # Show 🌙 when Islamic day changes at Maghrib
+hijri.show_moon_phase = true           # Dynamic moon phase icon based on Hijri day
+hijri.show_gregorian = true            # Show Gregorian date alongside Hijri
 
 # Hijri display format
 hijri.display_format = "short"         # short, full, with_weekday
@@ -448,8 +450,8 @@ hijri.show_weekday = true              # Include day of week in display
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components
 
-# Number of lines to display (1-9) - SHOWCASING ALL 24 ATOMIC COMPONENTS!
-display.lines = 7
+# Number of lines to display (1-9) - SHOWCASING ALL 26 ATOMIC COMPONENTS!
+display.lines = 8
 
 # Line 1: Repository Identity (path, branch, status)
 display.line1.components = ["repo_info"]
@@ -471,25 +473,25 @@ display.line4.components = ["burn_rate", "cache_efficiency", "block_projection",
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
-# Line 5: System Status & Reset Timer (detailed reset countdown)
-display.line5.components = ["mcp_status", "usage_reset"]
+# Line 5: Usage Reset Timer (detailed reset countdown)
+display.line5.components = ["usage_reset"]
 display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
-# Line 6: Islamic Prayer Times (spiritual context)
-display.line6.components = ["prayer_times"]
+# Line 6: Hijri Calendar with Moon Phase, Gregorian Date & Location
+display.line6.components = ["hijri_calendar"]
 display.line6.separator = " │ "
 display.line6.show_when_empty = true
 
-# Line 7: Location Detection Display (VPN-aware location transparency)
-display.line7.components = ["location_display"]
+# Line 7: Prayer Times Only (Fajr, Dhuhr, Asr, Maghrib, Isha)
+display.line7.components = ["prayer_times_only"]
 display.line7.separator = " │ "
 display.line7.show_when_empty = true
 
-# Line 8: Available for future expansion
-display.line8.components = []
+# Line 8: MCP Server Status
+display.line8.components = ["mcp_status"]
 display.line8.separator = " │ "
-display.line8.show_when_empty = false
+display.line8.show_when_empty = true
 
 # Line 9: Available for future expansion
 display.line9.components = []
@@ -501,7 +503,7 @@ display.line9.show_when_empty = false
 # When updating component counts, descriptions, or categories here, update CLAUDE.md too!
 # ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
 #
-# === LOGICAL COMPONENT CATEGORIES (24 Total) ===
+# === LOGICAL COMPONENT CATEGORIES (26 Total) ===
 #
 # Repository & Git Components (5):
 # - "repo_info"      - Repository directory and git branch/status
@@ -535,9 +537,11 @@ display.line9.show_when_empty = false
 # - "mcp_status"     - MCP server health and connection status
 # - "time_display"   - Current time formatting
 #
-# Spiritual & Location Components (2):
-# - "prayer_times"     - Islamic prayer times integration
-# - "location_display" - VPN-aware location detection for prayer calculations
+# Spiritual & Location Components (4):
+# - "prayer_times"      - Combined Hijri + prayer times (legacy)
+# - "prayer_times_only" - Prayer times only (Fajr, Dhuhr, Asr, Maghrib, Isha)
+# - "hijri_calendar"    - Hijri + moon phase + Gregorian + location
+# - "location_display"  - GPS-accurate location detection
 #
 # Example Component Configurations:
 # display.line1.components = ["repo_info", "commits", "submodules", "version_info"]  # Separate git data
