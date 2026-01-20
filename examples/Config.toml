@@ -491,8 +491,8 @@ display.line6.components = ["hijri_calendar"]
 display.line6.separator = " │ "
 display.line6.show_when_empty = true
 
-# Line 7: Prayer Times Only (Fajr, Dhuhr, Asr, Maghrib, Isha)
-display.line7.components = ["prayer_times_only"]
+# Line 7: Prayer Icon + Prayer Times Only (Fajr, Dhuhr, Asr, Maghrib, Isha)
+display.line7.components = ["prayer_icon", "prayer_times_only"]
 display.line7.separator = " │ "
 display.line7.show_when_empty = true
 
@@ -545,9 +545,10 @@ display.line9.show_when_empty = false
 # - "mcp_status"     - MCP server health and connection status
 # - "time_display"   - Current time formatting
 #
-# Spiritual & Location Components (4):
+# Spiritual & Location Components (5):
 # - "prayer_times"      - Combined Hijri + prayer times (legacy)
 # - "prayer_times_only" - Prayer times only (Fajr, Dhuhr, Asr, Maghrib, Isha)
+# - "prayer_icon"       - Dynamic prayer time icon (◐●◑◒○)
 # - "hijri_calendar"    - Hijri + moon phase + Gregorian + location
 # - "location_display"  - GPS-accurate location detection
 #

@@ -599,7 +599,13 @@ build_modular_statusline() {
     
     # Components module loading already verified by caller - no redundant check needed
     debug_log "Building modular statusline - components module confirmed loaded" "INFO"
-    
+
+    # Collect data for all registered components before rendering
+    if type collect_all_component_data &>/dev/null; then
+        debug_log "Collecting data for all components" "INFO"
+        collect_all_component_data
+    fi
+
     local max_lines="${CONFIG_DISPLAY_LINES:-5}"
     local lines_output=()
     
