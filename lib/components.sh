@@ -20,13 +20,13 @@ export STATUSLINE_COMPONENTS_LOADED=true
 # ============================================================================
 
 # Component registry - associative array of registered components
-declare -A STATUSLINE_COMPONENT_REGISTRY=()
-declare -a STATUSLINE_COMPONENT_ORDER=()
+declare -gA STATUSLINE_COMPONENT_REGISTRY=()
+declare -ga STATUSLINE_COMPONENT_ORDER=()
 
 # Component metadata
-declare -A COMPONENT_DESCRIPTIONS=()
-declare -A COMPONENT_DEPENDENCIES=()
-declare -A COMPONENT_ENABLED=()
+declare -gA COMPONENT_DESCRIPTIONS=()
+declare -gA COMPONENT_DEPENDENCIES=()
+declare -gA COMPONENT_ENABLED=()
 
 # ============================================================================
 # COMPONENT BASE STRUCTURE
