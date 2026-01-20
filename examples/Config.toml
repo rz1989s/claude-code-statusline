@@ -493,7 +493,7 @@ display.line6.show_when_empty = true
 
 # Line 7: Prayer Icon + Prayer Times Only (Fajr, Dhuhr, Asr, Maghrib, Isha)
 display.line7.components = ["prayer_icon", "prayer_times_only"]
-display.line7.separator = " │ "
+display.line7.separator = " "
 display.line7.show_when_empty = true
 
 # Line 8: MCP Server Status
