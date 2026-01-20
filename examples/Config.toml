@@ -446,6 +446,14 @@ hijri.show_gregorian = true            # Show Gregorian date alongside Hijri
 hijri.display_format = "short"         # short, full, with_weekday
 hijri.show_weekday = true              # Include day of week in display
 
+# === VERSION INFO CONFIGURATION ===
+# Automatic update checking and version display settings
+
+# Version info component settings
+version_info.enabled = true            # Enable version_info component
+version_info.check_updates = true      # Check for new versions (silent, cached 24h)
+version_info.show_update_indicator = true  # Show ⬆️ when update available
+
 # === MODULAR DISPLAY CONFIGURATION ===
 # Configure 1-9 line statusline with atomic component system
 # Each line can contain any combination of available components

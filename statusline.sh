@@ -218,6 +218,7 @@ USAGE:
     statusline.sh --health=json             - Show health status (JSON format)
     statusline.sh --metrics                 - Show performance metrics (JSON)
     statusline.sh --metrics=prometheus      - Show metrics (Prometheus format)
+    statusline.sh --upgrade                 - Upgrade to latest version
     statusline.sh --validate                - Validate Config.toml schema
     statusline.sh --validate=strict         - Strict validation (exit on errors)
     statusline.sh --list-themes             - List available themes
@@ -973,6 +974,17 @@ if [[ $# -gt 0 ]]; then
     "--metrics=prometheus"|"--metrics=prom")
         show_metrics "prometheus"
         exit $?
+        ;;
+    "--upgrade")
+        # Run statusline upgrade
+        if type run_statusline_upgrade &>/dev/null; then
+            run_statusline_upgrade
+            exit $?
+        else
+            echo "Upgrade function not available. Please reinstall manually:"
+            echo "curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
+            exit 1
+        fi
         ;;
     "--validate")
         # Validate Config.toml schema (Issue #122)
