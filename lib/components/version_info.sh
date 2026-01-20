@@ -171,14 +171,14 @@ render_version_info() {
     # Format Statusline version
     sl_formatted=$(format_statusline_version "$COMPONENT_VERSION_INFO_SL_VERSION")
 
-    # Add update indicator if update is available
+    # Add update indicator if update is available (shows target version)
     if [[ "$COMPONENT_VERSION_INFO_UPDATE_AVAILABLE" == "true" ]]; then
         if [[ "$(get_version_info_config 'show_update_indicator' 'true')" == "true" ]]; then
-            update_indicator=" ⬆️"
+            update_indicator=" (new:${COMPONENT_VERSION_INFO_LATEST_VERSION})"
         fi
     fi
 
-    # Combine both: CC:1.0.27 │ SL:2.11.6 ⬆️
+    # Combine both: CC:1.0.27 │ SL:2.11.6 (new:2.16.3)
     echo "${cc_formatted} │ ${sl_formatted}${update_indicator}"
     return 0
 }
