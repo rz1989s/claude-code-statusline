@@ -1,6 +1,6 @@
 {
   "name": "claude-code-statusline",
-  "version": "2.16.5",
+  "version": "2.16.6",
   "description": "Enhanced statusline for Claude Code with universal bash compatibility, comprehensive monitoring and beautiful themes",
   "main": "statusline.sh",
   "bin": {
