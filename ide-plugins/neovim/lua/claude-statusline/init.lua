@@ -2,6 +2,9 @@
 -- Display Claude Code metrics in Neovim
 -- Issue #117
 
+---@diagnostic disable: undefined-global
+-- The `vim` global is provided by Neovim at runtime
+
 local M = {}
 
 -- Default configuration

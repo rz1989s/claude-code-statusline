@@ -141,22 +141,89 @@ collect_component_data() {
     fi
 }
 
-# Collect data for all enabled components
+# Get all components configured for display across all lines
+get_configured_components() {
+    local max_lines="${CONFIG_DISPLAY_LINES:-7}"
+    declare -A seen_components
+    local components_list=""
+
+    for line_num in $(seq 1 "$max_lines"); do
+        local line_config=""
+        case "$line_num" in
+            1) line_config="$CONFIG_LINE1_COMPONENTS" ;;
+            2) line_config="$CONFIG_LINE2_COMPONENTS" ;;
+            3) line_config="$CONFIG_LINE3_COMPONENTS" ;;
+            4) line_config="$CONFIG_LINE4_COMPONENTS" ;;
+            5) line_config="$CONFIG_LINE5_COMPONENTS" ;;
+            6) line_config="$CONFIG_LINE6_COMPONENTS" ;;
+            7) line_config="$CONFIG_LINE7_COMPONENTS" ;;
+            8) line_config="$CONFIG_LINE8_COMPONENTS" ;;
+            9) line_config="$CONFIG_LINE9_COMPONENTS" ;;
+        esac
+
+        [[ -z "$line_config" ]] && continue
+
+        # Parse comma-separated list
+        IFS=',' read -ra component_array <<< "$line_config"
+        for component in "${component_array[@]}"; do
+            # Trim whitespace
+            component=$(echo "$component" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            [[ -z "$component" ]] && continue
+
+            # Only add if not seen before
+            if [[ -z "${seen_components[$component]:-}" ]]; then
+                seen_components["$component"]=1
+                [[ -n "$components_list" ]] && components_list+=" "
+                components_list+="$component"
+            fi
+        done
+    done
+
+    echo "$components_list"
+}
+
+# Collect data for only configured components (optimized)
+# Uses guard to prevent double collection in same execution
+declare -g _COMPONENT_DATA_COLLECTED=""
+
 collect_all_component_data() {
+    # Guard: skip if already collected in this execution
+    if [[ "$_COMPONENT_DATA_COLLECTED" == "true" ]]; then
+        debug_log "Component data already collected, skipping" "INFO"
+        return 0
+    fi
+
     debug_log "Starting component data collection phase" "INFO"
     start_timer "component_data_collection"
-    
+
     local collected_count=0
-    
-    for component_name in "${STATUSLINE_COMPONENT_ORDER[@]}"; do
-        if collect_component_data "$component_name"; then
-            collected_count=$((collected_count + 1))
+    local configured_components
+    configured_components=$(get_configured_components)
+
+    if [[ -z "$configured_components" ]]; then
+        debug_log "No components configured for display, skipping collection" "WARN"
+        return 0
+    fi
+
+    debug_log "Configured components: $configured_components" "INFO"
+
+    # Only collect data for configured components
+    for component_name in $configured_components; do
+        if is_component_registered "$component_name"; then
+            if collect_component_data "$component_name"; then
+                collected_count=$((collected_count + 1))
+            fi
+        else
+            debug_log "Component $component_name not registered, skipping" "WARN"
         fi
     done
-    
+
     local collection_time
     collection_time=$(end_timer "component_data_collection")
     debug_log "Collected data for $collected_count components in ${collection_time}s" "INFO"
+
+    # Set guard to prevent double collection
+    _COMPONENT_DATA_COLLECTED="true"
 }
 
 # ============================================================================

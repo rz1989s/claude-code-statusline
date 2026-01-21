@@ -1124,7 +1124,8 @@ input=$(cat)
 export STATUSLINE_INPUT_JSON="$input"
 
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
-model_name=$(echo "$input" | jq -r '.model.display_name')
+# Handle both object format (display_name) and string format for model
+model_name=$(echo "$input" | jq -r 'if (.model | type) == "object" then .model.display_name else .model end // "Claude"')
 
 # Validate input
 if [[ -z "$current_dir" || "$current_dir" == "null" ]]; then
