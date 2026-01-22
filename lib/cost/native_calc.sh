@@ -28,24 +28,52 @@ source "${BASH_SOURCE[0]%/*}/pricing.sh"
 # ============================================================================
 # TIME BOUNDARY CALCULATIONS
 # ============================================================================
+# IMPORTANT: All boundaries are calculated in LOCAL timezone, then converted
+# to UTC ISO format for comparison with JSONL timestamps (which are in UTC).
+# This ensures "today" means the user's actual local day, not UTC day.
+#
+# Bug fix: Previously used UTC midnight which caused timezone issues.
+# For UTC+7 users, "today" was only 7 hours long until this fix.
+# ============================================================================
 
-# Get start of today in ISO format (00:00:00 UTC)
+# Get start of today in ISO format (local midnight converted to UTC)
+# This ensures "today" means the user's actual local day
 get_today_start_iso() {
+    local local_midnight_epoch
+
     if [[ "$(uname -s)" == "Darwin" ]]; then
-        date -u "+%Y-%m-%dT00:00:00"
+        # macOS: Get epoch of local midnight
+        local_midnight_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$(date +%Y-%m-%d) 00:00:00" "+%s" 2>/dev/null)
+        # Convert to UTC ISO
+        date -u -r "$local_midnight_epoch" "+%Y-%m-%dT%H:%M:%S"
     else
-        date -u "+%Y-%m-%dT00:00:00"
+        # Linux: Get epoch of local midnight (date -d interprets as local time)
+        local_midnight_epoch=$(date -d "$(date +%Y-%m-%d)" "+%s" 2>/dev/null)
+        # Convert to UTC ISO
+        date -u -d "@$local_midnight_epoch" "+%Y-%m-%dT%H:%M:%S"
     fi
 }
 
-# Get start of N days ago in ISO format
+# Get start of N days ago in ISO format (local time converted to UTC)
 get_days_ago_start_iso() {
     local days="${1:-0}"
+    local local_midnight_epoch
+    local target_date
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
-        date -u -v-${days}d "+%Y-%m-%dT00:00:00"
+        # macOS: Get the target date N days ago
+        target_date=$(date -v-${days}d +%Y-%m-%d)
+        # Get epoch of that date at local midnight
+        local_midnight_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$target_date 00:00:00" "+%s" 2>/dev/null)
+        # Convert to UTC ISO
+        date -u -r "$local_midnight_epoch" "+%Y-%m-%dT%H:%M:%S"
     else
-        date -u -d "$days days ago" "+%Y-%m-%dT00:00:00"
+        # Linux: Get the target date N days ago
+        target_date=$(date -d "$days days ago" +%Y-%m-%d)
+        # Get epoch of that date at local midnight
+        local_midnight_epoch=$(date -d "$target_date" "+%s" 2>/dev/null)
+        # Convert to UTC ISO
+        date -u -d "@$local_midnight_epoch" "+%Y-%m-%dT%H:%M:%S"
     fi
 }
 
