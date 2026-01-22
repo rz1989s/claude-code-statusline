@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.15.1 with native context window percentages (Claude Code v2.1.6+)
+**Current**: v2.16.9 with timezone-aware cost tracking (Claude Code v2.1.6+)
 **Branch Strategy**: dev → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular cache system (8 sub-modules), 91.5% code reduction from v1
 **Key Features**: 7-line statusline, native context window percentages (v2.1.6+), Islamic prayer times (GPS-accurate), cost tracking, MCP monitoring, cache isolation, health diagnostics (--health), metrics export (--metrics), JSON logging
