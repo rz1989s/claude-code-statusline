@@ -166,6 +166,22 @@ session_info.emoji_session = "🔗"      # Session ID emoji
 session_info.emoji_project = "📁"      # Project name emoji
 session_info.show_when_empty = false   # Hide when no session data
 
+# === SESSION MODE CONFIGURATION (Output Style Display) ===
+# Display the current Claude Code output style (default, explanatory, learning, or custom).
+# Helps users quickly identify how Claude is formatting its responses.
+#
+# Display format: Style: default  OR  📚 Style: explanatory  OR  🎓 Style: learning
+session_mode.label = "Style:"          # Label prefix
+session_mode.show_emoji = true         # Show emoji indicator
+session_mode.hide_default = false      # Hide when style is "default" (reduce clutter)
+session_mode.show_when_empty = false   # Hide when no style data
+
+# Output style emojis (built-in styles)
+session_mode.emoji_default = ""        # No emoji for default style
+session_mode.emoji_explanatory = "📚"  # Book emoji for explanatory mode
+session_mode.emoji_learning = "🎓"     # Graduation cap for learning mode
+session_mode.emoji_custom = "✨"       # Sparkle for custom styles
+
 # === PRAYER TIMES AUTO-CONFIGURATION ===
 # Islamic prayer times with intelligent worldwide auto-detection
 # 🌍 ZERO CONFIGURATION: Works automatically for 2+ billion Muslims worldwide!
@@ -511,7 +527,7 @@ display.line9.show_when_empty = false
 # When updating component counts, descriptions, or categories here, update CLAUDE.md too!
 # ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
 #
-# === LOGICAL COMPONENT CATEGORIES (26 Total) ===
+# === LOGICAL COMPONENT CATEGORIES (27 Total) ===
 #
 # Repository & Git Components (5):
 # - "repo_info"      - Repository directory and git branch/status
@@ -520,8 +536,9 @@ display.line9.show_when_empty = false
 # - "git_stats"      - Combined commits + submodules (legacy format)
 # - "version_info"   - Claude Code version display
 #
-# Model & Session Components (5):
+# Model & Session Components (6):
 # - "model_info"     - Claude model name with emoji
+# - "session_mode"   - Output style display (default, explanatory, learning, custom)
 # - "cost_repo"      - Repository cost tracking (hybrid: native + ccusage)
 # - "cost_live"      - Live block cost monitoring
 # - "reset_timer"    - Block reset countdown timer
