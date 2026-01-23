@@ -41,27 +41,38 @@ is_claude_cli_available() {
 }
 
 # Execute claude mcp list command with intelligent caching
+# Issue #227: Use stale-while-revalidate for faster initial loading
+# Issue #228: Reduced cache to 30 seconds for live update responsiveness
+#
+# Strategy:
+# - If cached data exists (even stale), return it immediately
+# - Trigger background refresh if data is stale
+# - This ensures statusline renders quickly without waiting for MCP checks
 execute_mcp_list() {
     local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
-    
+
     if ! is_claude_cli_available; then
         debug_log "Claude CLI not available for MCP monitoring" "WARN"
         return 1
     fi
-    
+
     # Use universal caching system with repository-aware cache keys
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         # Generate repository-aware cache key to prevent cross-contamination
         local cache_key
         cache_key=$(generate_typed_cache_key "claude_mcp_list" "mcp")
-        
-        # Use direct command instead of function call for cache compatibility
+
+        # Use CACHE_DURATION_MCP (30s) for responsive updates
+        local mcp_cache_duration="${CACHE_DURATION_MCP:-$CACHE_DURATION_SHORT}"
+
+        # Use stale-while-revalidate strategy for faster initial loading
+        # This returns cached data immediately (even if stale) and refreshes in background
         if command_exists timeout; then
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_with_stale_revalidate "$cache_key" "$mcp_cache_duration" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_with_stale_revalidate "$cache_key" "$mcp_cache_duration" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
         else
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" claude mcp list 2>/dev/null
+            cache_with_stale_revalidate "$cache_key" "$mcp_cache_duration" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
         _execute_mcp_list_direct "$timeout_duration"

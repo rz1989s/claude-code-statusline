@@ -280,6 +280,72 @@ cache_external_command() {
 }
 
 # ============================================================================
+# STALE-WHILE-REVALIDATE CACHING (Issue #227)
+# ============================================================================
+# Returns stale cached data immediately while refreshing in background.
+# This enables faster initial display for slow operations like MCP checks.
+
+# Execute command with stale-while-revalidate strategy
+# Returns cached data immediately (even if stale), triggers background refresh
+cache_with_stale_revalidate() {
+    local cache_key="$1"
+    local cache_duration="$2"
+    local validator_func="${3:-validate_command_output}"
+    shift 3
+    local command=("$@")
+
+    local cache_file
+    cache_file=$(get_cache_file_path "$cache_key" "true")
+
+    # If we have ANY cached data (even stale), return it immediately
+    if [[ -f "$cache_file" ]] && "$validator_func" "$cache_file"; then
+        local cached_data
+        cached_data=$(cat "$cache_file" 2>/dev/null)
+
+        # Check if cache is stale
+        if ! is_cache_fresh "$cache_file" "$cache_duration"; then
+            # Trigger background refresh using subshell with nohup
+            # This ensures the refresh runs independently of the parent process
+            (
+                # Detach from terminal, redirect output to avoid blocking
+                exec </dev/null >/dev/null 2>&1
+                # Re-source required functions in subshell
+                _do_cache_refresh "$cache_file" "${command[@]}"
+            ) &
+            [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Returning stale cache, refreshing in background: $cache_key" "INFO"
+        else
+            [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Returning fresh cache: $cache_key" "INFO"
+        fi
+
+        echo "$cached_data"
+        return 0
+    fi
+
+    # No cache available - must execute synchronously
+    [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "No cache available, executing synchronously: $cache_key" "INFO"
+    execute_cached_command "$cache_key" "$cache_duration" "$validator_func" "true" "false" "${command[@]}"
+}
+
+# Internal: Simple cache refresh function for background execution
+_do_cache_refresh() {
+    local cache_file="$1"
+    shift
+    local command=("$@")
+
+    local temp_file="${cache_file}.tmp.$$"
+    local command_output
+
+    # Execute command and update cache
+    if command_output=$("${command[@]}" 2>/dev/null); then
+        echo "$command_output" > "$temp_file" 2>/dev/null && mv "$temp_file" "$cache_file" 2>/dev/null
+    fi
+    rm -f "$temp_file" 2>/dev/null
+}
+
+# Export stale-while-revalidate functions
+export -f cache_with_stale_revalidate _do_cache_refresh
+
+# ============================================================================
 # CACHE MANAGEMENT UTILITIES
 # ============================================================================
 

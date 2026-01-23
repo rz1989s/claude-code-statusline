@@ -79,6 +79,11 @@ export CACHE_DURATION_PRAYER_TIMES=3600      # 1 hour - prayer times refresh for
 export CACHE_DURATION_PRAYER_LOCATION=1800   # 30 minutes - location display refresh
 export CACHE_DURATION_PRAYER_CALCULATION=3600 # 1 hour - calculation method changes by country
 
+# MCP Server Monitoring Cache Duration (Issue #227, #228)
+# Shorter duration for more responsive MCP status updates after reconnections
+# 30 seconds balances responsiveness with performance (avoiding too many claude mcp list calls)
+export CACHE_DURATION_MCP=30                 # 30 seconds - responsive MCP status updates
+
 # ============================================================================
 # INSTANCE MANAGEMENT
 # ============================================================================
