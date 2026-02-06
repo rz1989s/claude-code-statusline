@@ -1,0 +1,27 @@
+name: Mirror to GitLab
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GITLAB_SSH_KEY }}
+
+      - name: Mirror to GitLab
+        run: |
+          ssh-keyscan -t ed25519 gitlab.com >> ~/.ssh/known_hosts
+          git remote add gitlab git@gitlab.com:rz1989s/claude-code-statusline.git
+          git push gitlab main --force
