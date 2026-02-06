@@ -12,7 +12,6 @@ Rules-Requires-Root: no
 Package: claude-code-statusline
 Architecture: all
 Depends: bash (>= 4.0), jq, curl, git, ${misc:Depends}
-Recommends: ccusage
 Description: Enhanced statusline for Claude Code CLI
  A beautiful, feature-rich statusline for Claude Code with:
   - Git repository status and commit tracking

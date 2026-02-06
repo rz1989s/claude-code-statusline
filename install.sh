@@ -160,7 +160,7 @@ check_all_dependencies() {
     
     # Dependency categories and their impact
     local critical_deps=("curl:Download & installation" "jq:Configuration & JSON parsing")
-    local important_deps=("bunx:Cost tracking with ccusage")
+    local important_deps=()
     local helpful_deps=("bc:Precise cost calculations" "python3:Advanced TOML features & date parsing")
     local optional_deps=("timeout:Network operation protection (gtimeout on macOS)" "CoreLocationCLI:GPS location for prayer times (macOS)" "geoclue:GPS location for prayer times (Linux)")
     

@@ -144,7 +144,7 @@ load_module "mcp" || {
 
 # Load cost tracking module
 load_module "cost" || {
-    handle_warning "Cost module failed to load - cost tracking disabled. ccusage integration unavailable." "main"
+    handle_warning "Cost module failed to load - cost tracking disabled." "main"
 }
 
 # Load prayer times and Hijri calendar module
@@ -305,11 +305,6 @@ show_health_status() {
         issues+=("Cache directory not writable")
     fi
 
-    # Check optional dependencies
-    local ccusage_status="not installed"
-    command -v ccusage >/dev/null 2>&1 && ccusage_status="available"
-    command -v bunx >/dev/null 2>&1 && [[ "$ccusage_status" == "not installed" ]] && ccusage_status="available (via bunx)"
-
     # Determine overall status
     [[ ${#issues[@]} -gt 0 ]] && status="degraded"
     [[ "$deps_ok" == "false" ]] && status="unhealthy" && exit_code=1
@@ -336,9 +331,6 @@ show_health_status() {
     "curl": $curl_val,
     "git": $git_val
   },
-  "optional": {
-    "ccusage": "$ccusage_status"
-  },
   "config": "$config_status",
   "cache": "$cache_status"
 }
@@ -356,13 +348,6 @@ EOF
         [[ -n "$jq_version" ]] && echo "  ✓ jq $jq_version" || echo "  ✗ jq not found"
         [[ -n "$curl_version" ]] && echo "  ✓ curl $curl_version" || echo "  ✗ curl not found"
         [[ -n "$git_version" ]] && echo "  ✓ git $git_version" || echo "  ⚠ git not found (optional)"
-        echo ""
-        echo "Optional:"
-        if [[ "$ccusage_status" != "not installed" ]]; then
-            echo "  ✓ ccusage: $ccusage_status"
-        else
-            echo "  ⚠ ccusage: not installed (cost tracking disabled)"
-        fi
         echo ""
         echo "Modules: $modules_loaded loaded, $modules_failed failed"
         echo "Config: $config_status"
@@ -646,15 +631,6 @@ run_setup_wizard() {
         deps_ok=false
     fi
 
-    # Optional
-    echo ""
-    echo "  Optional dependencies:"
-    if command -v ccusage &>/dev/null; then
-        echo "  ✓ ccusage (cost tracking enabled)"
-    else
-        echo "  ○ ccusage (install for cost tracking: npm install -g ccusage)"
-    fi
-
     if [[ "$deps_ok" == "false" ]]; then
         echo ""
         echo "  ⚠ Some required dependencies are missing."
@@ -816,7 +792,7 @@ output_json_api() {
     local cost_weekly="0.00"
     local cost_monthly="0.00"
 
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         cost_session=$(get_session_cost 2>/dev/null || echo "0.00")
         cost_daily=$(get_daily_cost 2>/dev/null || echo "0.00")
         cost_weekly=$(get_weekly_cost 2>/dev/null || echo "0.00")
@@ -1277,7 +1253,7 @@ else
     block_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
     reset_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         usage_info=$(get_claude_usage_info)
         
         # Parse usage info (format: session:month:week:today:block:reset)

@@ -260,7 +260,7 @@ get_api_synced_live_cost() {
 }
 
 # ============================================================================
-# NATIVE BLOCK METRICS (ccusage replacement)
+# NATIVE BLOCK METRICS
 # ============================================================================
 
 # Calculate token counts in current 5-hour window

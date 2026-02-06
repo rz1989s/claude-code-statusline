@@ -26,7 +26,7 @@ collect_cost_monthly_data() {
     
     if is_module_loaded "cost"; then
         # Get usage info and parse monthly cost
-        # Uses native JSONL calculation (primary) or ccusage (fallback)
+        # Uses native JSONL calculation
         local usage_info
         usage_info=$(get_claude_usage_info)
 
