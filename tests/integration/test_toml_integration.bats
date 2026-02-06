@@ -48,8 +48,6 @@ features.show_mcp_status = false
 
 timeouts.mcp = "5s"
 timeouts.version = "3s"
-timeouts.ccusage = "4s"
-
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"
@@ -65,7 +63,6 @@ cache.version_file = "/tmp/custom_cache"
 display.time_format = "%H:%M:%S"
 display.date_format = "%Y-%m-%d"
 
-messages.no_ccusage = "ccusage not found"
 messages.mcp_unknown = "unknown_mcp"
 
 debug.log_level = "info"
@@ -206,7 +203,6 @@ EOF
     cat > "$test_config" << 'EOF'
 timeouts.mcp = "10s"
 timeouts.version = "5s"
-timeouts.ccusage = "15s"
 EOF
 
     local config_json
@@ -302,8 +298,6 @@ EOF
     local test_config="$TEST_CONFIG_DIR/messages.toml"
 
     cat > "$test_config" << 'EOF'
-messages.no_ccusage = "Cost tracking unavailable"
-messages.ccusage_install = "Please install ccusage for cost tracking"
 messages.no_active_block = "No active session"
 messages.mcp_unknown = "server_unknown"
 messages.mcp_none = "no_server"
@@ -313,10 +307,6 @@ EOF
     config_json=$(parse_toml_to_json "$test_config")
 
     # Test message extraction
-    local no_ccusage
-    no_ccusage=$(echo "$config_json" | jq -r '.["messages.no_ccusage"] // "No ccusage"')
-    [[ "$no_ccusage" == "Cost tracking unavailable" ]]
-
     local mcp_unknown
     mcp_unknown=$(echo "$config_json" | jq -r '.["messages.mcp_unknown"] // "unknown"')
     [[ "$mcp_unknown" == "server_unknown" ]]
@@ -432,8 +422,6 @@ features.show_session_info = true
 
 timeouts.mcp = "3s"
 timeouts.version = "2s"
-timeouts.ccusage = "3s"
-
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"

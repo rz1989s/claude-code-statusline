@@ -91,10 +91,6 @@ teardown() {
     skip "validate_timeout_bounds not yet implemented - see Issue #79"
 }
 
-@test "validate_timeout_bounds should handle ccusage timeout bounds" {
-    skip "validate_timeout_bounds not yet implemented - see Issue #79"
-}
-
 @test "validate_timeout_bounds should handle invalid formats" {
     skip "validate_timeout_bounds not yet implemented - see Issue #79"
 }
