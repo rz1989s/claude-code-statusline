@@ -256,8 +256,6 @@ fi
 EOF
     chmod +x "$MOCK_BIN_DIR/bunx"
 
-    export CONFIG_CCUSAGE_TIMEOUT="1s"
-
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
 
     run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"

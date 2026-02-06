@@ -80,11 +80,10 @@ CONFIG_SCHEMA=(
     # Timeouts
     "timeouts.mcp:string:optional"
     "timeouts.version:string:optional"
-    "timeouts.ccusage:string:optional"
     "timeouts.prayer:string:optional"
 
     # Cost tracking
-    "cost.session_source:enum:auto|native|ccusage:optional"
+    "cost.session_source:enum:auto|native:optional"
     "cost.alerts.enabled:boolean:optional"
     "cost.alerts.daily_threshold:number:optional"
     "cost.alerts.weekly_threshold:number:optional"
@@ -104,7 +103,7 @@ CONFIG_SCHEMA=(
     "cache.enable_corruption_detection:boolean:optional"
     "cache.cleanup_stale_files:boolean:optional"
     "cache.migrate_legacy_cache:boolean:optional"
-    "cache.efficiency_source:enum:auto|native|ccusage:optional"
+    "cache.efficiency_source:enum:auto|native:optional"
     "cache.durations.command_exists:string:optional"
     "cache.durations.system_info:number:optional"
     "cache.durations.claude_version:number:optional"
@@ -237,8 +236,6 @@ CONFIG_SCHEMA=(
     "labels.reset:string:optional"
 
     # Messages
-    "messages.no_ccusage:string:optional"
-    "messages.ccusage_install:string:optional"
     "messages.no_active_block:string:optional"
     "messages.mcp_unknown:string:optional"
     "messages.mcp_none:string:optional"
