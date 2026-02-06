@@ -114,12 +114,12 @@ $ wc -l lib/cost.sh
 **Why it's bad**:
 - No single person can hold this in their head
 - Testing is a nightmare
-- The file contains: ccusage integration, cache management, session tracking, cost formatting, alerts, notifications...
+- The file contains: cache management, session tracking, cost formatting, alerts, notifications...
 - "I'll refactor it later" energy is strong
 
 **The Fix**: Split into:
 - `lib/cost/tracking.sh` - Core cost tracking
-- `lib/cost/ccusage.sh` - ccusage integration
+- `lib/cost/native_calc.sh` - Native JSONL cost calculation
 - `lib/cost/formatting.sh` - Display formatting
 - `lib/cost/alerts.sh` - Alert/notification system
 

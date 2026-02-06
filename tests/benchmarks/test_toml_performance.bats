@@ -67,8 +67,6 @@ features.show_session_info = true
 
 timeouts.mcp = "3s"
 timeouts.version = "2s"
-timeouts.ccusage = "3s"
-
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"
@@ -96,8 +94,6 @@ cache.version_file = "/tmp/.claude_version_cache"
 display.time_format = "%H:%M"
 display.date_format = "%Y-%m-%d"
 
-messages.no_ccusage = "No ccusage"
-messages.ccusage_install = "Run: npm install -g ccusage"
 messages.no_active_block = "No active block"
 messages.mcp_unknown = "unknown"
 messages.mcp_none = "none"
@@ -153,11 +149,10 @@ EOF
     show_reset=$(echo "$config_json" | jq -r '.["features.show_reset_info"] // true')
     show_session=$(echo "$config_json" | jq -r '.["features.show_session_info"] // false')
     
-    # Timeouts (3 calls)
-    local mcp_timeout version_timeout ccusage_timeout
+    # Timeouts (2 calls)
+    local mcp_timeout version_timeout
     mcp_timeout=$(echo "$config_json" | jq -r '.["timeouts.mcp"] // "3s"')
     version_timeout=$(echo "$config_json" | jq -r '.["timeouts.version"] // "2s"')
-    ccusage_timeout=$(echo "$config_json" | jq -r '.["timeouts.ccusage"] // "3s"')
     
     # Emojis (8 calls)
     local opus_emoji haiku_emoji sonnet_emoji default_emoji clean_emoji dirty_emoji clock_emoji live_emoji
@@ -324,8 +319,6 @@ features.show_reset_info = true
 
 timeouts.mcp = "3s"
 timeouts.version = "2s"
-timeouts.ccusage = "3s"
-
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"

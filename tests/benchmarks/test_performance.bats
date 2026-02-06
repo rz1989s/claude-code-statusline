@@ -34,7 +34,6 @@ cache.version_duration = 3600
 
 display.time_format = "%H:%M"
 
-messages.no_ccusage = "No ccusage"
 EOF
 }
 

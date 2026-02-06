@@ -461,7 +461,6 @@ bats tests/integration/test_toml_integration.bats
 ```bash
 # Mock functions (in helpers/test_helpers.bash)
 setup_mock_git_repo()              # Create mock git repository
-setup_mock_ccusage()               # Mock ccusage commands  
 setup_mock_mcp()                   # Mock MCP server responses
 create_mock_command()              # Mock any command
 validate_statusline_format()       # Validate 4-line output

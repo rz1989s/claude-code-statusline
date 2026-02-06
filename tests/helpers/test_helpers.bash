@@ -103,52 +103,6 @@ EOF
     chmod +x "$MOCK_BIN_DIR/git"
 }
 
-# Setup mock commands for ccusage
-setup_mock_ccusage() {
-    local scenario="${1:-success}"
-    
-    case "$scenario" in
-        "success")
-            create_mock_command "bunx" "" 0
-            
-            cat > "$MOCK_BIN_DIR/bunx" << EOF
-#!/bin/bash
-if [[ "\$1" == "ccusage" ]]; then
-    case "\$2" in
-        "--version")
-            echo "ccusage 1.0.0"
-            exit 0
-            ;;
-        "session")
-            cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_session.json"
-            ;;
-        "daily")
-            cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_daily.json"
-            ;;
-        "blocks")
-            if [[ "\$3" == "--active" ]]; then
-                cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_blocks_active.json"
-            fi
-            ;;
-        *)
-            echo "Mock ccusage command: \$*"
-            ;;
-    esac
-else
-    echo "Mock bunx command: \$*"
-fi
-EOF
-            chmod +x "$MOCK_BIN_DIR/bunx"
-            ;;
-        "not_available")
-            create_failing_mock_command "bunx" "bunx: command not found" 127
-            ;;
-        "timeout")
-            create_mock_command "bunx" "" 124  # timeout exit code
-            ;;
-    esac
-}
-
 # Setup mock MCP commands
 setup_mock_mcp() {
     local scenario="${1:-connected}"
@@ -202,7 +156,6 @@ EOF
 setup_full_mock_environment() {
     local git_status="${1:-clean}"
     local mcp_status="${2:-connected}"
-    local ccusage_status="${3:-success}"
 
     # Set short timeouts for test mode
     export CONFIG_MCP_TIMEOUT="1s"
@@ -218,19 +171,13 @@ setup_full_mock_environment() {
     # Skip slow TOML parsing (saves 6+ seconds per test)
     export STATUSLINE_SKIP_TOML="true"
 
-    # Use mock cost data ONLY when ccusage is available
-    # This allows proper testing of "not_available" scenarios
-    if [[ "$ccusage_status" != "not_available" ]]; then
-        export STATUSLINE_MOCK_COST_DATA="true"
-    else
-        export STATUSLINE_MOCK_COST_DATA="false"
-    fi
+    # Enable mock cost data for predictable tests
+    export STATUSLINE_MOCK_COST_DATA="true"
 
     # Force disable cache for predictable tests
     export ENV_CONFIG_CACHE_ENABLE_UNIVERSAL_CACHING="false"
 
     setup_mock_git_repo "$TEST_TMP_DIR/mock_repo" "$git_status"
-    setup_mock_ccusage "$ccusage_status"
 
     # Note: Do NOT mock jq - it's needed to parse the JSON input correctly
     # The statusline uses jq to extract current_dir and model_name from input

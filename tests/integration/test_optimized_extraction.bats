@@ -109,35 +109,33 @@ teardown() {
     local result
     result=$(echo "$test_json" | jq -r '{
         timeout_mcp: (.timeouts.mcp // "3s"),
-        timeout_version: (.timeouts.version // "2s"),
-        timeout_ccusage: (.timeouts.ccusage // "3s")
+        timeout_version: (.timeouts.version // "2s")
     } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
-    
+
     echo "$result" | grep -q "timeout_mcp=10s"
     echo "$result" | grep -q "timeout_version=5s"
-    echo "$result" | grep -q "timeout_ccusage=3s"  # Fallback value
 }
 
 # Test complex nested extraction
 @test "should handle complex nested structures" {
     skip_if_no_jq
     
-    local test_json='{"colors":{"basic":{"red":"\\033[31m"},"formatting":{"dim":"\\033[2m"}},"labels":{"commits":"COMMITS:","repo":"PROJECT"},"messages":{"no_ccusage":"Not found"}}'
-    
+    local test_json='{"colors":{"basic":{"red":"\\033[31m"},"formatting":{"dim":"\\033[2m"}},"labels":{"commits":"COMMITS:","repo":"PROJECT"},"messages":{"mcp_unknown":"Not found"}}'
+
     local result
     result=$(echo "$test_json" | jq -r '{
         color_red: (.colors.basic.red // "\\033[31m"),
         color_dim: (.colors.formatting.dim // "\\033[2m"),
         label_commits: (.labels.commits // "Commits:"),
         label_repo: (.labels.repo // "REPO"),
-        message_no_ccusage: (.messages.no_ccusage // "No ccusage")
+        message_mcp_unknown: (.messages.mcp_unknown // "unknown")
     } | to_entries | map("\(.key)=\(.value)") | .[]' 2>/dev/null)
-    
+
     echo "$result" | grep -q "color_red=\\\\033\[31m"
     echo "$result" | grep -q "color_dim=\\\\033\[2m"
     echo "$result" | grep -q "label_commits=COMMITS:"
     echo "$result" | grep -q "label_repo=PROJECT"
-    echo "$result" | grep -q "message_no_ccusage=Not found"
+    echo "$result" | grep -q "message_mcp_unknown=Not found"
 }
 
 # Test performance of single operation vs multiple calls

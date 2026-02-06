@@ -359,14 +359,13 @@ display.line2.components = ["repo_info", "version_info"]
 
 **🐛 CRITICAL BUG FIXES**
 
-- **Fixed DAY $0.00 display issue** - Resolved timeout-related failure where `ccusage daily` commands were timing out at 3s when they need ~3.5s to complete
+- **Fixed DAY $0.00 display issue** - Resolved timeout-related failure in daily cost calculations
 - **Enhanced configuration fallback logic** - Improved handling of empty string values in TOML config parsing
 
 **⚡ PERFORMANCE & RELIABILITY IMPROVEMENTS** 
 
 - **Standardized all timeouts to 10s minimum** - Increased reliability for external command execution
   - `DEFAULT_VERSION_TIMEOUT`: 2s → 10s
-  - `DEFAULT_CCUSAGE_TIMEOUT`: 3s → 10s  
   - `CACHE_CONFIG_ATOMIC_TIMEOUT`: 5s → 10s
 - **Updated all configuration examples** - Ensures consistent timeout values across all TOML templates
 
@@ -531,8 +530,6 @@ display.line6.components = ["reset_timer"]                     # Timer when acti
 - Claude Code version (intelligently cached)
 - Git submodule count
 - Current time display
-
-![Cost Tracking Integration](assets/screenshots/ccusage-info.png)
 
 **Line 2: Model & Cost Tracking** *(Components: `model_info`, `cost_repo`, `cost_monthly`, `cost_weekly`, `cost_daily`, `cost_live`)*
 - Current Claude model with emoji indicators
@@ -804,8 +801,6 @@ The statusline features a **revolutionary universal caching system** that optimi
 |---------|--------|---------------|----------|
 | `claude --version` | 1 hour | **15 minutes** | **🚀 83%** |
 | `claude mcp list` | 30 seconds | **2 minutes** | **🚀 75%** |
-| `bunx ccusage 7day` | 30 seconds | **1 hour** | **🚀 98%** |
-| `bunx ccusage 30day` | 30 seconds | **2 hours** | **🚀 99%** |
 
 #### **🖥️ System Information** - Permanent Caching
 | Operation | Before | After | Reduction |
@@ -890,8 +885,7 @@ All cache files are stored in `/tmp/.claude_statusline_cache/` with automatic cl
 ├── external_claude_version_12345.cache # Claude version (6h cache)
 ├── external_claude_mcp_list_12345.cache # MCP server list (2m cache)
 ├── system_os_shared.cache             # OS type (permanent)
-├── system_arch_shared.cache           # Architecture (permanent)
-└── ccusage_*.cache                    # Cost tracking data
+└── system_arch_shared.cache           # Architecture (permanent)
 ```
 
 - **🧹 Automatic Cleanup**: Old cache files and dead process locks removed
@@ -1545,7 +1539,6 @@ labels.weekly = "7DAY"
 # Enhanced validation with contextual bounds checking (v1.2+)
 timeouts.mcp = "10s"      # 1s-60s recommended, optimal: 3s-15s
 timeouts.version = "2s"   # 1s-10s recommended, optimal: 1s-3s
-timeouts.ccusage = "8s"   # 1s-30s recommended, optimal: 3s-10s
 
 # === CUSTOMIZATION ===
 emojis.opus = "🧠"
@@ -1714,8 +1707,6 @@ features.show_reset_info = true
 
 timeouts.mcp = "10s"      # Enhanced validation: 1s-60s range
 timeouts.version = "2s"   # Enhanced validation: 1s-10s range  
-timeouts.ccusage = "8s"   # Enhanced validation: 1s-30s range
-
 labels.commits = "Today's Commits:"
 labels.mcp = "MCP Servers"
 labels.repo = "Repository Cost"
@@ -1739,8 +1730,6 @@ features.show_cost_tracking = false
 
 timeouts.mcp = "1s"           # Ultra-fast timeouts
 timeouts.version = "1s"
-timeouts.ccusage = "1s"
-
 labels.commits = "C:"         # Minimal labels for speed
 labels.repo = "R"
 labels.monthly = "M"
@@ -2047,7 +2036,6 @@ Special thanks to the amazing projects and communities that make this statusline
 
 ### 🛠️ Core Technologies
 - **[Claude Code](https://claude.ai/code)** - The revolutionary AI development tool that inspired this project
-- **[ccusage](https://ccusage.com)** - Excellent cost tracking and monitoring integration
 - **[jq](https://jqlang.github.io/jq/)** - Powerful JSON processing for data parsing
 
 ### 🎨 Design & Aesthetics  

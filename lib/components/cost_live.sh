@@ -7,7 +7,7 @@
 # This component handles live cost display, synchronized with the Anthropic
 # API's 5-hour billing window for accurate alignment with reset timer.
 #
-# v2.16.0: Switched from ccusage blocks to API-synced calculation
+# v2.16.0: API-synced calculation
 # - Uses Anthropic OAuth API's resets_at as time window boundary
 # - Reads JSONL files directly and calculates cost from token usage
 # - Ensures LIVE and reset timer reference the same 5-hour window

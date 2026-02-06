@@ -5,7 +5,7 @@
 # ============================================================================
 #
 # Extract cost data directly from Anthropic's native statusline JSON input.
-# This provides zero-latency cost data without external ccusage calls.
+# This provides zero-latency cost data from Anthropic's statusline JSON.
 # Available in Claude Code v1.0.85+
 #
 # Split from cost.sh as part of Issue #132.
@@ -86,7 +86,7 @@ get_session_cost_with_source() {
 # NATIVE CACHE EFFICIENCY EXTRACTION (Issue #103)
 # ============================================================================
 # Extract cache token data from Anthropic's native current_usage field.
-# This provides real-time cache efficiency without ccusage calls.
+# This provides real-time cache efficiency from native JSON input.
 
 # Extract native cache read tokens from Anthropic JSON input
 get_native_cache_read_tokens() {
