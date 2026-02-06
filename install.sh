@@ -6,6 +6,12 @@
 
 set -euo pipefail
 
+# Ensure we're running under bash (not dash, ash, or zsh via sh)
+if [ -z "${BASH_VERSION:-}" ]; then
+    echo "Error: This installer requires bash. Run with: bash install.sh" >&2
+    exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -497,7 +503,7 @@ generate_install_commands() {
                 echo "brew install bun python3 bc jq coreutils"
                 echo
                 echo "Step 3: Re-run statusline installer"
-                echo "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
+                echo "bash -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
             elif [[ "$OS_PLATFORM" == "Windows" ]]; then
                 echo "❌ No package manager detected on Windows"
                 echo
@@ -558,7 +564,7 @@ show_user_choice_menu() {
                 generate_install_commands
                 echo
                 print_status "Copy the commands above, then re-run this installer:"
-                print_status "sh -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
+                print_status "bash -c \"\$(curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/$INSTALL_BRANCH/install.sh)\""
                 exit 0
                 ;;
             3)
@@ -1436,7 +1442,8 @@ verify_installation() {
         for subdir in prayer cache config cost components; do
             if [ -d "$LIB_DIR/$subdir" ]; then
                 local subdir_count=$(find "$LIB_DIR/$subdir" -name "*.sh" -type f | wc -l | tr -d ' ')
-                print_status "  • ${subdir^} modules: $subdir_count files"
+                local subdir_capitalized="$(echo "${subdir:0:1}" | tr '[:lower:]' '[:upper:]')${subdir:1}"
+                print_status "  • $subdir_capitalized modules: $subdir_count files"
             fi
         done
 
