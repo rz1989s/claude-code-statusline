@@ -32,6 +32,71 @@ export MCP_DISCONNECTED_PATTERN="✗ Disconnected"
 export MCP_ERROR_PATTERN="❌ Error"
 
 # ============================================================================
+# NATIVE MCP JSON EXTRACTION (Issue #228)
+# ============================================================================
+# Claude Code sends fresh MCP data on every render via stdin JSON:
+#   "mcp": { "servers": [{"name": "ctx7", "status": "connected"}, ...] }
+# These functions provide zero-latency, always-fresh MCP data without CLI calls.
+# Follows the native-first pattern from lib/cost/native.sh
+
+# Check if native MCP JSON data is available and non-empty
+has_native_mcp_data() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 1
+    fi
+
+    local server_count
+    server_count=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | if type == "array" and length > 0 then length else empty end' 2>/dev/null)
+
+    [[ -n "$server_count" && "$server_count" -gt 0 ]] 2>/dev/null
+}
+
+# Parse native MCP servers into "name:status" format (matching CLI parse output)
+# Returns: "ctx7:connected,fs:connected,gh:disconnected"
+get_native_mcp_servers() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 1
+    fi
+
+    local servers
+    servers=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '
+        .mcp.servers // [] |
+        if type == "array" and length > 0 then
+            map((.name // "unknown") + ":" + (.status // "unknown"))
+            | join(",")
+        else empty end
+    ' 2>/dev/null)
+
+    if [[ -n "$servers" ]]; then
+        echo "$servers"
+        return 0
+    fi
+    return 1
+}
+
+# Get native MCP status as "connected/total" format
+# Returns: "3/3" or "2/3"
+get_native_mcp_status() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 1
+    fi
+
+    local status
+    status=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '
+        .mcp.servers // [] |
+        if type == "array" and length > 0 then
+            "\(map(select(.status == "connected")) | length)/\(length)"
+        else empty end
+    ' 2>/dev/null)
+
+    if [[ -n "$status" ]]; then
+        echo "$status"
+        return 0
+    fi
+    return 1
+}
+
+# ============================================================================
 # MCP SERVER DETECTION
 # ============================================================================
 
@@ -57,11 +122,11 @@ execute_mcp_list() {
         
         # Use direct command instead of function call for cache compatibility
         if command_exists timeout; then
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" gtimeout "$timeout_duration" claude mcp list 2>/dev/null
         else
-            cache_external_command "$cache_key" "$CACHE_DURATION_MEDIUM" "validate_command_output" claude mcp list 2>/dev/null
+            cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
         _execute_mcp_list_direct "$timeout_duration"
@@ -133,7 +198,21 @@ parse_mcp_server_list() {
 # Get basic MCP server count status (connected/total)
 get_mcp_status() {
     start_timer "mcp_status"
-    
+
+    # Native-first: use fresh JSON from Claude Code stdin (Issue #228)
+    if has_native_mcp_data; then
+        local native_status
+        native_status=$(get_native_mcp_status)
+        if [[ -n "$native_status" ]]; then
+            local status_time
+            status_time=$(end_timer "mcp_status")
+            debug_log "MCP status from native JSON in ${status_time}s: ${native_status}" "INFO"
+            echo "$native_status"
+            return 0
+        fi
+    fi
+
+    # Fallback: CLI path with reduced 30s cache
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list" "WARN"
@@ -141,53 +220,67 @@ get_mcp_status() {
         echo "?/?"
         return 1
     fi
-    
+
     # Parse server information
     local servers_data
     servers_data=$(parse_mcp_server_list "$mcp_list_output")
-    
+
     if [[ -z "$servers_data" ]]; then
         debug_log "No MCP servers found in output" "INFO"
         end_timer "mcp_status"
         echo "0/0"
         return 0
     fi
-    
+
     # Count connected and total servers
     local connected_count=0
     local total_count=0
-    
+
     # Split servers by comma and count
     local temp_servers="${servers_data}," # Add trailing comma for easier parsing
     local parse_count=0
     local max_servers=50  # Prevent infinite parsing loops
-    
+
     while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt $max_servers ]]; do
         local server_entry="${temp_servers%%,*}"
         temp_servers="${temp_servers#*,}"
         parse_count=$((parse_count + 1))
-        
+
         # Extract server status
         local server_status="${server_entry#*:}"
-        
+
         total_count=$((total_count + 1))
-        
+
         if [[ "$server_status" == "$MCP_STATUS_CONNECTED" ]]; then
             connected_count=$((connected_count + 1))
         fi
     done
-    
+
     local status_time
     status_time=$(end_timer "mcp_status")
     debug_log "MCP status check completed in ${status_time}s: ${connected_count}/${total_count}" "INFO"
-    
+
     echo "${connected_count}/${total_count}"
 }
 
 # Get all MCP servers with their status
 get_all_mcp_servers() {
     start_timer "mcp_all_servers"
-    
+
+    # Native-first: use fresh JSON from Claude Code stdin (Issue #228)
+    if has_native_mcp_data; then
+        local native_servers
+        native_servers=$(get_native_mcp_servers)
+        if [[ -n "$native_servers" ]]; then
+            local all_servers_time
+            all_servers_time=$(end_timer "mcp_all_servers")
+            debug_log "MCP all servers from native JSON in ${all_servers_time}s" "INFO"
+            echo "$native_servers"
+            return 0
+        fi
+    fi
+
+    # Fallback: CLI path with reduced 30s cache
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list for all servers" "WARN"
@@ -195,14 +288,14 @@ get_all_mcp_servers() {
         echo "$CONFIG_MCP_UNKNOWN_MESSAGE"
         return 1
     fi
-    
+
     local servers_data
     servers_data=$(parse_mcp_server_list "$mcp_list_output")
-    
+
     local all_servers_time
     all_servers_time=$(end_timer "mcp_all_servers")
     debug_log "MCP all servers check completed in ${all_servers_time}s" "INFO"
-    
+
     if [[ -n "$servers_data" ]]; then
         echo "$servers_data"
     else
@@ -455,6 +548,7 @@ if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
 fi
 
 # Export MCP functions
+export -f has_native_mcp_data get_native_mcp_servers get_native_mcp_status
 export -f is_claude_cli_available execute_mcp_list parse_mcp_server_list
 export -f get_mcp_status get_all_mcp_servers get_active_mcp_servers
 export -f format_mcp_servers get_mcp_display get_mcp_health
