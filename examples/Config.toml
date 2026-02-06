@@ -79,19 +79,14 @@ emojis.live_block = "🔥"
 # Timeout values for external command execution
 timeouts.mcp = "10s"
 timeouts.version = "10s"
-timeouts.ccusage = "10s"
 timeouts.prayer = "10s"
 
 # === COST TRACKING CONFIGURATION (Issue #99) ===
 # Control how session cost data is sourced and displayed
 #
 # Session cost source options:
-# • "auto"    - Prefer native Anthropic data, fallback to ccusage (RECOMMENDED)
+# • "auto"    - Use native Anthropic data (RECOMMENDED)
 # • "native"  - Use only native cost.total_cost_usd from Anthropic JSON
-# • "ccusage" - Use only ccusage tool (legacy behavior)
-#
-# Note: Debug comparison mode (STATUSLINE_DEBUG=true) logs both sources
-# side-by-side for validation before production use.
 cost.session_source = "auto"
 
 # === COST THRESHOLD ALERTS (Issue #93) ===
@@ -115,9 +110,8 @@ cost.alerts.notify_on_warn = false         # Notify at warning level (80%)
 cost.alerts.notify_on_critical = true      # Notify at critical level (100%)
 
 # Cache efficiency source (Issue #103)
-# • "auto"    - Prefer native current_usage data, fallback to ccusage
+# • "auto"    - Use native current_usage data (RECOMMENDED)
 # • "native"  - Use only native cache_read/cache_creation tokens
-# • "ccusage" - Use only ccusage block metrics (legacy behavior)
 cache.efficiency_source = "auto"
 
 # Code productivity metrics (Issue #100)

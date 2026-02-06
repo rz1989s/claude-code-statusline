@@ -41,7 +41,6 @@ extract_all_config_values() {
         feature_show_session: (.features.show_session_info // true),
         timeout_mcp: (.timeouts.mcp // "3s"),
         timeout_version: (.timeouts.version // "2s"),
-        timeout_ccusage: (.timeouts.ccusage // "3s"),
         emoji_opus: (.emojis.opus // "🧠"),
         emoji_haiku: (.emojis.haiku // "⚡"),
         emoji_sonnet: (.emojis.sonnet // "🎵"),
@@ -143,7 +142,6 @@ apply_extracted_config() {
                 [[ "$value" != "null" && "$value" != "" ]] && case "$key" in
                     timeout_mcp) CONFIG_MCP_TIMEOUT="$value" ;;
                     timeout_version) CONFIG_VERSION_TIMEOUT="$value" ;;
-                    timeout_ccusage) CONFIG_CCUSAGE_TIMEOUT="$value" ;;
                 esac
                 ;;
             # Emojis

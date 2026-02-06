@@ -42,7 +42,6 @@ extract_config_values() {
             feature_show_session: ."features.show_session_info",
             timeout_mcp: ."timeouts.mcp",
             timeout_version: ."timeouts.version",
-            timeout_ccusage: ."timeouts.ccusage",
             cost_session_source: ."cost.session_source",
             cache_efficiency_source: ."cache.efficiency_source",
             feature_show_code_productivity: ."features.show_code_productivity",
@@ -154,16 +153,13 @@ extract_config_values() {
         timeout_version)
             [[ "$value" != "null" && "$value" != "" ]] && CONFIG_VERSION_TIMEOUT="$value"
             ;;
-        timeout_ccusage)
-            [[ "$value" != "null" && "$value" != "" ]] && CONFIG_CCUSAGE_TIMEOUT="$value"
-            ;;
         cost_session_source)
-            # Issue #99: Cost session source (auto | native | ccusage)
-            [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_COST_SESSION_SOURCE="$value"
+            # Issue #99: Cost session source (auto | native)
+            [[ "$value" == "auto" || "$value" == "native" ]] && CONFIG_COST_SESSION_SOURCE="$value"
             ;;
         cache_efficiency_source)
-            # Issue #103: Cache efficiency source (auto | native | ccusage)
-            [[ "$value" == "auto" || "$value" == "native" || "$value" == "ccusage" ]] && CONFIG_CACHE_EFFICIENCY_SOURCE="$value"
+            # Issue #103: Cache efficiency source (auto | native)
+            [[ "$value" == "auto" || "$value" == "native" ]] && CONFIG_CACHE_EFFICIENCY_SOURCE="$value"
             ;;
         feature_show_code_productivity)
             # Issue #100: Show code productivity metrics

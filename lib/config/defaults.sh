@@ -53,7 +53,6 @@ init_default_config() {
 
     CONFIG_MCP_TIMEOUT="10s"
     CONFIG_VERSION_TIMEOUT="5s"
-    CONFIG_CCUSAGE_TIMEOUT="8s"
 
     CONFIG_VERSION_CACHE_DURATION="15"
     CONFIG_VERSION_CACHE_FILE="claude_version.cache"
