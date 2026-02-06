@@ -105,48 +105,19 @@ compare_native_vs_ccusage_cost() {
 }
 
 # Get session cost with source preference
-# Supports: auto | native | ccusage
+# Supports: auto | native (both use native implementation)
 get_session_cost_with_source() {
     local source="${1:-auto}"
 
-    case "$source" in
-        "native")
-            local native_cost
-            native_cost=$(get_native_session_cost)
-            if [[ -n "$native_cost" ]]; then
-                echo "$native_cost"
-            else
-                echo "$DEFAULT_COST"
-            fi
-            ;;
-        "ccusage")
-            if is_ccusage_available; then
-                local usage_info
-                usage_info=$(get_claude_usage_info)
-                echo "${usage_info%%:*}"
-            else
-                echo "$DEFAULT_COST"
-            fi
-            ;;
-        "auto"|*)
-            # Prefer native if available, fallback to ccusage
-            local native_cost
-            native_cost=$(get_native_session_cost)
+    local native_cost
+    native_cost=$(get_native_session_cost)
 
-            if [[ -n "$native_cost" && "$native_cost" != "0.00" ]]; then
-                debug_log "Using native cost source: \$$native_cost" "INFO"
-                echo "$native_cost"
-            elif is_ccusage_available; then
-                local usage_info
-                usage_info=$(get_claude_usage_info)
-                local ccusage_cost="${usage_info%%:*}"
-                debug_log "Using ccusage cost source: \$$ccusage_cost" "INFO"
-                echo "$ccusage_cost"
-            else
-                echo "$DEFAULT_COST"
-            fi
-            ;;
-    esac
+    if [[ -n "$native_cost" && "$native_cost" != "0.00" ]]; then
+        debug_log "Using native cost source: \$$native_cost" "INFO"
+        echo "$native_cost"
+    else
+        echo "$DEFAULT_COST"
+    fi
 }
 
 # ============================================================================
