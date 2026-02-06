@@ -65,8 +65,6 @@ extract_all_config_values() {
         display_time_format: (.display.time_format // "%H:%M"),
         display_date_format: (.display.date_format // "%Y-%m-%d"),
         display_date_format_compact: (.display.date_format_compact // "%Y%m%d"),
-        message_no_ccusage: (.messages.no_ccusage // "No ccusage"),
-        message_ccusage_install: (.messages.ccusage_install // "Install ccusage for cost tracking"),
         message_no_active_block: (.messages.no_active_block // "No active block"),
         message_mcp_unknown: (.messages.mcp_unknown // "unknown"),
         message_mcp_none: (.messages.mcp_none // "none"),
@@ -191,8 +189,6 @@ apply_extracted_config() {
             # Messages
             message_*)
                 [[ "$value" != "null" && "$value" != "" ]] && case "$key" in
-                    message_no_ccusage) CONFIG_NO_CCUSAGE_MESSAGE="$value" ;;
-                    message_ccusage_install) CONFIG_CCUSAGE_INSTALL_MESSAGE="$value" ;;
                     message_no_active_block) CONFIG_NO_ACTIVE_BLOCK_MESSAGE="$value" ;;
                     message_mcp_unknown) CONFIG_MCP_UNKNOWN_MESSAGE="$value" ;;
                     message_mcp_none) CONFIG_MCP_NONE_MESSAGE="$value" ;;

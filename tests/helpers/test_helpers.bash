@@ -207,7 +207,6 @@ setup_full_mock_environment() {
     # Set short timeouts for test mode
     export CONFIG_MCP_TIMEOUT="1s"
     export CONFIG_VERSION_TIMEOUT="1s"
-    export CONFIG_CCUSAGE_TIMEOUT="1s"
 
     # Disable expensive features in test mode (use correct ENV_CONFIG format)
     export ENV_CONFIG_FEATURES_SHOW_PRAYER_TIMES="false"

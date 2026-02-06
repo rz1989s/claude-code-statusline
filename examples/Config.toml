@@ -656,8 +656,6 @@ display.date_format_compact = "%Y%m%d"
 
 # === ERROR/FALLBACK MESSAGES ===
 # Messages displayed when services are unavailable
-messages.no_ccusage = "No ccusage"
-messages.ccusage_install = "Install ccusage for cost tracking"
 messages.no_active_block = "No active block"
 messages.mcp_unknown = "unknown"
 messages.mcp_none = "none"
