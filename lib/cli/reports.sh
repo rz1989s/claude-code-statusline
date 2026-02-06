@@ -121,76 +121,103 @@ show_json_export() {
     modules_count="${#STATUSLINE_MODULES_LOADED[@]}"
   fi
 
-  # Build JSON with jq
-  local timestamp timestamp_iso
+  # Build JSON safely using jq --arg for string escaping
+  local timestamp
   timestamp=$(date +%s)
+  local timestamp_iso
   if [[ "$(uname -s)" == "Darwin" ]]; then
     timestamp_iso=$(date -u -r "$timestamp" "+%Y-%m-%dT%H:%M:%SZ")
   else
     timestamp_iso=$(date -u -d "@$timestamp" "+%Y-%m-%dT%H:%M:%SZ")
   fi
 
-  local json_str
-  json_str=$(cat <<EOF
-{
-  "schema_version": "2.0",
-  "version": "${STATUSLINE_VERSION:-unknown}",
-  "timestamp": $timestamp,
-  "timestamp_iso": "$timestamp_iso",
-  "project": {
-    "name": "$repo_name",
-    "path": "$current_dir",
-    "branch": "$repo_branch",
-    "status": "$repo_status",
-    "commits_today": $repo_commits_today,
-    "has_submodules": $repo_has_submodules
-  },
-  "model": {
-    "display_name": "$model_display"
-  },
-  "session": {
-    "id": "$session_id",
-    "cost_usd": $session_cost,
-    "duration_ms": $session_duration,
-    "lines_added": $lines_added,
-    "lines_removed": $lines_removed
-  },
-  "context_window": {
-    "used_percentage": $ctx_used,
-    "remaining_percentage": $ctx_remaining,
-    "size": $ctx_size
-  },
-  "cost": {
-    "currency": "USD",
-    "daily": $cost_daily,
-    "weekly": $cost_weekly,
-    "monthly": $cost_monthly,
-    "repository": $cost_repo
-  },
-  "mcp": {
-    "connected": $mcp_connected,
-    "total": $mcp_total,
-    "servers": $mcp_servers
-  },
-  "prayer": {
-    "enabled": $prayer_enabled,
-    "next": "$prayer_next",
-    "time": "$prayer_time"
-  },
-  "system": {
-    "theme": "$theme_name",
-    "modules_loaded": $modules_count,
-    "platform": "$(uname -s)"
-  }
-}
-EOF
-)
+  local platform
+  platform=$(uname -s)
 
-  if [[ "$compact" == "true" ]]; then
-    echo "$json_str" | jq -c .
-  else
-    echo "$json_str" | jq .
-  fi
+  jq -n \
+    --arg schema_version "2.0" \
+    --arg version "${STATUSLINE_VERSION:-unknown}" \
+    --argjson timestamp "$timestamp" \
+    --arg timestamp_iso "$timestamp_iso" \
+    --arg proj_name "$repo_name" \
+    --arg proj_path "$current_dir" \
+    --arg proj_branch "$repo_branch" \
+    --arg proj_status "$repo_status" \
+    --argjson proj_commits "$repo_commits_today" \
+    --argjson proj_submodules "$repo_has_submodules" \
+    --arg model_name "$model_display" \
+    --arg sess_id "$session_id" \
+    --argjson sess_cost "$session_cost" \
+    --argjson sess_duration "$session_duration" \
+    --argjson sess_added "$lines_added" \
+    --argjson sess_removed "$lines_removed" \
+    --argjson ctx_used "$ctx_used" \
+    --argjson ctx_remaining "$ctx_remaining" \
+    --argjson ctx_size "$ctx_size" \
+    --argjson cost_d "$cost_daily" \
+    --argjson cost_w "$cost_weekly" \
+    --argjson cost_m "$cost_monthly" \
+    --argjson cost_r "$cost_repo" \
+    --argjson mcp_conn "$mcp_connected" \
+    --argjson mcp_tot "$mcp_total" \
+    --argjson mcp_srv "$mcp_servers" \
+    --argjson prayer_on "$prayer_enabled" \
+    --arg prayer_nxt "$prayer_next" \
+    --arg prayer_tm "$prayer_time" \
+    --arg sys_theme "$theme_name" \
+    --argjson sys_modules "$modules_count" \
+    --arg sys_platform "$platform" \
+    '{
+      schema_version: $schema_version,
+      version: $version,
+      timestamp: $timestamp,
+      timestamp_iso: $timestamp_iso,
+      project: {
+        name: $proj_name,
+        path: $proj_path,
+        branch: $proj_branch,
+        status: $proj_status,
+        commits_today: $proj_commits,
+        has_submodules: $proj_submodules
+      },
+      model: {
+        display_name: $model_name
+      },
+      session: {
+        id: $sess_id,
+        cost_usd: $sess_cost,
+        duration_ms: $sess_duration,
+        lines_added: $sess_added,
+        lines_removed: $sess_removed
+      },
+      context_window: {
+        used_percentage: $ctx_used,
+        remaining_percentage: $ctx_remaining,
+        size: $ctx_size
+      },
+      cost: {
+        currency: "USD",
+        daily: $cost_d,
+        weekly: $cost_w,
+        monthly: $cost_m,
+        repository: $cost_r
+      },
+      mcp: {
+        connected: $mcp_conn,
+        total: $mcp_tot,
+        servers: $mcp_srv
+      },
+      prayer: {
+        enabled: $prayer_on,
+        next: $prayer_nxt,
+        time: $prayer_tm
+      },
+      system: {
+        theme: $sys_theme,
+        modules_loaded: $sys_modules,
+        platform: $sys_platform
+      }
+    }' | if [[ "$compact" == "true" ]]; then jq -c .; else cat; fi
 
   return 0
 }

@@ -243,7 +243,8 @@ $awk_pricing
       if (d < 1) {
         m--
         if (m < 1) { m = 12; y-- }
-        if (m == 2) d = 28
+        is_leap = ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) ? 1 : 0
+        if (m == 2) d = is_leap ? 29 : 28
         else if (m == 4 || m == 6 || m == 9 || m == 11) d = 30
         else d = 31
       }
@@ -252,7 +253,8 @@ $awk_pricing
       split(local_date, ymd, \"-\")
       y = ymd[1] + 0; m = ymd[2] + 0; d = ymd[3] + 0
       d++
-      if (m == 2) max_d = 28
+      is_leap = ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) ? 1 : 0
+      if (m == 2) max_d = is_leap ? 29 : 28
       else if (m == 4 || m == 6 || m == 9 || m == 11) max_d = 30
       else max_d = 31
       if (d > max_d) { d = 1; m++; if (m > 12) { m = 1; y++ } }
