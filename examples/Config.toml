@@ -79,19 +79,14 @@ emojis.live_block = "🔥"
 # Timeout values for external command execution
 timeouts.mcp = "10s"
 timeouts.version = "10s"
-timeouts.ccusage = "10s"
 timeouts.prayer = "10s"
 
 # === COST TRACKING CONFIGURATION (Issue #99) ===
 # Control how session cost data is sourced and displayed
 #
 # Session cost source options:
-# • "auto"    - Prefer native Anthropic data, fallback to ccusage (RECOMMENDED)
+# • "auto"    - Use native Anthropic data (RECOMMENDED)
 # • "native"  - Use only native cost.total_cost_usd from Anthropic JSON
-# • "ccusage" - Use only ccusage tool (legacy behavior)
-#
-# Note: Debug comparison mode (STATUSLINE_DEBUG=true) logs both sources
-# side-by-side for validation before production use.
 cost.session_source = "auto"
 
 # === COST THRESHOLD ALERTS (Issue #93) ===
@@ -115,9 +110,8 @@ cost.alerts.notify_on_warn = false         # Notify at warning level (80%)
 cost.alerts.notify_on_critical = true      # Notify at critical level (100%)
 
 # Cache efficiency source (Issue #103)
-# • "auto"    - Prefer native current_usage data, fallback to ccusage
+# • "auto"    - Use native current_usage data (RECOMMENDED)
 # • "native"  - Use only native cache_read/cache_creation tokens
-# • "ccusage" - Use only ccusage block metrics (legacy behavior)
 cache.efficiency_source = "auto"
 
 # Code productivity metrics (Issue #100)
@@ -539,7 +533,7 @@ display.line9.show_when_empty = false
 # Model & Session Components (6):
 # - "model_info"     - Claude model name with emoji
 # - "session_mode"   - Output style display (default, explanatory, learning, custom)
-# - "cost_repo"      - Repository cost tracking (hybrid: native + ccusage)
+# - "cost_repo"      - Repository cost tracking (native JSONL)
 # - "cost_live"      - Live block cost monitoring
 # - "reset_timer"    - Block reset countdown timer
 # - "session_info"   - Session ID + project name (🔗 abc12345 • project) [v2.13.0]
@@ -553,7 +547,7 @@ display.line9.show_when_empty = false
 # Block Metrics Components (6):
 # - "burn_rate"         - Token consumption rate (🔥3.5k/min $2.10/hr)
 # - "token_usage"       - Total tokens in current 5-hour block (📊9.5M)
-# - "cache_efficiency"  - Cache hit percentage (hybrid: native + ccusage)
+# - "cache_efficiency"  - Cache hit percentage (native JSON)
 # - "block_projection"  - Projected cost and tokens (📈$8.25 10.5M)
 # - "code_productivity" - Lines added/removed (+156/-23) [v2.13.0]
 # - "context_window"    - Context usage via transcript (🧠 45% 90K/200K) [v2.13.0]
@@ -662,8 +656,6 @@ display.date_format_compact = "%Y%m%d"
 
 # === ERROR/FALLBACK MESSAGES ===
 # Messages displayed when services are unavailable
-messages.no_ccusage = "No ccusage"
-messages.ccusage_install = "Install ccusage for cost tracking"
 messages.no_active_block = "No active block"
 messages.mcp_unknown = "unknown"
 messages.mcp_none = "none"

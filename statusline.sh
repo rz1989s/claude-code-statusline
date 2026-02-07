@@ -144,7 +144,7 @@ load_module "mcp" || {
 
 # Load cost tracking module
 load_module "cost" || {
-    handle_warning "Cost module failed to load - cost tracking disabled. ccusage integration unavailable." "main"
+    handle_warning "Cost module failed to load - cost tracking disabled." "main"
 }
 
 # Load prayer times and Hijri calendar module
@@ -226,6 +226,16 @@ USAGE:
     statusline.sh --check-updates           - Check for new versions
     statusline.sh --setup-wizard            - Interactive setup wizard
 
+REPORTS:
+    statusline.sh --json                    - Unified JSON export (pretty-printed)
+    statusline.sh --json --compact          - Compact JSON (single line)
+    statusline.sh --daily                   - Today's cost report (ASCII table)
+    statusline.sh --daily --json            - Today's cost report (JSON)
+    statusline.sh --weekly                  - Last 7 days report (ASCII table)
+    statusline.sh --weekly --json           - Last 7 days report (JSON)
+    statusline.sh --monthly                 - Last 30 days report (ASCII table)
+    statusline.sh --monthly --json          - Last 30 days report (JSON)
+
 THEMES:
     Available: classic, garden, catppuccin, ocean, custom
 
@@ -295,11 +305,6 @@ show_health_status() {
         issues+=("Cache directory not writable")
     fi
 
-    # Check optional dependencies
-    local ccusage_status="not installed"
-    command -v ccusage >/dev/null 2>&1 && ccusage_status="available"
-    command -v bunx >/dev/null 2>&1 && [[ "$ccusage_status" == "not installed" ]] && ccusage_status="available (via bunx)"
-
     # Determine overall status
     [[ ${#issues[@]} -gt 0 ]] && status="degraded"
     [[ "$deps_ok" == "false" ]] && status="unhealthy" && exit_code=1
@@ -326,9 +331,6 @@ show_health_status() {
     "curl": $curl_val,
     "git": $git_val
   },
-  "optional": {
-    "ccusage": "$ccusage_status"
-  },
   "config": "$config_status",
   "cache": "$cache_status"
 }
@@ -346,13 +348,6 @@ EOF
         [[ -n "$jq_version" ]] && echo "  ✓ jq $jq_version" || echo "  ✗ jq not found"
         [[ -n "$curl_version" ]] && echo "  ✓ curl $curl_version" || echo "  ✗ curl not found"
         [[ -n "$git_version" ]] && echo "  ✓ git $git_version" || echo "  ⚠ git not found (optional)"
-        echo ""
-        echo "Optional:"
-        if [[ "$ccusage_status" != "not installed" ]]; then
-            echo "  ✓ ccusage: $ccusage_status"
-        else
-            echo "  ⚠ ccusage: not installed (cost tracking disabled)"
-        fi
         echo ""
         echo "Modules: $modules_loaded loaded, $modules_failed failed"
         echo "Config: $config_status"
@@ -636,15 +631,6 @@ run_setup_wizard() {
         deps_ok=false
     fi
 
-    # Optional
-    echo ""
-    echo "  Optional dependencies:"
-    if command -v ccusage &>/dev/null; then
-        echo "  ✓ ccusage (cost tracking enabled)"
-    else
-        echo "  ○ ccusage (install for cost tracking: npm install -g ccusage)"
-    fi
-
     if [[ "$deps_ok" == "false" ]]; then
         echo ""
         echo "  ⚠ Some required dependencies are missing."
@@ -806,7 +792,7 @@ output_json_api() {
     local cost_weekly="0.00"
     local cost_monthly="0.00"
 
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         cost_session=$(get_session_cost 2>/dev/null || echo "0.00")
         cost_daily=$(get_daily_cost 2>/dev/null || echo "0.00")
         cost_weekly=$(get_weekly_cost 2>/dev/null || echo "0.00")
@@ -913,6 +899,14 @@ EOF
 }
 
 # ============================================================================
+# CLI REPORTS MODULE
+# ============================================================================
+# Load CLI reports module for --json, --daily, --weekly, --monthly commands
+if [[ -d "$SCRIPT_DIR/lib/cli" ]]; then
+    source "$SCRIPT_DIR/lib/cli/reports.sh" 2>/dev/null || true
+fi
+
+# ============================================================================
 # SOURCE GUARD - Allow tests to source the script for function access
 # ============================================================================
 # When sourced (not executed directly), return after loading modules/functions
@@ -922,173 +916,203 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
     return 0 2>/dev/null || true
 fi
 
-# Parse command-line arguments
+# Parse command-line arguments (multi-arg parser for report flags)
 if [[ $# -gt 0 ]]; then
-    case "$1" in
-    "--help"|"-h")
-        show_usage
-        exit 0
-        ;;
-    "--version"|"-v")
-        echo "Claude Code Statusline v$STATUSLINE_VERSION"
-        echo "Architecture: $STATUSLINE_ARCHITECTURE_VERSION (modular refactor)"
-        echo "Compatible with original v$STATUSLINE_COMPATIBILITY_VERSION"
-        echo "Modules loaded: ${#STATUSLINE_MODULES_LOADED[@]}"
-        echo "Current theme: $(get_current_theme)"
-        exit 0
-        ;;
-    "--test-display")
-        echo "Testing display formatting..."
-        test_display_formatting
-        exit 0
-        ;;
-    "--modules")
-        echo "Loaded modules:"
-        for module in "${STATUSLINE_MODULES_LOADED[@]}"; do
-            echo "  ✓ $module"
-        done
-        if [[ ${#STATUSLINE_MODULES_FAILED[@]} -gt 0 ]]; then
-            echo "Failed modules:"
-            for module in "${STATUSLINE_MODULES_FAILED[@]}"; do
-                echo "  ✗ $module"
+    _cli_command=""
+    _cli_format=""
+    _cli_compact=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+        # Immediate-exit flags (backward compatible, single-arg)
+        "--help"|"-h")
+            show_usage
+            exit 0
+            ;;
+        "--version"|"-v")
+            echo "Claude Code Statusline v$STATUSLINE_VERSION"
+            echo "Architecture: $STATUSLINE_ARCHITECTURE_VERSION (modular refactor)"
+            echo "Compatible with original v$STATUSLINE_COMPATIBILITY_VERSION"
+            echo "Modules loaded: ${#STATUSLINE_MODULES_LOADED[@]}"
+            echo "Current theme: $(get_current_theme)"
+            exit 0
+            ;;
+        "--test-display")
+            echo "Testing display formatting..."
+            test_display_formatting
+            exit 0
+            ;;
+        "--modules")
+            echo "Loaded modules:"
+            for module in "${STATUSLINE_MODULES_LOADED[@]}"; do
+                echo "  ✓ $module"
             done
-        fi
-        exit 0
-        ;;
-    "--health")
-        show_health_status
-        exit $?
-        ;;
-    "--health=json"|"--health-json")
-        show_health_status "json"
-        exit $?
-        ;;
-    "--metrics")
-        show_metrics
-        exit $?
-        ;;
-    "--metrics=json")
-        show_metrics "json"
-        exit $?
-        ;;
-    "--metrics=prometheus"|"--metrics=prom")
-        show_metrics "prometheus"
-        exit $?
-        ;;
-    "--upgrade")
-        # Run statusline upgrade
-        if type run_statusline_upgrade &>/dev/null; then
-            run_statusline_upgrade
-            exit $?
-        else
-            echo "Upgrade function not available. Please reinstall manually:"
-            echo "curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
-            exit 1
-        fi
-        ;;
-    "--validate")
-        # Validate Config.toml schema (Issue #122)
-        _validate_config_file=$(discover_config_file)
-        if [[ -n "$_validate_config_file" ]]; then
-            validate_config_detailed "$_validate_config_file"
-            exit $?
-        else
-            echo "No Config.toml found to validate"
-            exit 1
-        fi
-        ;;
-    "--validate=strict")
-        # Strict validation - exit with error on any issues
-        _validate_config_file=$(discover_config_file)
-        if [[ -n "$_validate_config_file" ]]; then
-            if validate_config_schema "$_validate_config_file" "true"; then
-                echo "✅ Configuration is valid"
-                exit 0
+            if [[ ${#STATUSLINE_MODULES_FAILED[@]} -gt 0 ]]; then
+                echo "Failed modules:"
+                for module in "${STATUSLINE_MODULES_FAILED[@]}"; do
+                    echo "  ✗ $module"
+                done
+            fi
+            exit 0
+            ;;
+        "--upgrade")
+            if type run_statusline_upgrade &>/dev/null; then
+                run_statusline_upgrade
+                exit $?
             else
-                echo "❌ Configuration has errors"
+                echo "Upgrade function not available. Please reinstall manually:"
+                echo "curl -sSfL https://raw.githubusercontent.com/rz1989s/claude-code-statusline/main/install.sh | bash"
                 exit 1
             fi
-        else
-            echo "No Config.toml found to validate"
-            exit 1
-        fi
-        ;;
-    "--list-themes")
-        echo "Available themes:"
-        for theme in $(get_available_themes); do
-            if [[ "$theme" == "$(get_current_theme)" ]]; then
-                echo "  ✓ $theme (current)"
+            ;;
+        "--validate")
+            _validate_config_file=$(discover_config_file)
+            if [[ -n "$_validate_config_file" ]]; then
+                validate_config_detailed "$_validate_config_file"
+                exit $?
             else
-                echo "    $theme"
+                echo "No Config.toml found to validate"
+                exit 1
             fi
-        done
-        exit 0
-        ;;
-    "--preview-theme")
-        if [[ -z "${2:-}" ]]; then
-            echo "Error: --preview-theme requires a theme name" >&2
-            echo "Usage: statusline.sh --preview-theme <theme>" >&2
-            echo "Available themes: $(get_available_themes)" >&2
+            ;;
+        "--validate=strict")
+            _validate_config_file=$(discover_config_file)
+            if [[ -n "$_validate_config_file" ]]; then
+                if validate_config_schema "$_validate_config_file" "true"; then
+                    echo "✅ Configuration is valid"
+                    exit 0
+                else
+                    echo "❌ Configuration has errors"
+                    exit 1
+                fi
+            else
+                echo "No Config.toml found to validate"
+                exit 1
+            fi
+            ;;
+        "--list-themes")
+            echo "Available themes:"
+            for theme in $(get_available_themes); do
+                if [[ "$theme" == "$(get_current_theme)" ]]; then
+                    echo "  ✓ $theme (current)"
+                else
+                    echo "    $theme"
+                fi
+            done
+            exit 0
+            ;;
+        "--preview-theme")
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: --preview-theme requires a theme name" >&2
+                echo "Usage: statusline.sh --preview-theme <theme>" >&2
+                echo "Available themes: $(get_available_themes)" >&2
+                exit 1
+            fi
+            if ! is_valid_theme "$2"; then
+                echo "Error: Unknown theme '$2'" >&2
+                echo "Available themes: $(get_available_themes)" >&2
+                exit 1
+            fi
+            echo ""
+            echo "╔════════════════════════════════════════════════════════════╗"
+            echo "║              THEME PREVIEW: $2"
+            echo "╚════════════════════════════════════════════════════════════╝"
+            echo ""
+            preview_theme_colors "$2"
+            echo ""
+            echo "To use this theme permanently:"
+            echo "  ENV_CONFIG_THEME=$2 ./statusline.sh"
+            echo "  Or set in Config.toml: theme.name = \"$2\""
+            exit 0
+            ;;
+        --preview-theme=*)
+            theme_name="${1#--preview-theme=}"
+            if [[ -z "$theme_name" ]]; then
+                echo "Error: --preview-theme requires a theme name" >&2
+                exit 1
+            fi
+            if ! is_valid_theme "$theme_name"; then
+                echo "Error: Unknown theme '$theme_name'" >&2
+                echo "Available themes: $(get_available_themes)" >&2
+                exit 1
+            fi
+            echo ""
+            echo "╔════════════════════════════════════════════════════════════╗"
+            echo "║              THEME PREVIEW: $theme_name"
+            echo "╚════════════════════════════════════════════════════════════╝"
+            echo ""
+            preview_theme_colors "$theme_name"
+            echo ""
+            echo "To use this theme permanently:"
+            echo "  ENV_CONFIG_THEME=$theme_name ./statusline.sh"
+            echo "  Or set in Config.toml: theme.name = \"$theme_name\""
+            exit 0
+            ;;
+        "--check-updates"|"--update-check")
+            check_for_updates
+            exit $?
+            ;;
+        "--setup-wizard"|"--setup"|"--wizard")
+            run_setup_wizard
+            exit $?
+            ;;
+
+        # Flags that accumulate into _cli_command / _cli_format (existing)
+        "--health")
+            _cli_command="health"; _cli_format="human" ;;
+        "--health=json"|"--health-json")
+            _cli_command="health"; _cli_format="json" ;;
+        "--metrics")
+            _cli_command="metrics"; _cli_format="json" ;;
+        "--metrics=json")
+            _cli_command="metrics"; _cli_format="json" ;;
+        "--metrics=prometheus"|"--metrics=prom")
+            _cli_command="metrics"; _cli_format="prometheus" ;;
+
+        # Report flags (new, combinable)
+        "--json")
+            if [[ -z "$_cli_command" ]]; then
+                _cli_command="json_export"
+            fi
+            _cli_format="json" ;;
+        "--compact")
+            _cli_compact=true ;;
+        "--daily")
+            _cli_command="daily" ;;
+        "--weekly")
+            _cli_command="weekly" ;;
+        "--monthly")
+            _cli_command="monthly" ;;
+
+        *)
+            echo "Unknown option: $1" >&2
+            echo "Use --help for usage information" >&2
             exit 1
-        fi
-        if ! is_valid_theme "$2"; then
-            echo "Error: Unknown theme '$2'" >&2
-            echo "Available themes: $(get_available_themes)" >&2
-            exit 1
-        fi
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════╗"
-        echo "║              THEME PREVIEW: $2"
-        echo "╚════════════════════════════════════════════════════════════╝"
-        echo ""
-        preview_theme_colors "$2"
-        echo ""
-        echo "To use this theme permanently:"
-        echo "  ENV_CONFIG_THEME=$2 ./statusline.sh"
-        echo "  Or set in Config.toml: theme.name = \"$2\""
-        exit 0
-        ;;
-    --preview-theme=*)
-        theme_name="${1#--preview-theme=}"
-        if [[ -z "$theme_name" ]]; then
-            echo "Error: --preview-theme requires a theme name" >&2
-            exit 1
-        fi
-        if ! is_valid_theme "$theme_name"; then
-            echo "Error: Unknown theme '$theme_name'" >&2
-            echo "Available themes: $(get_available_themes)" >&2
-            exit 1
-        fi
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════╗"
-        echo "║              THEME PREVIEW: $theme_name"
-        echo "╚════════════════════════════════════════════════════════════╝"
-        echo ""
-        preview_theme_colors "$theme_name"
-        echo ""
-        echo "To use this theme permanently:"
-        echo "  ENV_CONFIG_THEME=$theme_name ./statusline.sh"
-        echo "  Or set in Config.toml: theme.name = \"$theme_name\""
-        exit 0
-        ;;
-    "--check-updates"|"--update-check")
-        check_for_updates
-        exit $?
-        ;;
-    "--json")
-        # JSON API output for IDE integrations (Issue #95)
-        output_json_api
-        exit $?
-        ;;
-    "--setup-wizard"|"--setup"|"--wizard")
-        run_setup_wizard
-        exit $?
-        ;;
-    *)
-        echo "Unknown option: $1" >&2
-        echo "Use --help for usage information" >&2
-        exit 1
-        ;;
+            ;;
+        esac
+        shift
+    done
+
+    # Dispatch accumulated command
+    case "$_cli_command" in
+        "health")
+            show_health_status "$_cli_format"
+            exit $? ;;
+        "metrics")
+            show_metrics "$_cli_format"
+            exit $? ;;
+        "json_export")
+            show_json_export "$_cli_compact"
+            exit $? ;;
+        "daily")
+            show_daily_report "${_cli_format:-human}" "$_cli_compact"
+            exit $? ;;
+        "weekly")
+            show_weekly_report "${_cli_format:-human}" "$_cli_compact"
+            exit $? ;;
+        "monthly")
+            show_monthly_report "${_cli_format:-human}" "$_cli_compact"
+            exit $? ;;
     esac
 fi
 
@@ -1229,7 +1253,7 @@ else
     block_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
     reset_info="$CONFIG_NO_ACTIVE_BLOCK_MESSAGE"
 
-    if is_module_loaded "cost" && is_ccusage_available; then
+    if is_module_loaded "cost"; then
         usage_info=$(get_claude_usage_info)
         
         # Parse usage info (format: session:month:week:today:block:reset)

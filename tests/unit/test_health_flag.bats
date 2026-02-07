@@ -151,14 +151,6 @@ _extract_json() {
     echo "$json_output" | jq -e '.dependencies.bash' >/dev/null
 }
 
-@test "--health=json contains optional object" {
-    run "$STATUSLINE_SCRIPT" --health=json
-    assert_success
-    local json_output
-    json_output=$(_extract_json "$output")
-    echo "$json_output" | jq -e '.optional' >/dev/null
-}
-
 @test "--health=json contains config field" {
     run "$STATUSLINE_SCRIPT" --health=json
     assert_success

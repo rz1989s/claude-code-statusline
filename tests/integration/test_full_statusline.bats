@@ -8,7 +8,7 @@ load '../helpers/test_helpers'
 setup() {
     common_setup
     # Setup a complete mock environment for integration testing
-    setup_full_mock_environment "clean" "connected" "success"
+    setup_full_mock_environment "clean" "connected"
     cd "$TEST_TMP_DIR/mock_repo"
 }
 
@@ -40,7 +40,7 @@ teardown() {
 }
 
 @test "should generate statusline for dirty git repository" {
-    setup_full_mock_environment "dirty" "connected" "success"
+    setup_full_mock_environment "dirty" "connected"
     cd "$TEST_TMP_DIR/mock_repo"
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
@@ -52,7 +52,7 @@ teardown() {
 }
 
 @test "should handle partial MCP connectivity" {
-    setup_full_mock_environment "clean" "partial" "success"
+    setup_full_mock_environment "clean" "partial"
     cd "$TEST_TMP_DIR/mock_repo"
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
@@ -61,19 +61,6 @@ teardown() {
     
     assert_success
     assert_output_contains "MCP:2/3"         # Partial connection status (2 of 3 connected)
-}
-
-@test "should handle missing ccusage gracefully" {
-    setup_full_mock_environment "clean" "connected" "not_available"
-    cd "$TEST_TMP_DIR/mock_repo"
-
-    local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
-
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
-
-    assert_success
-    # When ccusage is unavailable, costs show placeholder values
-    assert_output_contains "\$-.--"
 }
 
 @test "should work in non-git directory" {
@@ -168,41 +155,6 @@ teardown() {
     validate_statusline_format "$output"
 }
 
-# Test with active billing block
-@test "should display reset info when active block exists" {
-    # Disable mock cost data so we can test actual ccusage behavior
-    export STATUSLINE_MOCK_COST_DATA="false"
-
-    # Mock ccusage to return active block
-    cat > "$MOCK_BIN_DIR/bunx" << EOF
-#!/bin/bash
-if [[ "\$1" == "ccusage" ]]; then
-    case "\$2" in
-        "--version")
-            echo "ccusage 1.0.0"
-            ;;
-        "session"|"daily")
-            echo '{"sessions":[],"daily":[],"totals":{"totalCost":0.00}}'
-            ;;
-        "blocks")
-            if [[ "\$3" == "--active" ]]; then
-                cat "$TEST_FIXTURES_DIR/sample_outputs/ccusage_blocks_active.json"
-            fi
-            ;;
-    esac
-fi
-EOF
-    chmod +x "$MOCK_BIN_DIR/bunx"
-    
-    local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
-    
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
-    
-    assert_success
-    assert_output_contains "🔥LIVE"          # Active block indicator (no space between emoji and label)
-    assert_output_contains "RESET at"        # Reset time info
-}
-
 # Test performance under normal conditions
 @test "should complete within reasonable time" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
@@ -239,32 +191,6 @@ EOF
 
     assert_success
     assert_output_contains "MCP:?/?"         # Should show unknown status after timeout
-}
-
-@test "should handle ccusage timeout gracefully" {
-    # Create mock ccusage that simulates timeout (exit code 124)
-    cat > "$MOCK_BIN_DIR/bunx" << 'EOF'
-#!/bin/bash
-if [[ "$1" == "ccusage" ]]; then
-    if [[ "$2" == "--version" ]]; then
-        echo "ccusage 1.0.0"
-    else
-        # Simulate timeout immediately - exit code 124 is what timeout returns
-        exit 124
-    fi
-fi
-EOF
-    chmod +x "$MOCK_BIN_DIR/bunx"
-
-    export CONFIG_CCUSAGE_TIMEOUT="1s"
-
-    local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
-
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
-
-    assert_success
-    # Should show fallback values for cost tracking
-    assert_output_contains "\$0.00"
 }
 
 # Test with special characters in paths

@@ -37,7 +37,6 @@ fi
 export CONFIG_TEST_MODE=true
 export CONFIG_MCP_TIMEOUT="1s"
 export CONFIG_VERSION_TIMEOUT="1s"
-export CONFIG_CCUSAGE_TIMEOUT="1s"
 
 # Test directories - fixtures are in tests/fixtures, not subdirectories
 export TEST_FIXTURES_DIR="$STATUSLINE_ROOT/tests/fixtures"

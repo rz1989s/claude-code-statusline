@@ -38,7 +38,7 @@ This document outlines planned features, improvements, and maintenance tasks for
    - **Features**: Real-time status updates, graceful failure handling
 
 6. **Cost Tracking** ✅
-   - **Status**: COMPLETED - ccusage integration for cost monitoring  
+   - **Status**: COMPLETED - native JSONL cost tracking
    - **Implementation**: Session, monthly, weekly, daily cost tracking with live updates
    - **Features**: Block info, reset timing, cost history
 
@@ -129,7 +129,7 @@ This document outlines planned features, improvements, and maintenance tasks for
   - **Implementation**: Extend lib/cost.sh with rate calculation and compact display format
   - **Impact**: High - Critical budget awareness for cost-conscious users
   - **Complexity**: Medium  
-  - **Dependencies**: Existing ccusage integration, reset time data
+  - **Dependencies**: Native cost module, reset time data
 
 ### 🎯 **Planned Features** *(Already Mentioned in Codebase)*
 
@@ -392,7 +392,7 @@ This document outlines planned features, improvements, and maintenance tasks for
 
 - **Integration Testing**
   - Real MCP server integration tests
-  - Actual ccusage integration tests
+  - Native cost calculation integration tests
   - Multi-OS compatibility testing
   - Version upgrade/downgrade testing
 

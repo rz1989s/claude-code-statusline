@@ -167,7 +167,6 @@ show_mcp_status = true
 [timeouts]
 mcp = "3s"
 version = "2s" 
-ccusage = "4s"
 
 [emojis]
 opus = "🧠"
@@ -184,7 +183,6 @@ version_duration = 3600
 version_file = "/tmp/.claude_version_cache"
 
 [messages]
-no_ccusage = "No ccusage"
 mcp_unknown = "unknown"
 EOF
 

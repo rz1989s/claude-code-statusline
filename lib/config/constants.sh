@@ -44,16 +44,15 @@ export CONFIG_SHOW_SESSION_INFO=""
 # Timeout configuration
 export CONFIG_MCP_TIMEOUT=""
 export CONFIG_VERSION_TIMEOUT=""
-export CONFIG_CCUSAGE_TIMEOUT=""
 
 # ============================================================================
 # COST AND CACHE CONFIGURATION
 # ============================================================================
 
-# Issue #99: Cost session source (auto | native | ccusage)
+# Issue #99: Cost session source (auto | native)
 export CONFIG_COST_SESSION_SOURCE="auto"
 
-# Issue #103: Cache efficiency source (auto | native | ccusage)
+# Issue #103: Cache efficiency source (auto | native)
 export CONFIG_CACHE_EFFICIENCY_SOURCE="auto"
 
 # ============================================================================
@@ -163,8 +162,6 @@ export CONFIG_RESET_LABEL=""
 # MESSAGE CONFIGURATION
 # ============================================================================
 
-export CONFIG_NO_CCUSAGE_MESSAGE=""
-export CONFIG_CCUSAGE_INSTALL_MESSAGE=""
 export CONFIG_NO_ACTIVE_BLOCK_MESSAGE=""
 export CONFIG_MCP_UNKNOWN_MESSAGE=""
 export CONFIG_MCP_NONE_MESSAGE=""

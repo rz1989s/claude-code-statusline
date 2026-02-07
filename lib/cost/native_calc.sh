@@ -4,8 +4,8 @@
 # Claude Code Statusline - Native Cost Calculator
 # ============================================================================
 #
-# Unified native cost calculation from JSONL files, eliminating ccusage
-# dependency. Provides time-based filtering for all cost metrics:
+# Unified native cost calculation from JSONL files.
+# Provides time-based filtering for all cost metrics:
 #   - REPO:  Current repository/project cumulative cost
 #   - DAY:   Today's cost (since 00:00 UTC)
 #   - 7DAY:  Last 7 days cost
@@ -196,10 +196,10 @@ calculate_native_repo_cost() {
 }
 
 # ============================================================================
-# UNIFIED USAGE INFO (ccusage-compatible format)
+# UNIFIED USAGE INFO
 # ============================================================================
 
-# Get comprehensive usage info in ccusage-compatible format
+# Get comprehensive usage info
 # OPTIMIZED: Single pass through JSONL files, calculates all periods at once
 # Returns: session:month:week:today:block:reset
 get_native_usage_info() {

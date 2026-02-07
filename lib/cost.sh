@@ -73,6 +73,11 @@ source "${COST_LIB_DIR}/cost/alerts.sh" 2>/dev/null || {
     return 1
 }
 
+# shellcheck source=cost/report_calc.sh
+source "${COST_LIB_DIR}/cost/report_calc.sh" 2>/dev/null || {
+    debug_log "Failed to load cost/report_calc.sh - report breakdowns disabled" "WARN"
+}
+
 # ============================================================================
 # FILE-BASED CACHE FOR STATUSLINE RENDER (Issue #147)
 # ============================================================================

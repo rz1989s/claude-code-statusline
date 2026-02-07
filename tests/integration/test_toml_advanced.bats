@@ -167,8 +167,6 @@ features.show_session_info = true
 
 timeouts.mcp = "3s"
 timeouts.version = "2s"
-timeouts.ccusage = "3s"
-
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"

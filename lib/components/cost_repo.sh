@@ -22,15 +22,8 @@ collect_cost_repo_data() {
 
     COMPONENT_COST_REPO_COST="-.--"
 
-    # Issue #99: Debug comparison mode - log native vs ccusage side-by-side
-    # This runs ONLY when STATUSLINE_DEBUG=true to validate native data
-    if is_debug_mode && is_module_loaded "cost"; then
-        compare_native_vs_ccusage_cost >/dev/null
-    fi
-
     if is_module_loaded "cost"; then
         # REPO shows cumulative repository cost (all sessions in this repo)
-        # Uses native JSONL calculation (primary) or ccusage (fallback)
         local usage_info
         usage_info=$(get_claude_usage_info)
 

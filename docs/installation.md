@@ -186,7 +186,7 @@ The Revolutionary 3-Tier Download System handles these automatically, but for ma
 ```bash
 # Cost tracking is now 100% native - no external dependencies required!
 # The statusline reads Claude Code JSONL files directly from ~/.claude/projects/
-# No need for Node.js, Bun, or ccusage
+# No external dependencies required for cost tracking
 ```
 
 #### Core Dependencies

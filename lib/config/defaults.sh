@@ -53,7 +53,6 @@ init_default_config() {
 
     CONFIG_MCP_TIMEOUT="10s"
     CONFIG_VERSION_TIMEOUT="5s"
-    CONFIG_CCUSAGE_TIMEOUT="8s"
 
     CONFIG_VERSION_CACHE_DURATION="15"
     CONFIG_VERSION_CACHE_FILE="claude_version.cache"
@@ -88,8 +87,6 @@ init_default_config() {
     CONFIG_RESET_LABEL="RESET"
 
     # Message defaults
-    CONFIG_NO_CCUSAGE_MESSAGE="No ccusage"
-    CONFIG_CCUSAGE_INSTALL_MESSAGE="Install ccusage for cost tracking"
     CONFIG_NO_ACTIVE_BLOCK_MESSAGE="No active block"
     CONFIG_MCP_UNKNOWN_MESSAGE="unknown"
     CONFIG_MCP_NONE_MESSAGE="none"
