@@ -231,11 +231,11 @@ show_json_export() {
 show_daily_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
-  local since="${3:-}" until="${4:-}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
 
   # Collect hourly breakdown data
   local hourly_data model_data
-  hourly_data=$(calculate_hourly_breakdown "$since" "$until" 2>/dev/null)
+  hourly_data=$(calculate_hourly_breakdown "$since" "$until" "$project" 2>/dev/null)
   model_data=$(echo "$hourly_data" | grep "^MODEL" || true)
   hourly_data=$(echo "$hourly_data" | grep "^HOUR" || true)
 
@@ -399,7 +399,7 @@ EOF
 show_weekly_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
-  local since="${3:-}" until="${4:-}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
 
   # Determine period
   local period_start period_end period_days=7
@@ -427,7 +427,7 @@ show_weekly_report() {
 
   # Get data for the period
   local daily_data model_data
-  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" 2>/dev/null)
+  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" "$project" 2>/dev/null)
   model_data=$(echo "$daily_data" | grep "^MODEL" || true)
   daily_data=$(echo "$daily_data" | grep "^DAY" || true)
 
@@ -435,7 +435,7 @@ show_weekly_report() {
   local prev_cost="0.00"
   if [[ -z "$since" ]]; then
     local prev_data
-    prev_data=$(calculate_daily_breakdown 14 2>/dev/null | grep "^DAY" || true)
+    prev_data=$(calculate_daily_breakdown 14 "" "" "$project" 2>/dev/null | grep "^DAY" || true)
     local week_start_date
     if [[ "$(uname -s)" == "Darwin" ]]; then
       week_start_date=$(date -v-7d +%Y-%m-%d)
@@ -625,7 +625,7 @@ EOF
 show_monthly_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
-  local since="${3:-}" until="${4:-}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
 
   # Determine period
   local period_start period_end period_days=30
@@ -652,7 +652,7 @@ show_monthly_report() {
 
   # Get data for the period
   local daily_data model_data
-  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" 2>/dev/null)
+  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" "$project" 2>/dev/null)
   model_data=$(echo "$daily_data" | grep "^MODEL" || true)
   daily_data=$(echo "$daily_data" | grep "^DAY" || true)
 
@@ -804,10 +804,10 @@ EOF
 show_breakdown_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
-  local since="${3:-}" until="${4:-}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
 
   local breakdown_data
-  breakdown_data=$(calculate_model_breakdown "$since" "$until" 2>/dev/null)
+  breakdown_data=$(calculate_model_breakdown "$since" "$until" "$project" 2>/dev/null)
 
   # Calculate totals
   local total_cost="0.00" total_sessions="0"
@@ -945,10 +945,10 @@ _breakdown_report_json() {
 show_instances_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
-  local since="${3:-}" until="${4:-}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
 
   local project_data
-  project_data=$(calculate_project_breakdown "$since" "$until" 2>/dev/null)
+  project_data=$(calculate_project_breakdown "$since" "$until" "$project" 2>/dev/null)
 
   # Calculate totals
   local total_cost="0.00" total_sessions="0" project_count="0"
@@ -1132,8 +1132,171 @@ _models_to_json() {
 }
 
 # ============================================================================
+# BURN RATE REPORT
+# ============================================================================
+
+show_burn_rate_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+
+  local burn_data
+  burn_data=$(calculate_burn_rate_analysis "$since" "$until" "$project" 2>/dev/null)
+
+  local rate_line prediction_line
+  rate_line=$(echo "$burn_data" | grep "^RATE" || true)
+  prediction_line=$(echo "$burn_data" | grep "^PREDICTION" || true)
+
+  # Parse rate data
+  local total_cost="0.00" total_tokens="0" elapsed_min="0"
+  local cost_per_min="0.0000" tokens_per_min="0" cost_per_hour="0.00"
+  if [[ -n "$rate_line" ]]; then
+    IFS=$'\t' read -r _ total_cost total_tokens elapsed_min cost_per_min tokens_per_min cost_per_hour <<< "$rate_line"
+  fi
+
+  # Parse prediction
+  local five_hour_cost="0.00" time_to_five="0"
+  if [[ -n "$prediction_line" ]]; then
+    IFS=$'\t' read -r _ five_hour_cost time_to_five <<< "$prediction_line"
+  fi
+
+  # Period label
+  local period_label="Today"
+  if [[ -n "$since" && -n "$until" ]]; then
+    period_label="$since to $until"
+  elif [[ -n "$since" ]]; then
+    period_label="Since $since"
+  fi
+
+  if [[ "$format" == "json" ]]; then
+    _burn_rate_report_json "$total_cost" "$total_tokens" "$elapsed_min" \
+      "$cost_per_min" "$tokens_per_min" "$cost_per_hour" \
+      "$five_hour_cost" "$time_to_five" "$period_label" "$compact" "$burn_data"
+  else
+    _burn_rate_report_human "$total_cost" "$total_tokens" "$elapsed_min" \
+      "$cost_per_min" "$tokens_per_min" "$cost_per_hour" \
+      "$five_hour_cost" "$time_to_five" "$period_label" "$burn_data"
+  fi
+
+  return 0
+}
+
+# Human-readable burn rate report
+_burn_rate_report_human() {
+  local total_cost="$1" total_tokens="$2" elapsed_min="$3"
+  local cost_per_min="$4" tokens_per_min="$5" cost_per_hour="$6"
+  local five_hour_cost="$7" time_to_five="$8" period_label="$9"
+  local burn_data="${10}"
+
+  echo "Claude Code - Burn Rate Analysis"
+  echo "================================="
+  echo "Period: $period_label"
+  echo "Total: $(format_usd "$total_cost") | $(format_tokens_short "$total_tokens") tokens | ${elapsed_min}min active"
+  echo ""
+
+  if [[ "$elapsed_min" == "0" || "$cost_per_min" == "0.0000" ]]; then
+    echo "No active usage data for this period."
+    return 0
+  fi
+
+  # Current rates
+  echo "Current Rates:"
+  echo "  Cost:    $(format_usd "$cost_per_min")/min  |  $(format_usd "$cost_per_hour")/hr"
+  echo "  Tokens:  ${tokens_per_min}/min  |  $((tokens_per_min * 60))/hr"
+  echo ""
+
+  # Predictions
+  echo "Predictions (at current rate):"
+  echo "  Est. 5hr Block Cost:  $(format_usd "$five_hour_cost")"
+  if [[ "$time_to_five" -gt 0 ]]; then
+    local hours=$((time_to_five / 60))
+    local mins=$((time_to_five % 60))
+    if [[ "$hours" -gt 0 ]]; then
+      echo "  Time to \$5.00:        ${hours}h ${mins}m"
+    else
+      echo "  Time to \$5.00:        ${mins}m"
+    fi
+  fi
+  echo ""
+
+  # Trend chart (5-minute windows)
+  local window_data
+  window_data=$(echo "$burn_data" | grep "^WINDOW" || true)
+  if [[ -n "$window_data" ]]; then
+    local max_cost
+    max_cost=$(echo "$window_data" | awk -F'\t' 'BEGIN { max = 0 } { if ($3 + 0 > max) max = $3 + 0 } END { printf "%.4f", max }')
+
+    echo "Activity (5-min windows):"
+    draw_table_separator 50
+    while IFS=$'\t' read -r _ bucket cost tokens; do
+      [[ -z "$bucket" ]] && continue
+      local h=$((bucket / 60))
+      local m=$((bucket % 60))
+      local time_str
+      time_str=$(printf "%02d:%02d" "$h" "$m")
+      local bar
+      bar=$(draw_bar "$cost" "$max_cost" 25)
+      printf "  %s  %s  %s\n" "$time_str" "$bar" "$(format_usd "$cost")"
+    done <<< "$window_data"
+  fi
+}
+
+# JSON burn rate report
+_burn_rate_report_json() {
+  local total_cost="$1" total_tokens="$2" elapsed_min="$3"
+  local cost_per_min="$4" tokens_per_min="$5" cost_per_hour="$6"
+  local five_hour_cost="$7" time_to_five="$8" period_label="$9"
+  local compact="${10}" burn_data="${11}"
+
+  local window_json="[]"
+  local window_data
+  window_data=$(echo "$burn_data" | grep "^WINDOW" || true)
+  if [[ -n "$window_data" ]]; then
+    window_json=$(echo "$window_data" | awk -F'\t' '
+    BEGIN { printf "["; first = 1 }
+    {
+      if (!first) printf ","
+      first = 0
+      h = int($2 / 60); m = $2 % 60
+      printf "{\"time\":\"%02d:%02d\",\"cost_usd\":%.4f,\"tokens\":%d}", h, m, $3, $4
+    }
+    END { printf "]" }')
+  fi
+
+  if [[ "$compact" == "true" ]]; then
+    jq -n -c \
+      --arg report "burn_rate" \
+      --arg period "$period_label" \
+      --argjson total_cost "$total_cost" \
+      --argjson total_tokens "$total_tokens" \
+      --argjson elapsed_min "$elapsed_min" \
+      --argjson cost_per_min "$cost_per_min" \
+      --argjson tokens_per_min "$tokens_per_min" \
+      --argjson cost_per_hour "$cost_per_hour" \
+      --argjson five_hour_cost "$five_hour_cost" \
+      --argjson time_to_five_min "$time_to_five" \
+      --argjson windows "$window_json" \
+      '{report:$report,period:$period,rates:{cost_per_minute:$cost_per_min,cost_per_hour:$cost_per_hour,tokens_per_minute:$tokens_per_min},predictions:{five_hour_block_cost:$five_hour_cost,minutes_to_five_dollars:$time_to_five_min},summary:{total_cost_usd:$total_cost,total_tokens:$total_tokens,elapsed_minutes:$elapsed_min},windows:$windows}'
+  else
+    jq -n \
+      --arg report "burn_rate" \
+      --arg period "$period_label" \
+      --argjson total_cost "$total_cost" \
+      --argjson total_tokens "$total_tokens" \
+      --argjson elapsed_min "$elapsed_min" \
+      --argjson cost_per_min "$cost_per_min" \
+      --argjson tokens_per_min "$tokens_per_min" \
+      --argjson cost_per_hour "$cost_per_hour" \
+      --argjson five_hour_cost "$five_hour_cost" \
+      --argjson time_to_five_min "$time_to_five" \
+      --argjson windows "$window_json" \
+      '{report:$report,period:$period,rates:{cost_per_minute:$cost_per_min,cost_per_hour:$cost_per_hour,tokens_per_minute:$tokens_per_min},predictions:{five_hour_block_cost:$five_hour_cost,minutes_to_five_dollars:$time_to_five_min},summary:{total_cost_usd:$total_cost,total_tokens:$total_tokens,elapsed_minutes:$elapsed_min},windows:$windows}'
+  fi
+}
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
-export -f show_breakdown_report show_instances_report
+export -f show_breakdown_report show_instances_report show_burn_rate_report
