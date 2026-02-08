@@ -235,6 +235,19 @@ REPORTS:
     statusline.sh --weekly --json           - Last 7 days report (JSON)
     statusline.sh --monthly                 - Last 30 days report (ASCII table)
     statusline.sh --monthly --json          - Last 30 days report (JSON)
+    statusline.sh --breakdown               - Model cost breakdown (ASCII table)
+    statusline.sh --breakdown --json        - Model cost breakdown (JSON)
+    statusline.sh --instances               - Multi-project cost summary
+    statusline.sh --instances --json        - Multi-project cost summary (JSON)
+
+DATE FILTERING:
+    --since DATE                            - Filter from date (inclusive)
+    --until DATE                            - Filter to date (inclusive)
+    Formats: YYYYMMDD, YYYY-MM-DD, today, yesterday, 7d, 30d, week, month
+    Examples:
+      statusline.sh --daily --since 20260101
+      statusline.sh --monthly --since 2025-12-01 --until 2025-12-31
+      statusline.sh --breakdown --since 7d
 
 THEMES:
     Available: classic, garden, catppuccin, ocean, custom
@@ -921,6 +934,8 @@ if [[ $# -gt 0 ]]; then
     _cli_command=""
     _cli_format=""
     _cli_compact=false
+    _cli_since=""
+    _cli_until=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1083,6 +1098,30 @@ if [[ $# -gt 0 ]]; then
             _cli_command="weekly" ;;
         "--monthly")
             _cli_command="monthly" ;;
+        "--breakdown")
+            _cli_command="breakdown" ;;
+        "--instances")
+            _cli_command="instances" ;;
+        "--since")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --since requires a date argument" >&2; exit 1
+            fi
+            _cli_since=$(parse_date_arg "$1") || exit 1
+            ;;
+        --since=*)
+            _cli_since=$(parse_date_arg "${1#--since=}") || exit 1
+            ;;
+        "--until")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --until requires a date argument" >&2; exit 1
+            fi
+            _cli_until=$(parse_date_arg "$1") || exit 1
+            ;;
+        --until=*)
+            _cli_until=$(parse_date_arg "${1#--until=}") || exit 1
+            ;;
 
         *)
             echo "Unknown option: $1" >&2
@@ -1092,6 +1131,14 @@ if [[ $# -gt 0 ]]; then
         esac
         shift
     done
+
+    # Validate --since/--until range
+    if [[ -n "$_cli_since" && -n "$_cli_until" ]]; then
+        if [[ "$_cli_since" > "$_cli_until" ]]; then
+            echo "Error: --since date must be before --until date" >&2
+            exit 1
+        fi
+    fi
 
     # Dispatch accumulated command
     case "$_cli_command" in
@@ -1105,13 +1152,19 @@ if [[ $# -gt 0 ]]; then
             show_json_export "$_cli_compact"
             exit $? ;;
         "daily")
-            show_daily_report "${_cli_format:-human}" "$_cli_compact"
+            show_daily_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until"
             exit $? ;;
         "weekly")
-            show_weekly_report "${_cli_format:-human}" "$_cli_compact"
+            show_weekly_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until"
             exit $? ;;
         "monthly")
-            show_monthly_report "${_cli_format:-human}" "$_cli_compact"
+            show_monthly_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until"
+            exit $? ;;
+        "breakdown")
+            show_breakdown_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until"
+            exit $? ;;
+        "instances")
+            show_instances_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until"
             exit $? ;;
     esac
 fi

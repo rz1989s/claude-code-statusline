@@ -227,14 +227,15 @@ show_json_export() {
 # ============================================================================
 
 # Show today's cost report with hourly breakdown
-# Usage: show_daily_report [format] [compact]
+# Usage: show_daily_report [format] [compact] [since] [until]
 show_daily_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}"
 
   # Collect hourly breakdown data
   local hourly_data model_data
-  hourly_data=$(calculate_hourly_breakdown 2>/dev/null)
+  hourly_data=$(calculate_hourly_breakdown "$since" "$until" 2>/dev/null)
   model_data=$(echo "$hourly_data" | grep "^MODEL" || true)
   hourly_data=$(echo "$hourly_data" | grep "^HOUR" || true)
 
@@ -245,19 +246,29 @@ show_daily_report() {
     total_sessions=$(echo "$hourly_data" | awk -F'\t' '{ sessions += $3 } END { printf "%d", sessions }')
   fi
 
-  # Get today's date info
-  local today_date today_weekday
-  today_date=$(date +%Y-%m-%d)
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    today_weekday=$(date +%A)
+  # Get date info
+  local report_date report_weekday
+  if [[ -n "$since" ]]; then
+    report_date="$since"
   else
-    today_weekday=$(date +%A)
+    report_date=$(date +%Y-%m-%d)
+  fi
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    report_weekday=$(date -j -f "%Y-%m-%d" "$report_date" "+%A" 2>/dev/null || date +%A)
+  else
+    report_weekday=$(date -d "$report_date" +%A 2>/dev/null || date +%A)
+  fi
+
+  # Build period label for custom ranges
+  local period_label="$report_date ($report_weekday)"
+  if [[ -n "$since" && -n "$until" && "$since" != "$until" ]]; then
+    period_label="$since to $until"
   fi
 
   if [[ "$format" == "json" ]]; then
-    _daily_report_json "$today_date" "$total_cost" "$total_sessions" "$hourly_data" "$model_data" "$compact"
+    _daily_report_json "$report_date" "$total_cost" "$total_sessions" "$hourly_data" "$model_data" "$compact"
   else
-    _daily_report_human "$today_date" "$today_weekday" "$total_cost" "$total_sessions" "$hourly_data" "$model_data"
+    _daily_report_human "$report_date" "$report_weekday" "$total_cost" "$total_sessions" "$hourly_data" "$model_data" "$period_label"
   fi
 
   return 0
@@ -266,11 +277,11 @@ show_daily_report() {
 # Human-readable daily report
 _daily_report_human() {
   local date="$1" weekday="$2" total_cost="$3" total_sessions="$4"
-  local hourly_data="$5" model_data="$6"
+  local hourly_data="$5" model_data="$6" period_label="${7:-}"
 
   echo "Claude Code - Daily Cost Report"
   echo "================================"
-  echo "Date: $date ($weekday)"
+  echo "Date: ${period_label:-$date ($weekday)}"
   echo "Total: $(format_usd "$total_cost") across $total_sessions sessions"
   echo ""
 
@@ -384,29 +395,59 @@ EOF
 # ============================================================================
 
 # Show 7-day cost report with week-over-week comparison
-# Usage: show_weekly_report [format] [compact]
+# Usage: show_weekly_report [format] [compact] [since] [until]
 show_weekly_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}"
 
-  # Get current week data (7 days)
+  # Determine period
+  local period_start period_end period_days=7
+  if [[ -n "$since" ]]; then
+    period_start="$since"
+    period_end="${until:-$(date +%Y-%m-%d)}"
+    # Calculate days in range
+    local s_epoch e_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      s_epoch=$(date -j -f "%Y-%m-%d" "$period_start" "+%s" 2>/dev/null)
+      e_epoch=$(date -j -f "%Y-%m-%d" "$period_end" "+%s" 2>/dev/null)
+    else
+      s_epoch=$(date -d "$period_start" "+%s" 2>/dev/null)
+      e_epoch=$(date -d "$period_end" "+%s" 2>/dev/null)
+    fi
+    period_days=$(( (e_epoch - s_epoch) / 86400 + 1 ))
+  else
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      period_start=$(date -v-6d +%Y-%m-%d)
+    else
+      period_start=$(date -d "6 days ago" +%Y-%m-%d)
+    fi
+    period_end=$(date +%Y-%m-%d)
+  fi
+
+  # Get data for the period
   local daily_data model_data
-  daily_data=$(calculate_daily_breakdown 7 2>/dev/null)
+  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" 2>/dev/null)
   model_data=$(echo "$daily_data" | grep "^MODEL" || true)
   daily_data=$(echo "$daily_data" | grep "^DAY" || true)
 
-  # Get previous week data (days 8-14) for comparison
-  local prev_data
-  prev_data=$(calculate_daily_breakdown 14 2>/dev/null | grep "^DAY" || true)
-  # Filter to only days 8-14 (previous week)
-  local week_start_date
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    week_start_date=$(date -v-7d +%Y-%m-%d)
-  else
-    week_start_date=$(date -d "7 days ago" +%Y-%m-%d)
+  # Get previous period data for comparison (only for default 7-day mode)
+  local prev_cost="0.00"
+  if [[ -z "$since" ]]; then
+    local prev_data
+    prev_data=$(calculate_daily_breakdown 14 2>/dev/null | grep "^DAY" || true)
+    local week_start_date
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      week_start_date=$(date -v-7d +%Y-%m-%d)
+    else
+      week_start_date=$(date -d "7 days ago" +%Y-%m-%d)
+    fi
+    local prev_week_data
+    prev_week_data=$(echo "$prev_data" | awk -F'\t' -v cutoff="$week_start_date" '$2 < cutoff')
+    if [[ -n "$prev_week_data" ]]; then
+      prev_cost=$(echo "$prev_week_data" | awk -F'\t' '{ cost += $5 } END { printf "%.2f", cost }')
+    fi
   fi
-  local prev_week_data
-  prev_week_data=$(echo "$prev_data" | awk -F'\t' -v cutoff="$week_start_date" '$2 < cutoff')
 
   # Calculate totals
   local total_cost="0.00" total_sessions="0"
@@ -414,21 +455,6 @@ show_weekly_report() {
     total_cost=$(echo "$daily_data" | awk -F'\t' '{ cost += $5; sessions += $4 } END { printf "%.2f", cost }')
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
   fi
-
-  # Previous week total
-  local prev_cost="0.00"
-  if [[ -n "$prev_week_data" ]]; then
-    prev_cost=$(echo "$prev_week_data" | awk -F'\t' '{ cost += $5 } END { printf "%.2f", cost }')
-  fi
-
-  # Period dates
-  local period_start period_end
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    period_start=$(date -v-6d +%Y-%m-%d)
-  else
-    period_start=$(date -d "6 days ago" +%Y-%m-%d)
-  fi
-  period_end=$(date +%Y-%m-%d)
 
   if [[ "$format" == "json" ]]; then
     _weekly_report_json "$period_start" "$period_end" "$total_cost" "$total_sessions" \
@@ -595,14 +621,38 @@ EOF
 # ============================================================================
 
 # Show 30-day cost report with daily breakdown
-# Usage: show_monthly_report [format] [compact]
+# Usage: show_monthly_report [format] [compact] [since] [until]
 show_monthly_report() {
   local format="${1:-human}"
   local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}"
 
-  # Get 30-day breakdown
+  # Determine period
+  local period_start period_end period_days=30
+  if [[ -n "$since" ]]; then
+    period_start="$since"
+    period_end="${until:-$(date +%Y-%m-%d)}"
+    local s_epoch e_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      s_epoch=$(date -j -f "%Y-%m-%d" "$period_start" "+%s" 2>/dev/null)
+      e_epoch=$(date -j -f "%Y-%m-%d" "$period_end" "+%s" 2>/dev/null)
+    else
+      s_epoch=$(date -d "$period_start" "+%s" 2>/dev/null)
+      e_epoch=$(date -d "$period_end" "+%s" 2>/dev/null)
+    fi
+    period_days=$(( (e_epoch - s_epoch) / 86400 + 1 ))
+  else
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      period_start=$(date -v-29d +%Y-%m-%d)
+    else
+      period_start=$(date -d "29 days ago" +%Y-%m-%d)
+    fi
+    period_end=$(date +%Y-%m-%d)
+  fi
+
+  # Get data for the period
   local daily_data model_data
-  daily_data=$(calculate_daily_breakdown 30 2>/dev/null)
+  daily_data=$(calculate_daily_breakdown "$period_days" "$since" "$until" 2>/dev/null)
   model_data=$(echo "$daily_data" | grep "^MODEL" || true)
   daily_data=$(echo "$daily_data" | grep "^DAY" || true)
 
@@ -612,15 +662,6 @@ show_monthly_report() {
     total_cost=$(echo "$daily_data" | awk -F'\t' '{ cost += $5; sessions += $4 } END { printf "%.2f", cost }')
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
   fi
-
-  # Period dates
-  local period_start period_end
-  if [[ "$(uname -s)" == "Darwin" ]]; then
-    period_start=$(date -v-29d +%Y-%m-%d)
-  else
-    period_start=$(date -d "29 days ago" +%Y-%m-%d)
-  fi
-  period_end=$(date +%Y-%m-%d)
 
   if [[ "$format" == "json" ]]; then
     _monthly_report_json "$period_start" "$period_end" "$total_cost" "$total_sessions" \
@@ -755,6 +796,294 @@ EOF
 }
 
 # ============================================================================
+# BREAKDOWN REPORT (Issue #203)
+# ============================================================================
+
+# Show per-model cost breakdown
+# Usage: show_breakdown_report [format] [compact] [since] [until]
+show_breakdown_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}"
+
+  local breakdown_data
+  breakdown_data=$(calculate_model_breakdown "$since" "$until" 2>/dev/null)
+
+  # Calculate totals
+  local total_cost="0.00" total_sessions="0"
+  if [[ -n "$breakdown_data" ]]; then
+    total_cost=$(echo "$breakdown_data" | awk -F'\t' '{ cost += $7; sessions += $3 } END { printf "%.2f", cost }')
+    total_sessions=$(echo "$breakdown_data" | awk -F'\t' '{ sessions += $3 } END { printf "%d", sessions }')
+  fi
+
+  # Period label
+  local period_label="Last 30 Days"
+  if [[ -n "$since" && -n "$until" ]]; then
+    period_label="$since to $until"
+  elif [[ -n "$since" ]]; then
+    period_label="Since $since"
+  fi
+
+  if [[ "$format" == "json" ]]; then
+    _breakdown_report_json "$total_cost" "$total_sessions" "$breakdown_data" "$period_label" "$compact"
+  else
+    _breakdown_report_human "$total_cost" "$total_sessions" "$breakdown_data" "$period_label"
+  fi
+
+  return 0
+}
+
+# Human-readable breakdown report
+_breakdown_report_human() {
+  local total_cost="$1" total_sessions="$2" breakdown_data="$3" period_label="$4"
+
+  echo "Claude Code - Model Cost Breakdown"
+  echo "==================================="
+  echo "Period: $period_label"
+  echo "Total: $(format_usd "$total_cost") across $total_sessions sessions"
+  echo ""
+
+  if [[ -z "$breakdown_data" ]]; then
+    echo "No usage data for this period."
+    return 0
+  fi
+
+  # Sort by cost descending
+  local sorted_data
+  sorted_data=$(echo "$breakdown_data" | sort -t$'\t' -k7 -rn)
+
+  # Table header
+  printf "%-28s  %8s  %10s  %10s  %8s  %5s\n" "Model" "Sessions" "Input" "Output" "Cost" "Share"
+  draw_table_separator 77
+
+  while IFS=$'\t' read -r _ model sessions input output cache_read cost; do
+    [[ -z "$model" ]] && continue
+    local pct
+    if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+      pct=$(awk "BEGIN { printf \"%d\", ($cost / $total_cost) * 100 }")
+    else
+      pct="0"
+    fi
+    printf "%-28s  %8d  %10s  %10s  %8s  %4d%%\n" \
+      "$model" "$sessions" \
+      "$(format_tokens_short "$input")" \
+      "$(format_tokens_short "$output")" \
+      "$(format_usd "$cost")" "$pct"
+  done <<< "$sorted_data"
+
+  draw_table_separator 77
+  printf "%-28s  %8d  %10s  %10s  %8s  %5s\n" \
+    "TOTAL" "$total_sessions" "" "" "$(format_usd "$total_cost")" "100%"
+
+  # Cost efficiency metrics
+  echo ""
+  echo "Cost Efficiency:"
+  while IFS=$'\t' read -r _ model sessions input output cache_read cost; do
+    [[ -z "$model" ]] && continue
+    local total_tokens
+    total_tokens=$((input + output))
+    local efficiency="N/A"
+    if [[ "$total_tokens" -gt 0 ]]; then
+      efficiency=$(awk "BEGIN { printf \"\$%.4f\", ($cost / ($total_tokens / 1000)) }")
+    fi
+    printf "  %-28s %s/1K tokens\n" "$model" "$efficiency"
+  done <<< "$sorted_data"
+}
+
+# JSON breakdown report
+_breakdown_report_json() {
+  local total_cost="$1" total_sessions="$2" breakdown_data="$3"
+  local period_label="$4" compact="$5"
+
+  local models_json="[]"
+  if [[ -n "$breakdown_data" ]]; then
+    models_json=$(echo "$breakdown_data" | sort -t$'\t' -k7 -rn | awk -F'\t' -v total="$total_cost" '
+    BEGIN { printf "[" ; first = 1 }
+    {
+      if (!first) printf ","
+      first = 0
+      pct = (total + 0 > 0) ? ($7 / total) * 100 : 0
+      total_tok = $4 + $5
+      eff = (total_tok > 0) ? ($7 / (total_tok / 1000)) : 0
+      printf "{\"model\":\"%s\",\"sessions\":%d,\"input_tokens\":%d,\"output_tokens\":%d,\"cache_read_tokens\":%d,\"cost_usd\":%.2f,\"percent_of_total\":%.1f,\"cost_per_1k_tokens\":%.4f}",
+        $2, $3, $4, $5, $6, $7, pct, eff
+    }
+    END { printf "]" }')
+  fi
+
+  local json_str
+  json_str=$(jq -n \
+    --arg period "$period_label" \
+    --argjson total_cost "$total_cost" \
+    --argjson total_sessions "$total_sessions" \
+    --argjson models "$models_json" \
+    '{
+      report: "breakdown",
+      schema_version: "2.0",
+      period: $period,
+      summary: {
+        total_cost_usd: $total_cost,
+        total_sessions: $total_sessions,
+        currency: "USD"
+      },
+      models: $models
+    }')
+
+  if [[ "$compact" == "true" ]]; then
+    echo "$json_str" | jq -c .
+  else
+    echo "$json_str"
+  fi
+}
+
+# ============================================================================
+# INSTANCES REPORT (Issue #204)
+# ============================================================================
+
+# Show multi-project cost summary
+# Usage: show_instances_report [format] [compact] [since] [until]
+show_instances_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}"
+
+  local project_data
+  project_data=$(calculate_project_breakdown "$since" "$until" 2>/dev/null)
+
+  # Calculate totals
+  local total_cost="0.00" total_sessions="0" project_count="0"
+  if [[ -n "$project_data" ]]; then
+    total_cost=$(echo "$project_data" | awk -F'\t' '{ cost += $5 } END { printf "%.2f", cost }')
+    total_sessions=$(echo "$project_data" | awk -F'\t' '{ sessions += $3 } END { printf "%d", sessions }')
+    project_count=$(echo "$project_data" | wc -l | tr -d ' ')
+  fi
+
+  # Period label
+  local period_label="Last 30 Days"
+  if [[ -n "$since" && -n "$until" ]]; then
+    period_label="$since to $until"
+  elif [[ -n "$since" ]]; then
+    period_label="Since $since"
+  fi
+
+  if [[ "$format" == "json" ]]; then
+    _instances_report_json "$total_cost" "$total_sessions" "$project_count" \
+      "$project_data" "$period_label" "$compact"
+  else
+    _instances_report_human "$total_cost" "$total_sessions" "$project_count" \
+      "$project_data" "$period_label"
+  fi
+
+  return 0
+}
+
+# Human-readable instances report
+_instances_report_human() {
+  local total_cost="$1" total_sessions="$2" project_count="$3"
+  local project_data="$4" period_label="$5"
+
+  echo "Claude Code - Multi-Project Cost Summary"
+  echo "========================================="
+  echo "Period: $period_label"
+  echo "Total: $(format_usd "$total_cost") across $total_sessions sessions ($project_count projects)"
+  echo ""
+
+  if [[ -z "$project_data" ]]; then
+    echo "No project data found."
+    return 0
+  fi
+
+  # Sort by cost descending
+  local sorted_data
+  sorted_data=$(echo "$project_data" | sort -t$'\t' -k5 -rn)
+
+  # Find max cost for bar scaling
+  local max_cost
+  max_cost=$(echo "$sorted_data" | awk -F'\t' 'BEGIN { max = 0 } { if ($5 + 0 > max) max = $5 + 0 } END { printf "%.2f", max }')
+
+  # Table header
+  printf "%-30s  %8s  %10s  %8s  %5s  %s\n" "Project" "Sessions" "Tokens" "Cost" "Share" "Bar"
+  draw_table_separator 80
+
+  while IFS=$'\t' read -r _ name sessions tokens cost; do
+    [[ -z "$name" ]] && continue
+    local pct bar
+    if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+      pct=$(awk "BEGIN { printf \"%d\", ($cost / $total_cost) * 100 }")
+    else
+      pct="0"
+    fi
+    bar=$(draw_bar "$cost" "$max_cost" 12)
+    printf "%-30s  %8d  %10s  %8s  %4d%%  %s\n" \
+      "$name" "$sessions" \
+      "$(format_tokens_short "$tokens")" \
+      "$(format_usd "$cost")" "$pct" "$bar"
+  done <<< "$sorted_data"
+
+  draw_table_separator 80
+  printf "%-30s  %8d  %10s  %8s  %5s\n" \
+    "TOTAL ($project_count projects)" "$total_sessions" "" "$(format_usd "$total_cost")" "100%"
+
+  # Most active and most expensive
+  local most_expensive most_active
+  most_expensive=$(echo "$sorted_data" | head -1 | awk -F'\t' '{ print $2 }')
+  most_active=$(echo "$sorted_data" | sort -t$'\t' -k3 -rn | head -1 | awk -F'\t' '{ print $2 }')
+  local most_expensive_cost
+  most_expensive_cost=$(echo "$sorted_data" | head -1 | awk -F'\t' '{ printf "%.2f", $5 }')
+
+  echo ""
+  echo "Most Expensive:  $most_expensive ($(format_usd "$most_expensive_cost"))"
+  echo "Most Active:     $most_active"
+}
+
+# JSON instances report
+_instances_report_json() {
+  local total_cost="$1" total_sessions="$2" project_count="$3"
+  local project_data="$4" period_label="$5" compact="$6"
+
+  local projects_json="[]"
+  if [[ -n "$project_data" ]]; then
+    projects_json=$(echo "$project_data" | sort -t$'\t' -k5 -rn | awk -F'\t' -v total="$total_cost" '
+    BEGIN { printf "[" ; first = 1 }
+    {
+      if (!first) printf ","
+      first = 0
+      pct = (total + 0 > 0) ? ($5 / total) * 100 : 0
+      gsub(/"/, "\\\"", $2)
+      printf "{\"project\":\"%s\",\"sessions\":%d,\"total_tokens\":%d,\"cost_usd\":%.2f,\"percent_of_total\":%.1f}",
+        $2, $3, $4, $5, pct
+    }
+    END { printf "]" }')
+  fi
+
+  local json_str
+  json_str=$(jq -n \
+    --arg period "$period_label" \
+    --argjson total_cost "$total_cost" \
+    --argjson total_sessions "$total_sessions" \
+    --argjson project_count "$project_count" \
+    --argjson projects "$projects_json" \
+    '{
+      report: "instances",
+      schema_version: "2.0",
+      period: $period,
+      summary: {
+        total_cost_usd: $total_cost,
+        total_sessions: $total_sessions,
+        project_count: $project_count,
+        currency: "USD"
+      },
+      projects: $projects
+    }')
+
+  if [[ "$compact" == "true" ]]; then
+    echo "$json_str" | jq -c .
+  else
+    echo "$json_str"
+  fi
+}
+
+# ============================================================================
 # SHARED HELPERS
 # ============================================================================
 
@@ -807,3 +1136,4 @@ _models_to_json() {
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
+export -f show_breakdown_report show_instances_report

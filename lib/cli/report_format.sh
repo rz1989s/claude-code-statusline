@@ -126,5 +126,128 @@ format_percent() {
 # EXPORTS
 # ============================================================================
 
+# ============================================================================
+# DATE PARSING
+# ============================================================================
+
+# Parse a date argument into YYYY-MM-DD format
+# Supports: YYYYMMDD, YYYY-MM-DD, today, yesterday, 7d, 30d, week, month
+# Returns: YYYY-MM-DD on stdout, exit 1 on invalid input
+parse_date_arg() {
+  local input="${1:-}"
+
+  [[ -z "$input" ]] && return 1
+
+  case "$input" in
+    today)
+      date +%Y-%m-%d
+      ;;
+    yesterday)
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -v-1d +%Y-%m-%d
+      else
+        date -d "1 day ago" +%Y-%m-%d
+      fi
+      ;;
+    week)
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -v-7d +%Y-%m-%d
+      else
+        date -d "7 days ago" +%Y-%m-%d
+      fi
+      ;;
+    month)
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -v-30d +%Y-%m-%d
+      else
+        date -d "30 days ago" +%Y-%m-%d
+      fi
+      ;;
+    [0-9]*d)
+      # Relative: Nd (e.g., 7d, 30d, 90d)
+      local n="${input%d}"
+      if [[ ! "$n" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid relative date '$input'. Use format: Nd (e.g., 7d, 30d)" >&2
+        return 1
+      fi
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -v-${n}d +%Y-%m-%d
+      else
+        date -d "$n days ago" +%Y-%m-%d
+      fi
+      ;;
+    [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9])
+      # ISO format: YYYY-MM-DD — validate
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -j -f "%Y-%m-%d" "$input" "+%Y-%m-%d" 2>/dev/null || {
+          echo "Error: Invalid date '$input'" >&2; return 1
+        }
+      else
+        date -d "$input" "+%Y-%m-%d" 2>/dev/null || {
+          echo "Error: Invalid date '$input'" >&2; return 1
+        }
+      fi
+      ;;
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9])
+      # Compact format: YYYYMMDD
+      local y="${input:0:4}" m="${input:4:2}" d="${input:6:2}"
+      local formatted="${y}-${m}-${d}"
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        date -j -f "%Y-%m-%d" "$formatted" "+%Y-%m-%d" 2>/dev/null || {
+          echo "Error: Invalid date '$input'" >&2; return 1
+        }
+      else
+        date -d "$formatted" "+%Y-%m-%d" 2>/dev/null || {
+          echo "Error: Invalid date '$input'" >&2; return 1
+        }
+      fi
+      ;;
+    *)
+      echo "Error: Invalid date format '$input'. Use YYYYMMDD, YYYY-MM-DD, or relative (7d, 30d, week, month, today, yesterday)" >&2
+      return 1
+      ;;
+  esac
+}
+
+# Convert a YYYY-MM-DD date to ISO UTC timestamp (local midnight → UTC)
+# Usage: date_to_iso_utc "2026-01-15"
+# Returns: 2026-01-14T17:00:00 (for UTC+7)
+date_to_iso_utc() {
+  local date_str="${1:-}"
+  [[ -z "$date_str" ]] && return 1
+
+  local epoch
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$date_str 00:00:00" "+%s" 2>/dev/null) || return 1
+    date -u -r "$epoch" "+%Y-%m-%dT%H:%M:%S"
+  else
+    epoch=$(date -d "$date_str" "+%s" 2>/dev/null) || return 1
+    date -u -d "@$epoch" "+%Y-%m-%dT%H:%M:%S"
+  fi
+}
+
+# Convert a YYYY-MM-DD date to end-of-day ISO UTC timestamp (next day midnight → UTC)
+# Usage: date_to_iso_utc_end "2026-01-15"
+# Returns: 2026-01-15T17:00:00 (for UTC+7, meaning end of local Jan 15)
+date_to_iso_utc_end() {
+  local date_str="${1:-}"
+  [[ -z "$date_str" ]] && return 1
+
+  # Get the next day and use its midnight as the upper bound
+  local next_day
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    next_day=$(date -j -f "%Y-%m-%d" -v+1d "$date_str" "+%Y-%m-%d" 2>/dev/null) || return 1
+  else
+    next_day=$(date -d "$date_str + 1 day" "+%Y-%m-%d" 2>/dev/null) || return 1
+  fi
+
+  date_to_iso_utc "$next_day"
+}
+
+# ============================================================================
+# EXPORTS
+# ============================================================================
+
 export -f draw_table_separator draw_bar format_usd format_tokens_short
 export -f pad_right pad_left format_percent
+export -f parse_date_arg date_to_iso_utc date_to_iso_utc_end
