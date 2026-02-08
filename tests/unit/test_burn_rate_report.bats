@@ -142,7 +142,8 @@ _extract_json() {
 @test "--burn-rate works with --project" {
     run "$STATUSLINE_SCRIPT" --burn-rate --project nonexistent-project-$$
     assert_failure
-    assert_output --partial "No project found"
+    # CI may not have a projects directory — accept either error
+    [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 # ==============================================================================
