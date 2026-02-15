@@ -59,14 +59,13 @@ bats tests/unit/test_platform_compatibility.bats
 ## Development Workflow
 
 ```bash
-# Branch Strategy: dev1-99 → dev → nightly → main
+# Branch Strategy: feat/*, fix/*, chore/* → nightly → main
 # Feature Development
-git checkout -b dev7 dev              # Create feature branch
-git push origin dev7                  # Push feature
+git checkout -b feat/my-feature nightly   # Create feature branch
+git push origin feat/my-feature           # Push feature
 
 # Integration
-git checkout dev && git merge dev7 --no-ff    # Merge to stable dev
-git checkout nightly && git merge dev --no-ff # Promote to nightly
+git checkout nightly && git merge feat/my-feature --no-ff  # Merge to nightly
 
 # Testing
 bats tests/unit/test_*.bats           # Unit tests (9 files)

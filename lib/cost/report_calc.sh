@@ -24,11 +24,14 @@ export STATUSLINE_COST_REPORT_CALC_LOADED=true
 # HOURLY BREAKDOWN (for --daily)
 # ============================================================================
 
-# Calculate hourly breakdown for today
+# Calculate hourly breakdown for a date (defaults to today)
+# Args: [since_date] [until_date] — YYYY-MM-DD format, optional
 # Output: TSV lines (HOUR and MODEL rows)
 # HOUR\t{hour_num}\t{sessions}\t{input_tokens}\t{output_tokens}\t{cache_pct}\t{cost}
 # MODEL\t{model_name}\t{sessions}\t{cost}
 calculate_hourly_breakdown() {
+  local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
+
   local projects_dir
   projects_dir=$(get_claude_projects_dir 2>/dev/null)
 
@@ -36,8 +39,21 @@ calculate_hourly_breakdown() {
     return 0
   fi
 
-  local today_start
-  today_start=$(get_today_start_iso)
+  # Narrow search path if project filter specified
+  local search_path="$projects_dir"
+  if [[ -n "$project_filter" ]]; then
+    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
+  fi
+
+  local today_start range_end_iso=""
+  if [[ -n "$since_date" ]]; then
+    today_start=$(date_to_iso_utc "$since_date" 2>/dev/null)
+  else
+    today_start=$(get_today_start_iso)
+  fi
+  if [[ -n "$until_date" ]]; then
+    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null)
+  fi
 
   # Get UTC offset for hour bucketing in local time
   local utc_offset_seconds
@@ -54,7 +70,7 @@ calculate_hourly_breakdown() {
   awk_pricing=$(get_awk_pricing_block)
 
   # Single find+jq+awk pipeline bucketed by hour
-  find "$projects_dir" -name "*.jsonl" -type f -mtime -1 2>/dev/null | while read -r jsonl_file; do
+  find "$search_path" -name "*.jsonl" -type f -mtime -1 2>/dev/null | while read -r jsonl_file; do
     [[ -z "$jsonl_file" ]] && continue
     jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [.timestamp, (.message.model // "default"),
@@ -62,7 +78,7 @@ calculate_hourly_breakdown() {
        (.message.usage.output_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-  done | awk -F'\t' -v start="$today_start" -v tz_offset="$utc_offset_seconds" "
+  done | awk -F'\t' -v start="$today_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
   BEGIN {
     # Pricing
 $awk_pricing
@@ -71,8 +87,9 @@ $awk_pricing
     ts = \$1
     gsub(/\.[0-9]+Z?\$/, \"\", ts)
 
-    # Filter to today only
+    # Filter to range
     if (ts < start) next
+    if (end_ts != \"\" && ts >= end_ts) next
 
     model = \$2
     input = \$3 + 0
@@ -133,13 +150,15 @@ $awk_pricing
 # DAILY BREAKDOWN (for --weekly, --monthly)
 # ============================================================================
 
-# Calculate daily breakdown for the last N days
-# Args: days (default: 7)
+# Calculate daily breakdown for a date range or last N days
+# Args: days [since_date] [until_date] — YYYY-MM-DD format, optional
+# If since_date is set, days is ignored and range is since→until (or since→today)
 # Output: TSV lines (DAY and MODEL rows)
 # DAY\t{date}\t{weekday}\t{sessions}\t{cost}
 # MODEL\t{model_name}\t{sessions}\t{cost}
 calculate_daily_breakdown() {
   local days="${1:-7}"
+  local since_date="${2:-}" until_date="${3:-}" project_filter="${4:-}"
 
   local projects_dir
   projects_dir=$(get_claude_projects_dir 2>/dev/null)
@@ -148,8 +167,31 @@ calculate_daily_breakdown() {
     return 0
   fi
 
-  local range_start
-  range_start=$(get_days_ago_start_iso "$days")
+  # Narrow search path if project filter specified
+  local search_path="$projects_dir"
+  if [[ -n "$project_filter" ]]; then
+    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
+  fi
+
+  local range_start range_end_iso=""
+  if [[ -n "$since_date" ]]; then
+    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null)
+    # Calculate days for find -mtime
+    local since_epoch today_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    else
+      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    fi
+    days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
+  else
+    range_start=$(get_days_ago_start_iso "$days")
+  fi
+  if [[ -n "$until_date" ]]; then
+    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null)
+  fi
 
   # Get UTC offset for date bucketing in local time
   local utc_offset_seconds
@@ -179,22 +221,33 @@ calculate_daily_breakdown() {
   # Build date-to-weekday lookup using shell (avoids gawk asorti dependency)
   # Generate all dates in range and their weekday names (+1 day buffer for timezone edge)
   local -A weekday_map
-  local i_day
-  for ((i_day = 0; i_day <= days; i_day++)); do
+  local i_day map_days=$((days + 1))
+  for ((i_day = 0; i_day <= map_days; i_day++)); do
     local d_date d_weekday
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      d_date=$(date -v-${i_day}d +%Y-%m-%d)
-      d_weekday=$(date -v-${i_day}d +%A)
+    if [[ -n "$since_date" ]]; then
+      # When using --since, generate forward from since_date
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        d_date=$(date -j -f "%Y-%m-%d" -v+${i_day}d "$since_date" "+%Y-%m-%d" 2>/dev/null)
+        d_weekday=$(date -j -f "%Y-%m-%d" -v+${i_day}d "$since_date" "+%A" 2>/dev/null)
+      else
+        d_date=$(date -d "$since_date + $i_day days" +%Y-%m-%d)
+        d_weekday=$(date -d "$since_date + $i_day days" +%A)
+      fi
     else
-      d_date=$(date -d "$i_day days ago" +%Y-%m-%d)
-      d_weekday=$(date -d "$i_day days ago" +%A)
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        d_date=$(date -v-${i_day}d +%Y-%m-%d)
+        d_weekday=$(date -v-${i_day}d +%A)
+      else
+        d_date=$(date -d "$i_day days ago" +%Y-%m-%d)
+        d_weekday=$(date -d "$i_day days ago" +%A)
+      fi
     fi
-    weekday_map["$d_date"]="$d_weekday"
+    [[ -n "$d_date" ]] && weekday_map["$d_date"]="$d_weekday"
   done
 
   # Phase 1: Aggregate by date and model using awk (no asorti needed)
   local raw_data
-  raw_data=$(find "$projects_dir" -name "*.jsonl" -type f -mtime -$((days + 1)) 2>/dev/null | while read -r jsonl_file; do
+  raw_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((days + 1)) 2>/dev/null | while read -r jsonl_file; do
     [[ -z "$jsonl_file" ]] && continue
     jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [.timestamp, (.message.model // "default"),
@@ -202,7 +255,7 @@ calculate_daily_breakdown() {
        (.message.usage.output_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-  done | awk -F'\t' -v start="$range_start" -v tz_offset="$utc_offset_seconds" "
+  done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
   BEGIN {
     # Pricing
 $awk_pricing
@@ -213,6 +266,7 @@ $awk_pricing
 
     # Filter to range
     if (ts < start) next
+    if (end_ts != \"\" && ts >= end_ts) next
 
     model = \$2
     input = \$3 + 0
@@ -299,7 +353,343 @@ $awk_pricing
 }
 
 # ============================================================================
+# MODEL BREAKDOWN (for --breakdown)
+# ============================================================================
+
+# Calculate per-model cost breakdown with token details
+# Args: [since_date] [until_date] — YYYY-MM-DD format, optional
+# Output: TSV lines
+# BREAKDOWN\t{model}\t{sessions}\t{input_tokens}\t{output_tokens}\t{cache_read}\t{cost}
+calculate_model_breakdown() {
+  local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
+
+  local projects_dir
+  projects_dir=$(get_claude_projects_dir 2>/dev/null)
+
+  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
+    return 0
+  fi
+
+  # Narrow search path if project filter specified
+  local search_path="$projects_dir"
+  if [[ -n "$project_filter" ]]; then
+    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
+  fi
+
+  # Determine time range
+  local range_start range_end_iso="" find_days=30
+  if [[ -n "$since_date" ]]; then
+    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null)
+    local since_epoch today_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    else
+      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    fi
+    find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
+  else
+    range_start=$(get_days_ago_start_iso 30)
+  fi
+  if [[ -n "$until_date" ]]; then
+    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null)
+  fi
+
+  local awk_pricing
+  awk_pricing=$(get_awk_pricing_block)
+
+  find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
+    [[ -z "$jsonl_file" ]] && continue
+    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+      [.timestamp, (.message.model // "default"),
+       (.message.usage.input_tokens // 0),
+       (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation_input_tokens // 0),
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+  done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
+  BEGIN {
+$awk_pricing
+  }
+  {
+    ts = \$1
+    gsub(/\.[0-9]+Z?\$/, \"\", ts)
+
+    if (ts < start) next
+    if (end_ts != \"\" && ts >= end_ts) next
+
+    model = \$2
+    input = \$3 + 0
+    output = \$4 + 0
+    cache_write = \$5 + 0
+    cache_read = \$6 + 0
+
+    pricing = p[model]
+    if (pricing == \"\") pricing = p[\"default\"]
+    split(pricing, pr, \" \")
+    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+
+    m_sessions[model]++
+    m_input[model] += input
+    m_output[model] += output
+    m_cache_read[model] += cache_read
+    m_cost[model] += cost
+  }
+  END {
+    for (m in m_sessions) {
+      printf \"BREAKDOWN\t%s\t%d\t%d\t%d\t%d\t%.2f\n\",
+        m, m_sessions[m], m_input[m], m_output[m], m_cache_read[m], m_cost[m]
+    }
+  }"
+}
+
+# ============================================================================
+# PROJECT BREAKDOWN (for --instances)
+# ============================================================================
+
+# Calculate per-project cost breakdown
+# Args: [since_date] [until_date] — YYYY-MM-DD format, optional
+# Output: TSV lines
+# PROJECT\t{sanitized_name}\t{sessions}\t{total_tokens}\t{cost}
+calculate_project_breakdown() {
+  local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
+
+  local projects_dir
+  projects_dir=$(get_claude_projects_dir 2>/dev/null)
+
+  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
+    return 0
+  fi
+
+  # Determine time range
+  local range_start range_end_iso="" find_days=30
+  if [[ -n "$since_date" ]]; then
+    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null)
+    local since_epoch today_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    else
+      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    fi
+    find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
+  else
+    range_start=$(get_days_ago_start_iso 30)
+  fi
+  if [[ -n "$until_date" ]]; then
+    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null)
+  fi
+
+  local awk_pricing
+  awk_pricing=$(get_awk_pricing_block)
+
+  # Iterate over project directories
+  local project_dir
+  for project_dir in "$projects_dir"/*/; do
+    [[ ! -d "$project_dir" ]] && continue
+
+    # Sanitize project name from directory path
+    # Directory names are URL-encoded paths like "-Users-rector-local-dev-foo"
+    local dir_name
+    dir_name=$(basename "$project_dir")
+    local project_name
+    # Extract the last path component as the project name
+    project_name=$(echo "$dir_name" | sed 's/^-//;s/-/\//g' | awk -F'/' '{print $NF}')
+    [[ -z "$project_name" ]] && project_name="$dir_name"
+
+    # Apply project filter if specified
+    if [[ -n "$project_filter" ]]; then
+      if [[ "$project_name" != "$project_filter" && "$project_name" != *"$project_filter"* ]]; then
+        continue
+      fi
+    fi
+
+    # Calculate cost for this project
+    local project_result
+    project_result=$(find "$project_dir" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
+      [[ -z "$jsonl_file" ]] && continue
+      jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+        [.timestamp, (.message.model // "default"),
+         (.message.usage.input_tokens // 0),
+         (.message.usage.output_tokens // 0),
+         (.message.usage.cache_creation_input_tokens // 0),
+         (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+    done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
+    BEGIN {
+$awk_pricing
+      sessions = 0; total_tokens = 0; total_cost = 0
+    }
+    {
+      ts = \$1
+      gsub(/\.[0-9]+Z?\$/, \"\", ts)
+
+      if (ts < start) next
+      if (end_ts != \"\" && ts >= end_ts) next
+
+      model = \$2
+      input = \$3 + 0
+      output = \$4 + 0
+      cache_write = \$5 + 0
+      cache_read = \$6 + 0
+
+      pricing = p[model]
+      if (pricing == \"\") pricing = p[\"default\"]
+      split(pricing, pr, \" \")
+      cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+
+      sessions++
+      total_tokens += input + output
+      total_cost += cost
+    }
+    END {
+      if (sessions > 0)
+        printf \"%d\t%d\t%.2f\n\", sessions, total_tokens, total_cost
+    }")
+
+    if [[ -n "$project_result" ]]; then
+      local p_sessions p_tokens p_cost
+      IFS=$'\t' read -r p_sessions p_tokens p_cost <<< "$project_result"
+      printf "PROJECT\t%s\t%d\t%d\t%.2f\n" "$project_name" "$p_sessions" "$p_tokens" "$p_cost"
+    fi
+  done
+}
+
+# ============================================================================
+# BURN RATE ANALYSIS (for --burn-rate)
+# ============================================================================
+
+# Calculate burn rate metrics from JSONL data
+# Analyzes cost/token velocity, predicts 5-hour block cost
+# Args: [since_date] [until_date] [project_filter] — optional
+# Output: TSV lines
+# RATE\t{total_cost}\t{total_tokens}\t{elapsed_minutes}\t{cost_per_min}\t{tokens_per_min}\t{cost_per_hour}
+# WINDOW\t{minute_bucket}\t{cost}\t{tokens}  (5-minute windows for trending)
+# PREDICTION\t{five_hour_cost}\t{time_to_five_dollars}
+calculate_burn_rate_analysis() {
+  local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
+
+  local projects_dir
+  projects_dir=$(get_claude_projects_dir 2>/dev/null)
+
+  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
+    return 0
+  fi
+
+  # Narrow search path if project filter specified
+  local search_path="$projects_dir"
+  if [[ -n "$project_filter" ]]; then
+    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
+  fi
+
+  # Default to today if no since specified
+  local range_start range_end_iso="" find_days=1
+  if [[ -n "$since_date" ]]; then
+    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null)
+    local since_epoch today_epoch
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    else
+      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null)
+      today_epoch=$(date "+%s")
+    fi
+    find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
+  else
+    range_start=$(get_today_start_iso)
+  fi
+  if [[ -n "$until_date" ]]; then
+    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null)
+  fi
+
+  local awk_pricing
+  awk_pricing=$(get_awk_pricing_block)
+
+  find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
+    [[ -z "$jsonl_file" ]] && continue
+    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+      [.timestamp, (.message.model // "default"),
+       (.message.usage.input_tokens // 0),
+       (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation_input_tokens // 0),
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+  done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
+  BEGIN {
+$awk_pricing
+    total_cost = 0; total_tokens = 0; entries = 0
+    first_ts = \"\"; last_ts = \"\"
+  }
+  {
+    ts = \$1
+    gsub(/\.[0-9]+Z?\$/, \"\", ts)
+
+    if (ts < start) next
+    if (end_ts != \"\" && ts >= end_ts) next
+
+    model = \$2
+    input = \$3 + 0
+    output = \$4 + 0
+    cache_write = \$5 + 0
+    cache_read = \$6 + 0
+
+    pricing = p[model]
+    if (pricing == \"\") pricing = p[\"default\"]
+    split(pricing, pr, \" \")
+    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+
+    total_cost += cost
+    total_tokens += input + output
+    entries++
+
+    if (first_ts == \"\" || ts < first_ts) first_ts = ts
+    if (last_ts == \"\" || ts > last_ts) last_ts = ts
+
+    # Accumulate by 5-minute window for trending
+    split(ts, dt, \"T\")
+    split(dt[2], tm, \":\")
+    h = tm[1] + 0; m = tm[2] + 0
+    bucket = h * 60 + int(m / 5) * 5
+    w_cost[bucket] += cost
+    w_tokens[bucket] += input + output
+  }
+  END {
+    if (entries == 0) exit 0
+
+    # Calculate elapsed minutes from first to last entry
+    split(first_ts, fdt, \"T\"); split(fdt[2], ftm, \":\")
+    split(last_ts, ldt, \"T\"); split(ldt[2], ltm, \":\")
+    f_min = (ftm[1] + 0) * 60 + ftm[2] + 0
+    l_min = (ltm[1] + 0) * 60 + ltm[2] + 0
+    elapsed = l_min - f_min
+    if (elapsed < 1) elapsed = 1
+
+    cost_per_min = total_cost / elapsed
+    tokens_per_min = total_tokens / elapsed
+    cost_per_hour = cost_per_min * 60
+
+    printf \"RATE\t%.2f\t%d\t%d\t%.4f\t%d\t%.2f\n\",
+      total_cost, total_tokens, elapsed, cost_per_min, tokens_per_min, cost_per_hour
+
+    # 5-hour block prediction
+    five_hour_cost = cost_per_min * 300
+    # Time to $5 at current rate (in minutes)
+    time_to_five = (cost_per_min > 0) ? (5.0 / cost_per_min) : 0
+
+    printf \"PREDICTION\t%.2f\t%.0f\n\", five_hour_cost, time_to_five
+
+    # Output window data (sorted by bucket)
+    for (b = 0; b <= 1440; b += 5) {
+      if (w_cost[b] > 0) {
+        printf \"WINDOW\t%d\t%.4f\t%d\n\", b, w_cost[b], w_tokens[b]
+      }
+    }
+  }"
+}
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
 export -f calculate_hourly_breakdown calculate_daily_breakdown
+export -f calculate_model_breakdown calculate_project_breakdown
+export -f calculate_burn_rate_analysis

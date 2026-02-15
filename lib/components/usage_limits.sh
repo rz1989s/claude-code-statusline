@@ -242,8 +242,13 @@ calculate_fair_value_percentage() {
         elapsed_minutes=0
     fi
 
-    # fair_value = (elapsed / total) * 100
-    local fair_value=$((elapsed_minutes * 100 / total_window_minutes))
+    # fair_value = (elapsed / total) * 100, with rounding
+    local fair_value=$(( (elapsed_minutes * 100 + total_window_minutes / 2) / total_window_minutes ))
+
+    # Floor: if any time has elapsed, fair value is at least 1%
+    if [[ "$fair_value" -eq 0 && "$elapsed_minutes" -gt 0 ]]; then
+        fair_value=1
+    fi
 
     echo "$fair_value"
 }

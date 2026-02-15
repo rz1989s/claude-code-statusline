@@ -235,6 +235,24 @@ REPORTS:
     statusline.sh --weekly --json           - Last 7 days report (JSON)
     statusline.sh --monthly                 - Last 30 days report (ASCII table)
     statusline.sh --monthly --json          - Last 30 days report (JSON)
+    statusline.sh --breakdown               - Model cost breakdown (ASCII table)
+    statusline.sh --breakdown --json        - Model cost breakdown (JSON)
+    statusline.sh --instances               - Multi-project cost summary
+    statusline.sh --instances --json        - Multi-project cost summary (JSON)
+    statusline.sh --burn-rate               - Cost/token velocity analysis
+    statusline.sh --burn-rate --json        - Burn rate analysis (JSON)
+
+FILTERS:
+    --since DATE                            - Filter from date (inclusive)
+    --until DATE                            - Filter to date (inclusive)
+    --project NAME                          - Filter to specific project
+    Date formats: YYYYMMDD, YYYY-MM-DD, today, yesterday, 7d, 30d, week, month
+    Examples:
+      statusline.sh --daily --since 20260101
+      statusline.sh --monthly --since 2025-12-01 --until 2025-12-31
+      statusline.sh --breakdown --since 7d
+      statusline.sh --daily --project my-app
+      statusline.sh --monthly --project statusline --since 7d
 
 THEMES:
     Available: classic, garden, catppuccin, ocean, custom
@@ -921,6 +939,9 @@ if [[ $# -gt 0 ]]; then
     _cli_command=""
     _cli_format=""
     _cli_compact=false
+    _cli_since=""
+    _cli_until=""
+    _cli_project=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1083,6 +1104,45 @@ if [[ $# -gt 0 ]]; then
             _cli_command="weekly" ;;
         "--monthly")
             _cli_command="monthly" ;;
+        "--breakdown")
+            _cli_command="breakdown" ;;
+        "--instances")
+            _cli_command="instances" ;;
+        "--burn-rate")
+            _cli_command="burn_rate" ;;
+        "--since")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --since requires a date argument" >&2; exit 1
+            fi
+            _cli_since=$(parse_date_arg "$1") || exit 1
+            ;;
+        --since=*)
+            _cli_since=$(parse_date_arg "${1#--since=}") || exit 1
+            ;;
+        "--until")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --until requires a date argument" >&2; exit 1
+            fi
+            _cli_until=$(parse_date_arg "$1") || exit 1
+            ;;
+        --until=*)
+            _cli_until=$(parse_date_arg "${1#--until=}") || exit 1
+            ;;
+        "--project")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --project requires a project name" >&2; exit 1
+            fi
+            _cli_project="$1"
+            ;;
+        --project=*)
+            _cli_project="${1#--project=}"
+            if [[ -z "$_cli_project" ]]; then
+                echo "Error: --project requires a project name" >&2; exit 1
+            fi
+            ;;
 
         *)
             echo "Unknown option: $1" >&2
@@ -1092,6 +1152,38 @@ if [[ $# -gt 0 ]]; then
         esac
         shift
     done
+
+    # Validate --since/--until range
+    if [[ -n "$_cli_since" && -n "$_cli_until" ]]; then
+        if [[ "$_cli_since" > "$_cli_until" ]]; then
+            echo "Error: --since date must be before --until date" >&2
+            exit 1
+        fi
+    fi
+
+    # Validate --project if specified (resolve and check for ambiguity/no match)
+    if [[ -n "$_cli_project" ]]; then
+        _projects_dir=$(get_claude_projects_dir 2>/dev/null)
+        if [[ -z "$_projects_dir" || ! -d "$_projects_dir" ]]; then
+            echo "Error: No Claude projects directory found" >&2
+            exit 1
+        fi
+        set +e
+        _resolve_err=$(resolve_project_filter "$_cli_project" "$_projects_dir" 2>&1 >/dev/null)
+        _resolve_rc=$?
+        set -e
+        if [[ $_resolve_rc -eq 1 ]]; then
+            echo "Error: No project found matching '$_cli_project'" >&2
+            echo "Available projects:" >&2
+            echo "$_resolve_err" | grep "^  -" >&2
+            exit 1
+        elif [[ $_resolve_rc -eq 2 ]]; then
+            echo "Error: Multiple projects match '$_cli_project'" >&2
+            echo "$_resolve_err" | grep "^  -" >&2
+            echo "Use a more specific name." >&2
+            exit 1
+        fi
+    fi
 
     # Dispatch accumulated command
     case "$_cli_command" in
@@ -1105,13 +1197,22 @@ if [[ $# -gt 0 ]]; then
             show_json_export "$_cli_compact"
             exit $? ;;
         "daily")
-            show_daily_report "${_cli_format:-human}" "$_cli_compact"
+            show_daily_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
         "weekly")
-            show_weekly_report "${_cli_format:-human}" "$_cli_compact"
+            show_weekly_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
         "monthly")
-            show_monthly_report "${_cli_format:-human}" "$_cli_compact"
+            show_monthly_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "breakdown")
+            show_breakdown_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "instances")
+            show_instances_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "burn_rate")
+            show_burn_rate_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
     esac
 fi
