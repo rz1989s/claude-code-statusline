@@ -39,9 +39,9 @@ bats tests/unit/test_platform_compatibility.bats
 
 **Core Modules** (11): core → security → config → themes → cache → git → mcp → cost → prayer → components → display
 
-**Atomic Components** (21):
+**Atomic Components** (22):
 - **Repository & Git** (4): repo_info, commits, submodules, version_info
-- **Model & Session** (4): model_info, cost_repo, cost_live, reset_timer
+- **Model & Session** (5): model_info, bedrock_model, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
 - **Block Metrics** (4): burn_rate, token_usage, cache_efficiency, block_projection
 - **System** (2): mcp_status, time_display
