@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.17.0 | **Claude Code**: v2.1.6–v2.1.33 ✓ | **Branch**: dev → nightly → main
+**Current**: v2.18.0 | **Claude Code**: v2.1.6–v2.1.42 ✓ | **Branch**: feat/fix/chore → nightly → main
 **Architecture**: Single Config.toml (227 settings), modular cache (8 sub-modules), 91.5% code reduction
 **Features**: 7-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
