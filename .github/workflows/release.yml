@@ -122,3 +122,37 @@ jobs:
           git push origin latest --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    needs: [validate, release]
+
+    steps:
+      - name: Compute tarball SHA256
+        id: sha
+        run: |
+          VERSION=${{ needs.validate.outputs.version }}
+          SHA=$(curl -sSL "https://github.com/rz1989s/claude-code-statusline/archive/refs/tags/v${VERSION}.tar.gz" | shasum -a 256 | awk '{print $1}')
+          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v6
+        with:
+          repository: rz1989s/homebrew-tap
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+
+      - name: Update formula version and SHA
+        run: |
+          VERSION=${{ needs.validate.outputs.version }}
+          SHA=${{ steps.sha.outputs.sha256 }}
+          sed -i "s|url \"https://github.com/rz1989s/claude-code-statusline/archive/refs/tags/v.*\.tar\.gz\"|url \"https://github.com/rz1989s/claude-code-statusline/archive/refs/tags/v${VERSION}.tar.gz\"|" Formula/claude-code-statusline.rb
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA}\"|" Formula/claude-code-statusline.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/claude-code-statusline.rb
+          git commit -m "bump claude-code-statusline to v${{ needs.validate.outputs.version }}"
+          git push origin main
