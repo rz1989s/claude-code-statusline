@@ -9,6 +9,9 @@ setup() {
     common_setup
     STATUSLINE_TESTING="true"
     export STATUSLINE_TESTING
+    # Prevent scanning real JSONL files (2500+ files = 23s per invocation)
+    export CLAUDE_CONFIG_DIR="$TEST_TMP_DIR/claude_config"
+    mkdir -p "$CLAUDE_CONFIG_DIR/projects"
     STATUSLINE_CLI_REPORT_FORMAT_LOADED=""
     source "$STATUSLINE_ROOT/lib/cli/report_format.sh" 2>/dev/null || true
 }
