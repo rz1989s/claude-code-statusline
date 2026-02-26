@@ -6,9 +6,9 @@
 setup() {
     export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
     cd "$STATUSLINE_DIR"
-    
-    # Create test directory for TOML configs
-    export TEST_CONFIG_DIR="/tmp/toml_simple_tests"
+
+    # Create PID-isolated test directory
+    export TEST_CONFIG_DIR="/tmp/toml_simple_tests_$$"
     mkdir -p "$TEST_CONFIG_DIR"
 }
 

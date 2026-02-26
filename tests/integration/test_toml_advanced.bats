@@ -3,21 +3,23 @@
 # Advanced TOML Configuration Tests
 # Tests schema validation, error handling, and migration scenarios
 
-setup() {
+setup_file() {
     export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
     export PATH="$STATUSLINE_DIR:$PATH"
     cd "$STATUSLINE_DIR"
-    
-    # Create test directory for advanced TOML tests
-    export TEST_CONFIG_DIR="/tmp/toml_advanced_tests"
-    mkdir -p "$TEST_CONFIG_DIR"
-    
-    # Source the statusline script for function access
-    local saved_args=("$@")
-    set --
+
+    # Source the statusline script once for all tests in this file
     export STATUSLINE_TESTING="true"
     source statusline.sh 2>/dev/null || true
-    set -- "${saved_args[@]}"
+}
+
+setup() {
+    export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
+    cd "$STATUSLINE_DIR"
+
+    # Create PID-isolated test directory
+    export TEST_CONFIG_DIR="/tmp/toml_advanced_tests_$$"
+    mkdir -p "$TEST_CONFIG_DIR"
 }
 
 teardown() {
