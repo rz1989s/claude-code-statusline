@@ -243,6 +243,8 @@ REPORTS:
     statusline.sh --burn-rate --json        - Burn rate analysis (JSON)
     statusline.sh --commits                 - Cost per commit attribution
     statusline.sh --commits --json          - Commit costs (JSON)
+    statusline.sh --mcp-costs               - MCP server cost attribution
+    statusline.sh --mcp-costs --json        - MCP server costs (JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -1114,6 +1116,8 @@ if [[ $# -gt 0 ]]; then
             _cli_command="burn_rate" ;;
         "--commits")
             _cli_command="commits" ;;
+        "--mcp-costs")
+            _cli_command="mcp_costs" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1220,6 +1224,9 @@ if [[ $# -gt 0 ]]; then
             exit $? ;;
         "commits")
             show_commit_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "mcp_costs")
+            show_mcp_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
     esac
 fi
