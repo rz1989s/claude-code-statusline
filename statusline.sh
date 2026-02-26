@@ -241,6 +241,8 @@ REPORTS:
     statusline.sh --instances --json        - Multi-project cost summary (JSON)
     statusline.sh --burn-rate               - Cost/token velocity analysis
     statusline.sh --burn-rate --json        - Burn rate analysis (JSON)
+    statusline.sh --commits                 - Cost per commit attribution
+    statusline.sh --commits --json          - Commit costs (JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -1110,6 +1112,8 @@ if [[ $# -gt 0 ]]; then
             _cli_command="instances" ;;
         "--burn-rate")
             _cli_command="burn_rate" ;;
+        "--commits")
+            _cli_command="commits" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1213,6 +1217,9 @@ if [[ $# -gt 0 ]]; then
             exit $? ;;
         "burn_rate")
             show_burn_rate_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "commits")
+            show_commit_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
     esac
 fi
