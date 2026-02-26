@@ -9,8 +9,9 @@
 # - show_daily_report()   - Today's hourly cost breakdown (--daily)
 # - show_weekly_report()  - 7-day cost breakdown with WoW comparison (--weekly)
 # - show_monthly_report() - 30-day cost breakdown with bar chart (--monthly)
+# - show_trends_report()  - Historical cost trends with ASCII chart (--trends)
 #
-# Dependencies: report_format.sh, cost modules, core.sh
+# Dependencies: report_format.sh, charts.sh, cost modules, core.sh
 # ============================================================================
 
 # Prevent multiple includes
@@ -1441,9 +1442,42 @@ show_mcp_cost_report() {
   echo ""
 }
 
+# ============================================================================
+# HISTORICAL TRENDS REPORT (Issue #217)
+# ============================================================================
+
+# Show historical cost trends with ASCII chart
+# Delegates to charts.sh module for rendering
+# Usage: show_trends_report [format] [compact] [since] [until] [project] [period]
+# show_trends_report() is defined in lib/cli/charts.sh and sourced on demand
+# This wrapper ensures the charts module is loaded
+if ! declare -f show_trends_report &>/dev/null; then
+  show_trends_report() {
+    local format="${1:-human}"
+    local compact="${2:-false}"
+    local since="${3:-}" until="${4:-}" project="${5:-}"
+    local period="${6:-30d}"
+
+    # Source charts module which defines the real show_trends_report
+    source "${CLI_LIB_DIR}/charts.sh" 2>/dev/null || {
+      echo "Error: charts module not available" >&2
+      return 1
+    }
+
+    # Safety: verify the real function was loaded to prevent infinite recursion
+    if [[ "${STATUSLINE_CLI_CHARTS_LOADED:-}" != "true" ]]; then
+      echo "Error: charts module failed to initialize" >&2
+      return 1
+    fi
+
+    # Delegate to the real implementation from charts.sh
+    show_trends_report "$format" "$compact" "$since" "$until" "$project" "$period"
+  }
+fi
+
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
 export -f show_breakdown_report show_instances_report show_burn_rate_report
-export -f show_commit_cost_report show_mcp_cost_report
+export -f show_commit_cost_report show_mcp_cost_report show_trends_report
