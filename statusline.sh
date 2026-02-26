@@ -245,6 +245,8 @@ REPORTS:
     statusline.sh --commits --json          - Commit costs (JSON)
     statusline.sh --mcp-costs               - MCP server cost attribution
     statusline.sh --mcp-costs --json        - MCP server costs (JSON)
+    statusline.sh --watch                   - Live monitoring mode (10s refresh)
+    statusline.sh --watch --refresh 5       - Custom refresh interval
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -946,6 +948,7 @@ if [[ $# -gt 0 ]]; then
     _cli_since=""
     _cli_until=""
     _cli_project=""
+    _cli_refresh=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1118,6 +1121,16 @@ if [[ $# -gt 0 ]]; then
             _cli_command="commits" ;;
         "--mcp-costs")
             _cli_command="mcp_costs" ;;
+        "--watch")
+            _cli_command="watch" ;;
+        "--refresh")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --refresh requires an interval" >&2; exit 1
+            fi
+            _cli_refresh="$1" ;;
+        --refresh=*)
+            _cli_refresh="${1#--refresh=}" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1227,6 +1240,10 @@ if [[ $# -gt 0 ]]; then
             exit $? ;;
         "mcp_costs")
             show_mcp_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "watch")
+            source "$SCRIPT_DIR/lib/cli/watch.sh" 2>/dev/null || { echo "Error: watch module not found" >&2; exit 1; }
+            show_watch_mode "${_cli_refresh:-10}"
             exit $? ;;
     esac
 fi
