@@ -1441,9 +1441,125 @@ show_mcp_cost_report() {
   echo ""
 }
 
+# ============================================================================
+# RECOMMENDATIONS REPORT (Issue #221)
+# ============================================================================
+
+show_recommendations_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+
+  local rec_data
+  rec_data=$(generate_recommendations "$since" "$until" "$project" 2>/dev/null) || true
+
+  if [[ "$format" == "json" ]]; then
+    _recommendations_report_json "$rec_data" "$compact"
+  else
+    _recommendations_report_human "$rec_data"
+  fi
+
+  return 0
+}
+
+# Human-readable recommendations report
+_recommendations_report_human() {
+  local rec_data="$1"
+
+  echo "Claude Code - Smart Cost Recommendations"
+  echo "========================================="
+  echo ""
+
+  if [[ -z "$rec_data" ]]; then
+    echo "No recommendations at this time. Your usage patterns look efficient."
+    echo ""
+    echo "Checks performed:"
+    echo "  - Cache efficiency"
+    echo "  - Session cost spikes"
+    echo "  - Budget pacing"
+    echo "  - Average session cost"
+    echo "  - Idle time detection"
+    return 0
+  fi
+
+  local count=0
+  local high_count=0 medium_count=0 low_count=0
+
+  while IFS=$'\t' read -r priority category message savings; do
+    [[ -z "$priority" ]] && continue
+    count=$((count + 1))
+
+    local icon="  "
+    case "$priority" in
+      HIGH)   icon="!!"; high_count=$((high_count + 1)) ;;
+      MEDIUM) icon="! "; medium_count=$((medium_count + 1)) ;;
+      LOW)    icon="i "; low_count=$((low_count + 1)) ;;
+    esac
+
+    printf "[%s] %-7s [%-10s] %s\n" "$icon" "$priority" "$category" "$message"
+    if [[ -n "$savings" && "$savings" != "-" ]]; then
+      printf "    %s Potential savings: %s\n" "" "$savings"
+    fi
+    echo ""
+  done <<< "$rec_data"
+
+  echo "-----------------------------------------"
+  printf "Total: %d recommendation(s)" "$count"
+  if [[ "$high_count" -gt 0 ]]; then
+    printf " (%d high" "$high_count"
+    if [[ "$medium_count" -gt 0 || "$low_count" -gt 0 ]]; then
+      printf ", %d medium, %d low" "$medium_count" "$low_count"
+    fi
+    printf ")"
+  fi
+  echo ""
+}
+
+# JSON recommendations report
+_recommendations_report_json() {
+  local rec_data="$1"
+  local compact="${2:-false}"
+
+  local items_json="[]"
+  if [[ -n "$rec_data" ]]; then
+    items_json=$(echo "$rec_data" | grep -v '^$' | awk -F'\t' '
+    BEGIN { printf "["; first = 1 }
+    {
+      if (!first) printf ","
+      first = 0
+      gsub(/"/, "\\\"", $3)
+      gsub(/"/, "\\\"", $4)
+      printf "{\"priority\":\"%s\",\"category\":\"%s\",\"message\":\"%s\",\"savings_estimate\":\"%s\"}", $1, $2, $3, $4
+    }
+    END { printf "]" }')
+  fi
+
+  local count
+  count=$(echo "$items_json" | jq 'length' 2>/dev/null) || count=0
+  local high_count
+  high_count=$(echo "$items_json" | jq '[.[] | select(.priority == "HIGH")] | length' 2>/dev/null) || high_count=0
+
+  if [[ "$compact" == "true" ]]; then
+    jq -n -c \
+      --arg report "recommendations" \
+      --argjson count "$count" \
+      --argjson high_priority "$high_count" \
+      --argjson items "$items_json" \
+      '{report:$report,count:$count,high_priority:$high_priority,recommendations:$items}'
+  else
+    jq -n \
+      --arg report "recommendations" \
+      --argjson count "$count" \
+      --argjson high_priority "$high_count" \
+      --argjson items "$items_json" \
+      '{report:$report,count:$count,high_priority:$high_priority,recommendations:$items}'
+  fi
+}
+
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
 export -f show_breakdown_report show_instances_report show_burn_rate_report
 export -f show_commit_cost_report show_mcp_cost_report
+export -f show_recommendations_report
