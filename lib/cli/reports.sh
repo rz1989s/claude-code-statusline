@@ -1295,8 +1295,79 @@ _burn_rate_report_json() {
 }
 
 # ============================================================================
+# ============================================================================
+# COMMIT COST REPORT (Issue #215)
+# ============================================================================
+
+show_commit_cost_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+  local repo_dir="${STATUSLINE_WORKING_DIR:-$(pwd)}"
+
+  if [[ "$format" == "json" ]]; then
+    local results
+    results=$(calculate_commit_costs "$repo_dir")
+    if [[ -z "$results" ]]; then
+      echo "[]"
+      return 0
+    fi
+    echo "$results" | jq -Rs '
+      split("\n") | map(select(length > 0)) |
+      map(split("\t") | {
+        commit: .[0],
+        timestamp: (.[1] | tonumber),
+        message: .[2],
+        cost_usd: (.[3] | tonumber),
+        tokens: (.[4] | tonumber),
+        relative: .[5]
+      })
+    '
+    return 0
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "commit,message,cost_usd,tokens,relative_time"
+    local results
+    results=$(calculate_commit_costs "$repo_dir")
+    [[ -z "$results" ]] && return 0
+    while IFS=$'\t' read -r hash ts msg cost tokens rel; do
+      printf '"%s","%s",%s,%s,"%s"\n' "${hash:0:7}" "$msg" "$cost" "$tokens" "$rel"
+    done <<< "$results"
+    return 0
+  fi
+
+  # Human format
+  echo ""
+  echo "  Commit Attribution"
+  echo "  ════════════════════════════════════════════════════════════════"
+  echo "  Commit          │ Message                      │   Cost │ Tokens"
+  echo "  ────────────────┼──────────────────────────────┼────────┼───────"
+
+  local results total_cost=0 total_tokens=0 count=0
+  results=$(calculate_commit_costs "$repo_dir")
+  if [[ -z "$results" ]]; then
+    echo "  (no commits found in lookback period)"
+    echo ""
+    return 0
+  fi
+
+  while IFS=$'\t' read -r hash ts msg cost tokens rel; do
+    [[ -z "$hash" ]] && continue
+    printf "  %-8s(%6s)│ %-28s │ \$%5s │ %5s\n" "${hash:0:7}" "$rel" "$msg" "$cost" "${tokens}"
+    total_cost=$(awk "BEGIN { printf \"%.2f\", $total_cost + ${cost:-0} }")
+    total_tokens=$((total_tokens + ${tokens:-0}))
+    count=$((count + 1))
+  done <<< "$results"
+
+  echo "  ────────────────┼──────────────────────────────┼────────┼───────"
+  printf "  %-16s│ Total (%d commits)%11s│ \$%5s │ %5s\n" "" "$count" "" "$total_cost" "$total_tokens"
+  echo ""
+}
+
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
 export -f show_breakdown_report show_instances_report show_burn_rate_report
+export -f show_commit_cost_report
