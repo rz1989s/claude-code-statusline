@@ -245,6 +245,8 @@ REPORTS:
     statusline.sh --commits --json          - Commit costs (JSON)
     statusline.sh --mcp-costs               - MCP server cost attribution
     statusline.sh --mcp-costs --json        - MCP server costs (JSON)
+    statusline.sh --recommendations            - Smart cost optimization tips
+    statusline.sh --recommendations --json     - Cost recommendations (JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -1118,6 +1120,8 @@ if [[ $# -gt 0 ]]; then
             _cli_command="commits" ;;
         "--mcp-costs")
             _cli_command="mcp_costs" ;;
+        "--recommendations")
+            _cli_command="recommendations" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1227,6 +1231,9 @@ if [[ $# -gt 0 ]]; then
             exit $? ;;
         "mcp_costs")
             show_mcp_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "recommendations")
+            show_recommendations_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
     esac
 fi
