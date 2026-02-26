@@ -21,15 +21,15 @@
 [[ "${STATUSLINE_PRAYER_ICON_LOADED:-}" == "true" ]] && return 0
 
 # Component data storage (must be global to persist between collect and render phases)
-declare -g COMPONENT_PRAYER_ICON_CURRENT=""
-declare -g COMPONENT_PRAYER_ICON_INDEX=-1
+COMPONENT_PRAYER_ICON_CURRENT=""
+COMPONENT_PRAYER_ICON_INDEX=-1
 
 # ============================================================================
 # ICON DEFINITIONS
 # ============================================================================
 
 # Prayer icons (minimalist circles representing sun/moon cycle)
-declare -gA PRAYER_ICONS=(
+declare -A PRAYER_ICONS=(
     [0]="◐"  # Fajr - dawn breaking (half-filled, light side right)
     [1]="●"  # Dhuhr - full sun (solid circle)
     [2]="◑"  # Asr - sun declining (half-filled, light side left)
@@ -38,7 +38,7 @@ declare -gA PRAYER_ICONS=(
 )
 
 # Prayer names for debugging
-declare -ga PRAYER_NAMES=("Fajr" "Dhuhr" "Asr" "Maghrib" "Isha")
+declare -a PRAYER_NAMES=("Fajr" "Dhuhr" "Asr" "Maghrib" "Isha")
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
@@ -98,9 +98,9 @@ collect_prayer_icon_data() {
         current_index=$((next_prayer_index - 1))
     fi
 
-    # Assign to global variables (must use declare -g to persist across function calls)
-    declare -g COMPONENT_PRAYER_ICON_INDEX=$current_index
-    declare -g COMPONENT_PRAYER_ICON_CURRENT="${PRAYER_NAMES[$current_index]}"
+    # Assign to global variables (declared at file scope above)
+    COMPONENT_PRAYER_ICON_INDEX=$current_index
+    COMPONENT_PRAYER_ICON_CURRENT="${PRAYER_NAMES[$current_index]}"
 
     debug_log "Current prayer: $COMPONENT_PRAYER_ICON_CURRENT (index: $current_index)" "INFO"
 

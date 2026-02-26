@@ -47,9 +47,9 @@ CONFIG_GITHUB_CI_UNKNOWN="${CONFIG_GITHUB_CI_UNKNOWN:-?}"
 # ============================================================================
 
 # Global rate limit state
-declare -g GITHUB_RATE_LIMITED="false"
-declare -g GITHUB_RATE_REMAINING=""
-declare -g GITHUB_RATE_RESET=""
+GITHUB_RATE_LIMITED="false"
+GITHUB_RATE_REMAINING=""
+GITHUB_RATE_RESET=""
 
 # Check API rate limit status
 # Returns: 0 if OK to proceed, 1 if rate limited
