@@ -249,6 +249,9 @@ REPORTS:
     statusline.sh --recommendations --json     - Cost recommendations (JSON)
     statusline.sh --watch                   - Live monitoring mode (10s refresh)
     statusline.sh --watch --refresh 5       - Custom refresh interval
+    statusline.sh --trends                  - Historical cost trends (ASCII chart)
+    statusline.sh --trends --period 7d      - Cost trends for last 7 days
+    statusline.sh --trends --json           - Cost trends (JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -951,6 +954,7 @@ if [[ $# -gt 0 ]]; then
     _cli_until=""
     _cli_project=""
     _cli_refresh=""
+    _cli_period=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1135,6 +1139,16 @@ if [[ $# -gt 0 ]]; then
             _cli_refresh="$1" ;;
         --refresh=*)
             _cli_refresh="${1#--refresh=}" ;;
+        "--trends")
+            _cli_command="trends" ;;
+        "--period")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --period requires a duration argument" >&2; exit 1
+            fi
+            _cli_period="$1" ;;
+        --period=*)
+            _cli_period="${1#--period=}" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1251,6 +1265,10 @@ if [[ $# -gt 0 ]]; then
         "watch")
             source "$SCRIPT_DIR/lib/cli/watch.sh" 2>/dev/null || { echo "Error: watch module not found" >&2; exit 1; }
             show_watch_mode "${_cli_refresh:-10}"
+            exit $? ;;
+        "trends")
+            source "${SCRIPT_DIR}/lib/cli/charts.sh" 2>/dev/null || { echo "Error: charts module not found" >&2; exit 1; }
+            show_trends_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project" "${_cli_period:-30d}"
             exit $? ;;
     esac
 fi
