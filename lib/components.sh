@@ -20,13 +20,13 @@ export STATUSLINE_COMPONENTS_LOADED=true
 # ============================================================================
 
 # Component registry - associative array of registered components
-declare -gA STATUSLINE_COMPONENT_REGISTRY=()
-declare -ga STATUSLINE_COMPONENT_ORDER=()
+declare -A STATUSLINE_COMPONENT_REGISTRY=()
+declare -a STATUSLINE_COMPONENT_ORDER=()
 
 # Component metadata
-declare -gA COMPONENT_DESCRIPTIONS=()
-declare -gA COMPONENT_DEPENDENCIES=()
-declare -gA COMPONENT_ENABLED=()
+declare -A COMPONENT_DESCRIPTIONS=()
+declare -A COMPONENT_DEPENDENCIES=()
+declare -A COMPONENT_ENABLED=()
 
 # ============================================================================
 # COMPONENT BASE STRUCTURE
@@ -184,7 +184,7 @@ get_configured_components() {
 
 # Collect data for only configured components (optimized)
 # Uses guard to prevent double collection in same execution
-declare -g _COMPONENT_DATA_COLLECTED=""
+_COMPONENT_DATA_COLLECTED=""
 
 collect_all_component_data() {
     # Guard: skip if already collected in this execution
