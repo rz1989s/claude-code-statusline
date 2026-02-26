@@ -1365,9 +1365,85 @@ show_commit_cost_report() {
   echo ""
 }
 
+# ============================================================================
+# MCP COST REPORT (Issue #216)
+# ============================================================================
+
+show_mcp_cost_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+
+  if [[ "$format" == "json" ]]; then
+    local results
+    results=$(calculate_mcp_costs "$project")
+    if [[ -z "$results" ]]; then
+      echo "[]"
+      return 0
+    fi
+    echo "$results" | jq -Rs '
+      split("\n") | map(select(length > 0)) |
+      map(split("\t") | {
+        server: .[0],
+        calls: (.[1] | tonumber),
+        tokens: (.[2] | tonumber),
+        cost_usd: (.[3] | tonumber),
+        share_percent: (.[4] | tonumber)
+      })
+    '
+    return 0
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "server,calls,tokens,cost_usd,share_percent"
+    local results
+    results=$(calculate_mcp_costs "$project")
+    [[ -z "$results" ]] && return 0
+    while IFS=$'\t' read -r server calls tokens cost share; do
+      printf '"%s",%s,%s,%s,%s\n' "$server" "$calls" "$tokens" "$cost" "$share"
+    done <<< "$results"
+    return 0
+  fi
+
+  # Human format
+  echo ""
+  echo "  MCP Cost Attribution"
+  echo "  ════════════════════════════════════════════════════════════════"
+  echo "  MCP Server      │ Calls │  Tokens │   Cost │ Share"
+  echo "  ────────────────┼───────┼─────────┼────────┼──────"
+
+  local results total_calls=0 total_tokens=0 total_cost=0
+  results=$(calculate_mcp_costs "$project")
+  if [[ -z "$results" ]]; then
+    echo "  (no MCP tool usage found)"
+    echo ""
+    return 0
+  fi
+
+  while IFS=$'\t' read -r server calls tokens cost share; do
+    [[ -z "$server" ]] && continue
+    local formatted_tokens
+    if [[ "${tokens:-0}" -ge 1000000 ]]; then
+      formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000000 }")M"
+    elif [[ "${tokens:-0}" -ge 1000 ]]; then
+      formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000 }")K"
+    else
+      formatted_tokens="$tokens"
+    fi
+    printf "  %-16s│ %5s │ %7s │ \$%5s │ %3s%%\n" "$server" "$calls" "$formatted_tokens" "$cost" "$share"
+    total_calls=$((total_calls + calls))
+    total_tokens=$((total_tokens + tokens))
+    total_cost=$(awk "BEGIN { printf \"%.2f\", $total_cost + ${cost:-0} }")
+  done <<< "$results"
+
+  echo "  ────────────────┼───────┼─────────┼────────┼──────"
+  printf "  %-16s│ %5s │ %7s │ \$%5s │ 100%%\n" "Total" "$total_calls" "$total_tokens" "$total_cost"
+  echo ""
+}
+
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
 export -f show_breakdown_report show_instances_report show_burn_rate_report
-export -f show_commit_cost_report
+export -f show_commit_cost_report show_mcp_cost_report

@@ -83,6 +83,11 @@ source "${COST_LIB_DIR}/cost/commit_attribution.sh" 2>/dev/null || {
     debug_log "Failed to load cost/commit_attribution.sh - commit cost attribution disabled" "WARN"
 }
 
+# shellcheck source=cost/mcp_attribution.sh
+source "${COST_LIB_DIR}/cost/mcp_attribution.sh" 2>/dev/null || {
+    debug_log "Failed to load cost/mcp_attribution.sh - MCP cost attribution disabled" "WARN"
+}
+
 # ============================================================================
 # FILE-BASED CACHE FOR STATUSLINE RENDER (Issue #147)
 # ============================================================================
