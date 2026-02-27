@@ -85,20 +85,15 @@ show_json_export() {
     cost_repo=$(calculate_native_repo_cost "$current_dir" 2>/dev/null || echo "0.00")
   fi
 
-  # MCP info
+  # MCP info — use native JSON input if available (avoid claude mcp list which hangs in CLI context)
   local mcp_connected="0" mcp_total="0" mcp_servers="[]"
-  if declare -f is_module_loaded &>/dev/null && is_module_loaded "mcp" && declare -f is_claude_cli_available &>/dev/null && is_claude_cli_available; then
-    local mcp_status_raw
-    mcp_status_raw=$(get_mcp_status 2>/dev/null)
-    if [[ "$mcp_status_raw" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-      mcp_connected="${BASH_REMATCH[1]}"
-      mcp_total="${BASH_REMATCH[2]}"
-    fi
-    local servers_raw
-    servers_raw=$(get_all_mcp_servers 2>/dev/null)
-    if [[ -n "$servers_raw" && "$servers_raw" != "none" ]]; then
-      mcp_servers=$(echo "$servers_raw" | tr ',' '\n' | jq -R . | jq -s .)
-    fi
+  if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+    # Extract MCP data from Claude Code's native JSON input (fast, no subprocess)
+    local mcp_count
+    mcp_count=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | length // 0' 2>/dev/null) || mcp_count=0
+    mcp_total="$mcp_count"
+    mcp_connected="$mcp_count"
+    mcp_servers=$(echo "$STATUSLINE_INPUT_JSON" | jq -c '[.mcp.servers[]?.name // empty]' 2>/dev/null) || mcp_servers="[]"
   fi
 
   # Prayer info
