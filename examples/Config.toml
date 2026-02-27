@@ -1003,6 +1003,23 @@ wellness.warn_minutes = 90
 wellness.urgent_minutes = 120
 wellness.show_in_statusline = true
 
+# === FOCUS SESSION CONFIGURATION (Issue #220) ===
+# Track concentrated work periods with automatic timing.
+# Use `statusline.sh --focus start` to begin a session,
+# `--focus stop` to end and record, `--focus status` to check progress.
+#
+# Display examples:
+#   FOCUS | 23m/50m           # Active session showing elapsed/target
+#
+# Usage: Add "focus_session" to your line components:
+#   display.line2.components = ["model_info", "focus_session", "cost_repo"]
+
+focus.enabled = true                    # Enable focus session tracking
+focus.default_duration = 50             # Default session target in minutes
+focus.show_in_statusline = true         # Show active session in statusline
+focus.track_commits = true              # Track commits during session
+focus.track_cost = true                 # Track API cost during session
+
 # ============================================================================
 # TEMPLATE MAINTENANCE NOTES
 # ============================================================================

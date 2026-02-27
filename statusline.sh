@@ -259,6 +259,11 @@ REPORTS:
     statusline.sh --trends --json           - Cost trends (JSON)
     statusline.sh --limits                  - System limit warnings status
     statusline.sh --limits --json           - Limit warnings (JSON)
+    statusline.sh --focus start             - Start focus session
+    statusline.sh --focus stop              - Stop and show summary
+    statusline.sh --focus status            - Current session info
+    statusline.sh --focus history           - Session history
+    statusline.sh --focus history --json    - History (JSON)
 
 OUTPUT FORMAT:
     --csv                                   - Output in CSV format
@@ -967,6 +972,7 @@ if [[ $# -gt 0 ]]; then
     _cli_project=""
     _cli_refresh=""
     _cli_period=""
+    _cli_focus_action=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1157,6 +1163,12 @@ if [[ $# -gt 0 ]]; then
             _cli_command="trends" ;;
         "--limits")
             _cli_command="limits" ;;
+        "--focus")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --focus requires: start|stop|status|history" >&2; exit 1
+            fi
+            _cli_command="focus"; _cli_focus_action="$1" ;;
         "--period")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1289,6 +1301,15 @@ if [[ $# -gt 0 ]]; then
         "limits")
             show_limits_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
+        "focus")
+            source "$SCRIPT_DIR/lib/focus.sh" 2>/dev/null || { echo "Error: focus module not found" >&2; exit 1; }
+            case "$_cli_focus_action" in
+                start) focus_start; exit $? ;;
+                stop) focus_stop; exit $? ;;
+                status) focus_status; exit $? ;;
+                history) focus_history "${_cli_format:-human}"; exit $? ;;
+                *) echo "Error: unknown focus action: $_cli_focus_action" >&2; exit 1 ;;
+            esac ;;
     esac
 fi
 
