@@ -34,13 +34,12 @@ calculate_mcp_costs() {
   fi
 
   # Scan JSONL files for tool_use entries with mcp__ prefix
+  # Use xargs for batch processing instead of per-file jq calls
   local mcp_data
-  mcp_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -30 2>/dev/null | while read -r f; do
-    [[ -f "$f" ]] || continue
-    jq -r 'select(.type == "assistant") | select(.message.content) |
+  mcp_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -30 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.content) |
       .message.content[] | select(.type == "tool_use") | select(.name | startswith("mcp__")) |
-      .name' "$f" 2>/dev/null
-  done)
+      .name' 2>/dev/null)
 
   [[ -z "$mcp_data" ]] && return 0
 

@@ -113,15 +113,13 @@ check_session_spike_recommendation() {
 
   # Gather per-session costs
   local session_data
-  session_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
-    [[ -z "$jsonl_file" ]] && continue
-    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+  session_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-  done | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
 BEGIN {
 $awk_pricing
   session_count = 0; total_cost = 0
@@ -198,15 +196,13 @@ check_budget_pacing_recommendation() {
   awk_pricing=$(get_awk_pricing_block 2>/dev/null) || return 0
 
   local today_cost
-  today_cost=$(find "$search_path" -name "*.jsonl" -type f -mtime -2 2>/dev/null | while read -r jsonl_file; do
-    [[ -z "$jsonl_file" ]] && continue
-    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+  today_cost=$(find "$search_path" -name "*.jsonl" -type f -mtime -2 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-  done | awk -F'\t' -v start="${range_start:-}" "
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" "
 BEGIN {
 $awk_pricing
   total = 0
@@ -296,15 +292,13 @@ check_high_avg_cost_recommendation() {
   fi
 
   local avg_data
-  avg_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
-    [[ -z "$jsonl_file" ]] && continue
-    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+  avg_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
-  done | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
 BEGIN {
 $awk_pricing
   total_cost = 0; file_count = 0
@@ -397,11 +391,9 @@ check_idle_burn_recommendation() {
   fi
 
   local idle_data
-  idle_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
-    [[ -z "$jsonl_file" ]] && continue
-    jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
-      .timestamp' "$jsonl_file" 2>/dev/null
-  done | sort | awk -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" -v idle_min="$idle_threshold" '
+  idle_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+      .timestamp' 2>/dev/null | sort | awk -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" -v idle_min="$idle_threshold" '
 BEGIN { prev = ""; gaps = 0; max_gap = 0 }
 {
   ts = $1
