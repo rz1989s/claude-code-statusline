@@ -266,6 +266,19 @@ show_daily_report() {
     period_label="$since to $until"
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "date,day,sessions,cost_usd,tokens"
+    if [[ -n "$hourly_data" ]]; then
+      local total_tokens
+      total_tokens=$(echo "$hourly_data" | awk -F'\t' '{ t += $4 + $5 } END { printf "%d", t }')
+      printf '%s,%s,%s,%s,%s\n' \
+        "$(csv_escape_field "$report_date")" \
+        "$(csv_escape_field "$report_weekday")" \
+        "$total_sessions" "$total_cost" "$total_tokens"
+    fi
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _daily_report_json "$report_date" "$total_cost" "$total_sessions" "$hourly_data" "$model_data" "$compact"
   else
@@ -455,6 +468,22 @@ show_weekly_report() {
   if [[ -n "$daily_data" ]]; then
     total_cost=$(echo "$daily_data" | awk -F'\t' '{ cost += $5; sessions += $4 } END { printf "%.2f", cost }')
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "week_start,week_end,date,day,sessions,cost_usd"
+    if [[ -n "$daily_data" ]]; then
+      while IFS=$'\t' read -r _ date weekday sessions cost; do
+        [[ -z "$date" ]] && continue
+        printf '%s,%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$period_start")" \
+          "$(csv_escape_field "$period_end")" \
+          "$(csv_escape_field "$date")" \
+          "$(csv_escape_field "$weekday")" \
+          "$sessions" "$cost"
+      done <<< "$daily_data"
+    fi
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -664,6 +693,22 @@ show_monthly_report() {
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "month,date,day,sessions,cost_usd"
+    if [[ -n "$daily_data" ]]; then
+      local month_label="${period_start:0:7}"
+      while IFS=$'\t' read -r _ date weekday sessions cost; do
+        [[ -z "$date" ]] && continue
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$month_label")" \
+          "$(csv_escape_field "$date")" \
+          "$(csv_escape_field "$weekday")" \
+          "$sessions" "$cost"
+      done <<< "$daily_data"
+    fi
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _monthly_report_json "$period_start" "$period_end" "$total_cost" "$total_sessions" \
       "$daily_data" "$model_data" "$compact"
@@ -825,6 +870,28 @@ show_breakdown_report() {
     period_label="Since $since"
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "model,sessions,cost_usd,tokens,share_pct"
+    if [[ -n "$breakdown_data" ]]; then
+      local sorted_data
+      sorted_data=$(echo "$breakdown_data" | sort -t$'\t' -k7 -rn)
+      while IFS=$'\t' read -r _ model sessions input output cache_read cost; do
+        [[ -z "$model" ]] && continue
+        local total_tokens pct
+        total_tokens=$((input + output))
+        if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+          pct=$(awk "BEGIN { printf \"%.1f\", ($cost / $total_cost) * 100 }")
+        else
+          pct="0.0"
+        fi
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$model")" \
+          "$sessions" "$cost" "$total_tokens" "$pct"
+      done <<< "$sorted_data"
+    fi
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _breakdown_report_json "$total_cost" "$total_sessions" "$breakdown_data" "$period_label" "$compact"
   else
@@ -965,6 +1032,27 @@ show_instances_report() {
     period_label="$since to $until"
   elif [[ -n "$since" ]]; then
     period_label="Since $since"
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "project,sessions,cost_usd,tokens,share_pct"
+    if [[ -n "$project_data" ]]; then
+      local sorted_data
+      sorted_data=$(echo "$project_data" | sort -t$'\t' -k5 -rn)
+      while IFS=$'\t' read -r _ name sessions tokens cost; do
+        [[ -z "$name" ]] && continue
+        local pct
+        if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+          pct=$(awk "BEGIN { printf \"%.1f\", ($cost / $total_cost) * 100 }")
+        else
+          pct="0.0"
+        fi
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$name")" \
+          "$sessions" "$cost" "$tokens" "$pct"
+      done <<< "$sorted_data"
+    fi
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -1167,6 +1255,19 @@ show_burn_rate_report() {
     period_label="$since to $until"
   elif [[ -n "$since" ]]; then
     period_label="Since $since"
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "metric,value"
+    printf '%s,%s\n' "total_cost_usd" "$total_cost"
+    printf '%s,%s\n' "total_tokens" "$total_tokens"
+    printf '%s,%s\n' "elapsed_minutes" "$elapsed_min"
+    printf '%s,%s\n' "cost_per_minute" "$cost_per_min"
+    printf '%s,%s\n' "tokens_per_minute" "$tokens_per_min"
+    printf '%s,%s\n' "cost_per_hour" "$cost_per_hour"
+    printf '%s,%s\n' "five_hour_block_cost" "$five_hour_cost"
+    printf '%s,%s\n' "minutes_to_five_dollars" "$time_to_five"
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -1453,6 +1554,21 @@ show_recommendations_report() {
 
   local rec_data
   rec_data=$(generate_recommendations "$since" "$until" "$project" 2>/dev/null) || true
+
+  if [[ "$format" == "csv" ]]; then
+    echo "priority,category,message,savings_estimate"
+    if [[ -n "$rec_data" ]]; then
+      while IFS=$'\t' read -r priority category message savings; do
+        [[ -z "$priority" ]] && continue
+        printf '%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$priority")" \
+          "$(csv_escape_field "$category")" \
+          "$(csv_escape_field "$message")" \
+          "$(csv_escape_field "${savings:--}")"
+      done <<< "$rec_data"
+    fi
+    return 0
+  fi
 
   if [[ "$format" == "json" ]]; then
     _recommendations_report_json "$rec_data" "$compact"
