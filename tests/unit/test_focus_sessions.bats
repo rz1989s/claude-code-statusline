@@ -150,35 +150,6 @@ teardown() {
 }
 
 # ==============================================================================
-# Component function tests
-# ==============================================================================
-
-@test "collect_focus_session_data function exists" {
-  STATUSLINE_SOURCING=true source "$STATUSLINE_SCRIPT" 2>/dev/null || true
-  type collect_focus_session_data &>/dev/null
-}
-
-@test "render_focus_session function exists" {
-  STATUSLINE_SOURCING=true source "$STATUSLINE_SCRIPT" 2>/dev/null || true
-  type render_focus_session &>/dev/null
-}
-
-@test "collect_focus_session_data returns empty when no session" {
-  source "$STATUSLINE_ROOT/lib/focus.sh"
-  STATUSLINE_SOURCING=true source "$STATUSLINE_SCRIPT" 2>/dev/null || true
-  collect_focus_session_data
-  [[ -z "$COMPONENT_FOCUS_SESSION_DISPLAY" ]]
-}
-
-@test "collect_focus_session_data populates display when session active" {
-  source "$STATUSLINE_ROOT/lib/focus.sh"
-  focus_start >/dev/null 2>&1
-  STATUSLINE_SOURCING=true source "$STATUSLINE_SCRIPT" 2>/dev/null || true
-  collect_focus_session_data
-  [[ "$COMPONENT_FOCUS_SESSION_DISPLAY" == *"FOCUS"* ]]
-}
-
-# ==============================================================================
 # CLI flag tests
 # ==============================================================================
 

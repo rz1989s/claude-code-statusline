@@ -525,7 +525,7 @@ display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
 # Line 9: Available for future expansion
-display.line9.components = []
+display.line9.components = ["wellness"]
 display.line9.separator = " │ "
 display.line9.show_when_empty = false
 
@@ -1037,47 +1037,30 @@ limits.daily_cost_warn = 5.00
 limits.daily_cost_critical = 10.00
 limits.show_limit_summary = true
 
-# === WELLNESS MODE (Issue #219) ===
-# Break reminder system that tracks session duration and provides escalating
-# reminders to take breaks. Helps maintain healthy coding habits.
-#
-# Levels:
-#   normal  - No reminder shown (session < gentle_minutes)
-#   gentle  - "Break soon" (session >= gentle_minutes)
-#   warn    - "Take a break" (session >= warn_minutes)
-#   urgent  - "Break overdue!" (session >= urgent_minutes)
-#
-# Display examples:
-#   12m                    # Normal - just shows elapsed time
-#   50m | Break soon       # Gentle reminder
-#   95m | Take a break     # Warning level
-#   130m | Break overdue!  # Urgent reminder
-#
+# [Wellness & Focus Mode]
+# Unified session tracking: coding timer + break reminders + focus mode.
+# Idle detection auto-resets the timer when you take a break (>15 min gap).
+# Focus mode: `statusline.sh --focus start` sets a custom target.
 # Usage: Add "wellness" to your line components:
-#   display.line2.components = ["model_info", "wellness", "cost_repo"]
-
+#   display.line9.components = ["wellness"]
 wellness.enabled = true
-wellness.gentle_minutes = 45
-wellness.warn_minutes = 90
-wellness.urgent_minutes = 120
+wellness.gentle_minutes = 45              # First "break soon" nudge
+wellness.warn_minutes = 90                # Stronger "take a break" warning
+wellness.urgent_minutes = 120             # "Break overdue!" alert
+wellness.idle_reset_minutes = 15          # Gap (min) to consider "took a break"
 wellness.show_in_statusline = true
 
-# === FOCUS SESSION CONFIGURATION (Issue #220) ===
-# Track concentrated work periods with automatic timing.
+# [Focus Mode] (integrated into wellness)
 # Use `statusline.sh --focus start` to begin a session,
 # `--focus stop` to end and record, `--focus status` to check progress.
-#
-# Display examples:
-#   FOCUS | 23m/50m           # Active session showing elapsed/target
-#
-# Usage: Add "focus_session" to your line components:
-#   display.line2.components = ["model_info", "focus_session", "cost_repo"]
-
-focus.enabled = true                    # Enable focus session tracking
-focus.default_duration = 50             # Default session target in minutes
-focus.show_in_statusline = true         # Show active session in statusline
-focus.track_commits = true              # Track commits during session
-focus.track_cost = true                 # Track API cost during session
+# When active, focus target replaces wellness threshold in display.
+# Auto-abandons after idle gap > abandon_minutes.
+focus.enabled = true
+focus.default_duration = 50               # Default session target in minutes
+focus.abandon_minutes = 120               # Auto-stop focus after this idle gap
+focus.show_in_statusline = true
+focus.track_commits = true
+focus.track_cost = true
 
 # ============================================================================
 # TEMPLATE MAINTENANCE NOTES
