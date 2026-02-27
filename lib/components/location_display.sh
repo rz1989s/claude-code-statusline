@@ -275,64 +275,64 @@ get_city_from_coordinates() {
     # If no specific city match found, determine general region
 
     # Southeast Asia region
-    if (( $(echo "$latitude >= -11.0 && $latitude <= 7.0" | bc -l) )) &&
-       (( $(echo "$longitude >= 95.0 && $longitude <= 141.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -11.0 && lat <= 7.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 95.0 && lon <= 141.0) ? 1 : 0 }') )); then
         echo "Southeast Asia"
         return 0
     fi
 
     # Middle East region
-    if (( $(echo "$latitude >= 12.0 && $latitude <= 42.0" | bc -l) )) &&
-       (( $(echo "$longitude >= 26.0 && $longitude <= 63.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 12.0 && lat <= 42.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 26.0 && lon <= 63.0) ? 1 : 0 }') )); then
         echo "Middle East"
         return 0
     fi
 
     # South Asia region
-    if (( $(echo "$latitude >= 6.0 && $latitude <= 37.0" | bc -l) )) &&
-       (( $(echo "$longitude >= 60.0 && $longitude <= 97.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 6.0 && lat <= 37.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 60.0 && lon <= 97.0) ? 1 : 0 }') )); then
         echo "South Asia"
         return 0
     fi
 
     # North Africa region
-    if (( $(echo "$latitude >= 0.0 && $latitude <= 37.0" | bc -l) )) &&
-       (( $(echo "$longitude >= -17.0 && $longitude <= 51.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 0.0 && lat <= 37.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -17.0 && lon <= 51.0) ? 1 : 0 }') )); then
         echo "North Africa"
         return 0
     fi
 
     # Sub-Saharan Africa region
-    if (( $(echo "$latitude >= -35.0 && $latitude <= 15.0" | bc -l) )) &&
-       (( $(echo "$longitude >= -20.0 && $longitude <= 52.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -35.0 && lat <= 15.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -20.0 && lon <= 52.0) ? 1 : 0 }') )); then
         echo "Africa"
         return 0
     fi
 
     # Europe region
-    if (( $(echo "$latitude >= 35.0 && $latitude <= 71.0" | bc -l) )) &&
-       (( $(echo "$longitude >= -10.0 && $longitude <= 70.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 35.0 && lat <= 71.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -10.0 && lon <= 70.0) ? 1 : 0 }') )); then
         echo "Europe"
         return 0
     fi
 
     # North America region
-    if (( $(echo "$latitude >= 15.0 && $latitude <= 83.0" | bc -l) )) &&
-       (( $(echo "$longitude >= -180.0 && $longitude <= -52.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 15.0 && lat <= 83.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -180.0 && lon <= -52.0) ? 1 : 0 }') )); then
         echo "North America"
         return 0
     fi
 
     # South America region
-    if (( $(echo "$latitude >= -56.0 && $latitude <= 13.0" | bc -l) )) &&
-       (( $(echo "$longitude >= -82.0 && $longitude <= -34.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -56.0 && lat <= 13.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -82.0 && lon <= -34.0) ? 1 : 0 }') )); then
         echo "South America"
         return 0
     fi
 
     # Oceania region
-    if (( $(echo "$latitude >= -50.0 && $latitude <= -8.0" | bc -l) )) &&
-       (( $(echo "$longitude >= 110.0 && $longitude <= 180.0" | bc -l) )); then
+    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -50.0 && lat <= -8.0) ? 1 : 0 }') )) &&
+       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 110.0 && lon <= 180.0) ? 1 : 0 }') )); then
         echo "Oceania"
         return 0
     fi

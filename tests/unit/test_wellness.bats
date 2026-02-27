@@ -510,6 +510,144 @@ teardown() {
 }
 
 # ==============================================================================
+# Abandoned focus auto-stop tests (_auto_stop_focus)
+# ==============================================================================
+
+@test "_auto_stop_focus: removes focus_active.json when session abandoned" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+
+  local start_time=$(( $(date +%s) - 9000 ))  # 150 min ago
+  echo "{\"start_time\":$start_time,\"duration_minutes\":25}" > "$cache_dir/focus_active.json"
+  # last_active 150 minutes ago (beyond 120min abandon threshold)
+  echo "$start_time" > "$cache_dir/wellness_last_active"
+  # session started 160 minutes ago
+  echo $(( $(date +%s) - 9600 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  export CONFIG_FOCUS_ABANDON_MINUTES=120
+
+  run get_wellness_active_minutes
+  assert_success
+  assert_output "0"
+
+  # focus_active.json should be removed
+  [[ ! -f "$cache_dir/focus_active.json" ]]
+}
+
+@test "_auto_stop_focus: creates focus_history.json with abandoned status" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  rm -f "$cache_dir/focus_history.json" 2>/dev/null
+
+  local now=$(date +%s)
+  local start_time=$(( now - 9000 ))  # 150 min ago
+  echo "{\"start_time\":$start_time,\"duration_minutes\":25}" > "$cache_dir/focus_active.json"
+  # last_active 150 minutes ago (beyond 120min abandon threshold)
+  echo "$start_time" > "$cache_dir/wellness_last_active"
+  # session started 160 minutes ago
+  echo $(( now - 9600 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  export CONFIG_FOCUS_ABANDON_MINUTES=120
+
+  run get_wellness_active_minutes
+  assert_success
+
+  # focus_history.json should exist with abandoned entry
+  [[ -f "$cache_dir/focus_history.json" ]]
+
+  local status_val
+  status_val=$(jq -r '.[0].status' "$cache_dir/focus_history.json")
+  [[ "$status_val" == "abandoned" ]]
+}
+
+@test "_auto_stop_focus: records correct elapsed_minutes in history" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  rm -f "$cache_dir/focus_history.json" 2>/dev/null
+
+  local now=$(date +%s)
+  local start_time=$(( now - 9000 ))  # 150 min ago
+  echo "{\"start_time\":$start_time,\"duration_minutes\":25}" > "$cache_dir/focus_active.json"
+  echo "$start_time" > "$cache_dir/wellness_last_active"
+  echo $(( now - 9600 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  export CONFIG_FOCUS_ABANDON_MINUTES=120
+
+  run get_wellness_active_minutes
+  assert_success
+
+  [[ -f "$cache_dir/focus_history.json" ]]
+
+  local elapsed
+  elapsed=$(jq -r '.[0].elapsed_minutes' "$cache_dir/focus_history.json")
+  # elapsed should be approximately 150 (9000 / 60), allow +-1 for timing
+  [[ "$elapsed" -ge 149 && "$elapsed" -le 151 ]]
+}
+
+@test "_auto_stop_focus: appends to existing focus_history.json" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+
+  # Pre-populate history with one existing entry
+  echo '[{"start_time":1700000000,"end_time":1700001500,"duration_minutes":25,"elapsed_minutes":25,"status":"completed"}]' \
+    > "$cache_dir/focus_history.json"
+
+  local now=$(date +%s)
+  local start_time=$(( now - 9000 ))  # 150 min ago
+  echo "{\"start_time\":$start_time,\"duration_minutes\":30}" > "$cache_dir/focus_active.json"
+  echo "$start_time" > "$cache_dir/wellness_last_active"
+  echo $(( now - 9600 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  export CONFIG_FOCUS_ABANDON_MINUTES=120
+
+  run get_wellness_active_minutes
+  assert_success
+
+  [[ -f "$cache_dir/focus_history.json" ]]
+
+  # Should now have 2 entries
+  local count
+  count=$(jq 'length' "$cache_dir/focus_history.json")
+  [[ "$count" -eq 2 ]]
+
+  # First entry should still be the original completed one
+  local first_status
+  first_status=$(jq -r '.[0].status' "$cache_dir/focus_history.json")
+  [[ "$first_status" == "completed" ]]
+
+  # Second entry should be abandoned
+  local second_status
+  second_status=$(jq -r '.[1].status' "$cache_dir/focus_history.json")
+  [[ "$second_status" == "abandoned" ]]
+}
+
+@test "_auto_stop_focus: does NOT trigger when gap < abandon threshold" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+
+  local now=$(date +%s)
+  local start_time=$(( now - 3600 ))  # 60 min ago
+  echo "{\"start_time\":$start_time,\"duration_minutes\":25}" > "$cache_dir/focus_active.json"
+  # last_active 20 minutes ago (beyond idle threshold but below abandon threshold)
+  echo $(( now - 1200 )) > "$cache_dir/wellness_last_active"
+  echo "$start_time" > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  export CONFIG_FOCUS_ABANDON_MINUTES=120
+
+  run get_wellness_active_minutes
+  assert_success
+  assert_output "0"  # idle reset still triggers
+
+  # focus_active.json should still exist (gap=20min < 120min abandon threshold)
+  [[ -f "$cache_dir/focus_active.json" ]]
+}
+
+# ==============================================================================
 # Unified display format tests
 # ==============================================================================
 

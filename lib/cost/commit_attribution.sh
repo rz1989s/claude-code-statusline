@@ -133,9 +133,9 @@ format_commit_cost_row() {
   local short_hash="${hash:0:7}"
   local formatted_tokens
   if [[ "${tokens:-0}" -ge 1000000 ]]; then
-    formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000000 }")M"
+    formatted_tokens="$(awk -v t="$tokens" 'BEGIN { printf "%.1f", t / 1000000 }')M"
   elif [[ "${tokens:-0}" -ge 1000 ]]; then
-    formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000 }")K"
+    formatted_tokens="$(awk -v t="$tokens" 'BEGIN { printf "%.1f", t / 1000 }')K"
   else
     formatted_tokens="$tokens"
   fi

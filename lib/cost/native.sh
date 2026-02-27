@@ -127,7 +127,7 @@ get_native_cache_efficiency() {
     total=$((cache_read + cache_creation))
 
     if [[ "$total" -gt 0 ]]; then
-        efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total}" 2>/dev/null)
+        efficiency=$(awk -v cr="$cache_read" -v t="$total" 'BEGIN {printf "%.0f", cr * 100 / t}' 2>/dev/null)
         echo "${efficiency:-0}"
     else
         echo "0"

@@ -32,6 +32,124 @@ CONFIG_RECOMMENDATIONS_HIGH_AVG_THRESHOLD="${CONFIG_RECOMMENDATIONS_HIGH_AVG_THR
 CONFIG_RECOMMENDATIONS_IDLE_GAP_MINUTES="${CONFIG_RECOMMENDATIONS_IDLE_GAP_MINUTES:-30}"
 
 # ============================================================================
+# SHARED JSONL SCANNING HELPER
+# ============================================================================
+
+# Shared pipeline: find JSONL → extract token TSV → awk cost calculation
+# Eliminates ~120 lines of copy-paste across check_session_spike_recommendation,
+# check_budget_pacing_recommendation, and check_high_avg_cost_recommendation.
+#
+# Args:
+#   $1 = search_path     - directory to scan for JSONL files
+#   $2 = find_days       - mtime filter for find (integer)
+#   $3 = range_start     - ISO timestamp lower bound (empty = no filter)
+#   $4 = range_end_iso   - ISO timestamp upper bound (empty = no filter)
+#   $5 = awk_end_block   - custom awk END { ... } block (caller's aggregation logic)
+#   $6 = awk_pricing     - pricing lookup awk source (from get_awk_pricing_block)
+#
+# The caller provides ONLY the END block. The helper handles:
+#   - find + jq token extraction
+#   - awk BEGIN block (pricing init + user vars)
+#   - awk main block (timestamp filtering, model lookup, cost calc)
+#
+# Output: whatever the caller's END block prints
+_scan_jsonl_costs() {
+  local search_path="$1" find_days="$2" range_start="${3:-}" range_end_iso="${4:-}"
+  local awk_end_block="$5" awk_pricing="$6"
+
+  find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
+    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
+      [.timestamp, (.message.model // "default"),
+       (.message.usage.input_tokens // 0),
+       (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation_input_tokens // 0),
+       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="$range_start" -v end_ts="$range_end_iso" "
+BEGIN {
+$awk_pricing
+  total_cost = 0
+}
+{
+  ts = \$1
+  gsub(/\.[0-9]+Z?\$/, \"\", ts)
+  if (start != \"\" && ts < start) next
+  if (end_ts != \"\" && ts >= end_ts) next
+
+  model = \$2
+  input = \$3 + 0; output = \$4 + 0
+  cache_write = \$5 + 0; cache_read = \$6 + 0
+
+  pricing = p[model]
+  if (pricing == \"\") pricing = p[\"default\"]
+  split(pricing, pr, \" \")
+  cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+
+  total_cost += cost
+
+  split(FILENAME, fp, \"/\")
+  session_id = fp[length(fp)]
+  session_costs[session_id] += cost
+  session_count++
+}
+$awk_end_block" 2>/dev/null
+}
+
+# Compute find_days from since_date (cross-platform)
+# Args: $1 = since_date (YYYY-MM-DD or empty)
+# Output: integer days to pass to find -mtime
+_compute_find_days() {
+  local since_date="${1:-}"
+  if [[ -z "$since_date" ]]; then
+    echo 1
+    return
+  fi
+
+  local since_epoch today_epoch
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null) || since_epoch=0
+    today_epoch=$(date "+%s")
+  else
+    since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null) || since_epoch=0
+    today_epoch=$(date "+%s")
+  fi
+
+  if [[ "$since_epoch" -gt 0 ]]; then
+    echo $(( (today_epoch - since_epoch) / 86400 + 2 ))
+  else
+    echo 1
+  fi
+}
+
+# Resolve common parameters for JSONL scan functions
+# Sets: search_path, range_start, range_end_iso, awk_pricing, find_days
+# Args: $1 = since_date, $2 = until_date, $3 = project_filter
+# Returns 1 if prerequisites not met (caller should return 0)
+_resolve_scan_params() {
+  local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
+
+  _scan_projects_dir=$(get_claude_projects_dir 2>/dev/null) || return 1
+  [[ -z "$_scan_projects_dir" || ! -d "$_scan_projects_dir" ]] && return 1
+
+  _scan_search_path="$_scan_projects_dir"
+  if [[ -n "$project_filter" ]]; then
+    _scan_search_path=$(resolve_project_filter "$project_filter" "$_scan_projects_dir" 2>/dev/null) || return 1
+  fi
+
+  if [[ -n "$since_date" ]]; then
+    _scan_range_start=$(date_to_iso_utc "$since_date" 2>/dev/null) || _scan_range_start=""
+  else
+    _scan_range_start=$(get_today_start_iso 2>/dev/null) || _scan_range_start=""
+  fi
+
+  _scan_range_end_iso=""
+  if [[ -n "$until_date" ]]; then
+    _scan_range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null) || _scan_range_end_iso=""
+  fi
+
+  _scan_awk_pricing=$(get_awk_pricing_block 2>/dev/null) || return 1
+  _scan_find_days=$(_compute_find_days "$since_date")
+}
+
+# ============================================================================
 # RECOMMENDATION CHECKS
 # ============================================================================
 
@@ -69,95 +187,26 @@ check_cache_efficiency_recommendation() {
 check_session_spike_recommendation() {
   local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
 
-  local projects_dir
-  projects_dir=$(get_claude_projects_dir 2>/dev/null) || return 0
+  _resolve_scan_params "$since_date" "$until_date" "$project_filter" || return 0
 
-  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
-    return 0
-  fi
-
-  local search_path="$projects_dir"
-  if [[ -n "$project_filter" ]]; then
-    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
-  fi
-
-  local range_start
-  if [[ -n "$since_date" ]]; then
-    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null) || range_start=""
-  else
-    range_start=$(get_today_start_iso 2>/dev/null) || range_start=""
-  fi
-
-  local range_end_iso=""
-  if [[ -n "$until_date" ]]; then
-    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null) || range_end_iso=""
-  fi
-
-  local awk_pricing
-  awk_pricing=$(get_awk_pricing_block 2>/dev/null) || return 0
-
-  local find_days=1
-  if [[ -n "$since_date" ]]; then
-    local since_epoch today_epoch
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    else
-      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    fi
-    if [[ "$since_epoch" -gt 0 ]]; then
-      find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
-    fi
-  fi
-
-  # Gather per-session costs
-  local session_data
-  session_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
-    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
-      [.timestamp, (.message.model // "default"),
-       (.message.usage.input_tokens // 0),
-       (.message.usage.output_tokens // 0),
-       (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
-BEGIN {
-$awk_pricing
-  session_count = 0; total_cost = 0
-}
-{
-  ts = \$1
-  gsub(/\.[0-9]+Z?\$/, \"\", ts)
-  if (start != \"\" && ts < start) next
-  if (end_ts != \"\" && ts >= end_ts) next
-
-  model = \$2
-  input = \$3 + 0
-  output = \$4 + 0
-  cache_write = \$5 + 0
-  cache_read = \$6 + 0
-
-  pricing = p[model]
-  if (pricing == \"\") pricing = p[\"default\"]
-  split(pricing, pr, \" \")
-  cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
-
-  total_cost += cost
-  session_count++
-
-  # Group by JSONL file (proxy for session)
-  split(FILENAME, fp, \"/\")
-  session_id = fp[length(fp)]
-  session_costs[session_id] += cost
-}
+  local spike_multiplier="${CONFIG_RECOMMENDATIONS_SPIKE_MULTIPLIER:-2}"
+  local end_block
+  end_block=$(cat <<AWKEOF
 END {
   if (session_count == 0 || length(session_costs) == 0) exit
   avg = total_cost / length(session_costs)
   for (sid in session_costs) {
-    if (avg > 0 && session_costs[sid] > avg * ${CONFIG_RECOMMENDATIONS_SPIKE_MULTIPLIER:-2}) {
-      printf \"SPIKE\t%s\t%.4f\t%.4f\n\", sid, session_costs[sid], avg
+    if (avg > 0 && session_costs[sid] > avg * $spike_multiplier) {
+      printf "SPIKE\t%s\t%.4f\t%.4f\n", sid, session_costs[sid], avg
     }
   }
-}" 2>/dev/null)
+}
+AWKEOF
+)
+
+  local session_data
+  session_data=$(_scan_jsonl_costs "$_scan_search_path" "$_scan_find_days" \
+    "$_scan_range_start" "$_scan_range_end_iso" "$end_block" "$_scan_awk_pricing")
 
   if [[ -n "$session_data" ]]; then
     local spike_count
@@ -177,65 +226,28 @@ check_budget_pacing_recommendation() {
   local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
   local daily_budget="${CONFIG_RECOMMENDATIONS_DAILY_BUDGET:-5.00}"
 
-  local projects_dir
-  projects_dir=$(get_claude_projects_dir 2>/dev/null) || return 0
+  # Budget pacing always checks today only — override since_date
+  _resolve_scan_params "" "" "$project_filter" || return 0
 
-  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
-    return 0
-  fi
-
-  local search_path="$projects_dir"
-  if [[ -n "$project_filter" ]]; then
-    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
-  fi
-
-  local range_start
-  range_start=$(get_today_start_iso 2>/dev/null) || range_start=""
-
-  local awk_pricing
-  awk_pricing=$(get_awk_pricing_block 2>/dev/null) || return 0
+  local end_block='END { printf "%.2f", total_cost }'
 
   local today_cost
-  today_cost=$(find "$search_path" -name "*.jsonl" -type f -mtime -2 2>/dev/null | \
-    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
-      [.timestamp, (.message.model // "default"),
-       (.message.usage.input_tokens // 0),
-       (.message.usage.output_tokens // 0),
-       (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" "
-BEGIN {
-$awk_pricing
-  total = 0
-}
-{
-  ts = \$1
-  gsub(/\.[0-9]+Z?\$/, \"\", ts)
-  if (start != \"\" && ts < start) next
-
-  model = \$2
-  input = \$3 + 0; output = \$4 + 0
-  cache_write = \$5 + 0; cache_read = \$6 + 0
-
-  pricing = p[model]
-  if (pricing == \"\") pricing = p[\"default\"]
-  split(pricing, pr, \" \")
-  total += (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
-}
-END { printf \"%.2f\", total }" 2>/dev/null)
+  today_cost=$(_scan_jsonl_costs "$_scan_search_path" 1 \
+    "$_scan_range_start" "" "$end_block" "$_scan_awk_pricing")
 
   today_cost="${today_cost:-0.00}"
 
   local is_over
-  is_over=$(awk "BEGIN { print ($today_cost > $daily_budget) ? 1 : 0 }" 2>/dev/null)
+  is_over=$(awk -v tc="$today_cost" -v db="$daily_budget" 'BEGIN { print (tc > db) ? 1 : 0 }' 2>/dev/null)
 
   if [[ "$is_over" == "1" ]]; then
     local overage
-    overage=$(awk "BEGIN { printf \"%.2f\", $today_cost - $daily_budget }" 2>/dev/null)
+    overage=$(awk -v tc="$today_cost" -v db="$daily_budget" 'BEGIN { printf "%.2f", tc - db }' 2>/dev/null)
     printf "HIGH\tbudget\tDaily spend (\$%s) exceeds budget (\$%s) by \$%s. Consider batching requests or using lighter models.\t\$%s\n" \
       "$today_cost" "$daily_budget" "$overage" "$overage"
   else
     local pct
-    pct=$(awk "BEGIN { if ($daily_budget > 0) printf \"%.0f\", ($today_cost / $daily_budget) * 100; else print 0 }" 2>/dev/null)
+    pct=$(awk -v tc="$today_cost" -v db="$daily_budget" 'BEGIN { if (db > 0) printf "%.0f", (tc / db) * 100; else print 0 }' 2>/dev/null)
     if [[ "${pct:-0}" -ge 80 ]]; then
       printf "MEDIUM\tbudget\tDaily spend (\$%s) is at %s%% of budget (\$%s). Monitor usage to stay within limits.\t-\n" \
         "$today_cost" "$pct" "$daily_budget"
@@ -249,94 +261,26 @@ check_high_avg_cost_recommendation() {
   local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
   local threshold="${CONFIG_RECOMMENDATIONS_HIGH_AVG_THRESHOLD:-1.50}"
 
-  local projects_dir
-  projects_dir=$(get_claude_projects_dir 2>/dev/null) || return 0
+  _resolve_scan_params "$since_date" "$until_date" "$project_filter" || return 0
 
-  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
-    return 0
-  fi
-
-  local search_path="$projects_dir"
-  if [[ -n "$project_filter" ]]; then
-    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
-  fi
-
-  local range_start
-  if [[ -n "$since_date" ]]; then
-    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null) || range_start=""
-  else
-    range_start=$(get_today_start_iso 2>/dev/null) || range_start=""
-  fi
-
-  local range_end_iso=""
-  if [[ -n "$until_date" ]]; then
-    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null) || range_end_iso=""
-  fi
-
-  local awk_pricing
-  awk_pricing=$(get_awk_pricing_block 2>/dev/null) || return 0
-
-  local find_days=1
-  if [[ -n "$since_date" ]]; then
-    local since_epoch today_epoch
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    else
-      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    fi
-    if [[ "$since_epoch" -gt 0 ]]; then
-      find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
-    fi
-  fi
-
-  local avg_data
-  avg_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
-    xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
-      [.timestamp, (.message.model // "default"),
-       (.message.usage.input_tokens // 0),
-       (.message.usage.output_tokens // 0),
-       (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" "
-BEGIN {
-$awk_pricing
-  total_cost = 0; file_count = 0
-}
-{
-  ts = \$1
-  gsub(/\.[0-9]+Z?\$/, \"\", ts)
-  if (start != \"\" && ts < start) next
-  if (end_ts != \"\" && ts >= end_ts) next
-
-  model = \$2
-  input = \$3 + 0; output = \$4 + 0
-  cache_write = \$5 + 0; cache_read = \$6 + 0
-
-  pricing = p[model]
-  if (pricing == \"\") pricing = p[\"default\"]
-  split(pricing, pr, \" \")
-  cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
-
-  total_cost += cost
-
-  split(FILENAME, fp, \"/\")
-  files[fp[length(fp)]] = 1
-}
-END {
-  file_count = length(files)
+  local end_block='END {
+  file_count = length(session_costs)
   if (file_count > 0) {
     avg = total_cost / file_count
-    printf \"%.4f\t%d\t%.4f\", avg, file_count, total_cost
+    printf "%.4f\t%d\t%.4f", avg, file_count, total_cost
   }
-}" 2>/dev/null)
+}'
+
+  local avg_data
+  avg_data=$(_scan_jsonl_costs "$_scan_search_path" "$_scan_find_days" \
+    "$_scan_range_start" "$_scan_range_end_iso" "$end_block" "$_scan_awk_pricing")
 
   if [[ -n "$avg_data" ]]; then
     local avg_cost session_count total_cost
     IFS=$'\t' read -r avg_cost session_count total_cost <<< "$avg_data"
 
     local is_high
-    is_high=$(awk "BEGIN { print (${avg_cost:-0} > $threshold) ? 1 : 0 }" 2>/dev/null)
+    is_high=$(awk -v ac="${avg_cost:-0}" -v th="$threshold" 'BEGIN { print (ac > th) ? 1 : 0 }' 2>/dev/null)
 
     if [[ "$is_high" == "1" ]]; then
       printf "MEDIUM\tefficiency\tAverage session cost (\$%.2f) exceeds \$%.2f threshold across %d sessions. Break large tasks into smaller focused sessions.\t15-25%%\n" \
@@ -351,49 +295,13 @@ check_idle_burn_recommendation() {
   local since_date="${1:-}" until_date="${2:-}" project_filter="${3:-}"
   local idle_threshold="${CONFIG_RECOMMENDATIONS_IDLE_GAP_MINUTES:-30}"
 
-  local projects_dir
-  projects_dir=$(get_claude_projects_dir 2>/dev/null) || return 0
-
-  if [[ -z "$projects_dir" || ! -d "$projects_dir" ]]; then
-    return 0
-  fi
-
-  local search_path="$projects_dir"
-  if [[ -n "$project_filter" ]]; then
-    search_path=$(resolve_project_filter "$project_filter" "$projects_dir" 2>/dev/null) || return 0
-  fi
-
-  local range_start
-  if [[ -n "$since_date" ]]; then
-    range_start=$(date_to_iso_utc "$since_date" 2>/dev/null) || range_start=""
-  else
-    range_start=$(get_today_start_iso 2>/dev/null) || range_start=""
-  fi
-
-  local range_end_iso=""
-  if [[ -n "$until_date" ]]; then
-    range_end_iso=$(date_to_iso_utc_end "$until_date" 2>/dev/null) || range_end_iso=""
-  fi
-
-  local find_days=1
-  if [[ -n "$since_date" ]]; then
-    local since_epoch today_epoch
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-      since_epoch=$(date -j -f "%Y-%m-%d" "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    else
-      since_epoch=$(date -d "$since_date" "+%s" 2>/dev/null) || since_epoch=0
-      today_epoch=$(date "+%s")
-    fi
-    if [[ "$since_epoch" -gt 0 ]]; then
-      find_days=$(( (today_epoch - since_epoch) / 86400 + 2 ))
-    fi
-  fi
+  # Reuse shared param resolution (we only need search_path, range, and find_days — not awk_pricing)
+  _resolve_scan_params "$since_date" "$until_date" "$project_filter" || return 0
 
   local idle_data
-  idle_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
+  idle_data=$(find "$_scan_search_path" -name "*.jsonl" -type f -mtime -$((_scan_find_days + 1)) 2>/dev/null | \
     xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
-      .timestamp' 2>/dev/null | sort | awk -v start="${range_start:-}" -v end_ts="${range_end_iso:-}" -v idle_min="$idle_threshold" '
+      .timestamp' 2>/dev/null | sort | awk -v start="${_scan_range_start:-}" -v end_ts="${_scan_range_end_iso:-}" -v idle_min="$idle_threshold" '
 BEGIN { prev = ""; gaps = 0; max_gap = 0 }
 {
   ts = $1
@@ -455,7 +363,7 @@ generate_recommendations() {
     cache_read=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null) || cache_read=0
     input_tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.input_tokens // 0' 2>/dev/null) || input_tokens=0
     if [[ "$input_tokens" -gt 0 ]] 2>/dev/null; then
-      cache_hit_rate=$(awk "BEGIN { printf \"%.0f\", ($cache_read / $input_tokens) * 100 }" 2>/dev/null) || cache_hit_rate=0
+      cache_hit_rate=$(awk -v cr="$cache_read" -v it="$input_tokens" 'BEGIN { printf "%.0f", (cr / it) * 100 }' 2>/dev/null) || cache_hit_rate=0
     fi
   fi
 
@@ -500,6 +408,9 @@ generate_recommendations() {
 # EXPORTS
 # ============================================================================
 
+export -f _scan_jsonl_costs
+export -f _compute_find_days
+export -f _resolve_scan_params
 export -f check_cache_efficiency_recommendation
 export -f check_session_spike_recommendation
 export -f check_budget_pacing_recommendation

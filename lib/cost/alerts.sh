@@ -59,7 +59,7 @@ get_cost_percentage() {
     fi
 
     local percentage
-    percentage=$(awk "BEGIN {printf \"%.0f\", ($cost / $threshold) * 100}" 2>/dev/null)
+    percentage=$(awk -v c="$cost" -v t="$threshold" 'BEGIN {printf "%.0f", (c / t) * 100}' 2>/dev/null)
     echo "${percentage:-0}"
 }
 
@@ -287,19 +287,17 @@ get_cost_trend() {
         return 1
     fi
 
-    if command_exists bc; then
-        local diff
-        diff=$(echo "$current_cost - $previous_cost" | bc -l 2>/dev/null)
+    local diff
+    diff=$(awk -v c="$current_cost" -v p="$previous_cost" 'BEGIN { printf "%.4f", c - p }' 2>/dev/null)
 
-        if [[ "$diff" =~ ^- ]]; then
-            echo "down"
-        elif [[ "$diff" =~ ^0.?0*$ ]]; then
-            echo "stable"
-        else
-            echo "up"
-        fi
-    else
+    if [[ -z "$diff" ]]; then
         echo "unknown"
+    elif [[ "$diff" =~ ^- ]]; then
+        echo "down"
+    elif [[ "$diff" =~ ^0.?0*$ ]]; then
+        echo "stable"
+    else
+        echo "up"
     fi
 }
 
@@ -420,11 +418,11 @@ check_all_limits() {
     local cost_warn="${CONFIG_LIMITS_DAILY_COST_WARN:-5.00}"
     local cost_crit="${CONFIG_LIMITS_DAILY_COST_CRITICAL:-10.00}"
     local cost_compare
-    cost_compare=$(echo "$cost_today >= $cost_crit" | bc 2>/dev/null) || cost_compare=0
+    cost_compare=$(awk -v c="$cost_today" -v t="$cost_crit" 'BEGIN { print (c >= t) ? 1 : 0 }' 2>/dev/null) || cost_compare=0
     if [[ "$cost_compare" == "1" ]]; then
         printf "cost\tcritical\t\$%s\t\$%s\tDaily cost limit critical\n" "$cost_today" "$cost_crit"
     else
-        cost_compare=$(echo "$cost_today >= $cost_warn" | bc 2>/dev/null) || cost_compare=0
+        cost_compare=$(awk -v c="$cost_today" -v t="$cost_warn" 'BEGIN { print (c >= t) ? 1 : 0 }' 2>/dev/null) || cost_compare=0
         [[ "$cost_compare" == "1" ]] && printf "cost\twarn\t\$%s\t\$%s\tDaily cost limit warning\n" "$cost_today" "$cost_warn"
     fi
 
