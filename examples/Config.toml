@@ -482,7 +482,7 @@ version_info.show_update_indicator = true  # Show ⬆️ when update available
 # Each line can contain any combination of available components
 
 # Number of lines to display (1-9) - SHOWCASING ALL 26 ATOMIC COMPONENTS!
-display.lines = 8
+display.lines = 9
 
 # Line 1: Repository Identity (path, branch, status)
 display.line1.components = ["repo_info"]
