@@ -138,37 +138,43 @@ teardown() {
 # ==============================================================================
 
 @test "format_wellness_display: normal level shows only minutes" {
-  run format_wellness_display 30 "normal"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 30 "normal" 45
   assert_success
-  assert_output "30m"
+  assert_output "☕ Coding 30m/45m"
 }
 
 @test "format_wellness_display: gentle level shows break soon" {
-  run format_wellness_display 50 "gentle"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 50 "gentle" 90
   assert_success
-  assert_output "50m | Break soon"
+  assert_output "☕ Coding 50m/90m · Break soon"
 }
 
 @test "format_wellness_display: warn level shows take a break" {
-  run format_wellness_display 100 "warn"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 100 "warn" 120
   assert_success
-  assert_output "100m | Take a break"
+  assert_output "☕ Coding 100m/120m · Take a break"
 }
 
 @test "format_wellness_display: urgent level shows break overdue" {
-  run format_wellness_display 130 "urgent"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 130 "urgent" 120
   assert_success
-  assert_output "130m | Break overdue!"
+  assert_output "☕ Coding 130m/120m · Break overdue!"
 }
 
 @test "format_wellness_display: 0 minutes normal" {
-  run format_wellness_display 0 "normal"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 0 "normal" 45
   assert_success
-  assert_output "0m"
+  assert_output "☕ Coding 0m/45m"
 }
 
 @test "format_wellness_display: contains minutes in output" {
-  run format_wellness_display 75 "gentle"
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run format_wellness_display 75 "gentle" 90
   assert_success
   assert_output --partial "75m"
   assert_output --partial "Break soon"
@@ -299,6 +305,36 @@ teardown() {
   assert_success
 }
 
+@test "update_wellness_activity function exists" {
+  run type update_wellness_activity
+  assert_success
+}
+
+@test "get_wellness_active_minutes function exists" {
+  run type get_wellness_active_minutes
+  assert_success
+}
+
+@test "get_wellness_threshold function exists" {
+  run type get_wellness_threshold
+  assert_success
+}
+
+@test "is_focus_active function exists" {
+  run type is_focus_active
+  assert_success
+}
+
+@test "is_focus_complete function exists" {
+  run type is_focus_complete
+  assert_success
+}
+
+@test "get_focus_duration function exists" {
+  run type get_focus_duration
+  assert_success
+}
+
 # ==============================================================================
 # Module guard tests
 # ==============================================================================
@@ -312,6 +348,9 @@ teardown() {
 # ==============================================================================
 
 @test "wellness module works end-to-end: session start -> level -> display" {
+  # Remove focus file to ensure clean state
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+
   # Reset session to now
   reset_wellness_session
 
@@ -327,6 +366,177 @@ teardown() {
 
   # Format display for normal
   local display
-  display=$(format_wellness_display 0 "$level")
-  [[ "$display" == "0m" ]]
+  display=$(format_wellness_display 0 "$level" 45)
+  [[ "$display" == "☕ Coding 0m/45m" ]]
+}
+
+# ==============================================================================
+# Idle detection tests
+# ==============================================================================
+
+@test "update_wellness_activity stamps last_active file" {
+  update_wellness_activity
+  local f="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/wellness_last_active"
+  [[ -f "$f" ]]
+  local ts; ts=$(cat "$f")
+  [[ "$ts" =~ ^[0-9]+$ ]]
+}
+
+@test "get_wellness_active_minutes returns 0 after idle reset" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  # Simulate last_active 20 minutes ago (beyond 15min idle threshold)
+  echo $(( $(date +%s) - 1200 )) > "$cache_dir/wellness_last_active"
+  # session_start 60 minutes ago
+  echo $(( $(date +%s) - 3600 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  run get_wellness_active_minutes
+  assert_success
+  assert_output "0"
+}
+
+@test "get_wellness_active_minutes counts normally when not idle" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  # last_active 2 minutes ago (within idle threshold)
+  echo $(( $(date +%s) - 120 )) > "$cache_dir/wellness_last_active"
+  # session_start 30 minutes ago
+  echo $(( $(date +%s) - 1800 )) > "$cache_dir/wellness_session_start"
+
+  export CONFIG_WELLNESS_IDLE_RESET_MINUTES=15
+  run get_wellness_active_minutes
+  assert_success
+  [[ "$output" -ge 29 && "$output" -le 31 ]]
+}
+
+@test "get_wellness_active_minutes creates session on first invocation" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  rm -f "$cache_dir/wellness_last_active" "$cache_dir/wellness_session_start" 2>/dev/null || true
+
+  run get_wellness_active_minutes
+  assert_success
+  assert_output "0"
+  [[ -f "$cache_dir/wellness_last_active" ]]
+  [[ -f "$cache_dir/wellness_session_start" ]]
+}
+
+# ==============================================================================
+# Focus-aware threshold tests
+# ==============================================================================
+
+@test "get_wellness_threshold returns gentle when no focus active" {
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  run get_wellness_threshold 20
+  assert_success
+  assert_output "45"
+}
+
+@test "get_wellness_threshold returns focus target when focus active" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":25}' > "$cache_dir/focus_active.json"
+
+  run get_wellness_threshold 10
+  assert_success
+  assert_output "25"
+}
+
+@test "get_wellness_threshold returns warn after focus target passed" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":25}' > "$cache_dir/focus_active.json"
+
+  run get_wellness_threshold 30
+  assert_success
+  # 30 < 45 (gentle), so threshold is 45
+  assert_output "45"
+}
+
+@test "get_wellness_threshold escalates through wellness levels" {
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+
+  run get_wellness_threshold 50
+  assert_output "90"
+
+  run get_wellness_threshold 95
+  assert_output "120"
+
+  run get_wellness_threshold 130
+  assert_output "120"
+}
+
+# ==============================================================================
+# Focus state helper tests
+# ==============================================================================
+
+@test "is_focus_active returns 0 when focus file exists" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  is_focus_active
+}
+
+@test "is_focus_active returns 1 when no focus file" {
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+  ! is_focus_active
+}
+
+@test "is_focus_complete returns 0 when minutes >= duration" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  is_focus_complete 55
+}
+
+@test "is_focus_complete returns 1 when minutes < duration" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  ! is_focus_complete 30
+}
+
+@test "get_focus_duration returns duration from active session" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  run get_focus_duration
+  assert_success
+  assert_output "50"
+}
+
+# ==============================================================================
+# Unified display format tests
+# ==============================================================================
+
+@test "format_wellness_display: focus active shows FOCUS tag" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  run format_wellness_display 20 "normal" 50
+  assert_success
+  assert_output "☕ Coding 20m/50m [FOCUS]"
+}
+
+@test "format_wellness_display: focus complete shows checkmark" {
+  local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline"
+  mkdir -p "$cache_dir"
+  echo '{"start_time":1700000000,"duration_minutes":50}' > "$cache_dir/focus_active.json"
+
+  run format_wellness_display 55 "gentle" 90
+  assert_success
+  assert_output "☕ Coding 55m/90m · Break soon │ FOCUS 50m ✓"
+}
+
+@test "format_wellness_display: no focus no tag" {
+  rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline/focus_active.json" 2>/dev/null
+
+  run format_wellness_display 20 "normal" 45
+  assert_success
+  assert_output "☕ Coding 20m/45m"
 }
