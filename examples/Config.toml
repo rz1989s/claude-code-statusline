@@ -244,6 +244,19 @@ prayer.use_legacy_indicator = false     # Use "(next)" instead of time remaining
 prayer.next_prayer_color_enabled = true # Apply color highlighting to next prayer
 prayer.next_prayer_color = "bright_green" # Color for next prayer: green, bright_green, teal
 
+# === PRAYER BREAK REMINDERS (Issue #212) ===
+# Configurable reminders that integrate with the statusline display
+# to alert you of upcoming prayer times at progressive urgency levels.
+
+prayer.reminders.enabled = false           # Enable prayer break reminders
+prayer.reminders.headsup_minutes = 30      # Minutes before prayer for heads-up level
+prayer.reminders.prepare_minutes = 15      # Minutes before prayer for prepare level
+prayer.reminders.imminent_minutes = 5      # Minutes before prayer for imminent level
+prayer.reminders.desktop_notify = false    # Send desktop notifications (requires notify-send/osascript)
+prayer.reminders.cooldown_seconds = 900    # Minimum seconds between repeated notifications (15 min)
+prayer.reminders.integrate_wellness = true # Integrate with wellness break system
+prayer.reminders.integrate_focus = true    # Integrate with focus session tracking
+
 # === CALCULATION METHODS WORLDWIDE ===
 # Choose the method used in your country/region:
 #
