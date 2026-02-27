@@ -253,6 +253,11 @@ REPORTS:
     statusline.sh --trends --period 7d      - Cost trends for last 7 days
     statusline.sh --trends --json           - Cost trends (JSON)
 
+OUTPUT FORMAT:
+    --csv                                   - Output in CSV format
+    --json                                  - Output in JSON format
+    --compact                               - Compact output (single line JSON)
+
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
     --until DATE                            - Filter to date (inclusive)
@@ -1109,6 +1114,8 @@ if [[ $# -gt 0 ]]; then
                 _cli_command="json_export"
             fi
             _cli_format="json" ;;
+        "--csv")
+            _cli_format="csv" ;;
         "--compact")
             _cli_compact=true ;;
         "--daily")
