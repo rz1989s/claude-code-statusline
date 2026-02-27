@@ -978,6 +978,31 @@ github.ci_unknown = "?"                   # Shown when status unknown
 # Add "github" to your line components:
 #   display.line2.components = ["model_info", "github", "cost_repo"]
 
+# === WELLNESS MODE (Issue #219) ===
+# Break reminder system that tracks session duration and provides escalating
+# reminders to take breaks. Helps maintain healthy coding habits.
+#
+# Levels:
+#   normal  - No reminder shown (session < gentle_minutes)
+#   gentle  - "Break soon" (session >= gentle_minutes)
+#   warn    - "Take a break" (session >= warn_minutes)
+#   urgent  - "Break overdue!" (session >= urgent_minutes)
+#
+# Display examples:
+#   12m                    # Normal - just shows elapsed time
+#   50m | Break soon       # Gentle reminder
+#   95m | Take a break     # Warning level
+#   130m | Break overdue!  # Urgent reminder
+#
+# Usage: Add "wellness" to your line components:
+#   display.line2.components = ["model_info", "wellness", "cost_repo"]
+
+wellness.enabled = true
+wellness.gentle_minutes = 45
+wellness.warn_minutes = 90
+wellness.urgent_minutes = 120
+wellness.show_in_statusline = true
+
 # ============================================================================
 # TEMPLATE MAINTENANCE NOTES
 # ============================================================================

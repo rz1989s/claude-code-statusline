@@ -152,6 +152,11 @@ load_module "prayer" || {
     handle_warning "Prayer module failed to load - prayer times and Hijri calendar disabled." "main"
 }
 
+# Load wellness mode module (break reminders)
+load_module "wellness" || {
+    handle_warning "Wellness module failed to load - break reminders disabled." "main"
+}
+
 # Load component system module (required for modular display)
 load_module "components" || {
     handle_warning "Components module failed to load - modular display disabled. Falling back to legacy display." "main"
