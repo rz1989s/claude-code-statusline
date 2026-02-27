@@ -252,6 +252,8 @@ REPORTS:
     statusline.sh --trends                  - Historical cost trends (ASCII chart)
     statusline.sh --trends --period 7d      - Cost trends for last 7 days
     statusline.sh --trends --json           - Cost trends (JSON)
+    statusline.sh --limits                  - System limit warnings status
+    statusline.sh --limits --json           - Limit warnings (JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -1141,6 +1143,8 @@ if [[ $# -gt 0 ]]; then
             _cli_refresh="${1#--refresh=}" ;;
         "--trends")
             _cli_command="trends" ;;
+        "--limits")
+            _cli_command="limits" ;;
         "--period")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1269,6 +1273,9 @@ if [[ $# -gt 0 ]]; then
         "trends")
             source "${SCRIPT_DIR}/lib/cli/charts.sh" 2>/dev/null || { echo "Error: charts module not found" >&2; exit 1; }
             show_trends_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project" "${_cli_period:-30d}"
+            exit $? ;;
+        "limits")
+            show_limits_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
     esac
 fi

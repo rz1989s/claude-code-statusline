@@ -1590,6 +1590,59 @@ if ! declare -f show_trends_report &>/dev/null; then
   }
 fi
 
+# ============================================================================
+# LIMIT WARNINGS REPORT (Issue #210)
+# ============================================================================
+
+# Show unified system limits status
+# Usage: show_limits_report [format] [compact] [since] [until] [project]
+show_limits_report() {
+    local format="${1:-human}"
+    local compact="${2:-false}"
+    local since="${3:-}" until="${4:-}" project="${5:-}"
+
+    # Get current values from environment/JSON
+    local context_pct="${STATUSLINE_CONTEXT_PCT:-0}"
+    local five_hour="${STATUSLINE_FIVE_HOUR_PCT:-0}"
+    local seven_day="${STATUSLINE_SEVEN_DAY_PCT:-0}"
+    local cost_today="${STATUSLINE_DAILY_COST:-0}"
+
+    local limits_data
+    limits_data=$(check_all_limits "$context_pct" "$five_hour" "$seven_day" "$cost_today")
+
+    if [[ "$format" == "json" ]]; then
+        # JSON output
+        if [[ -z "$limits_data" ]]; then
+            echo '{"report":"limits","status":"ok","warnings":[]}'
+        else
+            echo "$limits_data" | jq -Rs '
+                split("\n") | map(select(length > 0)) |
+                map(split("\t") | {type: .[0], level: .[1], current: .[2], threshold: .[3], message: .[4]}) |
+                {report: "limits", status: (if any(.level == "critical") then "critical" elif length > 0 then "warn" else "ok" end), warnings: .}
+            '
+        fi
+        return 0
+    fi
+
+    # Human format
+    echo ""
+    echo "  System Limits Status"
+    echo "  ═══════════════════════════════════════════"
+
+    if [[ -z "$limits_data" ]]; then
+        echo "  ✓ All limits within normal range"
+    else
+        echo "  Type      │ Level    │ Current │ Threshold │ Status"
+        echo "  ──────────┼──────────┼─────────┼───────────┼────────────────────"
+        while IFS=$'\t' read -r type level current threshold message; do
+            local icon="⚠"
+            [[ "$level" == "critical" ]] && icon="🔴"
+            printf "  %-9s │ %-8s │ %-7s │ %-9s │ %s %s\n" "$type" "$level" "$current" "$threshold" "$icon" "$message"
+        done <<< "$limits_data"
+    fi
+    echo ""
+}
+
 # EXPORTS
 # ============================================================================
 
@@ -1597,3 +1650,4 @@ export -f show_json_export show_daily_report show_weekly_report show_monthly_rep
 export -f show_breakdown_report show_instances_report show_burn_rate_report
 export -f show_commit_cost_report show_mcp_cost_report
 export -f show_recommendations_report show_trends_report
+export -f show_limits_report
