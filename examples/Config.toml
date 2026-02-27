@@ -991,6 +991,52 @@ github.ci_unknown = "?"                   # Shown when status unknown
 # Add "github" to your line components:
 #   display.line2.components = ["model_info", "github", "cost_repo"]
 
+# === COST ATTRIBUTION (Issues #215, #216) ===
+# Track costs per git commit and per MCP server.
+# Use `statusline.sh --commits` and `statusline.sh --mcp-costs` to view reports.
+
+cost.commit_attribution.enabled = true
+cost.commit_attribution.lookback_days = 30
+
+cost.mcp_attribution.enabled = true
+
+# === COST RECOMMENDATIONS (Issue #221) ===
+# Smart heuristic analysis to identify cost optimization opportunities.
+# Use `statusline.sh --recommendations` to view suggestions.
+
+cost.recommendations.enabled = true
+cost.recommendations.cache_target_percent = 70
+cost.recommendations.session_spike_multiplier = 2.0
+
+# === WATCH MODE (Issue #208) ===
+# Live monitoring dashboard with configurable refresh interval.
+# Use `statusline.sh --watch` or `statusline.sh --watch --refresh 5`.
+
+watch.enabled = true
+watch.default_refresh = 10
+watch.min_refresh = 0.5
+
+# === HISTORICAL TRENDS (Issue #217) ===
+# ASCII bar charts showing cost trends over time.
+# Use `statusline.sh --trends` or `statusline.sh --trends --period 7d`.
+
+trends.default_period = "30d"
+trends.chart_height = 10
+
+# === LIMIT WARNINGS (Issue #210) ===
+# Unified warning system for context window, rate limits, and daily cost.
+# Use `statusline.sh --limits` to check all thresholds.
+
+limits.context_warn_percent = 75
+limits.context_critical_percent = 90
+limits.five_hour_warn_percent = 70
+limits.five_hour_critical_percent = 90
+limits.seven_day_warn_percent = 70
+limits.seven_day_critical_percent = 90
+limits.daily_cost_warn = 5.00
+limits.daily_cost_critical = 10.00
+limits.show_limit_summary = true
+
 # === WELLNESS MODE (Issue #219) ===
 # Break reminder system that tracks session duration and provides escalating
 # reminders to take breaks. Helps maintain healthy coding habits.
