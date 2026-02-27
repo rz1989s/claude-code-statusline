@@ -482,7 +482,7 @@ version_info.show_update_indicator = true  # Show ⬆️ when update available
 # Each line can contain any combination of available components
 
 # Number of lines to display (1-9) - SHOWCASING ALL 26 ATOMIC COMPONENTS!
-display.lines = 9
+display.lines = 8
 
 # Line 1: Repository Identity (path, branch, status)
 display.line1.components = ["repo_info"]
@@ -510,7 +510,7 @@ display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
 # Line 6: Hijri Calendar with Moon Phase, Gregorian Date & Location
-display.line6.components = ["hijri_calendar"]
+display.line6.components = ["hijri_calendar", "wellness"]
 display.line6.separator = " │ "
 display.line6.show_when_empty = true
 
@@ -525,7 +525,7 @@ display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
 # Line 9: Available for future expansion
-display.line9.components = ["wellness"]
+display.line9.components = []
 display.line9.separator = " │ "
 display.line9.show_when_empty = false
 
@@ -1042,7 +1042,7 @@ limits.show_limit_summary = true
 # Idle detection auto-resets the timer when you take a break (>15 min gap).
 # Focus mode: `statusline.sh --focus start` sets a custom target.
 # Usage: Add "wellness" to your line components:
-#   display.line9.components = ["wellness"]
+#   display.line6.components = ["hijri_calendar", "wellness"]
 wellness.enabled = true
 wellness.gentle_minutes = 45              # First "break soon" nudge
 wellness.warn_minutes = 90                # Stronger "take a break" warning
