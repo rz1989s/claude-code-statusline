@@ -76,28 +76,24 @@ setup_test_env() {
 
 # Cleanup test environment
 teardown_test_env() {
-    # Kill any orphaned processes from this test session first
-    local test_session_id="$$"
-    
-    # Kill processes spawned by this test session
-    pkill -f "statusline_test_$test_session_id" 2>/dev/null || true
-    pkill -f "$TEST_TMP_DIR" 2>/dev/null || true
-    
-    # Wait a moment for processes to terminate
-    sleep 0.1
-    
-    # Force kill any remaining processes
-    ps aux | grep -E "$TEST_TMP_DIR" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
-    
     # Clean up temporary files and directories
-    if [[ -d "$TEST_TMP_DIR" ]]; then
-        rm -rf "$TEST_TMP_DIR"
-    fi
-    
-    # Clear test cache files and directories
+    [[ -d "$TEST_TMP_DIR" ]] && rm -rf "$TEST_TMP_DIR"
+
+    # Clear test cache files
     rm -f /tmp/.claude_version_cache_test*
-    
-    # More aggressive cleanup for any orphaned test directories
+}
+
+# Heavy cleanup for orphaned processes — run manually via `npm run clean`
+teardown_test_env_full() {
+    teardown_test_env
+
+    # Kill any orphaned processes from this test session
+    pkill -f "statusline_test_$$" 2>/dev/null || true
+    pkill -f "$TEST_TMP_DIR" 2>/dev/null || true
+    sleep 0.1
+    ps aux | grep -E "$TEST_TMP_DIR" | grep -v grep | awk '{print $2}' | xargs -r kill -9 2>/dev/null || true
+
+    # Cleanup stale test directories older than 5 minutes
     find /tmp -maxdepth 1 -name "statusline_test_*" -type d -mmin +5 -exec rm -rf {} + 2>/dev/null || true
 }
 

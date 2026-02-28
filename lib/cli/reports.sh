@@ -9,8 +9,9 @@
 # - show_daily_report()   - Today's hourly cost breakdown (--daily)
 # - show_weekly_report()  - 7-day cost breakdown with WoW comparison (--weekly)
 # - show_monthly_report() - 30-day cost breakdown with bar chart (--monthly)
+# - show_trends_report()  - Historical cost trends with ASCII chart (--trends)
 #
-# Dependencies: report_format.sh, cost modules, core.sh
+# Dependencies: report_format.sh, charts.sh, cost modules, core.sh
 # ============================================================================
 
 # Prevent multiple includes
@@ -84,20 +85,15 @@ show_json_export() {
     cost_repo=$(calculate_native_repo_cost "$current_dir" 2>/dev/null || echo "0.00")
   fi
 
-  # MCP info
+  # MCP info — use native JSON input if available (avoid claude mcp list which hangs in CLI context)
   local mcp_connected="0" mcp_total="0" mcp_servers="[]"
-  if declare -f is_module_loaded &>/dev/null && is_module_loaded "mcp" && declare -f is_claude_cli_available &>/dev/null && is_claude_cli_available; then
-    local mcp_status_raw
-    mcp_status_raw=$(get_mcp_status 2>/dev/null)
-    if [[ "$mcp_status_raw" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-      mcp_connected="${BASH_REMATCH[1]}"
-      mcp_total="${BASH_REMATCH[2]}"
-    fi
-    local servers_raw
-    servers_raw=$(get_all_mcp_servers 2>/dev/null)
-    if [[ -n "$servers_raw" && "$servers_raw" != "none" ]]; then
-      mcp_servers=$(echo "$servers_raw" | tr ',' '\n' | jq -R . | jq -s .)
-    fi
+  if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+    # Extract MCP data from Claude Code's native JSON input (fast, no subprocess)
+    local mcp_count
+    mcp_count=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | length // 0' 2>/dev/null) || mcp_count=0
+    mcp_total="$mcp_count"
+    mcp_connected="$mcp_count"
+    mcp_servers=$(echo "$STATUSLINE_INPUT_JSON" | jq -c '[.mcp.servers[]?.name // empty]' 2>/dev/null) || mcp_servers="[]"
   fi
 
   # Prayer info
@@ -263,6 +259,19 @@ show_daily_report() {
   local period_label="$report_date ($report_weekday)"
   if [[ -n "$since" && -n "$until" && "$since" != "$until" ]]; then
     period_label="$since to $until"
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "date,day,sessions,cost_usd,tokens"
+    if [[ -n "$hourly_data" ]]; then
+      local total_tokens
+      total_tokens=$(echo "$hourly_data" | awk -F'\t' '{ t += $4 + $5 } END { printf "%d", t }')
+      printf '%s,%s,%s,%s,%s\n' \
+        "$(csv_escape_field "$report_date")" \
+        "$(csv_escape_field "$report_weekday")" \
+        "$total_sessions" "$total_cost" "$total_tokens"
+    fi
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -454,6 +463,22 @@ show_weekly_report() {
   if [[ -n "$daily_data" ]]; then
     total_cost=$(echo "$daily_data" | awk -F'\t' '{ cost += $5; sessions += $4 } END { printf "%.2f", cost }')
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "week_start,week_end,date,day,sessions,cost_usd"
+    if [[ -n "$daily_data" ]]; then
+      while IFS=$'\t' read -r _ date weekday sessions cost; do
+        [[ -z "$date" ]] && continue
+        printf '%s,%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$period_start")" \
+          "$(csv_escape_field "$period_end")" \
+          "$(csv_escape_field "$date")" \
+          "$(csv_escape_field "$weekday")" \
+          "$sessions" "$cost"
+      done <<< "$daily_data"
+    fi
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -663,6 +688,22 @@ show_monthly_report() {
     total_sessions=$(echo "$daily_data" | awk -F'\t' '{ sessions += $4 } END { printf "%d", sessions }')
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "month,date,day,sessions,cost_usd"
+    if [[ -n "$daily_data" ]]; then
+      local month_label="${period_start:0:7}"
+      while IFS=$'\t' read -r _ date weekday sessions cost; do
+        [[ -z "$date" ]] && continue
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$month_label")" \
+          "$(csv_escape_field "$date")" \
+          "$(csv_escape_field "$weekday")" \
+          "$sessions" "$cost"
+      done <<< "$daily_data"
+    fi
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _monthly_report_json "$period_start" "$period_end" "$total_cost" "$total_sessions" \
       "$daily_data" "$model_data" "$compact"
@@ -824,6 +865,28 @@ show_breakdown_report() {
     period_label="Since $since"
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "model,sessions,cost_usd,tokens,share_pct"
+    if [[ -n "$breakdown_data" ]]; then
+      local sorted_data
+      sorted_data=$(echo "$breakdown_data" | sort -t$'\t' -k7 -rn)
+      while IFS=$'\t' read -r _ model sessions input output cache_read cost; do
+        [[ -z "$model" ]] && continue
+        local total_tokens pct
+        total_tokens=$((input + output))
+        if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+          pct=$(awk "BEGIN { printf \"%.1f\", ($cost / $total_cost) * 100 }")
+        else
+          pct="0.0"
+        fi
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$model")" \
+          "$sessions" "$cost" "$total_tokens" "$pct"
+      done <<< "$sorted_data"
+    fi
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _breakdown_report_json "$total_cost" "$total_sessions" "$breakdown_data" "$period_label" "$compact"
   else
@@ -964,6 +1027,27 @@ show_instances_report() {
     period_label="$since to $until"
   elif [[ -n "$since" ]]; then
     period_label="Since $since"
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "project,sessions,cost_usd,tokens,share_pct"
+    if [[ -n "$project_data" ]]; then
+      local sorted_data
+      sorted_data=$(echo "$project_data" | sort -t$'\t' -k5 -rn)
+      while IFS=$'\t' read -r _ name sessions tokens cost; do
+        [[ -z "$name" ]] && continue
+        local pct
+        if awk "BEGIN { exit ($total_cost + 0 > 0) ? 0 : 1 }" 2>/dev/null; then
+          pct=$(awk "BEGIN { printf \"%.1f\", ($cost / $total_cost) * 100 }")
+        else
+          pct="0.0"
+        fi
+        printf '%s,%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$name")" \
+          "$sessions" "$cost" "$tokens" "$pct"
+      done <<< "$sorted_data"
+    fi
+    return 0
   fi
 
   if [[ "$format" == "json" ]]; then
@@ -1168,6 +1252,19 @@ show_burn_rate_report() {
     period_label="Since $since"
   fi
 
+  if [[ "$format" == "csv" ]]; then
+    echo "metric,value"
+    printf '%s,%s\n' "total_cost_usd" "$total_cost"
+    printf '%s,%s\n' "total_tokens" "$total_tokens"
+    printf '%s,%s\n' "elapsed_minutes" "$elapsed_min"
+    printf '%s,%s\n' "cost_per_minute" "$cost_per_min"
+    printf '%s,%s\n' "tokens_per_minute" "$tokens_per_min"
+    printf '%s,%s\n' "cost_per_hour" "$cost_per_hour"
+    printf '%s,%s\n' "five_hour_block_cost" "$five_hour_cost"
+    printf '%s,%s\n' "minutes_to_five_dollars" "$time_to_five"
+    return 0
+  fi
+
   if [[ "$format" == "json" ]]; then
     _burn_rate_report_json "$total_cost" "$total_tokens" "$elapsed_min" \
       "$cost_per_min" "$tokens_per_min" "$cost_per_hour" \
@@ -1295,8 +1392,373 @@ _burn_rate_report_json() {
 }
 
 # ============================================================================
+# ============================================================================
+# COMMIT COST REPORT (Issue #215)
+# ============================================================================
+
+show_commit_cost_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+  local repo_dir="${STATUSLINE_WORKING_DIR:-$(pwd)}"
+
+  if [[ "$format" == "json" ]]; then
+    local results
+    results=$(calculate_commit_costs "$repo_dir")
+    if [[ -z "$results" ]]; then
+      echo "[]"
+      return 0
+    fi
+    echo "$results" | jq -Rs '
+      split("\n") | map(select(length > 0)) |
+      map(split("\t") | {
+        commit: .[0],
+        timestamp: (.[1] | tonumber),
+        message: .[2],
+        cost_usd: (.[3] | tonumber),
+        tokens: (.[4] | tonumber),
+        relative: .[5]
+      })
+    '
+    return 0
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "commit,message,cost_usd,tokens,relative_time"
+    local results
+    results=$(calculate_commit_costs "$repo_dir")
+    [[ -z "$results" ]] && return 0
+    while IFS=$'\t' read -r hash ts msg cost tokens rel; do
+      printf '"%s","%s",%s,%s,"%s"\n' "${hash:0:7}" "$msg" "$cost" "$tokens" "$rel"
+    done <<< "$results"
+    return 0
+  fi
+
+  # Human format
+  echo ""
+  echo "  Commit Attribution"
+  echo "  ════════════════════════════════════════════════════════════════"
+  echo "  Commit          │ Message                      │   Cost │ Tokens"
+  echo "  ────────────────┼──────────────────────────────┼────────┼───────"
+
+  local results total_cost=0 total_tokens=0 count=0
+  results=$(calculate_commit_costs "$repo_dir")
+  if [[ -z "$results" ]]; then
+    echo "  (no commits found in lookback period)"
+    echo ""
+    return 0
+  fi
+
+  while IFS=$'\t' read -r hash ts msg cost tokens rel; do
+    [[ -z "$hash" ]] && continue
+    printf "  %-8s(%6s)│ %-28s │ \$%5s │ %5s\n" "${hash:0:7}" "$rel" "$msg" "$cost" "${tokens}"
+    total_cost=$(awk "BEGIN { printf \"%.2f\", $total_cost + ${cost:-0} }")
+    total_tokens=$((total_tokens + ${tokens:-0}))
+    count=$((count + 1))
+  done <<< "$results"
+
+  echo "  ────────────────┼──────────────────────────────┼────────┼───────"
+  printf "  %-16s│ Total (%d commits)%11s│ \$%5s │ %5s\n" "" "$count" "" "$total_cost" "$total_tokens"
+  echo ""
+}
+
+# ============================================================================
+# MCP COST REPORT (Issue #216)
+# ============================================================================
+
+show_mcp_cost_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+
+  if [[ "$format" == "json" ]]; then
+    local results
+    results=$(calculate_mcp_costs "$project")
+    if [[ -z "$results" ]]; then
+      echo "[]"
+      return 0
+    fi
+    echo "$results" | jq -Rs '
+      split("\n") | map(select(length > 0)) |
+      map(split("\t") | {
+        server: .[0],
+        calls: (.[1] | tonumber),
+        tokens: (.[2] | tonumber),
+        cost_usd: (.[3] | tonumber),
+        share_percent: (.[4] | tonumber)
+      })
+    '
+    return 0
+  fi
+
+  if [[ "$format" == "csv" ]]; then
+    echo "server,calls,tokens,cost_usd,share_percent"
+    local results
+    results=$(calculate_mcp_costs "$project")
+    [[ -z "$results" ]] && return 0
+    while IFS=$'\t' read -r server calls tokens cost share; do
+      printf '"%s",%s,%s,%s,%s\n' "$server" "$calls" "$tokens" "$cost" "$share"
+    done <<< "$results"
+    return 0
+  fi
+
+  # Human format
+  echo ""
+  echo "  MCP Cost Attribution"
+  echo "  ════════════════════════════════════════════════════════════════"
+  echo "  MCP Server      │ Calls │  Tokens │   Cost │ Share"
+  echo "  ────────────────┼───────┼─────────┼────────┼──────"
+
+  local results total_calls=0 total_tokens=0 total_cost=0
+  results=$(calculate_mcp_costs "$project")
+  if [[ -z "$results" ]]; then
+    echo "  (no MCP tool usage found)"
+    echo ""
+    return 0
+  fi
+
+  while IFS=$'\t' read -r server calls tokens cost share; do
+    [[ -z "$server" ]] && continue
+    local formatted_tokens
+    if [[ "${tokens:-0}" -ge 1000000 ]]; then
+      formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000000 }")M"
+    elif [[ "${tokens:-0}" -ge 1000 ]]; then
+      formatted_tokens="$(awk "BEGIN { printf \"%.1f\", $tokens / 1000 }")K"
+    else
+      formatted_tokens="$tokens"
+    fi
+    printf "  %-16s│ %5s │ %7s │ \$%5s │ %3s%%\n" "$server" "$calls" "$formatted_tokens" "$cost" "$share"
+    total_calls=$((total_calls + calls))
+    total_tokens=$((total_tokens + tokens))
+    total_cost=$(awk "BEGIN { printf \"%.2f\", $total_cost + ${cost:-0} }")
+  done <<< "$results"
+
+  echo "  ────────────────┼───────┼─────────┼────────┼──────"
+  printf "  %-16s│ %5s │ %7s │ \$%5s │ 100%%\n" "Total" "$total_calls" "$total_tokens" "$total_cost"
+  echo ""
+}
+
+# ============================================================================
+# RECOMMENDATIONS REPORT (Issue #221)
+# ============================================================================
+
+show_recommendations_report() {
+  local format="${1:-human}"
+  local compact="${2:-false}"
+  local since="${3:-}" until="${4:-}" project="${5:-}"
+
+  local rec_data
+  rec_data=$(generate_recommendations "$since" "$until" "$project" 2>/dev/null) || true
+
+  if [[ "$format" == "csv" ]]; then
+    echo "priority,category,message,savings_estimate"
+    if [[ -n "$rec_data" ]]; then
+      while IFS=$'\t' read -r priority category message savings; do
+        [[ -z "$priority" ]] && continue
+        printf '%s,%s,%s,%s\n' \
+          "$(csv_escape_field "$priority")" \
+          "$(csv_escape_field "$category")" \
+          "$(csv_escape_field "$message")" \
+          "$(csv_escape_field "${savings:--}")"
+      done <<< "$rec_data"
+    fi
+    return 0
+  fi
+
+  if [[ "$format" == "json" ]]; then
+    _recommendations_report_json "$rec_data" "$compact"
+  else
+    _recommendations_report_human "$rec_data"
+  fi
+
+  return 0
+}
+
+# Human-readable recommendations report
+_recommendations_report_human() {
+  local rec_data="$1"
+
+  echo "Claude Code - Smart Cost Recommendations"
+  echo "========================================="
+  echo ""
+
+  if [[ -z "$rec_data" ]]; then
+    echo "No recommendations at this time. Your usage patterns look efficient."
+    echo ""
+    echo "Checks performed:"
+    echo "  - Cache efficiency"
+    echo "  - Session cost spikes"
+    echo "  - Budget pacing"
+    echo "  - Average session cost"
+    echo "  - Idle time detection"
+    return 0
+  fi
+
+  local count=0
+  local high_count=0 medium_count=0 low_count=0
+
+  while IFS=$'\t' read -r priority category message savings; do
+    [[ -z "$priority" ]] && continue
+    count=$((count + 1))
+
+    local icon="  "
+    case "$priority" in
+      HIGH)   icon="!!"; high_count=$((high_count + 1)) ;;
+      MEDIUM) icon="! "; medium_count=$((medium_count + 1)) ;;
+      LOW)    icon="i "; low_count=$((low_count + 1)) ;;
+    esac
+
+    printf "[%s] %-7s [%-10s] %s\n" "$icon" "$priority" "$category" "$message"
+    if [[ -n "$savings" && "$savings" != "-" ]]; then
+      printf "    %s Potential savings: %s\n" "" "$savings"
+    fi
+    echo ""
+  done <<< "$rec_data"
+
+  echo "-----------------------------------------"
+  printf "Total: %d recommendation(s)" "$count"
+  if [[ "$high_count" -gt 0 ]]; then
+    printf " (%d high" "$high_count"
+    if [[ "$medium_count" -gt 0 || "$low_count" -gt 0 ]]; then
+      printf ", %d medium, %d low" "$medium_count" "$low_count"
+    fi
+    printf ")"
+  fi
+  echo ""
+}
+
+# JSON recommendations report
+_recommendations_report_json() {
+  local rec_data="$1"
+  local compact="${2:-false}"
+
+  local items_json="[]"
+  if [[ -n "$rec_data" ]]; then
+    items_json=$(echo "$rec_data" | grep -v '^$' | awk -F'\t' '
+    BEGIN { printf "["; first = 1 }
+    {
+      if (!first) printf ","
+      first = 0
+      gsub(/"/, "\\\"", $3)
+      gsub(/"/, "\\\"", $4)
+      printf "{\"priority\":\"%s\",\"category\":\"%s\",\"message\":\"%s\",\"savings_estimate\":\"%s\"}", $1, $2, $3, $4
+    }
+    END { printf "]" }')
+  fi
+
+  local count
+  count=$(echo "$items_json" | jq 'length' 2>/dev/null) || count=0
+  local high_count
+  high_count=$(echo "$items_json" | jq '[.[] | select(.priority == "HIGH")] | length' 2>/dev/null) || high_count=0
+
+  if [[ "$compact" == "true" ]]; then
+    jq -n -c \
+      --arg report "recommendations" \
+      --argjson count "$count" \
+      --argjson high_priority "$high_count" \
+      --argjson items "$items_json" \
+      '{report:$report,count:$count,high_priority:$high_priority,recommendations:$items}'
+  else
+    jq -n \
+      --arg report "recommendations" \
+      --argjson count "$count" \
+      --argjson high_priority "$high_count" \
+      --argjson items "$items_json" \
+      '{report:$report,count:$count,high_priority:$high_priority,recommendations:$items}'
+  fi
+}
+
+# ============================================================================
+# HISTORICAL TRENDS REPORT (Issue #217)
+# ============================================================================
+
+# Show historical cost trends with ASCII chart
+# Delegates to charts.sh module for rendering
+# Usage: show_trends_report [format] [compact] [since] [until] [project] [period]
+# show_trends_report() is defined in lib/cli/charts.sh and sourced on demand
+# This wrapper ensures the charts module is loaded
+if ! declare -f show_trends_report &>/dev/null; then
+  show_trends_report() {
+    local format="${1:-human}"
+    local compact="${2:-false}"
+    local since="${3:-}" until="${4:-}" project="${5:-}"
+    local period="${6:-30d}"
+
+    # Source charts module which defines the real show_trends_report
+    source "${CLI_LIB_DIR}/charts.sh" 2>/dev/null || {
+      echo "Error: charts module not available" >&2
+      return 1
+    }
+
+    # Safety: verify the real function was loaded to prevent infinite recursion
+    if [[ "${STATUSLINE_CLI_CHARTS_LOADED:-}" != "true" ]]; then
+      echo "Error: charts module failed to initialize" >&2
+      return 1
+    fi
+
+    # Delegate to the real implementation from charts.sh
+    show_trends_report "$format" "$compact" "$since" "$until" "$project" "$period"
+  }
+fi
+
+# ============================================================================
+# LIMIT WARNINGS REPORT (Issue #210)
+# ============================================================================
+
+# Show unified system limits status
+# Usage: show_limits_report [format] [compact] [since] [until] [project]
+show_limits_report() {
+    local format="${1:-human}"
+    local compact="${2:-false}"
+    local since="${3:-}" until="${4:-}" project="${5:-}"
+
+    # Get current values from environment/JSON
+    local context_pct="${STATUSLINE_CONTEXT_PCT:-0}"
+    local five_hour="${STATUSLINE_FIVE_HOUR_PCT:-0}"
+    local seven_day="${STATUSLINE_SEVEN_DAY_PCT:-0}"
+    local cost_today="${STATUSLINE_DAILY_COST:-0}"
+
+    local limits_data
+    limits_data=$(check_all_limits "$context_pct" "$five_hour" "$seven_day" "$cost_today")
+
+    if [[ "$format" == "json" ]]; then
+        # JSON output
+        if [[ -z "$limits_data" ]]; then
+            echo '{"report":"limits","status":"ok","warnings":[]}'
+        else
+            echo "$limits_data" | jq -Rs '
+                split("\n") | map(select(length > 0)) |
+                map(split("\t") | {type: .[0], level: .[1], current: .[2], threshold: .[3], message: .[4]}) |
+                {report: "limits", status: (if any(.level == "critical") then "critical" elif length > 0 then "warn" else "ok" end), warnings: .}
+            '
+        fi
+        return 0
+    fi
+
+    # Human format
+    echo ""
+    echo "  System Limits Status"
+    echo "  ═══════════════════════════════════════════"
+
+    if [[ -z "$limits_data" ]]; then
+        echo "  ✓ All limits within normal range"
+    else
+        echo "  Type      │ Level    │ Current │ Threshold │ Status"
+        echo "  ──────────┼──────────┼─────────┼───────────┼────────────────────"
+        while IFS=$'\t' read -r type level current threshold message; do
+            local icon="⚠"
+            [[ "$level" == "critical" ]] && icon="🔴"
+            printf "  %-9s │ %-8s │ %-7s │ %-9s │ %s %s\n" "$type" "$level" "$current" "$threshold" "$icon" "$message"
+        done <<< "$limits_data"
+    fi
+    echo ""
+}
+
 # EXPORTS
 # ============================================================================
 
 export -f show_json_export show_daily_report show_weekly_report show_monthly_report
 export -f show_breakdown_report show_instances_report show_burn_rate_report
+export -f show_commit_cost_report show_mcp_cost_report
+export -f show_recommendations_report show_trends_report
+export -f show_limits_report

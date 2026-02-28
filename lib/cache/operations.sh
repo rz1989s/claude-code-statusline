@@ -93,7 +93,7 @@ install_cleanup_traps() {
     trap 'cleanup_cache_resources' EXIT INT TERM HUP
 
     # Mark traps as installed for this instance
-    declare -g "$trap_marker=installed"
+    eval "$trap_marker=installed"
     export "$trap_marker"
 
     [[ "${STATUSLINE_CORE_LOADED:-}" == "true" ]] && debug_log "Installed cache cleanup traps for instance $CACHE_INSTANCE_ID" "INFO"

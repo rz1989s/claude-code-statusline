@@ -23,38 +23,38 @@ teardown() {
 # ==============================================================================
 
 @test "--instances outputs Multi-Project Cost Summary header" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
     assert_output --partial "Multi-Project Cost Summary"
 }
 
 @test "--instances shows period info" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
     assert_output --partial "Period:"
 }
 
 @test "--instances shows total cost" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
     assert_output --partial "Total:"
 }
 
 @test "--instances shows project count" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
     assert_output --partial "projects"
 }
 
 @test "--instances shows TOTAL row or no-data message" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
     # CI may have no JSONL data — accept either output
     [[ "$output" == *"TOTAL"* ]] || [[ "$output" == *"No project data"* ]]
 }
 
 @test "--instances returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --instances
+    run "$STATUSLINE_SCRIPT" --instances < /dev/null
     assert_success
 }
 
@@ -80,7 +80,7 @@ _extract_json() {
 }
 
 @test "--instances --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -89,7 +89,7 @@ _extract_json() {
 }
 
 @test "--instances --json has report field" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -99,7 +99,7 @@ _extract_json() {
 }
 
 @test "--instances --json has projects array" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -108,7 +108,7 @@ _extract_json() {
 }
 
 @test "--instances --json has summary with project_count" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -116,7 +116,7 @@ _extract_json() {
 }
 
 @test "--instances --json project entries have cost fields" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -130,7 +130,7 @@ _extract_json() {
 }
 
 @test "--instances --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --instances --json
+    run "$STATUSLINE_SCRIPT" --instances --json < /dev/null
     assert_success
 }
 
@@ -139,7 +139,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --instances flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--instances"
 }

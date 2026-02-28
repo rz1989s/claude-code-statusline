@@ -3,21 +3,23 @@
 # TOML Configuration Performance Benchmarks
 # Measures current jq usage overhead and establishes performance baselines
 
-setup() {
+setup_file() {
     export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
     export PATH="$STATUSLINE_DIR:$PATH"
     cd "$STATUSLINE_DIR"
-    
-    # Create test directory for performance tests
-    export TEST_PERF_DIR="/tmp/toml_performance_tests"
-    mkdir -p "$TEST_PERF_DIR"
-    
-    # Source the statusline script for function access
-    local saved_args=("$@")
-    set --
+
+    # Source the statusline script once for all tests in this file
     export STATUSLINE_TESTING="true"
     source statusline.sh 2>/dev/null || true
-    set -- "${saved_args[@]}"
+}
+
+setup() {
+    export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
+    cd "$STATUSLINE_DIR"
+
+    # Create test directory for performance tests
+    export TEST_PERF_DIR="/tmp/toml_performance_tests_$$"
+    mkdir -p "$TEST_PERF_DIR"
 }
 
 teardown() {

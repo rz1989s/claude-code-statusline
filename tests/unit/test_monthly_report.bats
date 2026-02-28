@@ -44,25 +44,25 @@ _extract_json() {
 # ==============================================================================
 
 @test "--monthly outputs Monthly Cost Report header" {
-    run "$STATUSLINE_SCRIPT" --monthly
+    run "$STATUSLINE_SCRIPT" --monthly < /dev/null
     assert_success
     assert_output --partial "Monthly Cost Report"
 }
 
 @test "--monthly contains Stats section or no-data message" {
-    run "$STATUSLINE_SCRIPT" --monthly
+    run "$STATUSLINE_SCRIPT" --monthly < /dev/null
     assert_success
     [[ "$output" == *"Stats:"* || "$output" == *"No usage data"* ]]
 }
 
 @test "--monthly contains Date column or no-data message" {
-    run "$STATUSLINE_SCRIPT" --monthly
+    run "$STATUSLINE_SCRIPT" --monthly < /dev/null
     assert_success
     [[ "$output" == *"Date"* || "$output" == *"No usage data"* ]]
 }
 
 @test "--monthly returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --monthly
+    run "$STATUSLINE_SCRIPT" --monthly < /dev/null
     assert_success
 }
 
@@ -71,7 +71,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--monthly --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -80,7 +80,7 @@ _extract_json() {
 }
 
 @test "--monthly --json has report field set to monthly" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output report
     json_output=$(_extract_json "$output")
@@ -89,7 +89,7 @@ _extract_json() {
 }
 
 @test "--monthly --json has days array with at most 30 elements" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -100,7 +100,7 @@ _extract_json() {
 }
 
 @test "--monthly --json has summary with active_days" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -110,7 +110,7 @@ _extract_json() {
 }
 
 @test "--monthly --json has period object with 30 days" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -120,7 +120,7 @@ _extract_json() {
 }
 
 @test "--monthly --json has models array" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -131,7 +131,7 @@ _extract_json() {
 }
 
 @test "--monthly --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --monthly --json
+    run "$STATUSLINE_SCRIPT" --monthly --json < /dev/null
     assert_success
 }
 
@@ -140,7 +140,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --monthly flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--monthly"
 }

@@ -152,6 +152,11 @@ load_module "prayer" || {
     handle_warning "Prayer module failed to load - prayer times and Hijri calendar disabled." "main"
 }
 
+# Load wellness mode module (break reminders)
+load_module "wellness" || {
+    handle_warning "Wellness module failed to load - break reminders disabled." "main"
+}
+
 # Load component system module (required for modular display)
 load_module "components" || {
     handle_warning "Components module failed to load - modular display disabled. Falling back to legacy display." "main"
@@ -241,6 +246,29 @@ REPORTS:
     statusline.sh --instances --json        - Multi-project cost summary (JSON)
     statusline.sh --burn-rate               - Cost/token velocity analysis
     statusline.sh --burn-rate --json        - Burn rate analysis (JSON)
+    statusline.sh --commits                 - Cost per commit attribution
+    statusline.sh --commits --json          - Commit costs (JSON)
+    statusline.sh --mcp-costs               - MCP server cost attribution
+    statusline.sh --mcp-costs --json        - MCP server costs (JSON)
+    statusline.sh --recommendations            - Smart cost optimization tips
+    statusline.sh --recommendations --json     - Cost recommendations (JSON)
+    statusline.sh --watch                   - Live monitoring mode (10s refresh)
+    statusline.sh --watch --refresh 5       - Custom refresh interval
+    statusline.sh --trends                  - Historical cost trends (ASCII chart)
+    statusline.sh --trends --period 7d      - Cost trends for last 7 days
+    statusline.sh --trends --json           - Cost trends (JSON)
+    statusline.sh --limits                  - System limit warnings status
+    statusline.sh --limits --json           - Limit warnings (JSON)
+    statusline.sh --focus start             - Start focus session
+    statusline.sh --focus stop              - Stop and show summary
+    statusline.sh --focus status            - Current session info
+    statusline.sh --focus history           - Session history
+    statusline.sh --focus history --json    - History (JSON)
+
+OUTPUT FORMAT:
+    --csv                                   - Output in CSV format
+    --json                                  - Output in JSON format
+    --compact                               - Compact output (single line JSON)
 
 FILTERS:
     --since DATE                            - Filter from date (inclusive)
@@ -942,6 +970,9 @@ if [[ $# -gt 0 ]]; then
     _cli_since=""
     _cli_until=""
     _cli_project=""
+    _cli_refresh=""
+    _cli_period=""
+    _cli_focus_action=""
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -1096,6 +1127,8 @@ if [[ $# -gt 0 ]]; then
                 _cli_command="json_export"
             fi
             _cli_format="json" ;;
+        "--csv")
+            _cli_format="csv" ;;
         "--compact")
             _cli_compact=true ;;
         "--daily")
@@ -1110,6 +1143,40 @@ if [[ $# -gt 0 ]]; then
             _cli_command="instances" ;;
         "--burn-rate")
             _cli_command="burn_rate" ;;
+        "--commits")
+            _cli_command="commits" ;;
+        "--mcp-costs")
+            _cli_command="mcp_costs" ;;
+        "--recommendations")
+            _cli_command="recommendations" ;;
+        "--watch")
+            _cli_command="watch" ;;
+        "--refresh")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --refresh requires an interval" >&2; exit 1
+            fi
+            _cli_refresh="$1" ;;
+        --refresh=*)
+            _cli_refresh="${1#--refresh=}" ;;
+        "--trends")
+            _cli_command="trends" ;;
+        "--limits")
+            _cli_command="limits" ;;
+        "--focus")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --focus requires: start|stop|status|history" >&2; exit 1
+            fi
+            _cli_command="focus"; _cli_focus_action="$1" ;;
+        "--period")
+            shift
+            if [[ $# -eq 0 ]]; then
+                echo "Error: --period requires a duration argument" >&2; exit 1
+            fi
+            _cli_period="$1" ;;
+        --period=*)
+            _cli_period="${1#--period=}" ;;
         "--since")
             shift
             if [[ $# -eq 0 ]]; then
@@ -1214,6 +1281,35 @@ if [[ $# -gt 0 ]]; then
         "burn_rate")
             show_burn_rate_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
             exit $? ;;
+        "commits")
+            show_commit_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "mcp_costs")
+            show_mcp_cost_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "recommendations")
+            show_recommendations_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "watch")
+            source "$SCRIPT_DIR/lib/cli/watch.sh" 2>/dev/null || { echo "Error: watch module not found" >&2; exit 1; }
+            show_watch_mode "${_cli_refresh:-10}"
+            exit $? ;;
+        "trends")
+            source "${SCRIPT_DIR}/lib/cli/charts.sh" 2>/dev/null || { echo "Error: charts module not found" >&2; exit 1; }
+            show_trends_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project" "${_cli_period:-30d}"
+            exit $? ;;
+        "limits")
+            show_limits_report "${_cli_format:-human}" "$_cli_compact" "$_cli_since" "$_cli_until" "$_cli_project"
+            exit $? ;;
+        "focus")
+            source "$SCRIPT_DIR/lib/focus.sh" 2>/dev/null || { echo "Error: focus module not found" >&2; exit 1; }
+            case "$_cli_focus_action" in
+                start) focus_start; exit $? ;;
+                stop) focus_stop; exit $? ;;
+                status) focus_status; exit $? ;;
+                history) focus_history "${_cli_format:-human}"; exit $? ;;
+                *) echo "Error: unknown focus action: $_cli_focus_action" >&2; exit 1 ;;
+            esac ;;
     esac
 fi
 

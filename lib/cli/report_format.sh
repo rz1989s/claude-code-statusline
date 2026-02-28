@@ -385,6 +385,41 @@ resolve_project_filter() {
 }
 
 # ============================================================================
+# CSV FORMATTING (Issue #218)
+# ============================================================================
+
+# Escape a field for RFC 4180 compliant CSV output
+# Wraps in double quotes and escapes internal quotes if field contains
+# commas, double quotes, or newlines.
+# Usage: csv_escape_field "Hello, world"  →  "\"Hello, world\""
+csv_escape_field() {
+  local field="$1"
+  if [[ "$field" == *[,\"$'\n']* ]]; then
+    field="${field//\"/\"\"}"
+    echo "\"$field\""
+  else
+    echo "$field"
+  fi
+}
+
+# Generic CSV formatter that reads tab-delimited stdin
+# Prints the header line, then converts each tab-delimited input line
+# to properly escaped CSV output.
+# Usage: echo -e "a\tb\tc" | format_as_csv "col1,col2,col3"
+format_as_csv() {
+  local headers="$1"
+  echo "$headers"
+  while IFS=$'\t' read -r -a fields; do
+    local line=""
+    for i in "${!fields[@]}"; do
+      [[ $i -gt 0 ]] && line+=","
+      line+=$(csv_escape_field "${fields[$i]}")
+    done
+    echo "$line"
+  done
+}
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -392,3 +427,4 @@ export -f draw_table_separator draw_bar render_progress_bar format_usd format_to
 export -f pad_right pad_left format_percent
 export -f parse_date_arg date_to_iso_utc date_to_iso_utc_end
 export -f resolve_project_filter
+export -f csv_escape_field format_as_csv

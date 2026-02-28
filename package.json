@@ -8,9 +8,11 @@
   },
   "scripts": {
     "postinstall": "node scripts/npm-setup.js",
-    "test": "bats tests/**/*.bats",
-    "test:unit": "bats tests/unit/*.bats",
-    "test:integration": "bats tests/integration/*.bats",
+    "test": "bats --jobs 4 tests/unit/*.bats tests/integration/*.bats",
+    "test:unit": "bats --jobs 4 tests/unit/*.bats",
+    "test:integration": "bats --jobs 4 tests/integration/*.bats",
+    "test:bench": "bats tests/benchmarks/*.bats",
+    "test:all": "bats --jobs 4 tests/**/*.bats",
     "test:watch": "bats tests/**/*.bats --tap",
     "test:coverage": "scripts/coverage.sh",
     "test:coverage:html": "scripts/coverage.sh --html",
@@ -22,7 +24,7 @@
     "clean": "npm run clean:processes && rm -f tests/**/*.log /tmp/.claude_* && rm -rf /tmp/statusline_test_*",
     "clean:processes": "pkill -f 'statusline_test_.*mock_bin' || true; ps aux | grep -E '/tmp/statusline_test.*date' | grep -v grep | awk '{print $2}' | xargs -r kill -9 || true",
     "dev": "npm run clean && npm run test",
-    "ci": "npm run lint:all && npm run test"
+    "ci": "npm run lint:all && npm run test:all"
   },
   "keywords": [
     "claude",

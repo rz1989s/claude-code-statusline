@@ -55,7 +55,7 @@ collect_cache_efficiency_data() {
                     total_cache_tokens=$((cache_read + cache_write))
 
                     if [[ "$total_cache_tokens" -gt 0 ]]; then
-                        efficiency=$(awk "BEGIN {printf \"%.0f\", $cache_read * 100 / $total_cache_tokens}" 2>/dev/null || echo "0")
+                        efficiency=$(awk -v cr="$cache_read" -v t="$total_cache_tokens" 'BEGIN {printf "%.0f", cr * 100 / t}' 2>/dev/null || echo "0")
                         COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${efficiency}% hit"
                         debug_log "Using JSONL cache efficiency: ${efficiency}%" "INFO"
                     else

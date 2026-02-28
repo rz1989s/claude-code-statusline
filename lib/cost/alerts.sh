@@ -59,7 +59,7 @@ get_cost_percentage() {
     fi
 
     local percentage
-    percentage=$(awk "BEGIN {printf \"%.0f\", ($cost / $threshold) * 100}" 2>/dev/null)
+    percentage=$(awk -v c="$cost" -v t="$threshold" 'BEGIN {printf "%.0f", (c / t) * 100}' 2>/dev/null)
     echo "${percentage:-0}"
 }
 
@@ -287,19 +287,17 @@ get_cost_trend() {
         return 1
     fi
 
-    if command_exists bc; then
-        local diff
-        diff=$(echo "$current_cost - $previous_cost" | bc -l 2>/dev/null)
+    local diff
+    diff=$(awk -v c="$current_cost" -v p="$previous_cost" 'BEGIN { printf "%.4f", c - p }' 2>/dev/null)
 
-        if [[ "$diff" =~ ^- ]]; then
-            echo "down"
-        elif [[ "$diff" =~ ^0.?0*$ ]]; then
-            echo "stable"
-        else
-            echo "up"
-        fi
-    else
+    if [[ -z "$diff" ]]; then
         echo "unknown"
+    elif [[ "$diff" =~ ^- ]]; then
+        echo "down"
+    elif [[ "$diff" =~ ^0.?0*$ ]]; then
+        echo "stable"
+    else
+        echo "up"
     fi
 }
 
@@ -354,8 +352,86 @@ get_cost_status_summary() {
     esac
 }
 
+# ============================================================================
+# UNIFIED LIMIT WARNINGS (Issue #210)
+# ============================================================================
+
+# Configuration defaults for unified limit thresholds
+CONFIG_LIMITS_CONTEXT_WARN_PERCENT="${CONFIG_LIMITS_CONTEXT_WARN_PERCENT:-75}"
+CONFIG_LIMITS_CONTEXT_CRITICAL_PERCENT="${CONFIG_LIMITS_CONTEXT_CRITICAL_PERCENT:-90}"
+CONFIG_LIMITS_FIVE_HOUR_WARN_PERCENT="${CONFIG_LIMITS_FIVE_HOUR_WARN_PERCENT:-70}"
+CONFIG_LIMITS_FIVE_HOUR_CRITICAL_PERCENT="${CONFIG_LIMITS_FIVE_HOUR_CRITICAL_PERCENT:-90}"
+CONFIG_LIMITS_SEVEN_DAY_WARN_PERCENT="${CONFIG_LIMITS_SEVEN_DAY_WARN_PERCENT:-70}"
+CONFIG_LIMITS_SEVEN_DAY_CRITICAL_PERCENT="${CONFIG_LIMITS_SEVEN_DAY_CRITICAL_PERCENT:-90}"
+CONFIG_LIMITS_DAILY_COST_WARN="${CONFIG_LIMITS_DAILY_COST_WARN:-5.00}"
+CONFIG_LIMITS_DAILY_COST_CRITICAL="${CONFIG_LIMITS_DAILY_COST_CRITICAL:-10.00}"
+
+# Get context window alert level
+# Args: $1=percentage used (0-100)
+# Returns: "normal", "warn", or "critical"
+get_context_alert_level() {
+    local percentage="${1:-0}"
+    local warn_threshold="${CONFIG_LIMITS_CONTEXT_WARN_PERCENT:-75}"
+    local critical_threshold="${CONFIG_LIMITS_CONTEXT_CRITICAL_PERCENT:-90}"
+
+    if [[ "$percentage" -ge "$critical_threshold" ]]; then
+        echo "critical"
+    elif [[ "$percentage" -ge "$warn_threshold" ]]; then
+        echo "warn"
+    else
+        echo "normal"
+    fi
+}
+
+# Check all system limits and return unified status
+# Returns tab-delimited lines: TYPE\tLEVEL\tCURRENT\tTHRESHOLD\tMESSAGE
+check_all_limits() {
+    local context_pct="${1:-0}"
+    local five_hour_pct="${2:-0}"
+    local seven_day_pct="${3:-0}"
+    local cost_today="${4:-0}"
+
+    # Context window check
+    local ctx_level
+    ctx_level=$(get_context_alert_level "$context_pct")
+    [[ "$ctx_level" != "normal" ]] && printf "context\t%s\t%s%%\t%s%%\tContext window %s\n" "$ctx_level" "$context_pct" "${CONFIG_LIMITS_CONTEXT_WARN_PERCENT:-75}" "$ctx_level"
+
+    # 5-hour rate limit check
+    local five_warn="${CONFIG_LIMITS_FIVE_HOUR_WARN_PERCENT:-70}"
+    local five_crit="${CONFIG_LIMITS_FIVE_HOUR_CRITICAL_PERCENT:-90}"
+    if [[ "$five_hour_pct" -ge "$five_crit" ]]; then
+        printf "rate_5h\tcritical\t%s%%\t%s%%\t5-hour rate limit critical\n" "$five_hour_pct" "$five_crit"
+    elif [[ "$five_hour_pct" -ge "$five_warn" ]]; then
+        printf "rate_5h\twarn\t%s%%\t%s%%\t5-hour rate limit warning\n" "$five_hour_pct" "$five_warn"
+    fi
+
+    # 7-day rate limit check
+    local seven_warn="${CONFIG_LIMITS_SEVEN_DAY_WARN_PERCENT:-70}"
+    local seven_crit="${CONFIG_LIMITS_SEVEN_DAY_CRITICAL_PERCENT:-90}"
+    if [[ "$seven_day_pct" -ge "$seven_crit" ]]; then
+        printf "rate_7d\tcritical\t%s%%\t%s%%\t7-day rate limit critical\n" "$seven_day_pct" "$seven_crit"
+    elif [[ "$seven_day_pct" -ge "$seven_warn" ]]; then
+        printf "rate_7d\twarn\t%s%%\t%s%%\t7-day rate limit warning\n" "$seven_day_pct" "$seven_warn"
+    fi
+
+    # Daily cost check
+    local cost_warn="${CONFIG_LIMITS_DAILY_COST_WARN:-5.00}"
+    local cost_crit="${CONFIG_LIMITS_DAILY_COST_CRITICAL:-10.00}"
+    local cost_compare
+    cost_compare=$(awk -v c="$cost_today" -v t="$cost_crit" 'BEGIN { print (c >= t) ? 1 : 0 }' 2>/dev/null) || cost_compare=0
+    if [[ "$cost_compare" == "1" ]]; then
+        printf "cost\tcritical\t\$%s\t\$%s\tDaily cost limit critical\n" "$cost_today" "$cost_crit"
+    else
+        cost_compare=$(awk -v c="$cost_today" -v t="$cost_warn" 'BEGIN { print (c >= t) ? 1 : 0 }' 2>/dev/null) || cost_compare=0
+        [[ "$cost_compare" == "1" ]] && printf "cost\twarn\t\$%s\t\$%s\tDaily cost limit warning\n" "$cost_today" "$cost_warn"
+    fi
+
+    return 0
+}
+
 # Export cost alert functions
 export -f is_cost_alerts_enabled get_cost_percentage get_cost_alert_level
 export -f get_cost_alert_color check_all_cost_thresholds
 export -f send_cost_notification is_notification_cooldown_expired update_notification_timestamp
 export -f process_cost_alerts format_cost format_cost_with_alert get_cost_trend get_cost_status_summary
+export -f get_context_alert_level check_all_limits

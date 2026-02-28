@@ -23,37 +23,37 @@ teardown() {
 # ==============================================================================
 
 @test "--burn-rate outputs Burn Rate Analysis header" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
     assert_output --partial "Burn Rate Analysis"
 }
 
 @test "--burn-rate shows period info" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
     assert_output --partial "Period:"
 }
 
 @test "--burn-rate shows total info" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
     assert_output --partial "Total:"
 }
 
 @test "--burn-rate shows rates or no-data message" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
     [[ "$output" == *"Current Rates:"* ]] || [[ "$output" == *"No active usage data"* ]]
 }
 
 @test "--burn-rate shows predictions or no-data message" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
     [[ "$output" == *"Predictions"* ]] || [[ "$output" == *"No active usage data"* ]]
 }
 
 @test "--burn-rate returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --burn-rate
+    run "$STATUSLINE_SCRIPT" --burn-rate < /dev/null
     assert_success
 }
 
@@ -79,7 +79,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -88,7 +88,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json has report field" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -98,7 +98,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json has rates object" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -109,7 +109,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json has predictions object" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -118,7 +118,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json has summary object" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -128,7 +128,7 @@ _extract_json() {
 }
 
 @test "--burn-rate --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --json
+    run "$STATUSLINE_SCRIPT" --burn-rate --json < /dev/null
     assert_success
 }
 
@@ -137,13 +137,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "--burn-rate works with --since" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --since 7d
+    run "$STATUSLINE_SCRIPT" --burn-rate --since 7d < /dev/null
     assert_success
     assert_output --partial "Burn Rate Analysis"
 }
 
 @test "--burn-rate works with --project" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --burn-rate --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
@@ -154,7 +154,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --burn-rate flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--burn-rate"
 }

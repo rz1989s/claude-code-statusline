@@ -9,6 +9,9 @@ setup() {
     common_setup
     STATUSLINE_TESTING="true"
     export STATUSLINE_TESTING
+    # Isolate from real JSONL files to prevent slow scans
+    export CLAUDE_CONFIG_DIR="$TEST_TMP_DIR/claude_config"
+    mkdir -p "$CLAUDE_CONFIG_DIR/projects"
     STATUSLINE_CLI_REPORT_FORMAT_LOADED=""
     source "$STATUSLINE_ROOT/lib/cli/report_format.sh" 2>/dev/null || true
 }
@@ -114,67 +117,67 @@ teardown() {
 # ==============================================================================
 
 @test "--since flag is recognized" {
-    run "$STATUSLINE_SCRIPT" --daily --since today
+    run "$STATUSLINE_SCRIPT" --daily --since today < /dev/null
     assert_success
     assert_output --partial "Daily Cost Report"
 }
 
 @test "--until flag is recognized" {
-    run "$STATUSLINE_SCRIPT" --daily --since yesterday --until today
+    run "$STATUSLINE_SCRIPT" --daily --since yesterday --until today < /dev/null
     assert_success
     assert_output --partial "Daily Cost Report"
 }
 
 @test "--since without value shows error" {
-    run "$STATUSLINE_SCRIPT" --daily --since
+    run "$STATUSLINE_SCRIPT" --daily --since < /dev/null
     assert_failure
     assert_output --partial "Error"
 }
 
 @test "--since with invalid date shows error" {
-    run "$STATUSLINE_SCRIPT" --daily --since invalid
+    run "$STATUSLINE_SCRIPT" --daily --since invalid < /dev/null
     assert_failure
     assert_output --partial "Error: Invalid date format"
 }
 
 @test "--since after --until shows error" {
-    run "$STATUSLINE_SCRIPT" --daily --since 2026-02-07 --until 2026-01-01
+    run "$STATUSLINE_SCRIPT" --daily --since 2026-02-07 --until 2026-01-01 < /dev/null
     assert_failure
     assert_output --partial "Error: --since date must be before --until date"
 }
 
 @test "--since works with --weekly" {
-    run "$STATUSLINE_SCRIPT" --weekly --since 7d
+    run "$STATUSLINE_SCRIPT" --weekly --since 7d < /dev/null
     assert_success
     assert_output --partial "Weekly Cost Report"
 }
 
 @test "--since works with --monthly" {
-    run "$STATUSLINE_SCRIPT" --monthly --since 30d
+    run "$STATUSLINE_SCRIPT" --monthly --since 30d < /dev/null
     assert_success
     assert_output --partial "Monthly Cost Report"
 }
 
 @test "--since works with --breakdown" {
-    run "$STATUSLINE_SCRIPT" --breakdown --since 7d
+    run "$STATUSLINE_SCRIPT" --breakdown --since 7d < /dev/null
     assert_success
     assert_output --partial "Model Cost Breakdown"
 }
 
 @test "--since works with --instances" {
-    run "$STATUSLINE_SCRIPT" --instances --since 7d
+    run "$STATUSLINE_SCRIPT" --instances --since 7d < /dev/null
     assert_success
     assert_output --partial "Multi-Project Cost Summary"
 }
 
 @test "--help mentions --since flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--since"
 }
 
 @test "--help mentions --until flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--until"
 }

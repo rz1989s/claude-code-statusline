@@ -49,7 +49,12 @@ load_prayer_modules() {
         debug_log "Failed to load prayer display module" "ERROR"
         return 1
     fi
-    
+
+    # Optional: prayer reminders (Issue #212)
+    source "${PRAYER_MODULE_DIR}/prayer/reminders.sh" 2>/dev/null || {
+        debug_log "Prayer reminders module not available" "INFO"
+    }
+
     debug_log "All prayer modules loaded successfully" "INFO"
     return 0
 }

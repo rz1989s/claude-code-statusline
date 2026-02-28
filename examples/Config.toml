@@ -244,6 +244,19 @@ prayer.use_legacy_indicator = false     # Use "(next)" instead of time remaining
 prayer.next_prayer_color_enabled = true # Apply color highlighting to next prayer
 prayer.next_prayer_color = "bright_green" # Color for next prayer: green, bright_green, teal
 
+# === PRAYER BREAK REMINDERS (Issue #212) ===
+# Configurable reminders that integrate with the statusline display
+# to alert you of upcoming prayer times at progressive urgency levels.
+
+prayer.reminders.enabled = false           # Enable prayer break reminders
+prayer.reminders.headsup_minutes = 30      # Minutes before prayer for heads-up level
+prayer.reminders.prepare_minutes = 15      # Minutes before prayer for prepare level
+prayer.reminders.imminent_minutes = 5      # Minutes before prayer for imminent level
+prayer.reminders.desktop_notify = false    # Send desktop notifications (requires notify-send/osascript)
+prayer.reminders.cooldown_seconds = 900    # Minimum seconds between repeated notifications (15 min)
+prayer.reminders.integrate_wellness = true # Integrate with wellness break system
+prayer.reminders.integrate_focus = true    # Integrate with focus session tracking
+
 # === CALCULATION METHODS WORLDWIDE ===
 # Choose the method used in your country/region:
 #
@@ -497,7 +510,7 @@ display.line5.separator = " │ "
 display.line5.show_when_empty = true
 
 # Line 6: Hijri Calendar with Moon Phase, Gregorian Date & Location
-display.line6.components = ["hijri_calendar"]
+display.line6.components = ["hijri_calendar", "wellness"]
 display.line6.separator = " │ "
 display.line6.show_when_empty = true
 
@@ -977,6 +990,77 @@ github.ci_unknown = "?"                   # Shown when status unknown
 # === USAGE ===
 # Add "github" to your line components:
 #   display.line2.components = ["model_info", "github", "cost_repo"]
+
+# === COST ATTRIBUTION (Issues #215, #216) ===
+# Track costs per git commit and per MCP server.
+# Use `statusline.sh --commits` and `statusline.sh --mcp-costs` to view reports.
+
+cost.commit_attribution.enabled = true
+cost.commit_attribution.lookback_days = 30
+
+cost.mcp_attribution.enabled = true
+
+# === COST RECOMMENDATIONS (Issue #221) ===
+# Smart heuristic analysis to identify cost optimization opportunities.
+# Use `statusline.sh --recommendations` to view suggestions.
+
+cost.recommendations.enabled = true
+cost.recommendations.cache_target_percent = 70
+cost.recommendations.session_spike_multiplier = 2.0
+
+# === WATCH MODE (Issue #208) ===
+# Live monitoring dashboard with configurable refresh interval.
+# Use `statusline.sh --watch` or `statusline.sh --watch --refresh 5`.
+
+watch.enabled = true
+watch.default_refresh = 10
+watch.min_refresh = 0.5
+
+# === HISTORICAL TRENDS (Issue #217) ===
+# ASCII bar charts showing cost trends over time.
+# Use `statusline.sh --trends` or `statusline.sh --trends --period 7d`.
+
+trends.default_period = "30d"
+trends.chart_height = 10
+
+# === LIMIT WARNINGS (Issue #210) ===
+# Unified warning system for context window, rate limits, and daily cost.
+# Use `statusline.sh --limits` to check all thresholds.
+
+limits.context_warn_percent = 75
+limits.context_critical_percent = 90
+limits.five_hour_warn_percent = 70
+limits.five_hour_critical_percent = 90
+limits.seven_day_warn_percent = 70
+limits.seven_day_critical_percent = 90
+limits.daily_cost_warn = 5.00
+limits.daily_cost_critical = 10.00
+limits.show_limit_summary = true
+
+# [Wellness & Focus Mode]
+# Unified session tracking: coding timer + break reminders + focus mode.
+# Idle detection auto-resets the timer when you take a break (>15 min gap).
+# Focus mode: `statusline.sh --focus start` sets a custom target.
+# Usage: Add "wellness" to your line components:
+#   display.line6.components = ["hijri_calendar", "wellness"]
+wellness.enabled = true
+wellness.gentle_minutes = 45              # First "break soon" nudge
+wellness.warn_minutes = 90                # Stronger "take a break" warning
+wellness.urgent_minutes = 120             # "Break overdue!" alert
+wellness.idle_reset_minutes = 15          # Gap (min) to consider "took a break"
+wellness.show_in_statusline = true
+
+# [Focus Mode] (integrated into wellness)
+# Use `statusline.sh --focus start` to begin a session,
+# `--focus stop` to end and record, `--focus status` to check progress.
+# When active, focus target replaces wellness threshold in display.
+# Auto-abandons after idle gap > abandon_minutes.
+focus.enabled = true
+focus.default_duration = 50               # Default session target in minutes
+focus.abandon_minutes = 120               # Auto-stop focus after this idle gap
+focus.show_in_statusline = true
+focus.track_commits = true
+focus.track_cost = true
 
 # ============================================================================
 # TEMPLATE MAINTENANCE NOTES

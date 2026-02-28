@@ -154,11 +154,11 @@ get_cache_performance_report() {
         echo ""
 
         # Performance classification
-        if (( $(echo "$overall_hit_ratio >= 80" | bc -l) )); then
+        if (( $(awk -v r="$overall_hit_ratio" 'BEGIN { print (r >= 80) ? 1 : 0 }') )); then
             echo "  Cache Efficiency: EXCELLENT (>=80%)"
-        elif (( $(echo "$overall_hit_ratio >= 60" | bc -l) )); then
+        elif (( $(awk -v r="$overall_hit_ratio" 'BEGIN { print (r >= 60) ? 1 : 0 }') )); then
             echo "  Cache Efficiency: GOOD (60-79%)"
-        elif (( $(echo "$overall_hit_ratio >= 40" | bc -l) )); then
+        elif (( $(awk -v r="$overall_hit_ratio" 'BEGIN { print (r >= 40) ? 1 : 0 }') )); then
             echo "  Cache Efficiency: MODERATE (40-59%)"
         else
             echo "  Cache Efficiency: POOR (<40%) - Consider tuning cache durations"

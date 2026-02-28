@@ -25,7 +25,7 @@ teardown() {
 # ==============================================================================
 
 @test "--health flag outputs human-readable format" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "Claude Code Statusline Health Check"
     assert_output --partial "Status:"
@@ -34,7 +34,7 @@ teardown() {
 }
 
 @test "--health shows bash version" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "bash"
 }
@@ -43,26 +43,26 @@ teardown() {
     if ! command -v jq &>/dev/null; then
         skip "jq not installed"
     fi
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "jq"
 }
 
 @test "--health shows module count" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     # Should show "X loaded, Y failed" format
     assert_output --partial "loaded"
 }
 
 @test "--health shows config status" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "Config:"
 }
 
 @test "--health shows cache status" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "Cache:"
 }
@@ -91,7 +91,7 @@ _extract_json() {
 }
 
 @test "--health=json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     # Extract JSON and validate syntax
     local json_output
@@ -101,7 +101,7 @@ _extract_json() {
 }
 
 @test "--health-json alternative flag works" {
-    run "$STATUSLINE_SCRIPT" --health-json
+    run "$STATUSLINE_SCRIPT" --health-json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -110,7 +110,7 @@ _extract_json() {
 }
 
 @test "--health=json contains status field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output status
     json_output=$(_extract_json "$output")
@@ -119,7 +119,7 @@ _extract_json() {
 }
 
 @test "--health=json contains version field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output version
     json_output=$(_extract_json "$output")
@@ -128,7 +128,7 @@ _extract_json() {
 }
 
 @test "--health=json contains modules_loaded field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output modules_loaded
     json_output=$(_extract_json "$output")
@@ -137,7 +137,7 @@ _extract_json() {
 }
 
 @test "--health=json contains modules_failed field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output modules_failed
     json_output=$(_extract_json "$output")
@@ -146,7 +146,7 @@ _extract_json() {
 }
 
 @test "--health=json contains dependencies object" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -155,7 +155,7 @@ _extract_json() {
 }
 
 @test "--health=json contains config field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output config
     json_output=$(_extract_json "$output")
@@ -164,7 +164,7 @@ _extract_json() {
 }
 
 @test "--health=json contains cache field" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output cache
     json_output=$(_extract_json "$output")
@@ -177,12 +177,12 @@ _extract_json() {
 # ==============================================================================
 
 @test "--health returns exit code 0 when healthy" {
-    run "$STATUSLINE_SCRIPT" --health
+    run "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
 }
 
 @test "--health=json returns exit code 0 when healthy" {
-    run "$STATUSLINE_SCRIPT" --health=json
+    run "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
 }
 
@@ -191,13 +191,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --health flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--health"
 }
 
 @test "--help mentions --health=json flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--health=json"
 }

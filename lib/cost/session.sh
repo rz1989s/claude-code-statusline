@@ -168,7 +168,7 @@ get_context_window_percentage() {
 
     # Calculate percentage
     local percentage
-    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+    percentage=$(awk -v tt="$total_tokens" -v cw="$CONTEXT_WINDOW_SIZE" 'BEGIN {printf "%.0f", tt * 100 / cw}' 2>/dev/null)
 
     echo "${percentage:-0}"
 }
@@ -187,7 +187,7 @@ get_context_window_display() {
         return 1
     fi
 
-    percentage=$(awk "BEGIN {printf \"%.0f\", $total_tokens * 100 / $CONTEXT_WINDOW_SIZE}" 2>/dev/null)
+    percentage=$(awk -v tt="$total_tokens" -v cw="$CONTEXT_WINDOW_SIZE" 'BEGIN {printf "%.0f", tt * 100 / cw}' 2>/dev/null)
 
     # Format tokens for display (K/M suffix)
     local formatted_tokens formatted_max

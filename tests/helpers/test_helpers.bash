@@ -344,7 +344,7 @@ measure_execution_time() {
 
     # Use seconds only - milliseconds not reliable on macOS
     start_time=$(/bin/date +%s)
-    eval "$command"
+    eval "$command" < /dev/null > /dev/null 2>&1
     end_time=$(/bin/date +%s)
 
     # Return duration in milliseconds (approximate from seconds)
@@ -366,9 +366,9 @@ run_concurrent_tests() {
     # Start concurrent processes with timeout
     for ((i=1; i<=num_processes; i++)); do
         if [[ -n "$timeout_cmd" ]]; then
-            $timeout_cmd 10s bash -c "$test_command" &
+            $timeout_cmd 10s bash -c "$test_command" < /dev/null &
         else
-            eval "$test_command" &
+            eval "$test_command" < /dev/null &
         fi
         pids+=($!)
     done
@@ -378,6 +378,12 @@ run_concurrent_tests() {
     for pid in "${pids[@]}"; do
         wait "$pid" 2>/dev/null || wait_result=1
         results+=($?)
+    done
+
+    # Kill any orphan child processes left behind
+    for pid in "${pids[@]}"; do
+        pkill -P "$pid" 2>/dev/null || true
+        kill -9 "$pid" 2>/dev/null || true
     done
 
     # Check if all succeeded

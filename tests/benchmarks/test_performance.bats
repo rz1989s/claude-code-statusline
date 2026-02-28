@@ -3,13 +3,22 @@
 # Performance benchmark tests to prevent regressions
 # These tests ensure our optimizations maintain their performance benefits
 
-setup() {
+setup_file() {
     export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
     export PATH="$STATUSLINE_DIR:$PATH"
     cd "$STATUSLINE_DIR"
-    
+
+    # Source the statusline script once for all tests in this file
+    export STATUSLINE_TESTING="true"
+    STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null || true
+}
+
+setup() {
+    export STATUSLINE_DIR="$BATS_TEST_DIRNAME/../.."
+    cd "$STATUSLINE_DIR"
+
     # Create test TOML config for consistent benchmarking (flat format)
-    export TEST_CONFIG="/tmp/benchmark_config.toml"
+    export TEST_CONFIG="/tmp/benchmark_config_$$.toml"
     cat > "$TEST_CONFIG" << 'EOF'
 theme.name = "custom"
 
@@ -70,8 +79,7 @@ teardown() {
     # Time the parse_toml_to_json function (use seconds for macOS compatibility)
     local start_time=$(date +%s)
 
-    # Source the script and test parsing
-    STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
+    # Test parsing (script already sourced in setup_file)
     parse_toml_to_json "$TEST_CONFIG" >/dev/null
 
     local end_time=$(date +%s)
@@ -90,8 +98,7 @@ teardown() {
     # Monitor memory usage during config loading
     local memory_before=$(ps -o rss= -p $$ 2>/dev/null || echo "0")
     
-    # Load configuration multiple times
-STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
+    # Load configuration multiple times (script already sourced in setup_file)
     for i in {1..10}; do
         parse_toml_to_json "$TEST_CONFIG" >/dev/null
     done
@@ -109,8 +116,7 @@ STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
 @test "error handling should be efficient" {
     local start_time=$(date +%s)
 
-    # Test error handling paths (ignore exit codes, we're measuring timing)
-    STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
+    # Test error handling paths (script already sourced in setup_file)
     parse_toml_to_json "/nonexistent/file.toml" >/dev/null 2>&1 || true
     parse_toml_to_json "" >/dev/null 2>&1 || true
 
@@ -126,10 +132,8 @@ STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
 # Benchmark: Security functions should be fast
 @test "path sanitization should be efficient" {
     local start_time=$(date +%s)
-    
-STATUSLINE_SOURCING="true" source statusline.sh 2>/dev/null
-    
-    # Test multiple path sanitizations
+
+    # Test multiple path sanitizations (script already sourced in setup_file)
     for i in {1..100}; do
         sanitize_path_secure "/path/../../../test/file" >/dev/null
     done

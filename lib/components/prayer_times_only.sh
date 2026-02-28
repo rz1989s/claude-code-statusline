@@ -14,7 +14,7 @@
 # ============================================================================
 
 # Component data storage (must be global to persist between collect and render phases)
-declare -g COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
+COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
@@ -24,7 +24,7 @@ declare -g COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
 collect_prayer_times_only_data() {
     debug_log "Collecting prayer_times_only component data" "INFO"
 
-    declare -g COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
+    COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
 
     # Only collect if prayer module is loaded and enabled
     if ! is_module_loaded "prayer"; then
@@ -59,10 +59,10 @@ collect_prayer_times_only_data() {
 
     # Format prayer times using the existing display function (same as original prayer_times)
     if type format_prayer_times_display &>/dev/null; then
-        declare -g COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=$(format_prayer_times_display "$prayer_times" "$prayer_statuses" "$current_time")
+        COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=$(format_prayer_times_display "$prayer_times" "$prayer_statuses" "$current_time")
         if [[ $? -ne 0 || -z "$COMPONENT_PRAYER_TIMES_ONLY_DISPLAY" ]]; then
             debug_log "Failed to format prayer times display" "ERROR"
-            declare -g COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
+            COMPONENT_PRAYER_TIMES_ONLY_DISPLAY=""
             return 1
         fi
     else
