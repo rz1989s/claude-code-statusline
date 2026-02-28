@@ -44,7 +44,7 @@ _extract_json() {
 }
 
 @test "--metrics flag outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -53,7 +53,7 @@ _extract_json() {
 }
 
 @test "--metrics=json flag outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --metrics=json
+    run "$STATUSLINE_SCRIPT" --metrics=json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -62,7 +62,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON contains timestamp field" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output timestamp
     json_output=$(_extract_json "$output")
@@ -71,7 +71,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON contains version field" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output version
     json_output=$(_extract_json "$output")
@@ -80,7 +80,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON contains modules object" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -90,7 +90,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON modules.loaded is a number" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output loaded
     json_output=$(_extract_json "$output")
@@ -99,7 +99,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON contains cache object" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -110,7 +110,7 @@ _extract_json() {
 }
 
 @test "--metrics JSON contains components object" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -124,34 +124,34 @@ _extract_json() {
 # ==============================================================================
 
 @test "--metrics=prometheus outputs Prometheus format" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "# HELP"
     assert_output --partial "# TYPE"
 }
 
 @test "--metrics=prom short alias works" {
-    run "$STATUSLINE_SCRIPT" --metrics=prom
+    run "$STATUSLINE_SCRIPT" --metrics=prom < /dev/null
     assert_success
     assert_output --partial "statusline_modules_loaded"
 }
 
 @test "--metrics=prometheus contains statusline_info metric" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "statusline_info"
     assert_output --partial "gauge"
 }
 
 @test "--metrics=prometheus contains modules metrics" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "statusline_modules_loaded"
     assert_output --partial "statusline_modules_failed"
 }
 
 @test "--metrics=prometheus contains cache metrics" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "statusline_cache_hits_total"
     assert_output --partial "statusline_cache_misses_total"
@@ -161,14 +161,14 @@ _extract_json() {
 }
 
 @test "--metrics=prometheus contains component metrics" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "statusline_components_enabled"
     assert_output --partial "statusline_components_total"
 }
 
 @test "--metrics=prometheus has correct metric types" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     # Counters for cumulative values
     assert_output --partial "# TYPE statusline_cache_hits_total counter"
@@ -183,7 +183,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--metrics with invalid format returns error" {
-    run "$STATUSLINE_SCRIPT" --metrics=invalid
+    run "$STATUSLINE_SCRIPT" --metrics=invalid < /dev/null
     assert_failure
     # Invalid format treated as unknown option at CLI level
     assert_output --partial "Unknown option"
@@ -194,12 +194,12 @@ _extract_json() {
 # ==============================================================================
 
 @test "--metrics returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --metrics
+    run "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
 }
 
 @test "--metrics=prometheus returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
 }
 
@@ -208,13 +208,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --metrics flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--metrics"
 }
 
 @test "--help mentions --metrics=prometheus flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--metrics=prometheus"
 }

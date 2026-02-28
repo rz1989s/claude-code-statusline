@@ -5,6 +5,14 @@
 load '../setup_suite'
 load '../helpers/test_helpers'
 
+# File-level teardown: kill all orphan statusline processes after all tests complete.
+# This prevents BATS from hanging on inherited file descriptors.
+teardown_file() {
+    pkill -f "statusline_test_" 2>/dev/null || true
+    sleep 0.2
+    pkill -9 -f "statusline_test_" 2>/dev/null || true
+}
+
 setup() {
     common_setup
     # Setup a complete mock environment for integration testing
@@ -19,11 +27,19 @@ teardown() {
     common_teardown
 }
 
+# Helper: run statusline in an FD-clean environment.
+# Closes BATS's internal FDs (3-9) inside the bash -c subshell to prevent
+# child processes from holding them open, which would cause BATS to hang.
+_run_sl() {
+    local json="$1"
+    timeout 10 bash -c "exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null; echo '$json' | '$STATUSLINE_SCRIPT'"
+}
+
 # Test complete statusline output with optimal conditions
 @test "should generate complete statusline with all features working" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     
@@ -48,7 +64,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "📁"              # Dirty status emoji
@@ -60,7 +76,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "MCP:2/3"         # Partial connection status (2 of 3 connected)
@@ -77,7 +93,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$non_git_dir" "Claude 3.5 Haiku")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     # Should not contain git-specific information
@@ -91,7 +107,7 @@ teardown() {
 @test "should display correct emoji for Claude Opus" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3 Opus")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "🧠"              # Opus emoji
@@ -100,7 +116,7 @@ teardown() {
 @test "should display correct emoji for Claude Haiku" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3 Haiku")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "⚡"              # Haiku emoji
@@ -109,7 +125,7 @@ teardown() {
 @test "should display correct emoji for Claude Sonnet" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "🎵"              # Sonnet emoji
@@ -118,7 +134,7 @@ teardown() {
 @test "should display default emoji for unknown model" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Unknown Model")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "🤖"              # Default emoji
@@ -130,7 +146,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     validate_statusline_format "$output"
@@ -141,7 +157,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     validate_statusline_format "$output"
@@ -152,7 +168,7 @@ teardown() {
     
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     validate_statusline_format "$output"
@@ -163,7 +179,7 @@ teardown() {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
     local execution_time
-    execution_time=$(measure_execution_time "echo '$test_input' | '$STATUSLINE_SCRIPT'")
+    execution_time=$(measure_execution_time "exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null; echo '$test_input' | '$STATUSLINE_SCRIPT'")
     
     # Should complete within 5 seconds under normal conditions
     if [ "$execution_time" -gt 5000 ]; then
@@ -190,7 +206,7 @@ EOF
 
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
 
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
 
     assert_success
     assert_output_contains "MCP:?/?"         # Should show unknown status after timeout
@@ -205,7 +221,7 @@ EOF
     
     local test_input=$(generate_test_input "$special_dir" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     assert_output_contains "spaces"          # Should handle path with spaces
@@ -217,7 +233,7 @@ EOF
 
     # Run 5 concurrent statusline executions
     # run_concurrent_tests returns 0 on success, 1 on failure
-    run_concurrent_tests 5 "echo '$test_input' | '$STATUSLINE_SCRIPT' >/dev/null 2>&1"
+    run_concurrent_tests 5 "exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&- 2>/dev/null; echo '$test_input' | '$STATUSLINE_SCRIPT' >/dev/null 2>&1" < /dev/null
 }
 
 # Test error recovery
@@ -226,13 +242,13 @@ EOF
     
     # First run with failing MCP
     setup_mock_mcp "timeout"
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     assert_success
     assert_output_contains "MCP:?/?"
 
     # Second run with working MCP
     setup_mock_mcp "connected"
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     assert_success
     assert_output_contains "MCP:3/3"
 }
@@ -251,7 +267,7 @@ EOF
 
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
 
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
 
     assert_success
     # Version should be displayed (cached or mock)
@@ -263,7 +279,7 @@ EOF
 @test "should work with minimal feature set enabled" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
 
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
 
     assert_success
     # Should have basic info
@@ -275,7 +291,7 @@ EOF
 @test "output should have consistent line structure" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     
@@ -296,7 +312,7 @@ EOF
 @test "should strip ANSI codes cleanly for testing" {
     local test_input=$(generate_test_input "$TEST_TMP_DIR/mock_repo" "Claude 3.5 Sonnet")
     
-    run bash -c "echo '$test_input' | '$STATUSLINE_SCRIPT'"
+    run _run_sl "$test_input"
     
     assert_success
     

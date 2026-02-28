@@ -104,66 +104,66 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --csv" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--csv"
 }
 
 @test "--help mentions OUTPUT FORMAT section" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "OUTPUT FORMAT"
 }
 
 @test "--daily --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --daily --csv
+    run "$STATUSLINE_SCRIPT" --daily --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "date,day,sessions,cost_usd,tokens" "$first_line"
 }
 
 @test "--daily --csv returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --daily --csv
+    run "$STATUSLINE_SCRIPT" --daily --csv < /dev/null
     assert_success
 }
 
 @test "--weekly --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --weekly --csv
+    run "$STATUSLINE_SCRIPT" --weekly --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "week_start,week_end,date,day,sessions,cost_usd" "$first_line"
 }
 
 @test "--monthly --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --monthly --csv
+    run "$STATUSLINE_SCRIPT" --monthly --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "month,date,day,sessions,cost_usd" "$first_line"
 }
 
 @test "--breakdown --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --breakdown --csv
+    run "$STATUSLINE_SCRIPT" --breakdown --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "model,sessions,cost_usd,tokens,share_pct" "$first_line"
 }
 
 @test "--instances --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --instances --csv
+    run "$STATUSLINE_SCRIPT" --instances --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "project,sessions,cost_usd,tokens,share_pct" "$first_line"
 }
 
 @test "--burn-rate --csv outputs CSV header" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --csv
+    run "$STATUSLINE_SCRIPT" --burn-rate --csv < /dev/null
     assert_success
     first_line=$(echo "$output" | head -1)
     assert_equal "metric,value" "$first_line"
 }
 
 @test "--burn-rate --csv outputs metric rows" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --csv
+    run "$STATUSLINE_SCRIPT" --burn-rate --csv < /dev/null
     assert_success
     assert_output --partial "total_cost_usd"
     assert_output --partial "cost_per_hour"
@@ -171,7 +171,7 @@ teardown() {
 }
 
 @test "--daily --csv does not contain ASCII table separators" {
-    run "$STATUSLINE_SCRIPT" --daily --csv
+    run "$STATUSLINE_SCRIPT" --daily --csv < /dev/null
     assert_success
     refute_output --partial "═"
     refute_output --partial "─"
@@ -179,14 +179,14 @@ teardown() {
 }
 
 @test "--breakdown --csv does not contain ASCII table separators" {
-    run "$STATUSLINE_SCRIPT" --breakdown --csv
+    run "$STATUSLINE_SCRIPT" --breakdown --csv < /dev/null
     assert_success
     refute_output --partial "═"
     refute_output --partial "─"
 }
 
 @test "--burn-rate --csv has expected row count" {
-    run "$STATUSLINE_SCRIPT" --burn-rate --csv
+    run "$STATUSLINE_SCRIPT" --burn-rate --csv < /dev/null
     assert_success
     # Header + 8 metric rows = 9 lines
     line_count=$(echo "$output" | wc -l | tr -d ' ')

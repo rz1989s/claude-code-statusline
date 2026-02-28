@@ -44,26 +44,26 @@ _extract_json() {
 # ==============================================================================
 
 @test "--weekly outputs Weekly Cost Report header" {
-    run "$STATUSLINE_SCRIPT" --weekly
+    run "$STATUSLINE_SCRIPT" --weekly < /dev/null
     assert_success
     assert_output --partial "Weekly Cost Report"
 }
 
 @test "--weekly contains Week-over-Week section or no-data message" {
-    run "$STATUSLINE_SCRIPT" --weekly
+    run "$STATUSLINE_SCRIPT" --weekly < /dev/null
     assert_success
     [[ "$output" == *"Week-over-Week"* || "$output" == *"No usage data"* ]]
 }
 
 @test "--weekly contains full weekday names" {
-    run "$STATUSLINE_SCRIPT" --weekly
+    run "$STATUSLINE_SCRIPT" --weekly < /dev/null
     assert_success
     # At least one weekday name should appear in the Day column
     assert_output --partial "Day"
 }
 
 @test "--weekly returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --weekly
+    run "$STATUSLINE_SCRIPT" --weekly < /dev/null
     assert_success
 }
 
@@ -72,7 +72,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--weekly --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -81,7 +81,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has report field set to weekly" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output report
     json_output=$(_extract_json "$output")
@@ -90,7 +90,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has days array" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -101,7 +101,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has comparison object" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -112,7 +112,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has period with 7 days" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -122,7 +122,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has summary with daily_average" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -132,7 +132,7 @@ _extract_json() {
 }
 
 @test "--weekly --json has models array" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -143,7 +143,7 @@ _extract_json() {
 }
 
 @test "--weekly --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --weekly --json
+    run "$STATUSLINE_SCRIPT" --weekly --json < /dev/null
     assert_success
 }
 
@@ -152,7 +152,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --weekly flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--weekly"
 }

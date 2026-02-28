@@ -179,28 +179,28 @@ teardown() {
 # ==============================================================================
 
 @test "--trends flag is accepted by CLI" {
-  run "$STATUSLINE_SCRIPT" --trends
+  run "$STATUSLINE_SCRIPT" --trends < /dev/null
   assert_success
 }
 
 @test "--trends returns exit code 0" {
-  run "$STATUSLINE_SCRIPT" --trends
+  run "$STATUSLINE_SCRIPT" --trends < /dev/null
   assert_success
 }
 
 @test "--trends shows trends header" {
-  run "$STATUSLINE_SCRIPT" --trends
+  run "$STATUSLINE_SCRIPT" --trends < /dev/null
   assert_success
   assert_output --partial "Trend"
 }
 
 @test "--trends --period 7d is accepted" {
-  run "$STATUSLINE_SCRIPT" --trends --period 7d
+  run "$STATUSLINE_SCRIPT" --trends --period 7d < /dev/null
   assert_success
 }
 
 @test "--trends --json outputs valid JSON" {
-  run "$STATUSLINE_SCRIPT" --trends --json
+  run "$STATUSLINE_SCRIPT" --trends --json < /dev/null
   assert_success
   # Output should contain JSON structure
   [[ "$output" == *"period"* ]]
@@ -208,7 +208,7 @@ teardown() {
 }
 
 @test "--trends --json --compact outputs single line" {
-  run "$STATUSLINE_SCRIPT" --trends --json --compact
+  run "$STATUSLINE_SCRIPT" --trends --json --compact < /dev/null
   assert_success
   # Compact JSON should be parseable
   local json_line
@@ -217,7 +217,7 @@ teardown() {
 }
 
 @test "--period without argument shows error" {
-  run "$STATUSLINE_SCRIPT" --trends --period
+  run "$STATUSLINE_SCRIPT" --trends --period < /dev/null
   assert_failure
   assert_output --partial "Error"
 }
@@ -227,13 +227,13 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --trends flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--trends"
 }
 
 @test "--help mentions --period flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--period"
 }

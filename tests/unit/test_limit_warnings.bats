@@ -142,7 +142,7 @@ teardown() {
 # ==============================================================================
 
 @test "--limits outputs System Limits Status header" {
-    run "$STATUSLINE_SCRIPT" --limits
+    run "$STATUSLINE_SCRIPT" --limits < /dev/null
     assert_success
     assert_output --partial "System Limits Status"
 }
@@ -152,7 +152,7 @@ teardown() {
     export STATUSLINE_FIVE_HOUR_PCT=0
     export STATUSLINE_SEVEN_DAY_PCT=0
     export STATUSLINE_DAILY_COST=0
-    run "$STATUSLINE_SCRIPT" --limits
+    run "$STATUSLINE_SCRIPT" --limits < /dev/null
     assert_success
     assert_output --partial "All limits within normal range"
 }
@@ -162,14 +162,14 @@ teardown() {
     export STATUSLINE_FIVE_HOUR_PCT=0
     export STATUSLINE_SEVEN_DAY_PCT=0
     export STATUSLINE_DAILY_COST=0
-    run "$STATUSLINE_SCRIPT" --limits
+    run "$STATUSLINE_SCRIPT" --limits < /dev/null
     assert_success
     assert_output --partial "context"
     assert_output --partial "warn"
 }
 
 @test "--limits returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --limits
+    run "$STATUSLINE_SCRIPT" --limits < /dev/null
     assert_success
 }
 
@@ -195,7 +195,7 @@ _extract_json() {
 }
 
 @test "--limits --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -204,7 +204,7 @@ _extract_json() {
 }
 
 @test "--limits --json has report field set to limits" {
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -214,7 +214,7 @@ _extract_json() {
 }
 
 @test "--limits --json has status field" {
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -222,7 +222,7 @@ _extract_json() {
 }
 
 @test "--limits --json has warnings array" {
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -234,7 +234,7 @@ _extract_json() {
     export STATUSLINE_FIVE_HOUR_PCT=0
     export STATUSLINE_SEVEN_DAY_PCT=0
     export STATUSLINE_DAILY_COST=0
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -244,7 +244,7 @@ _extract_json() {
 }
 
 @test "--limits --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --limits --json
+    run "$STATUSLINE_SCRIPT" --limits --json < /dev/null
     assert_success
 }
 
@@ -253,13 +253,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --limits flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--limits"
 }
 
 @test "--help mentions limit warnings description" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "System limit warnings"
 }

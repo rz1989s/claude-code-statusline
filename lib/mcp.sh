@@ -108,7 +108,18 @@ is_claude_cli_available() {
 # Execute claude mcp list command with intelligent caching
 execute_mcp_list() {
     local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
-    
+
+    # Skip real claude binary in test mode — claude mcp list hangs inside active Claude Code sessions.
+    # Allow mock claude binaries (integration tests with MOCK_BIN_DIR) to proceed.
+    if [[ "${STATUSLINE_TESTING:-}" == "true" ]]; then
+        local _claude_path
+        _claude_path=$(command -v claude 2>/dev/null) || return 1
+        if [[ -z "${MOCK_BIN_DIR:-}" || "$_claude_path" != "${MOCK_BIN_DIR}"/* ]]; then
+            debug_log "Skipping real claude mcp list in test environment" "INFO"
+            return 1
+        fi
+    fi
+
     if ! is_claude_cli_available; then
         debug_log "Claude CLI not available for MCP monitoring" "WARN"
         return 1

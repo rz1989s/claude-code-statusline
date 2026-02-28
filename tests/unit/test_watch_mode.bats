@@ -21,22 +21,22 @@ teardown() {
 # ==============================================================================
 
 @test "--watch flag accepted by CLI (exits 0 in test mode)" {
-  run "$STATUSLINE_SCRIPT" --watch
+  run "$STATUSLINE_SCRIPT" --watch < /dev/null
   assert_success
 }
 
 @test "--watch with --refresh flag accepted" {
-  run "$STATUSLINE_SCRIPT" --watch --refresh 5
+  run "$STATUSLINE_SCRIPT" --watch --refresh 5 < /dev/null
   assert_success
 }
 
 @test "--watch with --refresh=N syntax accepted" {
-  run "$STATUSLINE_SCRIPT" --watch --refresh=5
+  run "$STATUSLINE_SCRIPT" --watch --refresh=5 < /dev/null
   assert_success
 }
 
 @test "--refresh without value shows error" {
-  run "$STATUSLINE_SCRIPT" --refresh
+  run "$STATUSLINE_SCRIPT" --refresh < /dev/null
   assert_failure
   assert_output --partial "Error"
 }
@@ -97,25 +97,25 @@ teardown() {
 # ==============================================================================
 
 @test "--watch outputs Live Monitor header" {
-  run "$STATUSLINE_SCRIPT" --watch
+  run "$STATUSLINE_SCRIPT" --watch < /dev/null
   assert_success
   assert_output --partial "Live Monitor"
 }
 
 @test "--watch outputs refresh interval in header" {
-  run "$STATUSLINE_SCRIPT" --watch --refresh 5
+  run "$STATUSLINE_SCRIPT" --watch --refresh 5 < /dev/null
   assert_success
   assert_output --partial "refresh: 5s"
 }
 
 @test "--watch outputs Ctrl+C exit hint" {
-  run "$STATUSLINE_SCRIPT" --watch
+  run "$STATUSLINE_SCRIPT" --watch < /dev/null
   assert_success
   assert_output --partial "Ctrl+C"
 }
 
 @test "--watch outputs timestamp in header" {
-  run "$STATUSLINE_SCRIPT" --watch
+  run "$STATUSLINE_SCRIPT" --watch < /dev/null
   assert_success
   # Match date format YYYY-MM-DD
   [[ "$output" == *20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]* ]]
@@ -126,13 +126,13 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --watch flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--watch"
 }
 
 @test "--help mentions --refresh flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--refresh"
 }

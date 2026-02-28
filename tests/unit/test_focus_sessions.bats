@@ -154,19 +154,19 @@ teardown() {
 # ==============================================================================
 
 @test "--focus without action shows error" {
-  run "$STATUSLINE_SCRIPT" --focus
+  run "$STATUSLINE_SCRIPT" --focus < /dev/null
   assert_failure
   assert_output --partial "requires"
 }
 
 @test "--focus with invalid action shows error" {
-  run "$STATUSLINE_SCRIPT" --focus invalid
+  run "$STATUSLINE_SCRIPT" --focus invalid < /dev/null
   assert_failure
   assert_output --partial "unknown focus action"
 }
 
 @test "--focus start creates session via CLI" {
-  run "$STATUSLINE_SCRIPT" --focus start
+  run "$STATUSLINE_SCRIPT" --focus start < /dev/null
   assert_success
   assert_output --partial "Focus session started"
   # Clean up
@@ -174,13 +174,13 @@ teardown() {
 }
 
 @test "--focus status works via CLI" {
-  run "$STATUSLINE_SCRIPT" --focus status
+  run "$STATUSLINE_SCRIPT" --focus status < /dev/null
   assert_success
   assert_output --partial "No active focus session"
 }
 
 @test "--focus history works via CLI" {
-  run "$STATUSLINE_SCRIPT" --focus history
+  run "$STATUSLINE_SCRIPT" --focus history < /dev/null
   assert_success
   assert_output --partial "No focus session history"
 }
@@ -190,31 +190,31 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --focus flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--focus"
 }
 
 @test "--help shows focus start action" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--focus start"
 }
 
 @test "--help shows focus stop action" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--focus stop"
 }
 
 @test "--help shows focus status action" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--focus status"
 }
 
 @test "--help shows focus history action" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--focus history"
 }

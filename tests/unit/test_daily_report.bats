@@ -44,20 +44,20 @@ _extract_json() {
 # ==============================================================================
 
 @test "--daily outputs Daily Cost Report header" {
-    run "$STATUSLINE_SCRIPT" --daily
+    run "$STATUSLINE_SCRIPT" --daily < /dev/null
     assert_success
     assert_output --partial "Daily Cost Report"
 }
 
 @test "--daily contains Hour column or no-data message" {
-    run "$STATUSLINE_SCRIPT" --daily
+    run "$STATUSLINE_SCRIPT" --daily < /dev/null
     assert_success
     # With data: shows Hour column; without data: shows no-data message
     [[ "$output" == *"Hour"* || "$output" == *"No usage data"* ]]
 }
 
 @test "--daily contains today's date" {
-    run "$STATUSLINE_SCRIPT" --daily
+    run "$STATUSLINE_SCRIPT" --daily < /dev/null
     assert_success
     local today
     today=$(date +%Y-%m-%d)
@@ -65,7 +65,7 @@ _extract_json() {
 }
 
 @test "--daily returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --daily
+    run "$STATUSLINE_SCRIPT" --daily < /dev/null
     assert_success
 }
 
@@ -74,7 +74,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--daily --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -83,7 +83,7 @@ _extract_json() {
 }
 
 @test "--daily --json has report field set to daily" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
     local json_output report
     json_output=$(_extract_json "$output")
@@ -92,7 +92,7 @@ _extract_json() {
 }
 
 @test "--daily --json has hours array" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -104,7 +104,7 @@ _extract_json() {
 }
 
 @test "--daily --json has models array" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -115,7 +115,7 @@ _extract_json() {
 }
 
 @test "--daily --json has summary object" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -125,7 +125,7 @@ _extract_json() {
 }
 
 @test "--daily --json --compact outputs single-line JSON" {
-    run "$STATUSLINE_SCRIPT" --daily --json --compact
+    run "$STATUSLINE_SCRIPT" --daily --json --compact < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -136,7 +136,7 @@ _extract_json() {
 }
 
 @test "--daily --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --daily --json
+    run "$STATUSLINE_SCRIPT" --daily --json < /dev/null
     assert_success
 }
 
@@ -145,7 +145,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --daily flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--daily"
 }

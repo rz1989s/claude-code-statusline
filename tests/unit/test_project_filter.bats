@@ -109,55 +109,55 @@ teardown() {
 # ==============================================================================
 
 @test "--project flag is recognized with --daily" {
-    run "$STATUSLINE_SCRIPT" --daily --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --daily --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project= syntax is recognized" {
-    run "$STATUSLINE_SCRIPT" --daily --project=nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --daily --project=nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project without value shows error" {
-    run "$STATUSLINE_SCRIPT" --daily --project
+    run "$STATUSLINE_SCRIPT" --daily --project < /dev/null
     assert_failure
     assert_output --partial "Error"
 }
 
 @test "--project works with --weekly" {
-    run "$STATUSLINE_SCRIPT" --weekly --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --weekly --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project works with --monthly" {
-    run "$STATUSLINE_SCRIPT" --monthly --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --monthly --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project works with --breakdown" {
-    run "$STATUSLINE_SCRIPT" --breakdown --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --breakdown --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project works with --instances" {
-    run "$STATUSLINE_SCRIPT" --instances --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --instances --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have a projects directory — accept either error
     [[ "$output" == *"No project found"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
 }
 
 @test "--project shows available projects or directory error on no match" {
-    run "$STATUSLINE_SCRIPT" --daily --project nonexistent-project-$$
+    run "$STATUSLINE_SCRIPT" --daily --project nonexistent-project-$$ < /dev/null
     assert_failure
     # CI may not have projects directory
     [[ "$output" == *"Available projects"* ]] || [[ "$output" == *"No Claude projects directory"* ]]
@@ -168,13 +168,13 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --project flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--project"
 }
 
 @test "--help shows project filter example" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--project my-app"
 }

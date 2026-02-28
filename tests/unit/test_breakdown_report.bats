@@ -23,39 +23,39 @@ teardown() {
 # ==============================================================================
 
 @test "--breakdown outputs Model Cost Breakdown header" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
     assert_output --partial "Model Cost Breakdown"
 }
 
 @test "--breakdown shows period info" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
     assert_output --partial "Period:"
 }
 
 @test "--breakdown shows total cost" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
     assert_output --partial "Total:"
 }
 
 @test "--breakdown shows cost efficiency section or no-data message" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
     # CI may have no JSONL data — accept either output
     [[ "$output" == *"Cost Efficiency:"* ]] || [[ "$output" == *"No usage data"* ]]
 }
 
 @test "--breakdown shows TOTAL row or no-data message" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
     # CI may have no JSONL data — accept either output
     [[ "$output" == *"TOTAL"* ]] || [[ "$output" == *"No usage data"* ]]
 }
 
 @test "--breakdown returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --breakdown
+    run "$STATUSLINE_SCRIPT" --breakdown < /dev/null
     assert_success
 }
 
@@ -82,7 +82,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -91,7 +91,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json has report field" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -101,7 +101,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json has models array" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -110,7 +110,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json has summary with total_cost_usd" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -118,7 +118,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json model entries have token fields" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -132,7 +132,7 @@ _extract_json() {
 }
 
 @test "--breakdown --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --breakdown --json
+    run "$STATUSLINE_SCRIPT" --breakdown --json < /dev/null
     assert_success
 }
 
@@ -141,7 +141,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --breakdown flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--breakdown"
 }

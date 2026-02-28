@@ -23,25 +23,25 @@ teardown() {
 # ==============================================================================
 
 @test "--recommendations outputs Smart Cost Recommendations header" {
-    run "$STATUSLINE_SCRIPT" --recommendations
+    run "$STATUSLINE_SCRIPT" --recommendations < /dev/null
     assert_success
     assert_output --partial "Smart Cost Recommendations"
 }
 
 @test "--recommendations shows checks performed when no issues found" {
-    run "$STATUSLINE_SCRIPT" --recommendations
+    run "$STATUSLINE_SCRIPT" --recommendations < /dev/null
     assert_success
     # Either shows recommendations or the "no recommendations" message with checks
     [[ "$output" == *"recommendation"* ]] || [[ "$output" == *"Checks performed"* ]]
 }
 
 @test "--recommendations returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --recommendations
+    run "$STATUSLINE_SCRIPT" --recommendations < /dev/null
     assert_success
 }
 
 @test "--recommendations shows no-data message with empty projects dir" {
-    run "$STATUSLINE_SCRIPT" --recommendations
+    run "$STATUSLINE_SCRIPT" --recommendations < /dev/null
     assert_success
     # With empty projects dir, should show efficient message or at least not crash
     assert_output --partial "Recommendations"
@@ -69,7 +69,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json outputs valid JSON" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -78,7 +78,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json has report field" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -88,7 +88,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json has count field" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -96,7 +96,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json has recommendations array" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -107,7 +107,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json has high_priority field" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -115,7 +115,7 @@ _extract_json() {
 }
 
 @test "--recommendations --json returns exit code 0" {
-    run "$STATUSLINE_SCRIPT" --recommendations --json
+    run "$STATUSLINE_SCRIPT" --recommendations --json < /dev/null
     assert_success
 }
 
@@ -186,7 +186,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--recommendations works with --since" {
-    run "$STATUSLINE_SCRIPT" --recommendations --since 7d
+    run "$STATUSLINE_SCRIPT" --recommendations --since 7d < /dev/null
     assert_success
     assert_output --partial "Recommendations"
 }
@@ -196,13 +196,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --recommendations flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--recommendations"
 }
 
 @test "--help shows recommendations description" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "cost optimization"
 }

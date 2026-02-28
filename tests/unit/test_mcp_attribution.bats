@@ -21,18 +21,18 @@ teardown() {
 # ==============================================================================
 
 @test "--mcp-costs outputs MCP Cost Attribution header" {
-  run "$STATUSLINE_SCRIPT" --mcp-costs
+  run "$STATUSLINE_SCRIPT" --mcp-costs < /dev/null
   assert_success
   assert_output --partial "MCP"
 }
 
 @test "--mcp-costs returns exit code 0" {
-  run "$STATUSLINE_SCRIPT" --mcp-costs
+  run "$STATUSLINE_SCRIPT" --mcp-costs < /dev/null
   assert_success
 }
 
 @test "--mcp-costs shows no-data message when no MCP usage" {
-  run "$STATUSLINE_SCRIPT" --mcp-costs
+  run "$STATUSLINE_SCRIPT" --mcp-costs < /dev/null
   assert_success
   [[ "$output" == *"no MCP"* || "$output" == *"MCP"* ]]
 }
@@ -42,7 +42,7 @@ teardown() {
 # ==============================================================================
 
 @test "--mcp-costs --json outputs valid JSON" {
-  run "$STATUSLINE_SCRIPT" --mcp-costs --json
+  run "$STATUSLINE_SCRIPT" --mcp-costs --json < /dev/null
   assert_success
   local json_output
   json_output=$(echo "$output" | grep -E '^\[' || echo "[]")
@@ -50,7 +50,7 @@ teardown() {
 }
 
 @test "--mcp-costs --json returns array" {
-  run "$STATUSLINE_SCRIPT" --mcp-costs --json
+  run "$STATUSLINE_SCRIPT" --mcp-costs --json < /dev/null
   assert_success
   local json_output
   json_output=$(echo "$output" | grep -E '^\[' || echo "[]")
@@ -89,7 +89,7 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --mcp-costs flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--mcp-costs"
 }

@@ -21,18 +21,18 @@ teardown() {
 # ==============================================================================
 
 @test "--commits outputs Commit Attribution header" {
-  run "$STATUSLINE_SCRIPT" --commits
+  run "$STATUSLINE_SCRIPT" --commits < /dev/null
   assert_success
   assert_output --partial "Commit Attribution"
 }
 
 @test "--commits returns exit code 0" {
-  run "$STATUSLINE_SCRIPT" --commits
+  run "$STATUSLINE_SCRIPT" --commits < /dev/null
   assert_success
 }
 
 @test "--commits shows no-commits message when no data" {
-  run "$STATUSLINE_SCRIPT" --commits
+  run "$STATUSLINE_SCRIPT" --commits < /dev/null
   assert_success
   [[ "$output" == *"no commits"* || "$output" == *"Commit"* ]]
 }
@@ -42,7 +42,7 @@ teardown() {
 # ==============================================================================
 
 @test "--commits --json outputs valid JSON" {
-  run "$STATUSLINE_SCRIPT" --commits --json
+  run "$STATUSLINE_SCRIPT" --commits --json < /dev/null
   assert_success
   local json_output
   # Extract JSON array from output
@@ -51,7 +51,7 @@ teardown() {
 }
 
 @test "--commits --json returns array" {
-  run "$STATUSLINE_SCRIPT" --commits --json
+  run "$STATUSLINE_SCRIPT" --commits --json < /dev/null
   assert_success
   local json_output
   json_output=$(echo "$output" | grep -E '^\[' || echo "[]")
@@ -74,7 +74,7 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions --commits flag" {
-  run "$STATUSLINE_SCRIPT" --help
+  run "$STATUSLINE_SCRIPT" --help < /dev/null
   assert_success
   assert_output --partial "--commits"
 }

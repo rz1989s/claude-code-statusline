@@ -24,7 +24,7 @@ teardown() {
 @test "default log format is text" {
     export STATUSLINE_DEBUG=true
     unset STATUSLINE_LOG_FORMAT
-    run "$STATUSLINE_SCRIPT" --version
+    run "$STATUSLINE_SCRIPT" --version < /dev/null
     # stderr should contain text format logs
     [[ "$output" =~ \[INFO\] ]] || [[ "$stderr" =~ \[INFO\] ]] || true
 }
@@ -156,13 +156,13 @@ teardown() {
 # ==============================================================================
 
 @test "--help mentions STATUSLINE_LOG_FORMAT" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "STATUSLINE_LOG_FORMAT"
 }
 
 @test "--help mentions JSON logs option" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "JSON logs"
 }

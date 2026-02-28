@@ -44,7 +44,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--json outputs valid JSON" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -53,7 +53,7 @@ _extract_json() {
 }
 
 @test "--json --compact outputs single-line JSON" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json --compact
+    run timeout 10 "$STATUSLINE_SCRIPT" --json --compact < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -69,7 +69,7 @@ _extract_json() {
 # ==============================================================================
 
 @test "--json contains schema_version 2.0" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -79,7 +79,7 @@ _extract_json() {
 }
 
 @test "--json contains version field" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -89,7 +89,7 @@ _extract_json() {
 }
 
 @test "--json contains timestamp fields" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -102,7 +102,7 @@ _extract_json() {
 }
 
 @test "--json contains project object" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -113,7 +113,7 @@ _extract_json() {
 }
 
 @test "--json contains cost object with numeric values" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -126,7 +126,7 @@ _extract_json() {
 }
 
 @test "--json contains mcp object" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -137,7 +137,7 @@ _extract_json() {
 }
 
 @test "--json contains system object" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -148,7 +148,7 @@ _extract_json() {
 }
 
 @test "--json contains context_window object" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -158,7 +158,7 @@ _extract_json() {
 }
 
 @test "--json contains session object" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -171,12 +171,12 @@ _extract_json() {
 # ==============================================================================
 
 @test "--json returns exit code 0" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json
+    run timeout 10 "$STATUSLINE_SCRIPT" --json < /dev/null
     assert_success
 }
 
 @test "--json --compact returns exit code 0" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --json --compact
+    run timeout 10 "$STATUSLINE_SCRIPT" --json --compact < /dev/null
     assert_success
 }
 
@@ -185,19 +185,19 @@ _extract_json() {
 # ==============================================================================
 
 @test "--help mentions --json flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--json"
 }
 
 @test "--help mentions --compact flag" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "--compact"
 }
 
 @test "--help mentions REPORTS section" {
-    run "$STATUSLINE_SCRIPT" --help
+    run "$STATUSLINE_SCRIPT" --help < /dev/null
     assert_success
     assert_output --partial "REPORTS:"
 }
@@ -207,13 +207,13 @@ _extract_json() {
 # ==============================================================================
 
 @test "existing --health flag still works" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --health
+    run timeout 10 "$STATUSLINE_SCRIPT" --health < /dev/null
     assert_success
     assert_output --partial "Health Check"
 }
 
 @test "existing --health=json flag still works" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --health=json
+    run timeout 10 "$STATUSLINE_SCRIPT" --health=json < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -221,7 +221,7 @@ _extract_json() {
 }
 
 @test "existing --metrics flag still works" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --metrics
+    run timeout 10 "$STATUSLINE_SCRIPT" --metrics < /dev/null
     assert_success
     local json_output
     json_output=$(_extract_json "$output")
@@ -229,13 +229,13 @@ _extract_json() {
 }
 
 @test "existing --metrics=prometheus flag still works" {
-    run timeout 10 "$STATUSLINE_SCRIPT" --metrics=prometheus
+    run timeout 10 "$STATUSLINE_SCRIPT" --metrics=prometheus < /dev/null
     assert_success
     assert_output --partial "# HELP"
 }
 
 @test "unknown flags still produce error" {
-    run "$STATUSLINE_SCRIPT" --invalid-flag
+    run "$STATUSLINE_SCRIPT" --invalid-flag < /dev/null
     assert_failure
     assert_output --partial "Unknown option"
 }
