@@ -141,6 +141,7 @@ jobs:
         with:
           repository: rz1989s/homebrew-tap
           ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          persist-credentials: true
 
       - name: Update formula version and SHA
         run: |
@@ -153,6 +154,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin git@github.com:rz1989s/homebrew-tap.git
           git add Formula/claude-code-statusline.rb
           git commit -m "bump claude-code-statusline to v${{ needs.validate.outputs.version }}"
           git push origin main
