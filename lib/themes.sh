@@ -44,7 +44,9 @@ apply_classic_theme() {
     CONFIG_ITALIC=$(printf '\033[3m')
     CONFIG_STRIKETHROUGH=$(printf '\033[9m')
     CONFIG_RESET=$(printf '\033[0m')
-    
+    COLOR_RESET="$CONFIG_RESET"
+    export COLOR_RESET
+
     debug_log "Applied classic theme" "INFO"
 }
 
@@ -72,7 +74,9 @@ apply_garden_theme() {
     CONFIG_ITALIC=$(printf '\033[3m')
     CONFIG_STRIKETHROUGH=$(printf '\033[9m')
     CONFIG_RESET=$(printf '\033[0m')
-    
+    COLOR_RESET="$CONFIG_RESET"
+    export COLOR_RESET
+
     debug_log "Applied garden theme" "INFO"
 }
 
@@ -100,7 +104,9 @@ apply_catppuccin_theme() {
     CONFIG_ITALIC=$(printf '\033[3m')
     CONFIG_STRIKETHROUGH=$(printf '\033[9m')
     CONFIG_RESET=$(printf '\033[0m')
-    
+    COLOR_RESET="$CONFIG_RESET"
+    export COLOR_RESET
+
     debug_log "Applied catppuccin theme" "INFO"
 }
 
@@ -128,6 +134,8 @@ apply_ocean_theme() {
     CONFIG_ITALIC=$(printf '\033[3m')
     CONFIG_STRIKETHROUGH=$(printf '\033[9m')
     CONFIG_RESET=$(printf '\033[0m')
+    COLOR_RESET="$CONFIG_RESET"
+    export COLOR_RESET
 
     debug_log "Applied ocean theme" "INFO"
 }
@@ -209,7 +217,11 @@ apply_custom_theme_defaults() {
     [[ -z "$CONFIG_ITALIC" ]] && CONFIG_ITALIC='\033[3m'
     [[ -z "$CONFIG_STRIKETHROUGH" ]] && CONFIG_STRIKETHROUGH='\033[9m'
     [[ -z "$CONFIG_RESET" ]] && CONFIG_RESET='\033[0m'
-    
+
+    # Alias COLOR_RESET to CONFIG_RESET for component compatibility
+    COLOR_RESET="$CONFIG_RESET"
+    export COLOR_RESET
+
     debug_log "Applied custom theme defaults for missing colors" "INFO"
 }
 
