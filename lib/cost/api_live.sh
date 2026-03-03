@@ -123,14 +123,24 @@ get_api_window_start() {
     local resets_at="${COMPONENT_USAGE_FIVE_HOUR_RESET:-}"
 
     if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
-        # Try fetching directly if component data not available
+        # Fallback 1: Native JSON from Claude Code stdin (zero-latency)
+        if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
+            if [[ -n "$resets_at" && "$resets_at" != "null" ]]; then
+                debug_log "Using native JSON fallback for resets_at: $resets_at" "INFO"
+            fi
+        fi
+    fi
+
+    if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
+        # Fallback 2: OAuth API (slower, requires token)
         local usage_data
         usage_data=$(fetch_usage_limits 2>/dev/null)
         resets_at=$(echo "$usage_data" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
     fi
 
     if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
-        debug_log "No API resets_at available for LIVE calculation" "WARN"
+        debug_log "No resets_at available (no component data, no native JSON, no OAuth)" "WARN"
         echo ""
         return 1
     fi
@@ -411,7 +421,17 @@ get_native_reset_info() {
     local resets_at="${COMPONENT_USAGE_FIVE_HOUR_RESET:-}"
 
     if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
-        # Try fetching directly if component data not available
+        # Fallback 1: Native JSON from Claude Code stdin (zero-latency)
+        if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
+            if [[ -n "$resets_at" && "$resets_at" != "null" ]]; then
+                debug_log "Using native JSON fallback for reset info resets_at" "INFO"
+            fi
+        fi
+    fi
+
+    if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
+        # Fallback 2: OAuth API (slower, requires token)
         if declare -f fetch_usage_limits &>/dev/null; then
             local usage_data
             usage_data=$(fetch_usage_limits 2>/dev/null)

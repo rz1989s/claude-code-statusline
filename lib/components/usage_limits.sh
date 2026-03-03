@@ -347,8 +347,25 @@ collect_usage_limits_data() {
     COMPONENT_USAGE_FIVE_HOUR_RESET=""
     COMPONENT_USAGE_SEVEN_DAY_RESET=""
 
-    local usage_data
-    usage_data=$(fetch_usage_limits)
+    local usage_data=""
+
+    # Priority 1: Native JSON from Claude Code stdin (zero-latency, always available)
+    if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        local has_native
+        has_native=$(echo "$STATUSLINE_INPUT_JSON" | jq -e '.five_hour // .seven_day' 2>/dev/null)
+        if [[ -n "$has_native" ]]; then
+            usage_data="$STATUSLINE_INPUT_JSON"
+            debug_log "Using native JSON input for usage limits" "INFO"
+        fi
+    fi
+
+    # Priority 2: OAuth API fallback (slower, requires token)
+    if [[ -z "$usage_data" ]]; then
+        usage_data=$(fetch_usage_limits)
+        if [[ -n "$usage_data" ]]; then
+            debug_log "Using OAuth API for usage limits" "INFO"
+        fi
+    fi
 
     if [[ -n "$usage_data" ]]; then
         # Extract 5-hour (session) usage
@@ -369,7 +386,7 @@ collect_usage_limits_data() {
 
         debug_log "usage_limits data: 5h=${COMPONENT_USAGE_FIVE_HOUR}%, 7d=${COMPONENT_USAGE_SEVEN_DAY}%" "INFO"
     else
-        debug_log "No usage limits data available" "INFO"
+        debug_log "No usage limits data available (no native JSON, no OAuth)" "INFO"
     fi
 
     return 0
