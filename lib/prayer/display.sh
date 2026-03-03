@@ -216,6 +216,8 @@ format_single_prayer() {
             if [[ "$CONFIG_PRAYER_SHOW_COMPLETED_INDICATOR" == "true" ]]; then
                 prayer_display="$prayer_display $PRAYER_COMPLETED_INDICATOR"
             fi
+            # Apply dim color for completed prayers (explicit, prevents color leaking)
+            prayer_display="${CONFIG_DIM:-}${prayer_display}${CONFIG_RESET:-\033[0m}"
             ;;
             
         "$PRAYER_STATUS_NEXT")
@@ -242,7 +244,8 @@ format_single_prayer() {
             ;;
             
         "$PRAYER_STATUS_UPCOMING")
-            # No special formatting for upcoming prayers
+            # Explicit reset color for upcoming prayers (prevents color leaking from previous components)
+            prayer_display="${CONFIG_RESET:-\033[0m}${prayer_display}"
             ;;
     esac
     

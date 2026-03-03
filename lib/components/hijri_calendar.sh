@@ -144,7 +144,12 @@ render_hijri_calendar() {
         display="${display} │ 📍 Loc: ${COMPONENT_HIJRI_CALENDAR_LOCATION}"
     fi
 
-    echo "$display"
+    # Apply teal color for spiritual/calendar feel
+    local color_code=""
+    if is_module_loaded "themes"; then
+        color_code="${CONFIG_TEAL:-}"
+    fi
+    echo "${color_code}${display}${COLOR_RESET:-${CONFIG_RESET:-}}"
     return 0
 }
 
