@@ -41,7 +41,7 @@ collect_block_projection_data() {
                     formatted_tokens=$(format_tokens_compact "$proj_tokens")
                     COMPONENT_BLOCK_PROJECTION_INFO="Est: \$${formatted_cost} (${formatted_tokens})"
                 else
-                    COMPONENT_BLOCK_PROJECTION_INFO="No projections"
+                    COMPONENT_BLOCK_PROJECTION_INFO="Est: \$0.00"
                 fi
             fi
         fi
