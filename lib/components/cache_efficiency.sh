@@ -31,7 +31,7 @@ collect_cache_efficiency_data() {
             local native_efficiency
             native_efficiency=$(get_native_cache_efficiency)
 
-            if [[ -n "$native_efficiency" && "$native_efficiency" != "0" ]]; then
+            if [[ -n "$native_efficiency" ]]; then
                 COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${native_efficiency}% hit"
                 debug_log "Using native cache efficiency: ${native_efficiency}%" "INFO"
                 got_data=true
