@@ -29,7 +29,7 @@ collect_burn_rate_data() {
             local burn_rate_data
             burn_rate_data=$(get_cached_native_burn_rate)
 
-            if [[ -n "$burn_rate_data" && "$burn_rate_data" != "0:0.00" ]]; then
+            if [[ -n "$burn_rate_data" ]]; then
                 # Parse burn rate metrics (tokens_per_minute:cost_per_hour)
                 local tokens_per_minute cost_per_hour
                 IFS=':' read -r tokens_per_minute cost_per_hour <<< "$burn_rate_data"
@@ -40,7 +40,7 @@ collect_burn_rate_data() {
                     formatted_cost=$(printf "%.2f" "$cost_per_hour" 2>/dev/null || echo "0.00")
                     COMPONENT_BURN_RATE_INFO="🔥\$${formatted_cost}/hr"
                 else
-                    COMPONENT_BURN_RATE_INFO="🔥No active burn"
+                    COMPONENT_BURN_RATE_INFO="🔥\$0.00/hr"
                 fi
             fi
         fi
