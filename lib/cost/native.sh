@@ -96,7 +96,11 @@ get_native_cache_read_tokens() {
     fi
 
     local tokens
-    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null)
+    if declare -f get_json_field &>/dev/null; then
+        tokens=$(get_json_field "current_usage.cache_read_input_tokens" "0")
+    else
+        tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null)
+    fi
     echo "${tokens:-0}"
 }
 
@@ -108,7 +112,11 @@ get_native_cache_creation_tokens() {
     fi
 
     local tokens
-    tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_creation_input_tokens // 0' 2>/dev/null)
+    if declare -f get_json_field &>/dev/null; then
+        tokens=$(get_json_field "current_usage.cache_creation_input_tokens" "0")
+    else
+        tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_creation_input_tokens // 0' 2>/dev/null)
+    fi
     echo "${tokens:-0}"
 }
 

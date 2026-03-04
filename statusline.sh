@@ -101,6 +101,12 @@ load_module "security" || {
     exit 1
 }
 
+# Load JSON field access abstraction layer (v2.1.66+ path migration)
+# Must load early - provides get_json_field() with current_usage path migration
+load_module "json_fields" || {
+    handle_warning "JSON fields module failed to load - using direct jq extraction" "main"
+}
+
 # Load universal caching module (provides performance optimization for all external commands)
 # Secure file operations via create_secure_cache_file for all cache management
 load_module "cache" || {
@@ -1343,6 +1349,11 @@ input=$(cat)
 # - session_id, transcript_path (session info)
 # See: https://github.com/rz1989s/claude-code-statusline/issues/99
 export STATUSLINE_INPUT_JSON="$input"
+
+# Validate JSON schema and detect Claude Code version (v2.1.66+)
+if declare -f validate_json_schema &>/dev/null; then
+    validate_json_schema
+fi
 
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
 # Handle both object format (display_name) and string format for model

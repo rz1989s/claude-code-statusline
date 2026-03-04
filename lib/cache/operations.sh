@@ -301,8 +301,50 @@ clear_instance_cache() {
     fi
 }
 
+# ============================================================================
+# SIMPLE KEY-VALUE CACHE (used by cost, version, and other components)
+# ============================================================================
+
+# Read a cached value if still fresh within TTL
+# Usage: cached=$(get_cached_value "key" "ttl_seconds")
+get_cached_value() {
+    local cache_key="$1"
+    local cache_ttl="${2:-300}"
+    local cache_file="${CACHE_BASE_DIR}/${cache_key}_${CACHE_INSTANCE_ID}.cache"
+
+    [[ -f "$cache_file" ]] || return 1
+
+    local now mtime age
+    now=$(date +%s)
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        mtime=$(stat -f %m "$cache_file" 2>/dev/null || echo 0)
+    else
+        mtime=$(stat -c %Y "$cache_file" 2>/dev/null || echo 0)
+    fi
+    age=$((now - mtime))
+
+    if [[ "$age" -lt "$cache_ttl" ]]; then
+        cat "$cache_file" 2>/dev/null
+        return 0
+    fi
+
+    return 1
+}
+
+# Write a value to cache
+# Usage: set_cached_value "key" "value"
+set_cached_value() {
+    local cache_key="$1"
+    local value="$2"
+    local cache_file="${CACHE_BASE_DIR}/${cache_key}_${CACHE_INSTANCE_ID}.cache"
+
+    [[ -d "$CACHE_BASE_DIR" ]] || mkdir -p "$CACHE_BASE_DIR" 2>/dev/null
+    echo "$value" > "$cache_file" 2>/dev/null
+}
+
 # Export functions
 export -f register_temp_file cleanup_cache_resources install_cleanup_traps
 export -f execute_cached_command cache_command_exists cache_system_info
 export -f cache_git_operation cache_external_command
 export -f clear_all_cache clear_instance_cache
+export -f get_cached_value set_cached_value
