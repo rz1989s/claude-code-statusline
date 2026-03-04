@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.19.0 | **Claude Code**: v2.1.6–v2.1.42 ✓ | **Branch**: feat/fix/chore → nightly → main
-**Architecture**: Single Config.toml (227 settings), modular cache (8 sub-modules), 91.5% code reduction
-**Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics
+**Current**: v2.20.0 | **Claude Code**: v2.1.6–v2.1.66 ✓ | **Branch**: feat/fix/chore → nightly → main
+**Architecture**: Single Config.toml (240+ settings), modular cache (8 sub-modules), JSON abstraction layer
+**Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
 
 ## Essential Commands
@@ -37,22 +37,26 @@ bats tests/unit/test_platform_compatibility.bats
 
 ## Architecture
 
-**Core Modules** (14): core → security → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → display
+**Core Modules** (15): core → security → json_fields → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → display
 
-**Atomic Components** (22):
+**Atomic Components** (27):
 - **Repository & Git** (4): repo_info, commits, submodules, version_info
 - **Model & Session** (4): model_info, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
 - **Block Metrics** (4): burn_rate, token_usage, cache_efficiency, block_projection
-- **System** (2): mcp_status, time_display
+- **System & Context** (4): mcp_status, time_display, version_display, context_alert
+- **Session State** (2): vim_mode, agent_display
+- **Cumulative Metrics** (1): total_tokens
 - **Wellness** (1): wellness (idle detection, focus mode, break reminders)
 - **Spiritual** (2): prayer_times, location_display
 - **CLI Analytics** (10 commands): --commits, --mcp-costs, --recommendations, --trends, --limits, --watch, --csv, --focus
 
-**Data Flow**: JSON input → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 9-line with wellness + GPS location)
+**Data Flow**: JSON input → Schema validation → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 9-line with wellness + GPS location)
 
 **Key Functions**:
 - `load_module()` - Module loading with dependency checking
+- `get_json_field()` - Safe JSON extraction with path migration (v2.1.66+)
+- `validate_json_schema()` - Startup schema validation and version detection
 - `load_toml_configuration()` - Single-source TOML parsing
 - `apply_theme()` - Color theme management
 - `execute_cached_command()` - Universal caching with TTL
@@ -129,28 +133,38 @@ ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 
 ## Claude Code JSON Input Format (stdin)
 
-The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_INPUT_JSON` for all components. Only `workspace.current_dir` is required; all other fields are optional with graceful fallbacks.
+The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_INPUT_JSON` for all components. Only `workspace.current_dir` is required; all other fields are optional with graceful fallbacks. Field access uses `get_json_field()` abstraction with automatic path migration for backward compatibility.
 
-**Core Fields** (from Claude Code process):
+**Core Fields** (v2.1.66 schema):
 ```json
 {
-  "workspace": { "current_dir": "/path/to/repo", "project_dir": "/path/to/repo" },
-  "model": { "display_name": "Claude Opus 4.5" },
+  "version": "2.1.66",
+  "cwd": "/path/to/repo",
+  "workspace": { "current_dir": "/path/to/repo", "project_dir": "/path/to/repo", "added_dirs": [] },
+  "model": { "id": "claude-opus-4-6-20250415", "display_name": "Claude Opus 4.6" },
   "session_id": "uuid-string",
   "transcript_path": "/path/to/transcript.jsonl",
   "output_style": { "name": "default" },
-  "context_window": { "used_percentage": 12, "remaining_percentage": 88, "context_window_size": 200000 },
+  "context_window": {
+    "used_percentage": 12, "remaining_percentage": 88, "context_window_size": 200000,
+    "current_usage": { "input_tokens": 10000, "cache_read_input_tokens": 5000, "cache_creation_input_tokens": 2000 },
+    "total_input_tokens": 45000, "total_output_tokens": 12000
+  },
+  "exceeds_200k_tokens": false,
   "cost": { "total_cost_usd": 0.45, "total_duration_ms": 60000, "total_api_duration_ms": 30000, "total_lines_added": 120, "total_lines_removed": 30 },
-  "current_usage": { "input_tokens": 10000, "cache_read_input_tokens": 5000, "cache_creation_input_tokens": 2000 },
-  "five_hour": { "utilization": 15.0, "resets_at": "2026-02-03T19:00:00Z" },
-  "seven_day": { "utilization": 19.0, "resets_at": "2026-02-08T08:00:00Z" },
+  "vim": { "mode": "NORMAL" },
+  "agent": { "name": "security-reviewer" },
   "mcp": { "servers": [] }
 }
 ```
 
-**Manual Test Command** (simulates Claude Code input):
+**Path Migration**: `current_usage.*` moved to `context_window.current_usage.*` in v2.1.66. The `get_json_field()` abstraction handles both paths automatically.
+
+**Usage Limits (OAuth API only)**: `five_hour`/`seven_day` utilization data is NOT provided in the statusline JSON. The `usage_limits` component fetches this from `https://api.anthropic.com/api/oauth/usage` using the OAuth token from macOS Keychain.
+
+**Manual Test Command** (simulates v2.1.66 input):
 ```bash
-echo '{"workspace":{"current_dir":"'$(pwd)'"},"model":{"display_name":"Claude Opus 4.5"},"context_window":{"used_percentage":12},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
+echo '{"version":"2.1.66","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
 ```
 
 **macOS Note**: Requires bash 4+ (`brew install bash`). Settings.json should use `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel) instead of `bash`.

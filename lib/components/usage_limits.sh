@@ -20,6 +20,7 @@ COMPONENT_USAGE_FIVE_HOUR=""
 COMPONENT_USAGE_SEVEN_DAY=""
 COMPONENT_USAGE_FIVE_HOUR_RESET=""
 COMPONENT_USAGE_SEVEN_DAY_RESET=""
+COMPONENT_USAGE_STATUS="unknown"
 
 # Cache TTL for usage API (5 minutes - don't spam the API)
 USAGE_LIMITS_CACHE_TTL="${USAGE_LIMITS_CACHE_TTL:-300}"
@@ -312,24 +313,70 @@ fetch_usage_limits() {
         return 0
     fi
 
-    # Fetch from API
-    local response
-    response=$(curl -s --max-time 5 \
+    # Fetch from API with HTTP status code capture
+    local response http_code body
+    response=$(curl -s -w "\n%{http_code}" --max-time 5 \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -H "anthropic-beta: oauth-2025-04-20" \
         -H "Accept: application/json" \
-        "https://api.anthropic.com/api/oauth/usage" 2>/dev/null)
+        "https://api.anthropic.com/api/oauth/usage" 2>/dev/null) || {
+        debug_log "OAuth API connection failed (curl error)" "WARN"
+        echo ""
+        return 1
+    }
 
-    if [[ -n "$response" ]] && echo "$response" | jq -e '.five_hour' &>/dev/null; then
-        # Cache the result
-        set_cached_value "$cache_key" "$response" 2>/dev/null
-        debug_log "Fetched fresh usage limits from API" "INFO"
-        echo "$response"
-        return 0
-    fi
+    # Split response body and HTTP status code
+    http_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | sed '$d')
 
-    debug_log "Failed to fetch usage limits from API" "WARN"
+    case "$http_code" in
+        200)
+            if [[ -n "$body" ]] && echo "$body" | jq -e '.five_hour' &>/dev/null; then
+                set_cached_value "$cache_key" "$body" 2>/dev/null
+                debug_log "Fetched fresh usage limits from API (200 OK)" "INFO"
+                echo "$body"
+                return 0
+            else
+                debug_log "OAuth API returned 200 but invalid JSON body" "WARN"
+            fi
+            ;;
+        401)
+            debug_log "OAuth token expired/invalid (401) - re-authenticate Claude Code" "WARN"
+            ;;
+        403)
+            debug_log "OAuth access forbidden (403)" "WARN"
+            ;;
+        429)
+            debug_log "OAuth API rate limited (429) - using cached data if available" "WARN"
+            ;;
+        5[0-9][0-9])
+            debug_log "OAuth API server error ($http_code) - retrying once" "WARN"
+            sleep 0.5
+            response=$(curl -s -w "\n%{http_code}" --max-time 2 \
+                -H "Authorization: Bearer $token" \
+                -H "Content-Type: application/json" \
+                -H "anthropic-beta: oauth-2025-04-20" \
+                -H "Accept: application/json" \
+                "https://api.anthropic.com/api/oauth/usage" 2>/dev/null) || true
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+            if [[ "$http_code" == "200" ]] && echo "$body" | jq -e '.five_hour' &>/dev/null; then
+                set_cached_value "$cache_key" "$body" 2>/dev/null
+                debug_log "OAuth API retry succeeded" "INFO"
+                echo "$body"
+                return 0
+            fi
+            debug_log "OAuth API retry failed ($http_code)" "WARN"
+            ;;
+        "")
+            debug_log "OAuth API timeout or no response" "WARN"
+            ;;
+        *)
+            debug_log "OAuth API unexpected status: $http_code" "WARN"
+            ;;
+    esac
+
     echo ""
     return 1
 }
@@ -361,7 +408,7 @@ collect_usage_limits_data() {
 
     # Priority 2: OAuth API fallback (slower, requires token)
     if [[ -z "$usage_data" ]]; then
-        usage_data=$(fetch_usage_limits)
+        usage_data=$(fetch_usage_limits) || true
         if [[ -n "$usage_data" ]]; then
             debug_log "Using OAuth API for usage limits" "INFO"
         fi
@@ -385,8 +432,10 @@ collect_usage_limits_data() {
         fi
 
         debug_log "usage_limits data: 5h=${COMPONENT_USAGE_FIVE_HOUR}%, 7d=${COMPONENT_USAGE_SEVEN_DAY}%" "INFO"
+        COMPONENT_USAGE_STATUS="ok"
     else
         debug_log "No usage limits data available (no native JSON, no OAuth)" "INFO"
+        COMPONENT_USAGE_STATUS="unavailable"
     fi
 
     return 0
