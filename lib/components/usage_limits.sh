@@ -291,7 +291,19 @@ get_claude_oauth_token() {
 # USAGE API FETCHING
 # ============================================================================
 
+# Get file modification time in epoch seconds (cross-platform)
+_usage_file_mtime() {
+    local file="$1"
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        stat -f %m "$file" 2>/dev/null || echo 0
+    else
+        stat -c %Y "$file" 2>/dev/null || echo 0
+    fi
+}
+
 # Fetch usage limits from Anthropic OAuth API
+# Uses GLOBAL cache (shared across all sessions — usage limits are account-level)
+# Implements negative caching to avoid hammering API on 429/errors
 fetch_usage_limits() {
     local token
     token=$(get_claude_oauth_token)
@@ -302,26 +314,64 @@ fetch_usage_limits() {
         return 1
     fi
 
-    # Check cache first
-    local cache_key="usage_limits_api"
-    local cached_result
-    cached_result=$(get_cached_value "$cache_key" "$USAGE_LIMITS_CACHE_TTL" 2>/dev/null)
+    # Global cache paths (shared across ALL sessions — account-level data)
+    local cache_dir="${CACHE_BASE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline}"
+    [[ -d "$cache_dir" ]] || mkdir -p "$cache_dir" 2>/dev/null
+    local cache_file="${cache_dir}/usage_limits_global.cache"
+    local negative_cache="${cache_dir}/usage_limits_negative.cache"
+    local now
+    now=$(date +%s)
 
-    if [[ -n "$cached_result" ]]; then
-        debug_log "Using cached usage limits" "INFO"
-        echo "$cached_result"
-        return 0
+    # Check negative cache first (avoid hammering API after 429/error)
+    # Format: first line = TTL in seconds, mtime = when set
+    if [[ -f "$negative_cache" ]]; then
+        local neg_mtime neg_age neg_ttl
+        neg_mtime=$(_usage_file_mtime "$negative_cache")
+        neg_age=$((now - neg_mtime))
+        neg_ttl=$(head -1 "$negative_cache" 2>/dev/null)
+        [[ "$neg_ttl" =~ ^[0-9]+$ ]] || neg_ttl=60
+        if [[ "$neg_age" -lt "$neg_ttl" ]]; then
+            debug_log "Skipping OAuth API (negative cache, ${neg_age}s/${neg_ttl}s)" "DEBUG"
+            # Return stale positive cache if available
+            if [[ -f "$cache_file" ]]; then
+                cat "$cache_file" 2>/dev/null
+                return 0
+            fi
+            echo ""
+            return 1
+        fi
+        rm -f "$negative_cache" 2>/dev/null
     fi
 
-    # Fetch from API with HTTP status code capture
+    # Check positive cache (fresh data within TTL)
+    if [[ -f "$cache_file" ]]; then
+        local cache_mtime cache_age
+        cache_mtime=$(_usage_file_mtime "$cache_file")
+        cache_age=$((now - cache_mtime))
+        if [[ "$cache_age" -lt "$USAGE_LIMITS_CACHE_TTL" ]]; then
+            debug_log "Using cached usage limits (${cache_age}s old, TTL=${USAGE_LIMITS_CACHE_TTL}s)" "INFO"
+            cat "$cache_file" 2>/dev/null
+            return 0
+        fi
+    fi
+
+    # Fetch from API — capture headers to a temp file for Retry-After parsing
+    local header_file="${cache_dir}/usage_limits_headers.tmp"
     local response http_code body
-    response=$(curl -s -w "\n%{http_code}" --max-time 5 \
+    response=$(curl -s -D "$header_file" -w "\n%{http_code}" --max-time 5 \
         -H "Authorization: Bearer $token" \
         -H "Content-Type: application/json" \
         -H "anthropic-beta: oauth-2025-04-20" \
         -H "Accept: application/json" \
         "https://api.anthropic.com/api/oauth/usage" 2>/dev/null) || {
         debug_log "OAuth API connection failed (curl error)" "WARN"
+        echo "60" > "$negative_cache" 2>/dev/null
+        rm -f "$header_file" 2>/dev/null
+        # Return stale cache if available
+        if [[ -f "$cache_file" ]]; then
+            cat "$cache_file" 2>/dev/null
+            return 0
+        fi
         echo ""
         return 1
     }
@@ -330,25 +380,39 @@ fetch_usage_limits() {
     http_code=$(echo "$response" | tail -n1)
     body=$(echo "$response" | sed '$d')
 
+    # Parse Retry-After header (seconds) for negative cache TTL
+    local retry_after=60
+    if [[ -f "$header_file" ]]; then
+        local ra
+        ra=$(grep -i '^retry-after:' "$header_file" 2>/dev/null | head -1 | tr -d '\r' | awk '{print $2}')
+        [[ "$ra" =~ ^[0-9]+$ ]] && retry_after="$ra"
+        rm -f "$header_file" 2>/dev/null
+    fi
+
     case "$http_code" in
         200)
             if [[ -n "$body" ]] && echo "$body" | jq -e '.five_hour' &>/dev/null; then
-                set_cached_value "$cache_key" "$body" 2>/dev/null
+                echo "$body" > "$cache_file" 2>/dev/null
+                rm -f "$negative_cache" 2>/dev/null
                 debug_log "Fetched fresh usage limits from API (200 OK)" "INFO"
                 echo "$body"
                 return 0
             else
                 debug_log "OAuth API returned 200 but invalid JSON body" "WARN"
+                echo "60" > "$negative_cache" 2>/dev/null
             fi
             ;;
         401)
             debug_log "OAuth token expired/invalid (401) - re-authenticate Claude Code" "WARN"
+            echo "300" > "$negative_cache" 2>/dev/null
             ;;
         403)
             debug_log "OAuth access forbidden (403)" "WARN"
+            echo "300" > "$negative_cache" 2>/dev/null
             ;;
         429)
-            debug_log "OAuth API rate limited (429) - using cached data if available" "WARN"
+            debug_log "OAuth API rate limited (429) - retry after ${retry_after}s" "WARN"
+            echo "$retry_after" > "$negative_cache" 2>/dev/null
             ;;
         5[0-9][0-9])
             debug_log "OAuth API server error ($http_code) - retrying once" "WARN"
@@ -362,20 +426,31 @@ fetch_usage_limits() {
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
             if [[ "$http_code" == "200" ]] && echo "$body" | jq -e '.five_hour' &>/dev/null; then
-                set_cached_value "$cache_key" "$body" 2>/dev/null
+                echo "$body" > "$cache_file" 2>/dev/null
+                rm -f "$negative_cache" 2>/dev/null
                 debug_log "OAuth API retry succeeded" "INFO"
                 echo "$body"
                 return 0
             fi
             debug_log "OAuth API retry failed ($http_code)" "WARN"
+            echo "120" > "$negative_cache" 2>/dev/null
             ;;
         "")
             debug_log "OAuth API timeout or no response" "WARN"
+            echo "60" > "$negative_cache" 2>/dev/null
             ;;
         *)
             debug_log "OAuth API unexpected status: $http_code" "WARN"
+            echo "60" > "$negative_cache" 2>/dev/null
             ;;
     esac
+
+    # Return stale cache if available (better than nothing)
+    if [[ -f "$cache_file" ]]; then
+        debug_log "Returning stale usage limits cache after API failure" "INFO"
+        cat "$cache_file" 2>/dev/null
+        return 0
+    fi
 
     echo ""
     return 1
@@ -642,7 +717,7 @@ register_component \
     "true"
 
 # Export component functions
-export -f get_claude_oauth_token fetch_usage_limits format_reset_time format_reset_time_long
+export -f _usage_file_mtime get_claude_oauth_token fetch_usage_limits format_reset_time format_reset_time_long
 export -f get_remaining_minutes calculate_fair_value_percentage get_reset_clock_time
 export -f collect_usage_limits_data collect_usage_reset_data render_usage_limits render_usage_reset get_usage_limits_config
 
