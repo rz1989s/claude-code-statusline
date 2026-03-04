@@ -352,8 +352,8 @@ fetch_usage_limits() {
             ;;
         5[0-9][0-9])
             debug_log "OAuth API server error ($http_code) - retrying once" "WARN"
-            sleep 2
-            response=$(curl -s -w "\n%{http_code}" --max-time 5 \
+            sleep 0.5
+            response=$(curl -s -w "\n%{http_code}" --max-time 2 \
                 -H "Authorization: Bearer $token" \
                 -H "Content-Type: application/json" \
                 -H "anthropic-beta: oauth-2025-04-20" \
