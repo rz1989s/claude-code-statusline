@@ -10,6 +10,10 @@
 # Dependencies: json_fields.sh, display.sh
 # ============================================================================
 
+# Prevent multiple includes
+[[ "${STATUSLINE_AGENT_DISPLAY_LOADED:-}" == "true" ]] && return 0
+export STATUSLINE_AGENT_DISPLAY_LOADED=true
+
 COMPONENT_AGENT_DISPLAY_NAME=""
 
 collect_agent_display_data() {

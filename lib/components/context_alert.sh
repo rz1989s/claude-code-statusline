@@ -10,6 +10,10 @@
 # Dependencies: json_fields.sh, display.sh
 # ============================================================================
 
+# Prevent multiple includes
+[[ "${STATUSLINE_CONTEXT_ALERT_LOADED:-}" == "true" ]] && return 0
+export STATUSLINE_CONTEXT_ALERT_LOADED=true
+
 COMPONENT_CONTEXT_ALERT_EXCEEDED=""
 
 collect_context_alert_data() {
@@ -37,7 +41,7 @@ render_context_alert() {
         bold="${CONFIG_BOLD:-\033[1m}"
     fi
 
-    local label="${CONFIG_CONTEXT_ALERT_THRESHOLD_LABEL:-">200K"}"
+    local label="${CONFIG_CONTEXT_ALERT_THRESHOLD_LABEL:-'>200K'}"
     echo "${bold}${color_code}${label}${COLOR_RESET}"
 }
 

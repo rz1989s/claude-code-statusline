@@ -10,6 +10,10 @@
 # Dependencies: json_fields.sh, display.sh
 # ============================================================================
 
+# Prevent multiple includes
+[[ "${STATUSLINE_VIM_MODE_LOADED:-}" == "true" ]] && return 0
+export STATUSLINE_VIM_MODE_LOADED=true
+
 COMPONENT_VIM_MODE_VALUE=""
 
 collect_vim_mode_data() {

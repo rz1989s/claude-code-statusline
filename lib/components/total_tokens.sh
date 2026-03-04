@@ -10,6 +10,10 @@
 # Dependencies: json_fields.sh, display.sh
 # ============================================================================
 
+# Prevent multiple includes
+[[ "${STATUSLINE_TOTAL_TOKENS_LOADED:-}" == "true" ]] && return 0
+export STATUSLINE_TOTAL_TOKENS_LOADED=true
+
 COMPONENT_TOTAL_TOKENS_INPUT="0"
 COMPONENT_TOTAL_TOKENS_OUTPUT="0"
 

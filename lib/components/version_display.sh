@@ -10,6 +10,10 @@
 # Dependencies: json_fields.sh, display.sh
 # ============================================================================
 
+# Prevent multiple includes
+[[ "${STATUSLINE_VERSION_DISPLAY_LOADED:-}" == "true" ]] && return 0
+export STATUSLINE_VERSION_DISPLAY_LOADED=true
+
 COMPONENT_VERSION_DISPLAY_VALUE=""
 
 collect_version_display_data() {
