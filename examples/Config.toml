@@ -520,7 +520,7 @@ display.line3.components = ["cost_repo", "cost_monthly", "cost_weekly", "cost_da
 display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
-# Line 4: Block Metrics + Code Stats + Context (v2.15.0: restored code_productivity)
+# Line 4: Block Metrics + Token Tracking + Context (v2.20.0: total_tokens + context_alert)
 display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "total_tokens", "context_alert", "context_window"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
