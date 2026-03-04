@@ -147,6 +147,27 @@ usage_limits.warn_threshold = 50       # Yellow warning above this %
 usage_limits.critical_threshold = 80   # Red critical above this %
 usage_limits.cache_ttl = 300           # API cache TTL in seconds (5 min)
 
+# === v2.20.0 NEW COMPONENTS (Claude Code v2.1.50+) ===
+
+# Version Display (Claude Code CLI version from native JSON)
+features.show_version_display = true
+version_display.format = "short"       # "short" (v2.1.66) or "full" (CC v2.1.66)
+
+# Vim Mode (shows VIM:NORMAL or VIM:INSERT when vim mode enabled)
+features.show_vim_mode = true
+
+# Agent Display (shows agent name when running with --agent flag)
+features.show_agent_display = true
+
+# Context Alert (warns when token usage exceeds 200K threshold)
+features.show_context_alert = true
+context_alert.show_only_when_exceeded = true
+context_alert.threshold_label = ">200K"
+
+# Total Tokens (cumulative session input/output token counts)
+features.show_total_tokens = true
+total_tokens.format = "split"          # "split" (15.2K in / 4.5K out) or "compact" (19.8K total)
+
 # === SESSION INFO CONFIGURATION (Issue #102) ===
 # Display session identification for multi-session awareness.
 # Useful for: resume sessions (claude -r abc12345), debug correlation.
@@ -490,7 +511,7 @@ display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
 # Line 2: Model + Git Metrics & Versions (model first, then commits, submodules hidden when empty, versions, time)
-display.line2.components = ["model_info", "commits", "submodules", "version_info", "time_display"]
+display.line2.components = ["model_info", "version_display", "commits", "submodules", "version_info", "time_display"]
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
@@ -500,7 +521,7 @@ display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
 # Line 4: Block Metrics + Code Stats + Context (v2.15.0: restored code_productivity)
-display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "code_productivity", "context_window"]
+display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "total_tokens", "context_alert", "context_window"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
@@ -520,7 +541,7 @@ display.line7.separator = " "
 display.line7.show_when_empty = true
 
 # Line 8: MCP Server Status & Session Mode (output style)
-display.line8.components = ["mcp_status", "session_mode"]
+display.line8.components = ["mcp_status", "session_mode", "vim_mode", "agent_display"]
 display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
