@@ -196,3 +196,47 @@ teardown() {
     assert_success
     assert_output "0"
 }
+
+# ==============================================================================
+# Typed extractors: path migration
+# ==============================================================================
+
+@test "has_json_field detects migrated path in new schema" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"current_usage":{"input_tokens":8500}}}'
+    run has_json_field "current_usage.input_tokens"
+    assert_success
+}
+
+@test "has_json_field detects migrated path in legacy schema" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"input_tokens":7000}}'
+    run has_json_field "current_usage.input_tokens"
+    assert_success
+}
+
+@test "get_json_field_num extracts migrated path from new schema" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"current_usage":{"input_tokens":8500}}}'
+    run get_json_field_num "current_usage.input_tokens" "0"
+    assert_success
+    assert_output "8500"
+}
+
+@test "get_json_field_num falls back to legacy path" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"input_tokens":7000}}'
+    run get_json_field_num "current_usage.input_tokens" "0"
+    assert_success
+    assert_output "7000"
+}
+
+@test "get_json_field_bool resolves migrated boolean path" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"current_usage":{"is_cached":true}}}'
+    run get_json_field_bool "current_usage.is_cached" "false"
+    assert_success
+    assert_output "true"
+}
+
+@test "get_json_field_bool falls back to legacy boolean path" {
+    export STATUSLINE_INPUT_JSON='{"current_usage":{"is_cached":false}}'
+    run get_json_field_bool "current_usage.is_cached" "true"
+    assert_success
+    assert_output "false"
+}

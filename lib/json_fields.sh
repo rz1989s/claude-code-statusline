@@ -51,7 +51,7 @@ _JSON_FIELD_MIGRATIONS=(
 # Usage: _dot_to_jq "model.display_name" => ".model.display_name"
 _dot_to_jq() {
   local path="$1"
-  echo ".${path//./.}"
+  echo ".$path"
 }
 
 # Extract a raw value from STATUSLINE_INPUT_JSON using a jq filter
@@ -71,6 +71,39 @@ _jq_extract() {
   fi
 
   echo "$result"
+  return 0
+}
+
+# Resolve a field path through the migration registry
+#
+# If the path matches a migration prefix, outputs two lines:
+#   1. canonical path (new schema, tried first)
+#   2. legacy path (original, tried second)
+# If no migration matches, outputs the original path on one line.
+#
+# Usage: readarray -t paths < <(_resolve_migrated_path "current_usage.input_tokens")
+_resolve_migrated_path() {
+  local field_path="$1"
+
+  local migration
+  for migration in "${_JSON_FIELD_MIGRATIONS[@]}"; do
+    local legacy_prefix="${migration%%|*}"
+    local canonical_prefix="${migration##*|}"
+
+    if [[ "$field_path" == "$legacy_prefix" || "$field_path" == "$legacy_prefix".* ]]; then
+      local suffix="${field_path#"$legacy_prefix"}"
+      local canonical_path="${canonical_prefix}${suffix}"
+
+      debug_log "json_fields: migrating '$field_path' -> trying '$canonical_path' first" "DEBUG"
+
+      echo "$canonical_path"
+      echo "$field_path"
+      return 0
+    fi
+  done
+
+  # No migration match — return original path
+  echo "$field_path"
   return 0
 }
 
@@ -96,45 +129,17 @@ get_json_field() {
     return 0
   fi
 
-  # Check if field_path matches a migration prefix
-  local migration
-  for migration in "${_JSON_FIELD_MIGRATIONS[@]}"; do
-    local legacy_prefix="${migration%%|*}"
-    local canonical_prefix="${migration##*|}"
+  # Resolve through migration registry (may return 1 or 2 paths)
+  local paths
+  readarray -t paths < <(_resolve_migrated_path "$field_path")
 
-    if [[ "$field_path" == "$legacy_prefix" || "$field_path" == "$legacy_prefix".* ]]; then
-      # Build the canonical path by replacing the legacy prefix
-      local suffix="${field_path#"$legacy_prefix"}"
-      local canonical_path="${canonical_prefix}${suffix}"
-
-      debug_log "json_fields: migrating '$field_path' -> trying '$canonical_path' first" "DEBUG"
-
-      # Try canonical path first (new schema)
-      local result
-      if result=$(_jq_extract "$(_dot_to_jq "$canonical_path")"); then
-        echo "$result"
-        return 0
-      fi
-
-      # Fall back to legacy path
-      debug_log "json_fields: canonical path empty, trying legacy '$field_path'" "DEBUG"
-      if result=$(_jq_extract "$(_dot_to_jq "$field_path")"); then
-        echo "$result"
-        return 0
-      fi
-
-      # Neither path had data
-      echo "$default_value"
+  local p result
+  for p in "${paths[@]}"; do
+    if result=$(_jq_extract "$(_dot_to_jq "$p")"); then
+      echo "$result"
       return 0
     fi
   done
-
-  # No migration needed - direct extraction
-  local result
-  if result=$(_jq_extract "$(_dot_to_jq "$field_path")"); then
-    echo "$result"
-    return 0
-  fi
 
   echo "$default_value"
   return 0
@@ -150,13 +155,18 @@ has_json_field() {
 
   [[ -z "$json" ]] && return 1
 
-  local jq_filter
-  jq_filter="$(_dot_to_jq "$field_path")"
+  # Resolve through migration registry
+  local paths
+  readarray -t paths < <(_resolve_migrated_path "$field_path")
 
-  local result
-  result=$(echo "$json" | jq -e "$jq_filter != null and $jq_filter != \"\" " 2>/dev/null) || return 1
+  local p jq_filter result
+  for p in "${paths[@]}"; do
+    jq_filter="$(_dot_to_jq "$p")"
+    result=$(echo "$json" | jq -e "$jq_filter != null and $jq_filter != \"\" " 2>/dev/null) || continue
+    [[ "$result" == "true" ]] && return 0
+  done
 
-  [[ "$result" == "true" ]]
+  return 1
 }
 
 # get_json_field_bool - Extract a boolean field
@@ -173,17 +183,21 @@ get_json_field_bool() {
     return 0
   fi
 
-  local jq_filter
-  jq_filter="$(_dot_to_jq "$field_path")"
+  # Resolve through migration registry
+  local paths
+  readarray -t paths < <(_resolve_migrated_path "$field_path")
 
-  local result
-  result=$(echo "$json" | jq -r "if $jq_filter == true then \"true\" elif $jq_filter == false then \"false\" else empty end" 2>/dev/null) || true
+  local p jq_filter result
+  for p in "${paths[@]}"; do
+    jq_filter="$(_dot_to_jq "$p")"
+    result=$(echo "$json" | jq -r "if $jq_filter == true then \"true\" elif $jq_filter == false then \"false\" else empty end" 2>/dev/null) || true
+    if [[ -n "$result" ]]; then
+      echo "$result"
+      return 0
+    fi
+  done
 
-  if [[ -n "$result" ]]; then
-    echo "$result"
-  else
-    echo "$default_value"
-  fi
+  echo "$default_value"
   return 0
 }
 
@@ -201,17 +215,21 @@ get_json_field_num() {
     return 0
   fi
 
-  local jq_filter
-  jq_filter="$(_dot_to_jq "$field_path")"
+  # Resolve through migration registry
+  local paths
+  readarray -t paths < <(_resolve_migrated_path "$field_path")
 
-  local result
-  result=$(echo "$json" | jq -r "if ($jq_filter | type) == \"number\" then $jq_filter | tostring else empty end" 2>/dev/null) || true
+  local p jq_filter result
+  for p in "${paths[@]}"; do
+    jq_filter="$(_dot_to_jq "$p")"
+    result=$(echo "$json" | jq -r "if ($jq_filter | type) == \"number\" then $jq_filter | tostring else empty end" 2>/dev/null) || true
+    if [[ -n "$result" ]]; then
+      echo "$result"
+      return 0
+    fi
+  done
 
-  if [[ -n "$result" ]]; then
-    echo "$result"
-  else
-    echo "$default_value"
-  fi
+  echo "$default_value"
   return 0
 }
 
@@ -255,7 +273,7 @@ get_detected_cc_version() {
 # EXPORTS
 # ============================================================================
 
-export -f _dot_to_jq _jq_extract
+export -f _dot_to_jq _jq_extract _resolve_migrated_path
 export -f get_json_field has_json_field
 export -f get_json_field_bool get_json_field_num
 export -f validate_json_schema get_detected_cc_version
