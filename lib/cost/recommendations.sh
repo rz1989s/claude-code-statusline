@@ -360,8 +360,13 @@ generate_recommendations() {
   local cache_hit_rate="0"
   if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
     local cache_read input_tokens
-    cache_read=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null) || cache_read=0
-    input_tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.input_tokens // 0' 2>/dev/null) || input_tokens=0
+    if declare -f get_json_field &>/dev/null; then
+      cache_read=$(get_json_field "current_usage.cache_read_input_tokens" "0") || cache_read=0
+      input_tokens=$(get_json_field "current_usage.input_tokens" "0") || input_tokens=0
+    else
+      cache_read=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.cache_read_input_tokens // 0' 2>/dev/null) || cache_read=0
+      input_tokens=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.current_usage.input_tokens // 0' 2>/dev/null) || input_tokens=0
+    fi
     if [[ "$input_tokens" -gt 0 ]] 2>/dev/null; then
       cache_hit_rate=$(awk -v cr="$cache_read" -v it="$input_tokens" 'BEGIN { printf "%.0f", (cr / it) * 100 }' 2>/dev/null) || cache_hit_rate=0
     fi
