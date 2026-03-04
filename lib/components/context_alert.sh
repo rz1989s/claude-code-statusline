@@ -41,7 +41,7 @@ render_context_alert() {
         bold="${CONFIG_BOLD:-\033[1m}"
     fi
 
-    local label="${CONFIG_CONTEXT_ALERT_THRESHOLD_LABEL:-'>200K'}"
+    local label="${CONFIG_CONTEXT_ALERT_THRESHOLD_LABEL:-\>200K}"
     echo "${bold}${color_code}${label}${COLOR_RESET}"
 }
 
