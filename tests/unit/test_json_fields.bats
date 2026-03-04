@@ -134,6 +134,12 @@ teardown() {
     assert_success
 }
 
+@test "has_json_field returns 1 for empty string field" {
+    export STATUSLINE_INPUT_JSON='{"version":""}'
+    run has_json_field "version"
+    assert_failure
+}
+
 # ==============================================================================
 # validate_json_schema / get_detected_cc_version
 # ==============================================================================
@@ -192,6 +198,13 @@ teardown() {
 
 @test "get_json_field_num returns default for missing" {
     export STATUSLINE_INPUT_JSON='{"model":{"display_name":"Opus"}}'
+    run get_json_field_num "context_window.total_input_tokens" "0"
+    assert_success
+    assert_output "0"
+}
+
+@test "get_json_field_num returns default for non-numeric string" {
+    export STATUSLINE_INPUT_JSON='{"context_window":{"total_input_tokens":"not_a_number"}}'
     run get_json_field_num "context_window.total_input_tokens" "0"
     assert_success
     assert_output "0"

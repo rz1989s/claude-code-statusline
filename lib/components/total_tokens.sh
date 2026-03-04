@@ -20,6 +20,7 @@ COMPONENT_TOTAL_TOKENS_OUTPUT="0"
 # Format token count to human-readable (1.5K, 2.3M)
 _format_tokens_human() {
     local count="${1:-0}"
+    [[ ! "$count" =~ ^[0-9]+$ ]] && { echo "0"; return; }
     if [[ "$count" -ge 1000000 ]]; then
         awk -v c="$count" 'BEGIN { printf "%.1fM", c / 1000000 }' 2>/dev/null
     elif [[ "$count" -ge 1000 ]]; then
@@ -92,5 +93,5 @@ TOTAL_TOKENS_COMPONENT_VERSION="2.20.0"
 TOTAL_TOKENS_COMPONENT_DEPENDENCIES=("json_fields")
 
 register_component "total_tokens" "Cumulative session token counts" "display" "true"
-export -f collect_total_tokens_data render_total_tokens get_total_tokens_config _format_tokens_human
+export -f collect_total_tokens_data render_total_tokens get_total_tokens_config
 debug_log "Total tokens component loaded" "INFO"
