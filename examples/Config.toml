@@ -521,7 +521,7 @@ display.line3.separator = " │ "
 display.line3.show_when_empty = true
 
 # Line 4: Block Metrics + Token Tracking + Context (v2.20.0: total_tokens + context_alert)
-display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "total_tokens", "context_alert", "context_window"]
+display.line4.components = ["burn_rate", "cache_efficiency", "block_projection", "context_alert", "context_window"]
 display.line4.separator = " │ "
 display.line4.show_when_empty = true
 
@@ -541,7 +541,7 @@ display.line7.separator = " "
 display.line7.show_when_empty = true
 
 # Line 8: MCP Server Status & Session Mode (output style)
-display.line8.components = ["mcp_status", "session_mode", "vim_mode", "agent_display"]
+display.line8.components = ["mcp_status", "session_mode"]
 display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
