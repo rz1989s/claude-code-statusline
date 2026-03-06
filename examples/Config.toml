@@ -541,7 +541,7 @@ display.line7.separator = " "
 display.line7.show_when_empty = true
 
 # Line 8: MCP Server Status & Session Mode (output style)
-display.line8.components = ["mcp_status", "session_mode", "vim_mode", "agent_display"]
+display.line8.components = ["mcp_status", "session_mode"]
 display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
