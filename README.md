@@ -18,7 +18,7 @@
 
 # Claude Code Enhanced Statusline
 
-**🎨 Transform your terminal with 18 atomic components across 1-9 configurable lines**  
+**🎨 Transform your terminal with 28 atomic components across 1-9 configurable lines**  
 *Block metrics • Burn rate monitoring • Cache efficiency • Cost projections • Atomic precision • Clean separators • Rich information display • Stunning themes • Real-time monitoring • MCP integration • Islamic prayer times • Ultimate customization*
 
 [![CI](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml/badge.svg)](https://github.com/rz1989s/claude-code-statusline/actions/workflows/ci.yml)
@@ -241,7 +241,7 @@ labels.commits = "Commits:"            # Display labels
 
 **🎯 ULTIMATE CUSTOMIZATION: ATOMIC COMPONENT BREAKTHROUGH**
 
-Transform your statusline with **18 atomic components** that eliminate separator issues and provide maximum control:
+Transform your statusline with **28 atomic components** that eliminate separator issues and provide maximum control:
 
 - **🔬 Atomic Components** - Single-purpose units for maximum control:
   - `commits` - Shows ONLY commit count (pure atomic)
