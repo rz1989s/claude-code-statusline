@@ -7,9 +7,13 @@
 # Provides a unified interface for extracting fields from the Claude Code
 # JSON input, with automatic path migration for schema changes across
 # versions (e.g., v2.1.66 moved current_usage under context_window).
+# Supports v2.1.6 through v2.1.69+ using feature detection (not version comparison).
 #
 # Path Migration Map:
 #   current_usage.* -> context_window.current_usage.* (v2.1.66+)
+#
+# v2.1.69 Additions (no migration needed — new optional fields):
+#   worktree.name, worktree.path, worktree.original_cwd, worktree.original_branch
 #
 # Dependencies: core.sh (optional - degrades gracefully if unavailable)
 # ============================================================================

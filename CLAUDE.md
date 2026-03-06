@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.20.0 | **Claude Code**: v2.1.6–v2.1.66 ✓ | **Branch**: feat/fix/chore → nightly → main
+**Current**: v2.20.0 | **Claude Code**: v2.1.6–v2.1.69 ✓ | **Branch**: feat/fix/chore → nightly → main
 **Architecture**: Single Config.toml (240+ settings), modular cache (8 sub-modules), JSON abstraction layer
 **Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
@@ -135,10 +135,10 @@ ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 
 The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_INPUT_JSON` for all components. Only `workspace.current_dir` is required; all other fields are optional with graceful fallbacks. Field access uses `get_json_field()` abstraction with automatic path migration for backward compatibility.
 
-**Core Fields** (v2.1.66 schema):
+**Core Fields** (v2.1.69 schema):
 ```json
 {
-  "version": "2.1.66",
+  "version": "2.1.69",
   "cwd": "/path/to/repo",
   "workspace": { "current_dir": "/path/to/repo", "project_dir": "/path/to/repo", "added_dirs": [] },
   "model": { "id": "claude-opus-4-6-20250415", "display_name": "Claude Opus 4.6" },
@@ -154,17 +154,20 @@ The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_I
   "cost": { "total_cost_usd": 0.45, "total_duration_ms": 60000, "total_api_duration_ms": 30000, "total_lines_added": 120, "total_lines_removed": 30 },
   "vim": { "mode": "NORMAL" },
   "agent": { "name": "security-reviewer" },
-  "mcp": { "servers": [] }
+  "mcp": { "servers": [] },
+  "worktree": { "name": "my-feature", "path": "/path/.claude/worktrees/my-feature", "original_cwd": "/path/to/repo", "original_branch": "main" }
 }
 ```
 
 **Path Migration**: `current_usage.*` moved to `context_window.current_usage.*` in v2.1.66. The `get_json_field()` abstraction handles both paths automatically.
 
+**v2.1.69 Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66.
+
 **Usage Limits (OAuth API only)**: `five_hour`/`seven_day` utilization data is NOT provided in the statusline JSON. The `usage_limits` component fetches this from `https://api.anthropic.com/api/oauth/usage` using the OAuth token from macOS Keychain.
 
-**Manual Test Command** (simulates v2.1.66 input):
+**Manual Test Command** (simulates v2.1.69 input):
 ```bash
-echo '{"version":"2.1.66","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
+echo '{"version":"2.1.69","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
 ```
 
 **macOS Note**: Requires bash 4+ (`brew install bash`). Settings.json should use `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel) instead of `bash`.
