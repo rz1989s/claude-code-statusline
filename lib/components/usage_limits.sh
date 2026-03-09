@@ -386,6 +386,8 @@ fetch_usage_limits() {
         local ra
         ra=$(grep -i '^retry-after:' "$header_file" 2>/dev/null | head -1 | tr -d '\r' | awk '{print $2}')
         [[ "$ra" =~ ^[0-9]+$ ]] && retry_after="$ra"
+        # Enforce minimum TTL: retry-after:0 causes infinite 429 loop
+        [[ "$retry_after" -lt 30 ]] && retry_after=30
         rm -f "$header_file" 2>/dev/null
     fi
 
