@@ -58,6 +58,23 @@ collect_cost_live_data() {
         fi
     fi
 
+    # FALLBACK: Use native session cost from JSON input when OAuth-based block calc unavailable
+    if declare -f get_json_field &>/dev/null; then
+        local session_cost
+        session_cost=$(get_json_field "cost.total_cost_usd")
+        if [[ -n "$session_cost" && "$session_cost" != "null" && "$session_cost" != "0" ]]; then
+            # Format as LIVE display using session cost
+            local formatted
+            formatted=$(printf "%.2f" "$session_cost" 2>/dev/null)
+            if [[ -n "$formatted" && "$formatted" != "0.00" ]]; then
+                COMPONENT_COST_LIVE_BLOCK="🔥LIVE \$${formatted}"
+                COMPONENT_COST_LIVE_VALUE="$formatted"
+                debug_log "cost_live data (session fallback): \$${formatted}" "INFO"
+                return 0
+            fi
+        fi
+    fi
+
     debug_log "cost_live: no active block or cached data" "DEBUG"
     return 0
 }
