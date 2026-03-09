@@ -149,7 +149,8 @@ usage_limits.cache_ttl = 300           # API cache TTL in seconds (5 min)
 
 # === v2.20.0 NEW COMPONENTS (Claude Code v2.1.50+) ===
 
-# Version Display (Claude Code CLI version from native JSON)
+# Version Display (CC version ONLY from native JSON — lightweight, no network)
+# NOTE: Redundant if using version_info (which shows CC + SL versions + update checking)
 features.show_version_display = true
 version_display.format = "short"       # "short" (v2.1.66) or "full" (CC v2.1.66)
 
@@ -523,7 +524,7 @@ display.line1.separator = " │ "
 display.line1.show_when_empty = true
 
 # Line 2: Model + Git Metrics & Versions (model first, then commits, submodules hidden when empty, versions, time)
-display.line2.components = ["model_info", "bedrock_model", "version_display", "commits", "submodules", "version_info", "time_display"]
+display.line2.components = ["model_info", "bedrock_model", "commits", "submodules", "version_info", "time_display"]
 display.line2.separator = " │ "
 display.line2.show_when_empty = true
 
@@ -567,14 +568,14 @@ display.line9.show_when_empty = false
 # When updating component counts, descriptions, or categories here, update CLAUDE.md too!
 # ⚠️  SOURCE OF TRUTH: This Config.toml file - In case of discrepancy, follow this file
 #
-# === LOGICAL COMPONENT CATEGORIES (28 Total) ===
+# === LOGICAL COMPONENT CATEGORIES (35 Total) ===
 #
 # Repository & Git Components (5):
 # - "repo_info"      - Repository directory and git branch/status
 # - "commits"        - Commit count for current repository
 # - "submodules"     - Submodule status and count
 # - "git_stats"      - Combined commits + submodules (legacy format)
-# - "version_info"   - Claude Code version display
+# - "version_info"   - CC + SL versions with update checking (recommended)
 #
 # Model & Session Components (7):
 # - "model_info"     - Claude model name with emoji
@@ -599,9 +600,21 @@ display.line9.show_when_empty = false
 # - "code_productivity" - Lines added/removed (+156/-23) [v2.13.0]
 # - "context_window"    - Context usage via transcript (🧠 45% 90K/200K) [v2.13.0]
 #
-# System Components (2):
-# - "mcp_status"     - MCP server health and connection status
-# - "time_display"   - Current time formatting
+# System Components (4):
+# - "mcp_status"        - MCP server health and connection status
+# - "time_display"      - Current time formatting
+# - "version_display"   - CC version only from JSON (lightweight, no network)
+# - "context_alert"     - Warns when tokens exceed 200K threshold
+#
+# Session State Components (2):
+# - "vim_mode"        - VIM:NORMAL or VIM:INSERT when vim mode enabled
+# - "agent_display"   - Agent name when running with --agent flag
+#
+# Cumulative Metrics (1):
+# - "total_tokens"    - Session input/output token counts (split or compact)
+#
+# Wellness (1):
+# - "wellness"        - Coding timer, break reminders, focus mode
 #
 # Spiritual & Location Components (5):
 # - "prayer_times"      - Combined Hijri + prayer times (legacy)
