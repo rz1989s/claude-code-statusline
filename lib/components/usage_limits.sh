@@ -413,8 +413,15 @@ fetch_usage_limits() {
             echo "300" > "$negative_cache" 2>/dev/null
             ;;
         429)
-            debug_log "OAuth API rate limited (429) - retry after ${retry_after}s" "WARN"
-            echo "$retry_after" > "$negative_cache" 2>/dev/null
+            # Exponential backoff: double TTL on each consecutive 429 (30→60→120→240→300 cap)
+            local prev_ttl=0
+            [[ -f "$negative_cache" ]] && prev_ttl=$(head -1 "$negative_cache" 2>/dev/null)
+            [[ "$prev_ttl" =~ ^[0-9]+$ ]] || prev_ttl=0
+            local backoff_ttl=$((prev_ttl * 2))
+            [[ "$backoff_ttl" -lt "$retry_after" ]] && backoff_ttl="$retry_after"
+            [[ "$backoff_ttl" -gt 300 ]] && backoff_ttl=300
+            debug_log "OAuth API rate limited (429) - backoff ${backoff_ttl}s (was ${prev_ttl}s)" "WARN"
+            echo "$backoff_ttl" > "$negative_cache" 2>/dev/null
             ;;
         5[0-9][0-9])
             debug_log "OAuth API server error ($http_code) - retrying once" "WARN"
@@ -511,8 +518,15 @@ collect_usage_limits_data() {
         debug_log "usage_limits data: 5h=${COMPONENT_USAGE_FIVE_HOUR}%, 7d=${COMPONENT_USAGE_SEVEN_DAY}%" "INFO"
         COMPONENT_USAGE_STATUS="ok"
     else
-        debug_log "No usage limits data available (no native JSON, no OAuth)" "INFO"
-        COMPONENT_USAGE_STATUS="unavailable"
+        # Detect rate-limited state: negative cache exists but no positive cache
+        local _neg_cache="${CACHE_BASE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/claude-code-statusline}/usage_limits_negative.cache"
+        if [[ -f "$_neg_cache" ]]; then
+            debug_log "No usage limits data (rate limited - negative cache active)" "INFO"
+            COMPONENT_USAGE_STATUS="rate_limited"
+        else
+            debug_log "No usage limits data available (no native JSON, no OAuth)" "INFO"
+            COMPONENT_USAGE_STATUS="unavailable"
+        fi
     fi
 
     return 0
@@ -590,8 +604,17 @@ render_usage_limits() {
 render_usage_reset() {
     local theme_enabled="${1:-true}"
 
-    # Skip if no data available
+    # Show fallback when rate-limited (don't hide the line entirely)
     if [[ -z "$COMPONENT_USAGE_FIVE_HOUR" && -z "$COMPONENT_USAGE_SEVEN_DAY" ]]; then
+        if [[ "$COMPONENT_USAGE_STATUS" == "rate_limited" ]]; then
+            local dim_color="" reset_color=""
+            if [[ "$theme_enabled" == "true" ]] && is_module_loaded "themes"; then
+                dim_color="${CONFIG_LIGHT_GRAY:-\033[90m}"
+                reset_color="${COLOR_RESET:-\033[0m}"
+            fi
+            echo -e "${dim_color}⏱ Usage data temporarily unavailable (rate limited)${reset_color}"
+            return 0
+        fi
         return 1  # No content - skip this component
     fi
 
