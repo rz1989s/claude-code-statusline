@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.21.0 | **Claude Code**: v2.1.6–v2.1.69 ✓ | **Branch**: feat/fix/chore → nightly → main
+**Current**: v2.21.4 | **Claude Code**: v2.1.6–v2.1.72 ✓ | **Branch**: feat/fix/chore → nightly → main
 **Architecture**: Single Config.toml (240+ settings), modular cache (8 sub-modules), JSON abstraction layer
-**Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display
+**Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display, usage limits
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
 
 ## Essential Commands
 
 ```bash
 # Testing & Development
-npm test                              # Run all 838 tests across 48 files
+npm test                              # Run all 940 tests across 56 files
 npm run lint:all                     # Lint everything
 ./statusline.sh --modules             # Show component status
 STATUSLINE_DEBUG=true ./statusline.sh # Debug mode
@@ -39,16 +39,16 @@ bats tests/unit/test_platform_compatibility.bats
 
 **Core Modules** (15): core → security → json_fields → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → display
 
-**Atomic Components** (28):
-- **Repository & Git** (4): repo_info, commits, submodules, version_info
+**Atomic Components** (35):
+- **Repository & Git** (5): repo_info, commits, submodules, version_info, github
 - **Model & Session** (5): model_info, bedrock_model, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
-- **Block Metrics** (4): burn_rate, token_usage, cache_efficiency, block_projection
-- **System & Context** (4): mcp_status, time_display, version_display, context_alert
-- **Session State** (2): vim_mode, agent_display
-- **Cumulative Metrics** (1): total_tokens
+- **Block Metrics** (5): burn_rate, token_usage, cache_efficiency, block_projection, code_productivity
+- **System & Context** (5): mcp_status, time_display, version_display, context_alert, context_window
+- **Session State** (4): vim_mode, agent_display, session_info, session_mode
+- **Cumulative Metrics** (2): total_tokens, usage_limits
 - **Wellness** (1): wellness (idle detection, focus mode, break reminders)
-- **Spiritual** (2): prayer_times, location_display
+- **Spiritual** (5): prayer_times, prayer_times_only, prayer_icon, hijri_calendar, location_display
 - **CLI Analytics** (10 commands): --commits, --mcp-costs, --recommendations, --trends, --limits, --watch, --csv, --focus
 
 **Data Flow**: JSON input → Schema validation → Config loading → Theme application → Atomic component data collection → 1-9 line dynamic output (default: 9-line with wellness + GPS location)
@@ -74,7 +74,7 @@ git push origin feat/my-feature           # Push feature
 git checkout nightly && git merge feat/my-feature --no-ff  # Merge to nightly
 
 # Testing
-bats tests/unit/test_*.bats           # Unit tests (37 files)
+bats tests/unit/test_*.bats           # Unit tests (45 files)
 bats tests/integration/test_*.bats    # Integration tests (7 files)
 bats tests/benchmarks/test_*.bats     # Performance tests (4 files)
 
@@ -135,10 +135,10 @@ ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 
 The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_INPUT_JSON` for all components. Only `workspace.current_dir` is required; all other fields are optional with graceful fallbacks. Field access uses `get_json_field()` abstraction with automatic path migration for backward compatibility.
 
-**Core Fields** (v2.1.69 schema):
+**Core Fields** (v2.1.72 schema):
 ```json
 {
-  "version": "2.1.69",
+  "version": "2.1.72",
   "cwd": "/path/to/repo",
   "workspace": { "current_dir": "/path/to/repo", "project_dir": "/path/to/repo", "added_dirs": [] },
   "model": { "id": "claude-opus-4-6-20250415", "display_name": "Claude Opus 4.6" },
@@ -161,13 +161,13 @@ The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_I
 
 **Path Migration**: `current_usage.*` moved to `context_window.current_usage.*` in v2.1.66. The `get_json_field()` abstraction handles both paths automatically.
 
-**v2.1.69 Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66.
+**v2.1.69+ Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66. v2.1.70–v2.1.72 add no new statusline-relevant fields.
 
 **Usage Limits (OAuth API only)**: `five_hour`/`seven_day` utilization data is NOT provided in the statusline JSON. The `usage_limits` component fetches this from `https://api.anthropic.com/api/oauth/usage` using the OAuth token from macOS Keychain.
 
-**Manual Test Command** (simulates v2.1.69 input):
+**Manual Test Command** (simulates v2.1.72 input):
 ```bash
-echo '{"version":"2.1.69","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
+echo '{"version":"2.1.72","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
 ```
 
 **macOS Note**: Requires bash 4+ (`brew install bash`). Settings.json should use `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel) instead of `bash`.
