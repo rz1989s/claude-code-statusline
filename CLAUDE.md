@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.21.4 | **Claude Code**: v2.1.6–v2.1.72 ✓ | **Branch**: feat/fix/chore → nightly → main
+**Current**: v2.21.4 | **Claude Code**: v2.1.6–v2.1.76 ✓ | **Branch**: feat/fix/chore → nightly → main
 **Architecture**: Single Config.toml (240+ settings), modular cache (8 sub-modules), JSON abstraction layer
 **Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display, usage limits
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
@@ -135,10 +135,10 @@ ENV_CONFIG_LOCATION_FORMAT=full ./statusline.sh
 
 The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_INPUT_JSON` for all components. Only `workspace.current_dir` is required; all other fields are optional with graceful fallbacks. Field access uses `get_json_field()` abstraction with automatic path migration for backward compatibility.
 
-**Core Fields** (v2.1.72 schema):
+**Core Fields** (v2.1.76 schema):
 ```json
 {
-  "version": "2.1.72",
+  "version": "2.1.76",
   "cwd": "/path/to/repo",
   "workspace": { "current_dir": "/path/to/repo", "project_dir": "/path/to/repo", "added_dirs": [] },
   "model": { "id": "claude-opus-4-6-20250415", "display_name": "Claude Opus 4.6" },
@@ -146,7 +146,7 @@ The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_I
   "transcript_path": "/path/to/transcript.jsonl",
   "output_style": { "name": "default" },
   "context_window": {
-    "used_percentage": 12, "remaining_percentage": 88, "context_window_size": 200000,
+    "used_percentage": 12, "remaining_percentage": 88, "context_window_size": 1000000,
     "current_usage": { "input_tokens": 10000, "cache_read_input_tokens": 5000, "cache_creation_input_tokens": 2000 },
     "total_input_tokens": 45000, "total_output_tokens": 12000
   },
@@ -161,13 +161,15 @@ The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_I
 
 **Path Migration**: `current_usage.*` moved to `context_window.current_usage.*` in v2.1.66. The `get_json_field()` abstraction handles both paths automatically.
 
-**v2.1.69+ Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66. v2.1.70–v2.1.72 add no new statusline-relevant fields.
+**v2.1.69+ Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66. v2.1.70–v2.1.76 add no new statusline-relevant fields.
+
+**1M Context Window (v2.1.75+)**: Opus 4.6 and Sonnet 4.6 support 1M context (1,000,000 tokens) at standard pricing. `context_window_size` will be `1000000` for these models. The statusline handles this dynamically via `get_native_context_window_size()`. The `exceeds_200k_tokens` field is still the only threshold marker — no `exceeds_1m_tokens` field exists.
 
 **Usage Limits (OAuth API only)**: `five_hour`/`seven_day` utilization data is NOT provided in the statusline JSON. The `usage_limits` component fetches this from `https://api.anthropic.com/api/oauth/usage` using the OAuth token from macOS Keychain.
 
-**Manual Test Command** (simulates v2.1.72 input):
+**Manual Test Command** (simulates v2.1.76 input with 1M context):
 ```bash
-echo '{"version":"2.1.72","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
+echo '{"version":"2.1.76","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"remaining_percentage":88,"context_window_size":1000000,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
 ```
 
 **macOS Note**: Requires bash 4+ (`brew install bash`). Settings.json should use `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel) instead of `bash`.
