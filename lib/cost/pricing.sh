@@ -34,11 +34,19 @@ export STATUSLINE_COST_PRICING_LOADED=true
 get_model_pricing() {
     local model="${1:-default}"
 
-    # Official Anthropic pricing from https://claude.com/pricing
+    # Official Anthropic pricing from https://platform.claude.com/docs/en/about-claude/pricing
     case "$model" in
+        # Opus 4.6: $5/$25 input/output (same as Opus 4.5)
+        claude-opus-4-6-*)
+            echo "5.00 25.00 6.25 0.50"
+            ;;
         # Opus 4.5: $5/$25 input/output
         claude-opus-4-5-20251101)
             echo "5.00 25.00 6.25 0.50"
+            ;;
+        # Sonnet 4.6: $3/$15 input/output (same as Sonnet 4.5)
+        claude-sonnet-4-6-*)
+            echo "3.00 15.00 3.75 0.30"
             ;;
         # Sonnet 4.5: $3/$15 input/output
         claude-sonnet-4-5-20251101|claude-sonnet-4-5-20250929)
@@ -64,7 +72,9 @@ get_model_pricing() {
 # This outputs all p["model"] = "..." lines for awk BEGIN blocks
 get_awk_pricing_block() {
     cat <<'EOF'
+        p["claude-opus-4-6-20250415"] = "5.00 25.00 6.25 0.50"
         p["claude-opus-4-5-20251101"] = "5.00 25.00 6.25 0.50"
+        p["claude-sonnet-4-6-20250929"] = "3.00 15.00 3.75 0.30"
         p["claude-sonnet-4-5-20251101"] = "3.00 15.00 3.75 0.30"
         p["claude-sonnet-4-5-20250929"] = "3.00 15.00 3.75 0.30"
         p["claude-sonnet-4-20250514"] = "3.00 15.00 3.75 0.30"
