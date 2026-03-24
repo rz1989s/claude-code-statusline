@@ -55,6 +55,14 @@ collect_repo_info_data() {
         # Check for worktree
         if declare -f is_git_worktree &>/dev/null && is_git_worktree; then
             COMPONENT_REPO_INFO_WORKTREE=$(get_git_worktree_name)
+            # Use worktree.branch from JSON if available (CC v2.1.80+)
+            if declare -f get_json_field &>/dev/null; then
+                local wt_branch
+                wt_branch=$(get_json_field "worktree.branch" "")
+                if [[ -n "$wt_branch" ]]; then
+                    COMPONENT_REPO_INFO_BRANCH="$wt_branch"
+                fi
+            fi
         else
             COMPONENT_REPO_INFO_WORKTREE=""
         fi
