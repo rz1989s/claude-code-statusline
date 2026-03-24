@@ -42,19 +42,25 @@ format_reset_time() {
 
     # Parse ISO timestamp to epoch (handle various formats)
     local reset_epoch
-    # Remove fractional seconds and normalize timezone for date parsing
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        # macOS date command - handle UTC (Z or +00:00) properly
-        # Convert +00:00 to +0000 format for %z parsing
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        # GNU date command (Linux) - handles ISO 8601 natively
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        # Remove fractional seconds and normalize timezone for date parsing
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            # macOS date command - handle UTC (Z or +00:00) properly
+            # Convert +00:00 to +0000 format for %z parsing
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            # GNU date command (Linux) - handles ISO 8601 natively
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -107,16 +113,22 @@ get_reset_clock_time() {
         return 1
     fi
 
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
-
     local reset_epoch
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -143,15 +155,21 @@ format_reset_time_long() {
 
     # Parse ISO timestamp to epoch
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -196,15 +214,21 @@ get_remaining_minutes() {
     fi
 
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
