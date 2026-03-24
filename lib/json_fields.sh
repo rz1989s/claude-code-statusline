@@ -15,6 +15,11 @@
 # v2.1.69 Additions (no migration needed — new optional fields):
 #   worktree.name, worktree.path, worktree.original_cwd, worktree.original_branch
 #
+# v2.1.80 Additions (no migration needed — new optional fields):
+#   rate_limits.five_hour.used_percentage, rate_limits.five_hour.resets_at (epoch)
+#   rate_limits.seven_day.used_percentage, rate_limits.seven_day.resets_at (epoch)
+#   worktree.branch
+#
 # Dependencies: core.sh (optional - degrades gracefully if unavailable)
 # ============================================================================
 

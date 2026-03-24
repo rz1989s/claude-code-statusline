@@ -42,19 +42,25 @@ format_reset_time() {
 
     # Parse ISO timestamp to epoch (handle various formats)
     local reset_epoch
-    # Remove fractional seconds and normalize timezone for date parsing
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        # macOS date command - handle UTC (Z or +00:00) properly
-        # Convert +00:00 to +0000 format for %z parsing
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        # GNU date command (Linux) - handles ISO 8601 natively
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        # Remove fractional seconds and normalize timezone for date parsing
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            # macOS date command - handle UTC (Z or +00:00) properly
+            # Convert +00:00 to +0000 format for %z parsing
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            # GNU date command (Linux) - handles ISO 8601 natively
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -107,16 +113,22 @@ get_reset_clock_time() {
         return 1
     fi
 
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
-
     local reset_epoch
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -143,15 +155,21 @@ format_reset_time_long() {
 
     # Parse ISO timestamp to epoch
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -196,15 +214,21 @@ get_remaining_minutes() {
     fi
 
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$iso_timestamp" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$iso_timestamp"
     else
-        reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$iso_timestamp" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$iso_timestamp" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -480,13 +504,34 @@ collect_usage_limits_data() {
 
     local usage_data=""
 
-    # Priority 1: Native JSON from Claude Code stdin (zero-latency, always available)
+    # Priority 1: Native rate_limits from CC v2.1.80+ (zero-latency, no network)
     if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
-        local has_native
-        has_native=$(echo "$STATUSLINE_INPUT_JSON" | jq -r 'if .five_hour.utilization then "yes" elif .seven_day.utilization then "yes" else empty end' 2>/dev/null)
-        if [[ "$has_native" == "yes" ]]; then
+        local rl_five_pct rl_seven_pct
+        rl_five_pct=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
+        rl_seven_pct=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
+        if [[ -n "$rl_five_pct" || -n "$rl_seven_pct" ]]; then
+            # Build OAuth-compatible structure for downstream extraction
+            usage_data=$(echo "$STATUSLINE_INPUT_JSON" | jq '{
+                five_hour: {
+                    utilization: .rate_limits.five_hour.used_percentage,
+                    resets_at: (if .rate_limits.five_hour.resets_at then (.rate_limits.five_hour.resets_at | tostring) else null end)
+                },
+                seven_day: {
+                    utilization: .rate_limits.seven_day.used_percentage,
+                    resets_at: (if .rate_limits.seven_day.resets_at then (.rate_limits.seven_day.resets_at | tostring) else null end)
+                }
+            }' 2>/dev/null)
+            debug_log "Using native rate_limits from CC v2.1.80+ JSON" "INFO"
+        fi
+    fi
+
+    # Priority 1b: Legacy native JSON (pre-v2.1.80 format: .five_hour.utilization)
+    if [[ -z "$usage_data" && -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        local has_legacy
+        has_legacy=$(echo "$STATUSLINE_INPUT_JSON" | jq -r 'if .five_hour.utilization then "yes" elif .seven_day.utilization then "yes" else empty end' 2>/dev/null)
+        if [[ "$has_legacy" == "yes" ]]; then
             usage_data="$STATUSLINE_INPUT_JSON"
-            debug_log "Using native JSON input for usage limits" "INFO"
+            debug_log "Using legacy native JSON input for usage limits" "INFO"
         fi
     fi
 
