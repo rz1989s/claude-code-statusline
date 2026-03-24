@@ -125,7 +125,7 @@ get_api_window_start() {
     if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
         # Fallback 1: Native JSON from Claude Code stdin (zero-latency)
         if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
-            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
+            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.rate_limits.five_hour.resets_at // .five_hour.resets_at // empty' 2>/dev/null)
             if [[ -n "$resets_at" && "$resets_at" != "null" ]]; then
                 debug_log "Using native JSON fallback for resets_at: $resets_at" "INFO"
             fi
@@ -147,15 +147,21 @@ get_api_window_start() {
 
     # Parse resets_at to epoch
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$resets_at" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$resets_at" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$resets_at"
     else
-        reset_epoch=$(date -d "$resets_at" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$resets_at" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$resets_at" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
@@ -423,7 +429,7 @@ get_native_reset_info() {
     if [[ -z "$resets_at" || "$resets_at" == "null" ]]; then
         # Fallback 1: Native JSON from Claude Code stdin (zero-latency)
         if [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
-            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.five_hour.resets_at // empty' 2>/dev/null)
+            resets_at=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.rate_limits.five_hour.resets_at // .five_hour.resets_at // empty' 2>/dev/null)
             if [[ -n "$resets_at" && "$resets_at" != "null" ]]; then
                 debug_log "Using native JSON fallback for reset info resets_at" "INFO"
             fi
@@ -446,15 +452,21 @@ get_native_reset_info() {
 
     # Parse resets_at to epoch
     local reset_epoch
-    local normalized_ts
-    normalized_ts=$(echo "$resets_at" | sed 's/\.[0-9]*//')
 
-    if [[ "$(uname -s)" == "Darwin" ]]; then
-        local mac_ts
-        mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
-        reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+    # Detect epoch timestamp (pure digits = Unix epoch seconds from CC v2.1.80+)
+    if [[ "$resets_at" =~ ^[0-9]+$ ]]; then
+        reset_epoch="$resets_at"
     else
-        reset_epoch=$(date -d "$resets_at" "+%s" 2>/dev/null)
+        local normalized_ts
+        normalized_ts=$(echo "$resets_at" | sed 's/\.[0-9]*//')
+
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            local mac_ts
+            mac_ts=$(echo "$normalized_ts" | sed 's/+00:00/+0000/; s/Z$/+0000/; s/+\([0-9][0-9]\):\([0-9][0-9]\)/+\1\2/')
+            reset_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S%z" "$mac_ts" "+%s" 2>/dev/null)
+        else
+            reset_epoch=$(date -d "$resets_at" "+%s" 2>/dev/null)
+        fi
     fi
 
     if [[ -z "$reset_epoch" ]]; then
