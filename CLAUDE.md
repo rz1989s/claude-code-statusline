@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-**Current**: v2.21.6 | **Claude Code**: v2.1.6–v2.1.81 ✓ | **Branch**: feat/fix/chore → nightly → main
+**Current**: v2.21.6 | **Claude Code**: v2.1.6–v2.1.85 ✓ | **Branch**: feat/fix/chore → nightly → main
 **Architecture**: Single Config.toml (240+ settings), modular cache (8 sub-modules), JSON abstraction layer
 **Features**: 9-line statusline, native context % (v2.1.6+), prayer times, cost tracking, MCP, GPS location, wellness, CLI analytics, vim mode, agent display, usage limits
 **Platforms**: macOS, Ubuntu, Arch, Fedora, Alpine Linux
@@ -167,15 +167,15 @@ The statusline reads JSON from stdin (`input=$(cat)`), exported as `STATUSLINE_I
 
 **v2.1.69+ Additions**: `worktree` object (conditional — only present during `claude --worktree` sessions) with `name`, `path`, `original_cwd`, `original_branch` fields. No breaking changes from v2.1.66.
 
-**v2.1.80+ Additions**: `rate_limits` object with `five_hour` and `seven_day` sub-objects. Each contains `used_percentage` (float 0-100) and `resets_at` (Unix epoch seconds). Only present for Claude.ai subscribers (Pro/Max) after the first API response. Each window may be independently absent. Also adds `worktree.branch` (string). v2.1.77-v2.1.79 and v2.1.81 add no new statusline-relevant fields.
+**v2.1.80+ Additions**: `rate_limits` object with `five_hour` and `seven_day` sub-objects. Each contains `used_percentage` (float 0-100) and `resets_at` (Unix epoch seconds). Only present for Claude.ai subscribers (Pro/Max) after the first API response. Each window may be independently absent. Also adds `worktree.branch` (string). v2.1.77-v2.1.79 and v2.1.81 add no new statusline-relevant fields. v2.1.82 was skipped (no public release). v2.1.83-v2.1.85 add no new statusline-relevant JSON fields.
 
 **1M Context Window (v2.1.75+)**: Opus 4.6 and Sonnet 4.6 support 1M context (1,000,000 tokens) at standard pricing. `context_window_size` will be `1000000` for these models. The statusline handles this dynamically via `get_native_context_window_size()`. The `exceeds_200k_tokens` field is still the only threshold marker — no `exceeds_1m_tokens` field exists.
 
 **Usage Limits (Native + OAuth fallback)**: `rate_limits.five_hour/seven_day` data is provided natively in the JSON input since CC v2.1.80. The `usage_limits` component reads this as primary source (zero-latency, no network). For older CC versions, it falls back to `https://api.anthropic.com/api/oauth/usage` using the OAuth token from macOS Keychain. Note: native `resets_at` is Unix epoch (int), while OAuth returns ISO 8601 timestamps — both formats are supported.
 
-**Manual Test Command** (simulates v2.1.81 input with 1M context + rate_limits):
+**Manual Test Command** (simulates v2.1.85 input with 1M context + rate_limits):
 ```bash
-echo '{"version":"2.1.81","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"remaining_percentage":88,"context_window_size":1000000,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]},"rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":'$(( $(date +%s) + 3600 ))'},"seven_day":{"used_percentage":41.2,"resets_at":'$(( $(date +%s) + 86400 ))'}}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
+echo '{"version":"2.1.85","workspace":{"current_dir":"'$(pwd)'"},"model":{"id":"claude-opus-4-6-20250415","display_name":"Claude Opus 4.6"},"context_window":{"used_percentage":12,"remaining_percentage":88,"context_window_size":1000000,"current_usage":{"cache_read_input_tokens":5000,"input_tokens":10000},"total_input_tokens":45000,"total_output_tokens":12000},"cost":{"total_cost_usd":0.45,"total_lines_added":120,"total_lines_removed":30},"session_id":"test","mcp":{"servers":[]},"rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":'$(( $(date +%s) + 3600 ))'},"seven_day":{"used_percentage":41.2,"resets_at":'$(( $(date +%s) + 86400 ))'}}}' | /opt/homebrew/bin/bash ~/.claude/statusline/statusline.sh
 ```
 
 **macOS Note**: Requires bash 4+ (`brew install bash`). Settings.json should use `/opt/homebrew/bin/bash` (Apple Silicon) or `/usr/local/bin/bash` (Intel) instead of `bash`.
