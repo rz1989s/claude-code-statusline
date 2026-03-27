@@ -114,14 +114,17 @@ execute_mcp_list() {
     local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
     local _in_cc_session="false"
 
-    # Detect active Claude Code session — `claude mcp list` hangs indefinitely inside CC.
+    # Detect active Claude Code session.
     # STATUSLINE_INPUT_JSON is only set when CC pipes JSON to us.
+    # Inside CC: use short 3s timeout (CLI works in CC v2.1.85+ but may hang
+    # in older versions) and prefer cache. Outside CC: normal timeout.
     # Allow mock claude binaries (integration tests with MOCK_BIN_DIR) to proceed.
     if [[ -n "${STATUSLINE_INPUT_JSON:-}" || "${STATUSLINE_TESTING:-}" == "true" ]]; then
         local _claude_path
         _claude_path=$(command -v claude 2>/dev/null) || return 1
         if [[ -z "${MOCK_BIN_DIR:-}" || "$_claude_path" != "${MOCK_BIN_DIR}"/* ]]; then
             _in_cc_session="true"
+            timeout_duration="3s"
         fi
     fi
 
@@ -135,7 +138,7 @@ execute_mcp_list() {
         local cache_key
         cache_key=$(generate_typed_cache_key "claude_mcp_list" "mcp")
 
-        # Inside active CC session: read from cache ONLY (no fresh CLI calls that hang)
+        # Inside active CC session: prefer cache (any age), fall back to short-timeout CLI
         if [[ "$_in_cc_session" == "true" ]]; then
             local cache_file
             cache_file=$(get_cache_file_path "external_${cache_key}" "true")
@@ -144,11 +147,10 @@ execute_mcp_list() {
                 cat "$cache_file" 2>/dev/null
                 return 0
             fi
-            debug_log "MCP: no cache available inside CC session, skipping CLI" "INFO"
-            return 1
+            debug_log "MCP: cache cold, trying CLI with ${timeout_duration} timeout" "INFO"
         fi
 
-        # Outside CC session: normal cache + refresh cycle
+        # Normal cache + refresh cycle (short timeout inside CC, normal outside)
         if command_exists timeout; then
             cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
@@ -157,11 +159,6 @@ execute_mcp_list() {
             cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
-        # No cache system — skip CLI inside CC, execute directly otherwise
-        if [[ "$_in_cc_session" == "true" ]]; then
-            debug_log "MCP: no cache system inside CC session, skipping CLI" "INFO"
-            return 1
-        fi
         _execute_mcp_list_direct "$timeout_duration"
     fi
 }
