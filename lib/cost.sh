@@ -130,7 +130,7 @@ get_claude_usage_info() {
 
     # Fast mock data for testing
     if [[ "${STATUSLINE_MOCK_COST_DATA:-}" == "true" ]]; then
-        end_timer "cost_tracking"
+        local _discard; _discard=$(end_timer "cost_tracking")
         local result="0.00:0.00:0.00:0.00:No data:Mock mode"
         echo "$result" > "$_COST_RENDER_CACHE_FILE"
         echo "$result"
@@ -163,7 +163,7 @@ get_claude_usage_info() {
     # Return empty result if native calculation not available
     result="-.--:-.--:-.--:-.--:${CONFIG_NO_DATA_MESSAGE:-No data}:Native calc unavailable"
     echo "$result" > "$_COST_RENDER_CACHE_FILE"
-    end_timer "cost_tracking"
+    local _discard; _discard=$(end_timer "cost_tracking")
     echo "$result"
 }
 
