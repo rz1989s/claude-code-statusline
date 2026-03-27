@@ -42,11 +42,15 @@ export MCP_ERROR_PATTERN="❌ Error"
 # Check if native MCP JSON data is available and non-empty
 has_native_mcp_data() {
     if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        debug_log "MCP native: no STATUSLINE_INPUT_JSON" "INFO"
         return 1
     fi
 
-    local server_count
+    local server_count mcp_type
+    mcp_type=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | type' 2>/dev/null)
     server_count=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | if type == "array" and length > 0 then length else empty end' 2>/dev/null)
+
+    debug_log "MCP native: servers type=$mcp_type, count=${server_count:-0}" "INFO"
 
     [[ -n "$server_count" && "$server_count" -gt 0 ]] 2>/dev/null
 }
@@ -108,15 +112,16 @@ is_claude_cli_available() {
 # Execute claude mcp list command with intelligent caching
 execute_mcp_list() {
     local timeout_duration="${1:-$CONFIG_MCP_TIMEOUT}"
+    local _in_cc_session="false"
 
-    # Skip real claude binary in test mode — claude mcp list hangs inside active Claude Code sessions.
+    # Detect active Claude Code session — `claude mcp list` hangs indefinitely inside CC.
+    # STATUSLINE_INPUT_JSON is only set when CC pipes JSON to us.
     # Allow mock claude binaries (integration tests with MOCK_BIN_DIR) to proceed.
-    if [[ "${STATUSLINE_TESTING:-}" == "true" ]]; then
+    if [[ -n "${STATUSLINE_INPUT_JSON:-}" || "${STATUSLINE_TESTING:-}" == "true" ]]; then
         local _claude_path
         _claude_path=$(command -v claude 2>/dev/null) || return 1
         if [[ -z "${MOCK_BIN_DIR:-}" || "$_claude_path" != "${MOCK_BIN_DIR}"/* ]]; then
-            debug_log "Skipping real claude mcp list in test environment" "INFO"
-            return 1
+            _in_cc_session="true"
         fi
     fi
 
@@ -124,14 +129,26 @@ execute_mcp_list() {
         debug_log "Claude CLI not available for MCP monitoring" "WARN"
         return 1
     fi
-    
+
     # Use universal caching system with repository-aware cache keys
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
-        # Generate repository-aware cache key to prevent cross-contamination
         local cache_key
         cache_key=$(generate_typed_cache_key "claude_mcp_list" "mcp")
-        
-        # Use direct command instead of function call for cache compatibility
+
+        # Inside active CC session: read from cache ONLY (no fresh CLI calls that hang)
+        if [[ "$_in_cc_session" == "true" ]]; then
+            local cache_file
+            cache_file=$(get_cache_file_path "external_${cache_key}" "true")
+            if [[ -f "$cache_file" ]] && validate_command_output "$cache_file"; then
+                debug_log "MCP: using cached CLI result inside CC session" "INFO"
+                cat "$cache_file" 2>/dev/null
+                return 0
+            fi
+            debug_log "MCP: no cache available inside CC session, skipping CLI" "INFO"
+            return 1
+        fi
+
+        # Outside CC session: normal cache + refresh cycle
         if command_exists timeout; then
             cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" timeout "$timeout_duration" claude mcp list 2>/dev/null
         elif command_exists gtimeout; then
@@ -140,6 +157,11 @@ execute_mcp_list() {
             cache_external_command "$cache_key" "$CACHE_DURATION_MCP" "validate_command_output" claude mcp list 2>/dev/null
         fi
     else
+        # No cache system — skip CLI inside CC, execute directly otherwise
+        if [[ "$_in_cc_session" == "true" ]]; then
+            debug_log "MCP: no cache system inside CC session, skipping CLI" "INFO"
+            return 1
+        fi
         _execute_mcp_list_direct "$timeout_duration"
     fi
 }
@@ -227,7 +249,7 @@ get_mcp_status() {
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list" "WARN"
-        end_timer "mcp_status"
+        local _discard; _discard=$(end_timer "mcp_status")
         echo "?/?"
         return 1
     fi
@@ -238,7 +260,7 @@ get_mcp_status() {
 
     if [[ -z "$servers_data" ]]; then
         debug_log "No MCP servers found in output" "INFO"
-        end_timer "mcp_status"
+        local _discard; _discard=$(end_timer "mcp_status")
         echo "0/0"
         return 0
     fi
@@ -295,7 +317,7 @@ get_all_mcp_servers() {
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list for all servers" "WARN"
-        end_timer "mcp_all_servers"
+        local _discard; _discard=$(end_timer "mcp_all_servers")
         echo "$CONFIG_MCP_UNKNOWN_MESSAGE"
         return 1
     fi
@@ -322,7 +344,7 @@ get_active_mcp_servers() {
     all_servers=$(get_all_mcp_servers)
     
     if [[ "$all_servers" == "$CONFIG_MCP_UNKNOWN_MESSAGE" ]] || [[ "$all_servers" == "$CONFIG_MCP_NONE_MESSAGE" ]]; then
-        end_timer "mcp_active_servers"
+        local _discard; _discard=$(end_timer "mcp_active_servers")
         echo "$all_servers"
         return 0
     fi

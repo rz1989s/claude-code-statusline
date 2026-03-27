@@ -23,11 +23,19 @@ collect_mcp_status_data() {
     
     COMPONENT_MCP_STATUS_STATUS="0/0"
     COMPONENT_MCP_STATUS_SERVERS="$CONFIG_MCP_NONE_MESSAGE"
-    
-    if is_module_loaded "mcp" && is_claude_cli_available; then
+
+    # Only gate on mcp module, not CLI availability — get_mcp_status() and
+    # get_all_mcp_servers() use native JSON first (zero-latency), falling back
+    # to CLI internally. Gating on is_claude_cli_available blocks native
+    # extraction when CLI is absent (e.g., non-CC environments).
+    if is_module_loaded "mcp"; then
         COMPONENT_MCP_STATUS_STATUS=$(get_mcp_status)
         COMPONENT_MCP_STATUS_SERVERS=$(get_all_mcp_servers)
     fi
+
+    # Sanitize: strip newlines from server data to prevent display line breaks
+    COMPONENT_MCP_STATUS_STATUS="${COMPONENT_MCP_STATUS_STATUS//$'\n'/ }"
+    COMPONENT_MCP_STATUS_SERVERS="${COMPONENT_MCP_STATUS_SERVERS//$'\n'/ }"
     
     debug_log "mcp_status data: status=$COMPONENT_MCP_STATUS_STATUS, servers=$COMPONENT_MCP_STATUS_SERVERS" "INFO"
     return 0

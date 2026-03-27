@@ -1447,9 +1447,12 @@ else
     mcp_status="0/0"
     mcp_servers="$CONFIG_MCP_NONE_MESSAGE"
 
-    if is_module_loaded "mcp" && is_claude_cli_available; then
+    if is_module_loaded "mcp"; then
         mcp_status=$(get_mcp_status)
         mcp_servers=$(get_all_mcp_servers)
+        # Sanitize: strip newlines from server data to prevent display line breaks
+        mcp_status="${mcp_status//$'\n'/ }"
+        mcp_servers="${mcp_servers//$'\n'/ }"
         debug_log "MCP data: status=$mcp_status, servers=$mcp_servers" "INFO"
     fi
 
