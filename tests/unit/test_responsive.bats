@@ -130,3 +130,98 @@ teardown() {
     assert_success
     assert_output "3"
 }
+
+# ==============================================================================
+# Component Filtering
+# ==============================================================================
+
+@test "filter_line_components passes all through when width sufficient" {
+    local names=("aaa" "bbb" "ccc")
+    local outputs=("AAAA" "BBBB" "CCCC")
+    run filter_line_components 120 " │ " names outputs
+    assert_success
+    assert_output "aaa,bbb,ccc"
+}
+
+@test "filter_line_components drops lowest priority first" {
+    # time_display (pri 4) should be dropped before model_info (pri 1)
+    local names=("model_info" "time_display")
+    local outputs=("$(printf '%0.s=' {1..40})" "$(printf '%0.s=' {1..40})")
+    run filter_line_components 50 " │ " names outputs
+    assert_success
+    assert_output "model_info"
+}
+
+@test "filter_line_components tie-breaks by dropping rightmost" {
+    local names=("submodules" "version_info")
+    local outputs=("$(printf '%0.s=' {1..40})" "$(printf '%0.s=' {1..40})")
+    run filter_line_components 50 " │ " names outputs
+    assert_success
+    assert_output "submodules"
+}
+
+@test "filter_line_components never drops last component" {
+    local names=("repo_info")
+    local outputs=("$(printf '%0.s=' {1..200})")
+    run filter_line_components 50 " │ " names outputs
+    assert_success
+    assert_output "repo_info"
+}
+
+@test "filter_line_components accounts for separator width" {
+    # 3 components each 25 chars. Separators: 2 × 3 = 6. Total = 81.
+    # Budget 80 — should drop one.
+    local names=("cost_repo" "cost_monthly" "cost_live")
+    local outputs=("$(printf '%0.s=' {1..25})" "$(printf '%0.s=' {1..25})" "$(printf '%0.s=' {1..25})")
+    run filter_line_components 80 " │ " names outputs
+    assert_success
+    # cost_live and cost_monthly are both priority 2 — rightmost (cost_live) dropped
+    assert_output "cost_repo,cost_monthly"
+}
+
+@test "filter_line_components handles empty component list" {
+    local names=()
+    local outputs=()
+    run filter_line_components 120 " │ " names outputs
+    assert_success
+    assert_output ""
+}
+
+@test "filter_line_components skips empty rendered outputs" {
+    local names=("model_info" "bedrock_model" "commits")
+    local outputs=("ModelOutput" "" "Commits:3")
+    run filter_line_components 120 " │ " names outputs
+    assert_success
+    assert_output "model_info,commits"
+}
+
+# ==============================================================================
+# ANSI-Safe Truncation
+# ==============================================================================
+
+@test "truncate_line_ansi_safe no-op when within budget" {
+    run truncate_line_ansi_safe "short" 80
+    assert_success
+    assert_output "short"
+}
+
+@test "truncate_line_ansi_safe truncates plain text with ellipsis" {
+    run truncate_line_ansi_safe "hello world" 8
+    assert_success
+    assert_output "hello w…"
+}
+
+@test "truncate_line_ansi_safe preserves ANSI and adds reset" {
+    local input=$'\e[32mhello world\e[0m'
+    run truncate_line_ansi_safe "$input" 8
+    assert_success
+    # Should keep color, truncate visible text, close with reset
+    [[ "$output" == *"hello w"* ]]
+    [[ "$output" == *"…" ]]
+}
+
+@test "truncate_line_ansi_safe handles width of 1" {
+    run truncate_line_ansi_safe "hello" 1
+    assert_success
+    assert_output "…"
+}

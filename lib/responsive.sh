@@ -172,3 +172,176 @@ get_component_priority() {
     echo "${RESPONSIVE_COMPONENT_PRIORITY[$component_name]:-3}"
     return 0
 }
+
+# ============================================================================
+# COMPONENT FILTERING
+# ============================================================================
+
+# Filter components for a line to fit within width budget.
+# Drops lowest-priority components (rightmost on tie) until the line fits.
+# Never drops the last component — truncation handles overflow.
+#
+# Args:
+#   $1 - width_budget (integer)
+#   $2 - separator string (e.g., " │ ")
+#   $3 - nameref to array of component names
+#   $4 - nameref to array of rendered outputs (parallel to names)
+#
+# Output: comma-separated surviving component names
+filter_line_components() {
+    local width_budget="$1"
+    local separator="$2"
+    local -n _names="$3"
+    local -n _outputs="$4"
+
+    local sep_width
+    sep_width=$(measure_visible_width "$separator")
+
+    # Build parallel arrays of active components (skip empty outputs)
+    local active_names=()
+    local active_widths=()
+    local i
+    for i in "${!_names[@]}"; do
+        local w
+        w=$(measure_visible_width "${_outputs[$i]}")
+        if [[ "$w" -gt 0 ]]; then
+            active_names+=("${_names[$i]}")
+            active_widths+=("$w")
+        fi
+    done
+
+    if [[ ${#active_names[@]} -eq 0 ]]; then
+        echo ""
+        return 0
+    fi
+
+    # Calculate total visible width: sum(widths) + (N-1) * sep_width
+    _responsive_total_width() {
+        local total=0
+        local count=${#active_widths[@]}
+        for w in "${active_widths[@]}"; do
+            total=$((total + w))
+        done
+        if [[ $count -gt 1 ]]; then
+            total=$((total + (count - 1) * sep_width))
+        fi
+        echo "$total"
+    }
+
+    local total
+    total=$(_responsive_total_width)
+
+    # Drop loop: remove lowest-priority (rightmost on tie) until fits
+    while [[ "$total" -gt "$width_budget" ]] && [[ ${#active_names[@]} -gt 1 ]]; do
+        # Find index of lowest-priority component (highest number, rightmost on tie)
+        local drop_idx=0
+        local drop_pri
+        drop_pri=$(get_component_priority "${active_names[0]}")
+
+        for i in "${!active_names[@]}"; do
+            local pri
+            pri=$(get_component_priority "${active_names[$i]}")
+            # Higher number = lower priority. On tie (>=), prefer rightmost (later index)
+            if [[ "$pri" -ge "$drop_pri" ]]; then
+                drop_idx="$i"
+                drop_pri="$pri"
+            fi
+        done
+
+        debug_log "[responsive] dropped ${active_names[$drop_idx]} (pri:$drop_pri)" "INFO"
+
+        # Remove the component at drop_idx
+        unset 'active_names[drop_idx]'
+        unset 'active_widths[drop_idx]'
+        # Re-index arrays (bash arrays get sparse after unset)
+        active_names=("${active_names[@]}")
+        active_widths=("${active_widths[@]}")
+
+        total=$(_responsive_total_width)
+    done
+
+    # Return surviving names as comma-separated string
+    local result=""
+    for name in "${active_names[@]}"; do
+        if [[ -n "$result" ]]; then
+            result="${result},${name}"
+        else
+            result="$name"
+        fi
+    done
+
+    echo "$result"
+    return 0
+}
+
+# ============================================================================
+# ANSI-SAFE TRUNCATION (Safety Net)
+# ============================================================================
+
+# Truncate a line to max_width visible columns, preserving ANSI sequences.
+# Appends "…" and closes any open ANSI sequences with reset.
+# Only fires when a single component exceeds terminal width (rare edge case).
+truncate_line_ansi_safe() {
+    local line="$1"
+    local max_width="$2"
+
+    if [[ -z "$line" ]] || [[ "$max_width" -lt 1 ]]; then
+        echo ""
+        return 0
+    fi
+
+    # Fast path: if visible width fits, return as-is
+    local visible_width
+    visible_width=$(measure_visible_width "$line")
+    if [[ "$visible_width" -le "$max_width" ]]; then
+        echo "$line"
+        return 0
+    fi
+
+    debug_log "[responsive] truncating line at col $max_width (safety net)" "INFO"
+
+    # Character-by-character walk: track visible column, preserve ANSI sequences
+    local result=""
+    local col=0
+    local in_escape=false
+    local has_ansi=false
+    local target=$((max_width - 1))  # Reserve 1 column for "…"
+    local i char
+
+    for (( i=0; i<${#line}; i++ )); do
+        char="${line:$i:1}"
+
+        if [[ "$in_escape" == true ]]; then
+            result+="$char"
+            # End of ANSI sequence: letter terminates it
+            if [[ "$char" =~ [a-zA-Z] ]]; then
+                in_escape=false
+            fi
+            continue
+        fi
+
+        # Start of ANSI escape sequence
+        if [[ "$char" == $'\e' ]] && [[ "${line:$((i+1)):1}" == "[" ]]; then
+            in_escape=true
+            has_ansi=true
+            result+="$char"
+            continue
+        fi
+
+        # Visible character — check if we've hit the budget
+        if [[ "$col" -ge "$target" ]]; then
+            break
+        fi
+
+        result+="$char"
+        col=$((col + 1))
+    done
+
+    # Close any open ANSI sequences (only if input contained ANSI) and append ellipsis
+    if [[ "$has_ansi" == true ]]; then
+        printf '%s\e[0m…' "$result"
+    else
+        printf '%s…' "$result"
+    fi
+    return 0
+}
