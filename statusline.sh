@@ -179,6 +179,11 @@ load_module "plugins" || {
     handle_warning "Plugins module failed to load - custom plugins disabled." "main"
 }
 
+# Load responsive module (width-aware component filtering)
+load_module "responsive" || {
+    handle_warning "Responsive module failed to load - width filtering disabled." "main"
+}
+
 # Load display/formatting module
 load_module "display" || {
     handle_error "Failed to load display module - output formatting disabled. Check lib/display.sh." 1 "main"
