@@ -216,20 +216,9 @@ filter_line_components() {
     fi
 
     # Calculate total visible width: sum(widths) + (N-1) * sep_width
-    _responsive_total_width() {
-        local total=0
-        local count=${#active_widths[@]}
-        for w in "${active_widths[@]}"; do
-            total=$((total + w))
-        done
-        if [[ $count -gt 1 ]]; then
-            total=$((total + (count - 1) * sep_width))
-        fi
-        echo "$total"
-    }
-
-    local total
-    total=$(_responsive_total_width)
+    local total=0
+    for w in "${active_widths[@]}"; do total=$((total + w)); done
+    [[ ${#active_widths[@]} -gt 1 ]] && total=$((total + (${#active_widths[@]} - 1) * sep_width))
 
     # Drop loop: remove lowest-priority (rightmost on tie) until fits
     while [[ "$total" -gt "$width_budget" ]] && [[ ${#active_names[@]} -gt 1 ]]; do
@@ -257,7 +246,9 @@ filter_line_components() {
         active_names=("${active_names[@]}")
         active_widths=("${active_widths[@]}")
 
-        total=$(_responsive_total_width)
+        total=0
+        for w in "${active_widths[@]}"; do total=$((total + w)); done
+        [[ ${#active_widths[@]} -gt 1 ]] && total=$((total + (${#active_widths[@]} - 1) * sep_width))
     done
 
     # Return surviving names as comma-separated string
@@ -334,7 +325,14 @@ truncate_line_ansi_safe() {
         fi
 
         result+="$char"
-        col=$((col + 1))
+        # Detect double-width characters (emoji ranges)
+        local codepoint
+        codepoint=$(printf '%d' "'$char" 2>/dev/null) || codepoint=0
+        if [[ $codepoint -ge 127744 ]]; then  # U+1F300 = 127744 decimal
+            col=$((col + 2))
+        else
+            col=$((col + 1))
+        fi
     done
 
     # Close any open ANSI sequences (only if input contained ANSI) and append ellipsis
