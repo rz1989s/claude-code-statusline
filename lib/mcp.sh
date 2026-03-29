@@ -252,15 +252,22 @@ get_mcp_status() {
         fi
     elif has_native_mcp_field; then
         # Native JSON has .mcp.servers but it's empty — authoritative "0 servers"
-        # Don't fall back to CLI (hangs inside active CC sessions)
         local status_time
         status_time=$(end_timer "mcp_status")
         debug_log "MCP status from native JSON (empty servers): 0/0 in ${status_time}s" "INFO"
         echo "0/0"
         return 0
+    elif [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        # Inside CC session but no mcp field at all — CC doesn't send MCP data
+        # Don't fall back to CLI (hangs inside active CC sessions)
+        local status_time
+        status_time=$(end_timer "mcp_status")
+        debug_log "MCP status: inside CC but no mcp field in JSON, returning 0/0" "INFO"
+        echo "0/0"
+        return 0
     fi
 
-    # Fallback: CLI path with reduced 30s cache (only when no native JSON available)
+    # Fallback: CLI path (only when running outside CC — no STATUSLINE_INPUT_JSON)
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list" "WARN"
@@ -328,10 +335,16 @@ get_all_mcp_servers() {
         fi
     elif has_native_mcp_field; then
         # Native JSON has .mcp.servers but it's empty — authoritative "no servers"
-        # Don't fall back to CLI (hangs inside active CC sessions)
         local all_servers_time
         all_servers_time=$(end_timer "mcp_all_servers")
         debug_log "MCP all servers from native JSON (empty): none in ${all_servers_time}s" "INFO"
+        echo "$CONFIG_MCP_NONE_MESSAGE"
+        return 0
+    elif [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        # Inside CC session but no mcp field — CC doesn't send MCP data
+        local all_servers_time
+        all_servers_time=$(end_timer "mcp_all_servers")
+        debug_log "MCP all servers: inside CC but no mcp field, returning none" "INFO"
         echo "$CONFIG_MCP_NONE_MESSAGE"
         return 0
     fi
