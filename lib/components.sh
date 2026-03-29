@@ -264,40 +264,72 @@ build_component_line() {
     local line_number="$1"
     local components_config="$2"
     local separator="${3:- │ }"
-    
+
     if [[ -z "$components_config" ]]; then
         debug_log "No components configured for line $line_number" "INFO"
         return 0
     fi
-    
-    local line_output=""
-    local rendered_count=0
-    
-    # Parse components list (comma-separated)
+
+    # Parse components list and render each
+    local component_names=()
+    local component_outputs=()
     IFS=',' read -ra component_list <<< "$components_config"
-    
+
     for component_name in "${component_list[@]}"; do
-        # Trim whitespace
         component_name=$(echo "$component_name" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        
-        if [[ -z "$component_name" ]]; then
-            continue
-        fi
-        
-        # Render component
+        [[ -z "$component_name" ]] && continue
+
         local component_output
         component_output=$(render_component "$component_name")
-        
         if [[ $? -eq 0 && -n "$component_output" ]]; then
-            if [[ -n "$line_output" ]]; then
-                line_output="${line_output}${separator}${component_output}"
-            else
-                line_output="$component_output"
-            fi
-            rendered_count=$((rendered_count + 1))
+            component_names+=("$component_name")
+            component_outputs+=("$component_output")
         fi
     done
-    
+
+    if [[ ${#component_names[@]} -eq 0 ]]; then
+        debug_log "No components rendered for line $line_number" "INFO"
+        return 1
+    fi
+
+    # Responsive filtering: drop components that don't fit terminal width
+    local surviving_csv
+    if type filter_line_components &>/dev/null; then
+        local width_budget
+        width_budget=$(detect_terminal_width)
+        surviving_csv=$(filter_line_components "$width_budget" "$separator" component_names component_outputs)
+    else
+        # Fallback if responsive module not loaded
+        surviving_csv=$(IFS=','; echo "${component_names[*]}")
+    fi
+
+    # Rebuild line from surviving components
+    local line_output=""
+    local rendered_count=0
+    IFS=',' read -ra survivors <<< "$surviving_csv"
+
+    for survivor in "${survivors[@]}"; do
+        local idx
+        for idx in "${!component_names[@]}"; do
+            if [[ "${component_names[$idx]}" == "$survivor" ]]; then
+                if [[ -n "$line_output" ]]; then
+                    line_output="${line_output}${separator}${component_outputs[$idx]}"
+                else
+                    line_output="${component_outputs[$idx]}"
+                fi
+                rendered_count=$((rendered_count + 1))
+                break
+            fi
+        done
+    done
+
+    # Safety-net truncation
+    if type truncate_line_ansi_safe &>/dev/null && [[ -n "$line_output" ]]; then
+        local width_budget
+        width_budget=$(detect_terminal_width)
+        line_output=$(truncate_line_ansi_safe "$line_output" "$width_budget")
+    fi
+
     if [[ $rendered_count -gt 0 ]]; then
         echo "$line_output"
         return 0
