@@ -559,7 +559,7 @@ display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
 # Line 9: MCP Details (Native, Plugin, Remote — rotating names)
-display.line9.components = ["mcp_servers", "mcp_plugins"]
+display.line9.components = ["mcp_native", "mcp_servers", "mcp_plugins"]
 display.line9.separator = " │ "
 display.line9.show_when_empty = false
 

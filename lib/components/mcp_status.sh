@@ -54,7 +54,7 @@ _mcp_aggregate_total() {
     total_connected=$((total_connected + ${COMPONENT_MCP_PLUGINS_COUNT:-0}))
     total_count=$((total_count + ${COMPONENT_MCP_PLUGINS_COUNT:-0}))
 
-    # Servers: count connected from probed data
+    # Servers (Remote): count connected from probed data
     if [[ -n "${COMPONENT_MCP_SERVERS_DATA:-}" && "${COMPONENT_MCP_SERVERS_COUNT:-0}" -gt 0 ]]; then
         total_count=$((total_count + COMPONENT_MCP_SERVERS_COUNT))
         local tmp="${COMPONENT_MCP_SERVERS_DATA},"
@@ -67,6 +67,10 @@ _mcp_aggregate_total() {
             fi
         done
     fi
+
+    # Native (session): all connected (detected from transcript = active)
+    total_connected=$((total_connected + ${COMPONENT_MCP_NATIVE_COUNT:-0}))
+    total_count=$((total_count + ${COMPONENT_MCP_NATIVE_COUNT:-0}))
 
     echo "${total_connected}/${total_count}"
 }

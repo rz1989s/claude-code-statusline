@@ -570,6 +570,85 @@ get_enabled_mcp_plugins() {
 }
 
 # ============================================================================
+# SESSION MCP DETECTION (Transcript Parsing)
+# ============================================================================
+# Extracts MCP server names from the session transcript JSONL.
+# Detects servers like pencil, chrome, slack that aren't in config files.
+# Filters out plugin_* (already in Plugin:) and servers in Remote:.
+
+# Get session MCP servers from transcript JSONL
+# Returns: comma-separated "name:connected" pairs
+get_session_mcp_servers() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 0
+    fi
+
+    local transcript_path
+    transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
+
+    if [[ -z "$transcript_path" || ! -f "$transcript_path" ]]; then
+        return 0
+    fi
+
+    # Cache per session (transcript path is session-unique)
+    local cache_key="mcp_session_servers_$(echo "$transcript_path" | md5sum 2>/dev/null | cut -c1-8)"
+    [[ -z "$cache_key" ]] && cache_key="mcp_session_servers_$(echo "$transcript_path" | md5 -q 2>/dev/null | cut -c1-8)"
+    [[ -z "$cache_key" || "$cache_key" == "mcp_session_servers_" ]] && cache_key="mcp_session_servers_default"
+
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cached
+        cached=$(get_cached_value "$cache_key" "300" 2>/dev/null)
+        if [[ -n "$cached" ]]; then
+            debug_log "MCP session servers from cache: $cached" "INFO"
+            echo "$cached"
+            return 0
+        fi
+    fi
+
+    # Extract unique MCP server names from tool references in transcript
+    local servers
+    servers=$(grep -oE 'mcp__[a-zA-Z0-9_-]+__[a-zA-Z0-9_-]+' "$transcript_path" 2>/dev/null |
+        while IFS= read -r tool; do
+            local rest="${tool#mcp__}"
+            echo "${rest%%__*}"
+        done | sort -u)
+
+    if [[ -z "$servers" ]]; then
+        return 0
+    fi
+
+    local result=""
+    while IFS= read -r name; do
+        [[ -z "$name" ]] && continue
+
+        # Skip plugin_* servers (already covered by Plugin: component)
+        [[ "$name" == plugin_* ]] && continue
+
+        # Skip servers already in Remote: component
+        if [[ -n "${COMPONENT_MCP_SERVERS_DATA:-}" ]]; then
+            if [[ ",${COMPONENT_MCP_SERVERS_DATA}," == *",${name}:"* ]]; then
+                continue
+            fi
+        fi
+
+        # Session servers are active (they're in the transcript = tools available)
+        if [[ -n "$result" ]]; then
+            result="$result,$name:connected"
+        else
+            result="$name:connected"
+        fi
+    done <<< "$servers"
+
+    # Cache result
+    if [[ -n "$result" && "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        set_cached_value "$cache_key" "$result" 2>/dev/null
+    fi
+
+    debug_log "MCP session servers from transcript: $result" "INFO"
+    echo "$result"
+}
+
+# ============================================================================
 # NAME FORMATTING
 # ============================================================================
 
@@ -836,4 +915,4 @@ export -f get_mcp_status get_all_mcp_servers get_active_mcp_servers
 export -f format_mcp_servers get_mcp_display get_mcp_health
 export -f get_mcp_server_details get_cached_mcp_status
 export -f get_configured_mcp_servers probe_ssh_server get_configured_mcp_servers_with_status
-export -f get_enabled_mcp_plugins truncate_mcp_name
+export -f get_enabled_mcp_plugins truncate_mcp_name get_session_mcp_servers
