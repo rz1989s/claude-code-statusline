@@ -108,3 +108,25 @@ teardown() {
     assert_success
     assert_output "3"
 }
+
+# ==============================================================================
+# Component Priority
+# ==============================================================================
+
+@test "get_component_priority returns 1 for essential components" {
+    run get_component_priority "repo_info"
+    assert_success
+    assert_output "1"
+}
+
+@test "get_component_priority returns 4 for low-priority components" {
+    run get_component_priority "time_display"
+    assert_success
+    assert_output "4"
+}
+
+@test "get_component_priority returns 3 for unregistered components" {
+    run get_component_priority "some_unknown_component"
+    assert_success
+    assert_output "3"
+}
