@@ -20,7 +20,7 @@ export STATUSLINE_RESPONSIVE_LOADED=true
 # ============================================================================
 
 # Detect terminal width with caching.
-# Priority: ENV_CONFIG_TERMINAL_WIDTH > $COLUMNS > tput cols > fallback 120
+# Priority: ENV_CONFIG_TERMINAL_WIDTH > $COLUMNS > parent TTY > fallback 120
 detect_terminal_width() {
     if [[ -n "${STATUSLINE_TERMINAL_WIDTH:-}" ]]; then
         echo "$STATUSLINE_TERMINAL_WIDTH"
@@ -37,17 +37,28 @@ detect_terminal_width() {
     fi
 
     # 2. $COLUMNS (works when user exports it in shell profile)
-    if [[ -z "$width" && -n "${COLUMNS:-}" ]]; then
+    if [[ -z "$width" && -n "${COLUMNS:-}" && "${COLUMNS:-0}" -gt 0 ]]; then
         width="$COLUMNS"
         source="COLUMNS"
     fi
 
-    # 3. tput cols — only trust when stdout is a real terminal.
-    #    In CC's piped context (echo JSON | bash statusline.sh), stdout is a pipe
-    #    and tput returns 80 (POSIX default), not the actual terminal width.
-    if [[ -z "$width" ]] && [ -t 1 ]; then
-        width=$(tput cols 2>/dev/null) || width=""
-        [[ -n "$width" ]] && source="tput"
+    # 3. Ancestor process TTY — walk up the process tree to find CC's controlling terminal.
+    #    CC spawns statusline as piped subprocess (tty=??), but CC itself runs in a
+    #    real terminal (tmux pane). Walk up to 4 levels to find a real TTY device.
+    if [[ -z "$width" && -n "${PPID:-}" ]]; then
+        local walk_pid="$PPID"
+        local tty_dev=""
+        local level
+        for level in 1 2 3 4; do
+            [[ -z "$walk_pid" || "$walk_pid" == "1" || "$walk_pid" == "0" ]] && break
+            tty_dev=$(ps -o tty= -p "$walk_pid" 2>/dev/null | tr -d ' ')
+            if [[ -n "$tty_dev" && "$tty_dev" != "??" && -e "/dev/$tty_dev" ]]; then
+                width=$(stty size < "/dev/$tty_dev" 2>/dev/null | awk '{print $2}')
+                [[ -n "$width" ]] && source="parent_tty"
+                break
+            fi
+            walk_pid=$(ps -o ppid= -p "$walk_pid" 2>/dev/null | tr -d ' ')
+        done
     fi
 
     # 4. Fallback: 120 (generous — don't penalize wide-terminal majority)
