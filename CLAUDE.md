@@ -37,7 +37,7 @@ bats tests/unit/test_platform_compatibility.bats
 
 ## Architecture
 
-**Core Modules** (15): core → security → json_fields → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → display
+**Core Modules** (16): core → security → json_fields → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → responsive → display
 
 **Atomic Components** (37):
 - **Repository & Git** (5): repo_info, commits, submodules, version_info, github
@@ -230,6 +230,16 @@ get_city_from_coordinates 51.5074 -0.1278     # Should detect "London"
 - `repository` - Isolate by working directory (recommended)
 - `instance` - Isolate by process ID
 - `shared` - No isolation (legacy)
+
+## Responsive Width System
+
+**Always-on. Zero config.** Detects terminal width, drops lower-priority components per line, truncates as safety net.
+
+**Width Detection**: `ENV_CONFIG_TERMINAL_WIDTH` → `$COLUMNS` → `tput cols` → fallback 120. For accurate auto-detection, add `export COLUMNS` to shell profile.
+
+**Component Priority**: 1 (essential) → 4 (first to go). Unregistered components default to 3. Priority table in `lib/responsive.sh`.
+
+**Override**: `ENV_CONFIG_TERMINAL_WIDTH=80 ./statusline.sh`
 
 ## Technical Implementation
 
