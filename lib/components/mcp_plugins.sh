@@ -5,7 +5,7 @@
 # ============================================================================
 #
 # Displays enabled CC plugins (non-LSP) from settings.json enabledPlugins.
-# These are CC-managed and always active when CC is running.
+# Uses rotating display: shows one name + N remaining per render cycle.
 #
 # Dependencies: mcp.sh, display.sh
 # ============================================================================
@@ -31,7 +31,6 @@ collect_mcp_plugins_data() {
 
     if [[ -n "$plugins_data" ]]; then
         COMPONENT_MCP_PLUGINS_DATA="$plugins_data"
-        # Count plugins (comma-separated entries)
         local count=1
         local tmp="$plugins_data"
         while [[ "$tmp" == *","* ]]; do
@@ -55,35 +54,37 @@ render_mcp_plugins() {
     fi
 
     local max_name_len
-    max_name_len=$(get_mcp_plugins_config "max_name_length" "15")
+    max_name_len=$(get_mcp_plugins_config "max_name_length" "10")
     local label
-    label=$(get_mcp_plugins_config "label" "Ext")
+    label=$(get_mcp_plugins_config "label" "E")
 
-    local formatted=""
-    local temp_plugins="${COMPONENT_MCP_PLUGINS_DATA},"
-    local parse_count=0
-
-    while [[ "$temp_plugins" == *","* ]] && [[ $parse_count -lt 50 ]]; do
-        local name="${temp_plugins%%,*}"
-        temp_plugins="${temp_plugins#*,}"
-        parse_count=$((parse_count + 1))
-
+    # Build names array
+    local names=()
+    local tmp="${COMPONENT_MCP_PLUGINS_DATA},"
+    while [[ "$tmp" == *","* ]]; do
+        local name="${tmp%%,*}"
+        tmp="${tmp#*,}"
         [[ -z "$name" ]] && continue
-
-        local display_name
-        display_name=$(truncate_mcp_name "$name" "$max_name_len")
-
-        # Plugins are CC-managed — always active (green) when CC is running
-        local formatted_entry="${CONFIG_BRIGHT_GREEN}${display_name}${CONFIG_RESET}"
-
-        if [[ -n "$formatted" ]]; then
-            formatted="$formatted, $formatted_entry"
-        else
-            formatted="$formatted_entry"
-        fi
+        names+=("$name")
     done
 
-    echo "${CONFIG_DIM}${label}:${CONFIG_RESET} ${formatted}"
+    local total=${#names[@]}
+    if [[ $total -eq 0 ]]; then
+        return 1
+    fi
+
+    # Rotate: pick name based on current time
+    local idx=$(( $(date +%s) % total ))
+    local display_name
+    display_name=$(truncate_mcp_name "${names[$idx]}" "$max_name_len")
+    local formatted="${CONFIG_BRIGHT_GREEN}${display_name}${CONFIG_RESET}"
+
+    local remaining=$((total - 1))
+    if [[ $remaining -gt 0 ]]; then
+        formatted="${formatted} ${CONFIG_DIM}+${remaining}${CONFIG_RESET}"
+    fi
+
+    echo "${CONFIG_DIM}${label}:${CONFIG_RESET}${formatted}"
 }
 
 # ============================================================================
@@ -99,10 +100,10 @@ get_mcp_plugins_config() {
             get_component_config "mcp_plugins" "enabled" "${default_value:-true}"
             ;;
         "label")
-            get_component_config "mcp_plugins" "label" "${default_value:-Ext}"
+            get_component_config "mcp_plugins" "label" "${default_value:-E}"
             ;;
         "max_name_length")
-            get_component_config "mcp_plugins" "max_name_length" "${default_value:-15}"
+            get_component_config "mcp_plugins" "max_name_length" "${default_value:-10}"
             ;;
         *)
             echo "$default_value"
@@ -116,7 +117,7 @@ get_mcp_plugins_config() {
 
 register_component \
     "mcp_plugins" \
-    "Enabled CC plugins (non-LSP) from settings" \
+    "Enabled CC plugins (non-LSP) with rotation" \
     "mcp display" \
     "$(get_mcp_plugins_config 'enabled' 'true')"
 

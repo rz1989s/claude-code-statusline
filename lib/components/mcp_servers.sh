@@ -5,7 +5,8 @@
 # ============================================================================
 #
 # Displays project-level MCP servers from .mcp.json and settings mcpServers.
-# Uses TCP probe for SSH-based servers, command existence for stdio.
+# Uses rotating display: shows one name + N remaining per render cycle.
+# Color: green=connected, red=failed, yellow=unknown.
 #
 # Dependencies: mcp.sh, display.sh
 # ============================================================================
@@ -36,7 +37,6 @@ collect_mcp_servers_data() {
 
     if [[ -n "$servers_data" ]]; then
         COMPONENT_MCP_SERVERS_DATA="$servers_data"
-        # Count servers (comma-separated entries)
         local count=1
         local tmp="$servers_data"
         while [[ "$tmp" == *","* ]]; do
@@ -60,47 +60,47 @@ render_mcp_servers() {
     fi
 
     local max_name_len
-    max_name_len=$(get_mcp_servers_config "max_name_length" "15")
+    max_name_len=$(get_mcp_servers_config "max_name_length" "10")
     local label
-    label=$(get_mcp_servers_config "label" "Srv")
+    label=$(get_mcp_servers_config "label" "S")
 
-    local formatted=""
-    local temp_servers="${COMPONENT_MCP_SERVERS_DATA},"
-    local parse_count=0
-
-    while [[ "$temp_servers" == *","* ]] && [[ $parse_count -lt 50 ]]; do
-        local entry="${temp_servers%%,*}"
-        temp_servers="${temp_servers#*,}"
-        parse_count=$((parse_count + 1))
-
+    # Build entries array (name:status pairs)
+    local names=()
+    local statuses=()
+    local tmp="${COMPONENT_MCP_SERVERS_DATA},"
+    while [[ "$tmp" == *","* ]]; do
+        local entry="${tmp%%,*}"
+        tmp="${tmp#*,}"
         [[ -z "$entry" ]] && continue
-
-        local name="${entry%%:*}"
-        local status="${entry#*:}"
-        local display_name
-        display_name=$(truncate_mcp_name "$name" "$max_name_len")
-
-        local formatted_entry
-        case "$status" in
-            "connected")
-                formatted_entry="${CONFIG_BRIGHT_GREEN}${display_name}${CONFIG_RESET}"
-                ;;
-            "failed")
-                formatted_entry="${CONFIG_RED}${display_name}${CONFIG_RESET}"
-                ;;
-            *)
-                formatted_entry="${CONFIG_YELLOW}${display_name}${CONFIG_RESET}"
-                ;;
-        esac
-
-        if [[ -n "$formatted" ]]; then
-            formatted="$formatted, $formatted_entry"
-        else
-            formatted="$formatted_entry"
-        fi
+        names+=("${entry%%:*}")
+        statuses+=("${entry#*:}")
     done
 
-    echo "${CONFIG_DIM}${label}:${CONFIG_RESET} ${formatted}"
+    local total=${#names[@]}
+    if [[ $total -eq 0 ]]; then
+        return 1
+    fi
+
+    # Rotate: pick entry based on current time
+    local idx=$(( $(date +%s) % total ))
+    local display_name
+    display_name=$(truncate_mcp_name "${names[$idx]}" "$max_name_len")
+
+    local color
+    case "${statuses[$idx]}" in
+        "connected") color="$CONFIG_BRIGHT_GREEN" ;;
+        "failed")    color="$CONFIG_RED" ;;
+        *)           color="$CONFIG_YELLOW" ;;
+    esac
+
+    local formatted="${color}${display_name}${CONFIG_RESET}"
+
+    local remaining=$((total - 1))
+    if [[ $remaining -gt 0 ]]; then
+        formatted="${formatted} ${CONFIG_DIM}+${remaining}${CONFIG_RESET}"
+    fi
+
+    echo "${CONFIG_DIM}${label}:${CONFIG_RESET}${formatted}"
 }
 
 # ============================================================================
@@ -116,10 +116,10 @@ get_mcp_servers_config() {
             get_component_config "mcp_servers" "enabled" "${default_value:-true}"
             ;;
         "label")
-            get_component_config "mcp_servers" "label" "${default_value:-Srv}"
+            get_component_config "mcp_servers" "label" "${default_value:-S}"
             ;;
         "max_name_length")
-            get_component_config "mcp_servers" "max_name_length" "${default_value:-15}"
+            get_component_config "mcp_servers" "max_name_length" "${default_value:-10}"
             ;;
         *)
             echo "$default_value"
@@ -133,7 +133,7 @@ get_mcp_servers_config() {
 
 register_component \
     "mcp_servers" \
-    "Project MCP servers from .mcp.json and settings" \
+    "Project MCP servers with rotation display" \
     "mcp display" \
     "$(get_mcp_servers_config 'enabled' 'true')"
 

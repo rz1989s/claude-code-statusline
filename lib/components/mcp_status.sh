@@ -1,69 +1,99 @@
 #!/bin/bash
 
 # ============================================================================
-# Claude Code Statusline - MCP Status Component
+# Claude Code Statusline - MCP Status Component (Total Count)
 # ============================================================================
-# 
-# This component handles MCP server status display.
 #
-# Dependencies: mcp.sh, display.sh
+# Displays aggregate MCP count across all sources: native JSON, plugins, servers.
+# Format: MCP:X/Y where X=connected, Y=total across all 3 sources.
+#
+# Dependencies: mcp.sh, display.sh, mcp_servers.sh, mcp_plugins.sh
 # ============================================================================
 
 # Component data storage
 COMPONENT_MCP_STATUS_STATUS=""
 COMPONENT_MCP_STATUS_SERVERS=""
+COMPONENT_MCP_STATUS_NATIVE_COUNT=0
+COMPONENT_MCP_STATUS_NATIVE_CONNECTED=0
 
 # ============================================================================
 # COMPONENT DATA COLLECTION
 # ============================================================================
 
-# Collect MCP status data
 collect_mcp_status_data() {
     debug_log "Collecting mcp_status component data" "INFO"
-    
+
     COMPONENT_MCP_STATUS_STATUS="0/0"
     COMPONENT_MCP_STATUS_SERVERS="$CONFIG_MCP_NONE_MESSAGE"
+    COMPONENT_MCP_STATUS_NATIVE_COUNT=0
+    COMPONENT_MCP_STATUS_NATIVE_CONNECTED=0
 
-    # Only gate on mcp module, not CLI availability — get_mcp_status() and
-    # get_all_mcp_servers() use native JSON first (zero-latency), falling back
-    # to CLI internally. Gating on is_claude_cli_available blocks native
-    # extraction when CLI is absent (e.g., non-CC environments).
     if is_module_loaded "mcp"; then
-        COMPONENT_MCP_STATUS_STATUS=$(get_mcp_status)
-        COMPONENT_MCP_STATUS_SERVERS=$(get_all_mcp_servers)
+        if has_native_mcp_data; then
+            local native_status
+            native_status=$(get_native_mcp_status)
+            if [[ "$native_status" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+                COMPONENT_MCP_STATUS_NATIVE_CONNECTED="${BASH_REMATCH[1]}"
+                COMPONENT_MCP_STATUS_NATIVE_COUNT="${BASH_REMATCH[2]}"
+            fi
+            COMPONENT_MCP_STATUS_SERVERS=$(get_native_mcp_servers)
+        fi
     fi
 
-    # Sanitize: strip newlines from server data to prevent display line breaks
-    COMPONENT_MCP_STATUS_STATUS="${COMPONENT_MCP_STATUS_STATUS//$'\n'/ }"
     COMPONENT_MCP_STATUS_SERVERS="${COMPONENT_MCP_STATUS_SERVERS//$'\n'/ }"
-    
-    debug_log "mcp_status data: status=$COMPONENT_MCP_STATUS_STATUS, servers=$COMPONENT_MCP_STATUS_SERVERS" "INFO"
+    debug_log "mcp_status data: native=$COMPONENT_MCP_STATUS_NATIVE_CONNECTED/$COMPONENT_MCP_STATUS_NATIVE_COUNT" "INFO"
     return 0
+}
+
+# Build aggregate total at render time (after all components collected)
+_mcp_aggregate_total() {
+    local total_connected=$COMPONENT_MCP_STATUS_NATIVE_CONNECTED
+    local total_count=$COMPONENT_MCP_STATUS_NATIVE_COUNT
+
+    # Plugins: all connected by definition
+    total_connected=$((total_connected + ${COMPONENT_MCP_PLUGINS_COUNT:-0}))
+    total_count=$((total_count + ${COMPONENT_MCP_PLUGINS_COUNT:-0}))
+
+    # Servers: count connected from probed data
+    if [[ -n "${COMPONENT_MCP_SERVERS_DATA:-}" && "${COMPONENT_MCP_SERVERS_COUNT:-0}" -gt 0 ]]; then
+        total_count=$((total_count + COMPONENT_MCP_SERVERS_COUNT))
+        local tmp="${COMPONENT_MCP_SERVERS_DATA},"
+        while [[ "$tmp" == *","* ]]; do
+            local entry="${tmp%%,*}"
+            tmp="${tmp#*,}"
+            [[ -z "$entry" ]] && continue
+            if [[ "${entry#*:}" == "connected" ]]; then
+                total_connected=$((total_connected + 1))
+            fi
+        done
+    fi
+
+    echo "${total_connected}/${total_count}"
 }
 
 # ============================================================================
 # COMPONENT RENDERING
 # ============================================================================
 
-# Render MCP status display
 render_mcp_status() {
-    local show_server_list
-    show_server_list=$(get_mcp_status_config "show_server_list" "true")
-    
-    # Format MCP status
-    local formatted_status
-    formatted_status=$(get_mcp_status_format "$COMPONENT_MCP_STATUS_STATUS")
-    
-    if [[ "$show_server_list" == "true" && "$COMPONENT_MCP_STATUS_SERVERS" != "$CONFIG_MCP_NONE_MESSAGE" ]]; then
-        # Format server list
-        local formatted_servers
-        formatted_servers=$(format_mcp_server_list "$COMPONENT_MCP_STATUS_SERVERS")
-        
-        echo "${formatted_status}: ${formatted_servers}"
+    local status
+    status=$(_mcp_aggregate_total)
+
+    if [[ "$status" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+        local connected="${BASH_REMATCH[1]}"
+        local total="${BASH_REMATCH[2]}"
+
+        if [[ "$total" == "0" ]]; then
+            echo "${CONFIG_DIM}MCP:0/0${CONFIG_RESET}"
+        elif [[ "$connected" == "$total" ]]; then
+            echo "${CONFIG_BRIGHT_GREEN}MCP:${status}${CONFIG_RESET}"
+        else
+            echo "${CONFIG_YELLOW}MCP:${status}${CONFIG_RESET}"
+        fi
     else
-        echo "$formatted_status"
+        echo "${CONFIG_DIM}MCP:0/0${CONFIG_RESET}"
     fi
-    
+
     return 0
 }
 
@@ -71,11 +101,10 @@ render_mcp_status() {
 # COMPONENT CONFIGURATION
 # ============================================================================
 
-# Get component configuration
 get_mcp_status_config() {
     local config_key="$1"
     local default_value="$2"
-    
+
     case "$config_key" in
         "enabled")
             get_component_config "mcp_status" "enabled" "${default_value:-true}"
@@ -96,10 +125,9 @@ get_mcp_status_config() {
 # COMPONENT REGISTRATION
 # ============================================================================
 
-# Register the mcp_status component
 register_component \
     "mcp_status" \
-    "MCP server status and health" \
+    "MCP aggregate count across all sources" \
     "mcp display" \
     "$(get_mcp_status_config 'enabled' 'true')"
 
