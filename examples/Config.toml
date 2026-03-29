@@ -710,6 +710,15 @@ cache.isolation.hijri = "shared"             # Hijri dates (user-wide, location-
 cache.legacy.version_duration = 3600
 cache.legacy.version_file = "/tmp/.claude_version_cache"
 
+# ==============================================================================
+# Responsive Width (always-on, zero config required)
+# ==============================================================================
+# The statusline automatically adapts to terminal width by dropping
+# lower-priority components. Override detected width if needed:
+#
+# [responsive]
+# fallback_width = 120    # Default when auto-detection fails
+
 # === DISPLAY FORMATS ===
 # Date and time formatting options
 display.time_format = "%H:%M"
