@@ -421,19 +421,29 @@ probe_ssh_server() {
         return 1
     fi
 
-    # Prefer nc (netcat) — available on most systems, clean timeout handling
+    # Use timeout/gtimeout to hard-kill nc — nc's -w flag is unreliable
+    # when ISP silently drops packets (no ICMP unreachable)
     if command_exists nc; then
-        nc -z -w "$timeout_sec" "$host" 22 &>/dev/null
-        return $?
+        if command_exists timeout; then
+            timeout "$timeout_sec" nc -z "$host" 22 &>/dev/null
+            return $?
+        elif command_exists gtimeout; then
+            gtimeout "$timeout_sec" nc -z "$host" 22 &>/dev/null
+            return $?
+        else
+            nc -z -w "$timeout_sec" "$host" 22 &>/dev/null
+            return $?
+        fi
     fi
 
-    # Fallback: bash /dev/tcp with manual timeout
+    # Fallback: bash /dev/tcp with background + kill
     (echo >/dev/tcp/"$host"/22) &>/dev/null &
     local pid=$!
-    local elapsed=0
-    while kill -0 "$pid" 2>/dev/null && [[ $elapsed -lt $timeout_sec ]]; do
+    local i=0
+    local max_iter=$(( timeout_sec * 5 ))
+    while kill -0 "$pid" 2>/dev/null && [[ $i -lt $max_iter ]]; do
         sleep 0.2
-        elapsed=$((elapsed + 1))
+        i=$(( i + 1 ))
     done
     if kill -0 "$pid" 2>/dev/null; then
         kill "$pid" 2>/dev/null
