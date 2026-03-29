@@ -67,3 +67,44 @@ teardown() {
     assert_success
     assert_output "100"
 }
+
+# ==============================================================================
+# Width Measurement
+# ==============================================================================
+
+@test "measure_visible_width counts plain text correctly" {
+    run measure_visible_width "hello"
+    assert_success
+    assert_output "5"
+}
+
+@test "measure_visible_width strips ANSI color codes" {
+    run measure_visible_width $'\e[32mhello\e[0m'
+    assert_success
+    assert_output "5"
+}
+
+@test "measure_visible_width strips nested ANSI codes" {
+    run measure_visible_width $'\e[1m\e[32mbold green\e[0m'
+    assert_success
+    assert_output "10"
+}
+
+@test "measure_visible_width counts emoji as double-width" {
+    run measure_visible_width "🧠 Opus"
+    assert_success
+    # 🧠 = 2 cols, space = 1, O-p-u-s = 4 → total 7
+    assert_output "7"
+}
+
+@test "measure_visible_width returns 0 for empty string" {
+    run measure_visible_width ""
+    assert_success
+    assert_output "0"
+}
+
+@test "measure_visible_width handles separator pipe character" {
+    run measure_visible_width " │ "
+    assert_success
+    assert_output "3"
+}
