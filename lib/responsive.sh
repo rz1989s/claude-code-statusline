@@ -42,8 +42,10 @@ detect_terminal_width() {
         source="COLUMNS"
     fi
 
-    # 3. tput cols (mirrors $COLUMNS when set, else returns 80 default)
-    if [[ -z "$width" ]]; then
+    # 3. tput cols — only trust when stdout is a real terminal.
+    #    In CC's piped context (echo JSON | bash statusline.sh), stdout is a pipe
+    #    and tput returns 80 (POSIX default), not the actual terminal width.
+    if [[ -z "$width" ]] && [ -t 1 ]; then
         width=$(tput cols 2>/dev/null) || width=""
         [[ -n "$width" ]] && source="tput"
     fi
