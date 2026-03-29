@@ -1158,6 +1158,36 @@ EOF
     return 0
 }
 
+# Function to add 'export COLUMNS' to shell profile for responsive width detection.
+# CC spawns statusline as a piped subprocess where $COLUMNS is unset by default.
+# Exporting it makes the terminal width available to child processes.
+configure_shell_columns() {
+    local shell_profile=""
+
+    # Detect shell profile
+    if [[ -n "${ZSH_VERSION:-}" ]] || [[ "$SHELL" == *"zsh"* ]]; then
+        shell_profile="$HOME/.zshrc"
+    elif [[ -n "${BASH_VERSION:-}" ]] || [[ "$SHELL" == *"bash"* ]]; then
+        shell_profile="$HOME/.bashrc"
+    fi
+
+    if [[ -z "$shell_profile" ]] || [[ ! -f "$shell_profile" ]]; then
+        print_status "Could not detect shell profile — add 'export COLUMNS' manually for responsive width"
+        return 0
+    fi
+
+    # Check if already present
+    if grep -q 'export COLUMNS' "$shell_profile" 2>/dev/null; then
+        print_success "✅ 'export COLUMNS' already in $shell_profile"
+        return 0
+    fi
+
+    # Append to shell profile
+    printf '\n# Claude Code statusline — export terminal width for responsive filtering\nexport COLUMNS\n' >> "$shell_profile"
+    print_success "✅ Added 'export COLUMNS' to $shell_profile (responsive width detection)"
+    return 0
+}
+
 # Function to safely remove directory with robust timeout and fallback protection
 safe_remove_directory() {
     trace_execution "safe_remove_directory $1"
@@ -1668,7 +1698,10 @@ main() {
     print_debug "Step 8: Configuring settings"
     configure_settings
 
-    print_debug "Step 9: Downloading config template"
+    print_debug "Step 9: Configuring shell profile for responsive width"
+    configure_shell_columns
+
+    print_debug "Step 10: Downloading config template"
     download_config_template  # Fail installation if config template download fails
     
     echo
