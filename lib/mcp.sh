@@ -586,18 +586,28 @@ get_session_mcp_servers() {
     local transcript_path
     transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
 
-    if [[ -z "$transcript_path" || ! -f "$transcript_path" ]]; then
+    if [[ -z "$transcript_path" ]]; then
         return 0
     fi
 
-    # Cache per session (transcript path is session-unique)
-    local cache_key="mcp_session_servers_$(echo "$transcript_path" | md5sum 2>/dev/null | cut -c1-8)"
-    [[ -z "$cache_key" ]] && cache_key="mcp_session_servers_$(echo "$transcript_path" | md5 -q 2>/dev/null | cut -c1-8)"
-    [[ -z "$cache_key" || "$cache_key" == "mcp_session_servers_" ]] && cache_key="mcp_session_servers_default"
+    # Derive project directory from transcript path
+    local project_dir
+    project_dir=$(dirname "$transcript_path")
+
+    if [[ -z "$project_dir" || ! -d "$project_dir" ]]; then
+        return 0
+    fi
+
+    # Cache per project directory (shared across sessions, 1 hour TTL)
+    local dir_hash
+    dir_hash=$(printf '%s' "$project_dir" | md5sum 2>/dev/null | cut -c1-8) ||
+    dir_hash=$(printf '%s' "$project_dir" | md5 -q 2>/dev/null | cut -c1-8) ||
+    dir_hash="default"
+    local cache_key="mcp_session_servers_${dir_hash}"
 
     if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
         local cached
-        cached=$(get_cached_value "$cache_key" "300" 2>/dev/null)
+        cached=$(get_cached_value "$cache_key" "3600" 2>/dev/null)
         if [[ -n "$cached" ]]; then
             debug_log "MCP session servers from cache: $cached" "INFO"
             echo "$cached"
@@ -605,9 +615,11 @@ get_session_mcp_servers() {
         fi
     fi
 
-    # Extract unique MCP server names from tool references in transcript
+    # Scan ALL project transcripts for MCP tool references (not just current session)
+    # Tool names like mcp__pencil__batch_design only appear when tools are USED,
+    # so we scan all sessions to catch servers used in previous sessions.
     local servers
-    servers=$(grep -oE 'mcp__[a-zA-Z0-9_-]+__[a-zA-Z0-9_-]+' "$transcript_path" 2>/dev/null |
+    servers=$(grep -rohE 'mcp__[a-zA-Z0-9_-]+__[a-zA-Z0-9_-]+' "$project_dir"/*.jsonl 2>/dev/null |
         while IFS= read -r tool; do
             local rest="${tool#mcp__}"
             echo "${rest%%__*}"
