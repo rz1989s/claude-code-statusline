@@ -38,7 +38,7 @@ detect_terminal_width() {
         source="ENV_CONFIG_TERMINAL_WIDTH"
     fi
 
-    # 2. $COLUMNS (works when user exports it in shell profile AND CC forwards it)
+    # 2. $COLUMNS (works if CC forwards it — currently unreliable)
     if [[ -z "$width" && -n "${COLUMNS:-}" && "${COLUMNS:-0}" -gt 0 ]]; then
         width="$COLUMNS"
         source="COLUMNS"
