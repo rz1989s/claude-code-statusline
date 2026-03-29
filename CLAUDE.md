@@ -39,12 +39,13 @@ bats tests/unit/test_platform_compatibility.bats
 
 **Core Modules** (15): core → security → json_fields → config → themes → cache → git → mcp → cost → prayer → wellness → focus → components → display
 
-**Atomic Components** (35):
+**Atomic Components** (37):
 - **Repository & Git** (5): repo_info, commits, submodules, version_info, github
 - **Model & Session** (5): model_info, bedrock_model, cost_repo, cost_live, reset_timer
 - **Cost Analytics** (3): cost_monthly, cost_weekly, cost_daily
 - **Block Metrics** (5): burn_rate, token_usage, cache_efficiency, block_projection, code_productivity
-- **System & Context** (5): mcp_status, time_display, version_display, context_alert, context_window
+- **System & Context** (4): time_display, version_display, context_alert, context_window
+- **MCP & Extensions** (3): mcp_status, mcp_servers, mcp_plugins
 - **Session State** (4): vim_mode, agent_display, session_info, session_mode
 - **Cumulative Metrics** (2): total_tokens, usage_limits
 - **Wellness** (1): wellness (idle detection, focus mode, break reminders)

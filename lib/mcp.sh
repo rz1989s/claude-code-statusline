@@ -55,6 +55,16 @@ has_native_mcp_data() {
     [[ -n "$server_count" && "$server_count" -gt 0 ]] 2>/dev/null
 }
 
+# Check if native JSON has MCP field (even if empty servers array)
+# Returns 0 if .mcp.servers exists as array (including empty [])
+# Used to avoid CLI fallback when CC provides authoritative empty data
+has_native_mcp_field() {
+    [[ -n "${STATUSLINE_INPUT_JSON:-}" ]] || return 1
+    local mcp_type
+    mcp_type=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.mcp.servers | type' 2>/dev/null)
+    [[ "$mcp_type" == "array" ]]
+}
+
 # Parse native MCP servers into "name:status" format (matching CLI parse output)
 # Returns: "ctx7:connected,fs:connected,gh:disconnected"
 get_native_mcp_servers() {
@@ -240,9 +250,24 @@ get_mcp_status() {
             echo "$native_status"
             return 0
         fi
+    elif has_native_mcp_field; then
+        # Native JSON has .mcp.servers but it's empty — authoritative "0 servers"
+        local status_time
+        status_time=$(end_timer "mcp_status")
+        debug_log "MCP status from native JSON (empty servers): 0/0 in ${status_time}s" "INFO"
+        echo "0/0"
+        return 0
+    elif [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        # Inside CC session but no mcp field at all — CC doesn't send MCP data
+        # Don't fall back to CLI (hangs inside active CC sessions)
+        local status_time
+        status_time=$(end_timer "mcp_status")
+        debug_log "MCP status: inside CC but no mcp field in JSON, returning 0/0" "INFO"
+        echo "0/0"
+        return 0
     fi
 
-    # Fallback: CLI path with reduced 30s cache
+    # Fallback: CLI path (only when running outside CC — no STATUSLINE_INPUT_JSON)
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list" "WARN"
@@ -308,9 +333,23 @@ get_all_mcp_servers() {
             echo "$native_servers"
             return 0
         fi
+    elif has_native_mcp_field; then
+        # Native JSON has .mcp.servers but it's empty — authoritative "no servers"
+        local all_servers_time
+        all_servers_time=$(end_timer "mcp_all_servers")
+        debug_log "MCP all servers from native JSON (empty): none in ${all_servers_time}s" "INFO"
+        echo "$CONFIG_MCP_NONE_MESSAGE"
+        return 0
+    elif [[ -n "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        # Inside CC session but no mcp field — CC doesn't send MCP data
+        local all_servers_time
+        all_servers_time=$(end_timer "mcp_all_servers")
+        debug_log "MCP all servers: inside CC but no mcp field, returning none" "INFO"
+        echo "$CONFIG_MCP_NONE_MESSAGE"
+        return 0
     fi
 
-    # Fallback: CLI path with reduced 30s cache
+    # Fallback: CLI path with reduced 30s cache (only when no native JSON available)
     local mcp_list_output
     if ! mcp_list_output=$(execute_mcp_list); then
         debug_log "Failed to get MCP server list for all servers" "WARN"
@@ -330,6 +369,310 @@ get_all_mcp_servers() {
         echo "$servers_data"
     else
         echo "$CONFIG_MCP_NONE_MESSAGE"
+    fi
+}
+
+# ============================================================================
+# FILE-BASED MCP SERVER DETECTION
+# ============================================================================
+# Detects MCP servers from project .mcp.json and global settings.json files.
+# Provides a config-file-based fallback when CC doesn't send MCP data via stdin.
+# SSH servers are probed for connectivity; command-based servers check PATH.
+
+# Parse configured MCP servers from .mcp.json and global settings.json
+# Returns lines of "name:command:ssh_host" (ssh_host empty for non-SSH)
+get_configured_mcp_servers() {
+    local search_dir="${1:-${STATUSLINE_CURRENT_DIR:-$(pwd)}}"
+    local mcp_json_file="$search_dir/.mcp.json"
+    local servers=""
+
+    # Source 1: Project .mcp.json
+    if [[ -f "$mcp_json_file" ]]; then
+        local file_servers
+        file_servers=$(jq -r '
+            .mcpServers // {} | to_entries[] |
+            .key as $name |
+            .value |
+            ($name + ":" + (.command // "unknown") + ":" +
+                (if .command == "ssh" then (.args[0] // "" | split("@") | if length > 1 then .[1] else .[0] end) else "" end))
+        ' "$mcp_json_file" 2>/dev/null)
+        if [[ -n "$file_servers" ]]; then
+            servers="$file_servers"
+        fi
+    fi
+
+    # Source 2: Global settings.json mcpServers
+    local global_settings="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+    if [[ -f "$global_settings" ]]; then
+        local settings_servers
+        settings_servers=$(jq -r '
+            .mcpServers // {} | to_entries[] |
+            .key as $name |
+            .value |
+            ($name + ":" + (.command // "unknown") + ":" +
+                (if .command == "ssh" then (.args[0] // "" | split("@") | if length > 1 then .[1] else .[0] end) else "" end))
+        ' "$global_settings" 2>/dev/null)
+        if [[ -n "$settings_servers" ]]; then
+            if [[ -n "$servers" ]]; then
+                servers="$servers"$'\n'"$settings_servers"
+            else
+                servers="$settings_servers"
+            fi
+        fi
+    fi
+
+    echo "$servers"
+}
+
+# Probe SSH server connectivity on port 22
+# Returns 0 (success) if reachable, 1 (failure) if not
+probe_ssh_server() {
+    local host="$1"
+    local timeout_sec="${2:-1}"
+
+    if [[ -z "$host" ]]; then
+        return 1
+    fi
+
+    # Use timeout/gtimeout to hard-kill nc — nc's -w flag is unreliable
+    # when ISP silently drops packets (no ICMP unreachable)
+    if command_exists nc; then
+        if command_exists timeout; then
+            timeout "$timeout_sec" nc -z "$host" 22 &>/dev/null
+            return $?
+        elif command_exists gtimeout; then
+            gtimeout "$timeout_sec" nc -z "$host" 22 &>/dev/null
+            return $?
+        else
+            nc -z -w "$timeout_sec" "$host" 22 &>/dev/null
+            return $?
+        fi
+    fi
+
+    # Fallback: bash /dev/tcp with background + kill
+    (echo >/dev/tcp/"$host"/22) &>/dev/null &
+    local pid=$!
+    local i=0
+    local max_iter=$(( timeout_sec * 5 ))
+    while kill -0 "$pid" 2>/dev/null && [[ $i -lt $max_iter ]]; do
+        sleep 0.2
+        i=$(( i + 1 ))
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+        kill "$pid" 2>/dev/null
+        return 1
+    fi
+    wait "$pid" 2>/dev/null
+    return $?
+}
+
+# Get configured MCP servers with live connectivity status
+# Returns comma-separated "name:status" pairs (e.g. "ctx7:connected,remote:failed")
+# Caches results for 300s (5 min) per directory
+get_configured_mcp_servers_with_status() {
+    local search_dir="${1:-${STATUSLINE_CURRENT_DIR:-$(pwd)}}"
+    local result=""
+    local dir_hash
+    dir_hash=$(printf '%s' "$search_dir" | md5sum 2>/dev/null | cut -c1-8) ||
+    dir_hash=$(printf '%s' "$search_dir" | md5 -q 2>/dev/null | cut -c1-8) ||
+    dir_hash="default"
+    local cache_key="mcp_configured_servers_${dir_hash}"
+
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cached
+        cached=$(get_cached_value "$cache_key" "300" 2>/dev/null)
+        if [[ -n "$cached" ]]; then
+            debug_log "MCP configured servers from cache: $cached" "INFO"
+            echo "$cached"
+            return 0
+        fi
+    fi
+
+    local servers
+    servers=$(get_configured_mcp_servers "$search_dir")
+
+    if [[ -z "$servers" ]]; then
+        return 0
+    fi
+
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local name="${line%%:*}"
+        local rest="${line#*:}"
+        local command="${rest%%:*}"
+        local ssh_host="${rest#*:}"
+
+        local status="configured"
+        if [[ "$command" == "ssh" && -n "$ssh_host" ]]; then
+            if probe_ssh_server "$ssh_host" "1"; then
+                status="connected"
+            else
+                status="failed"
+            fi
+        elif command_exists "$command"; then
+            status="connected"
+        else
+            status="failed"
+        fi
+
+        if [[ -n "$result" ]]; then
+            result="$result,$name:$status"
+        else
+            result="$name:$status"
+        fi
+    done <<< "$servers"
+
+    if [[ -n "$result" && "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        set_cached_value "$cache_key" "$result" 2>/dev/null
+    fi
+
+    debug_log "MCP configured servers probed: $result" "INFO"
+    echo "$result"
+}
+
+# ============================================================================
+# PLUGIN DETECTION
+# ============================================================================
+
+# Get enabled CC plugins from settings.json, excluding LSP servers
+# Returns comma-separated plugin names (e.g. "context7,superpowers,ralph-wiggum")
+get_enabled_mcp_plugins() {
+    local settings_file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+
+    if [[ ! -f "$settings_file" ]]; then
+        return 0
+    fi
+
+    local plugins
+    plugins=$(jq -r '
+        .enabledPlugins // {} | to_entries[]
+        | select(.value == true)
+        | .key
+        | select(test("-lsp@") | not)
+        | split("@") | .[0]
+    ' "$settings_file" 2>/dev/null)
+
+    if [[ -z "$plugins" ]]; then
+        return 0
+    fi
+
+    local result=""
+    while IFS= read -r name; do
+        [[ -z "$name" ]] && continue
+        if [[ -n "$result" ]]; then
+            result="$result,$name"
+        else
+            result="$name"
+        fi
+    done <<< "$plugins"
+
+    echo "$result"
+}
+
+# ============================================================================
+# SESSION MCP DETECTION (Transcript Parsing)
+# ============================================================================
+# Extracts MCP server names from the session transcript JSONL.
+# Detects servers like pencil, chrome, slack that aren't in config files.
+# Filters out plugin_* (already in Plugin:) and servers in Remote:.
+
+# Get session MCP servers from transcript JSONL
+# Returns: comma-separated "name:connected" pairs
+get_session_mcp_servers() {
+    if [[ -z "${STATUSLINE_INPUT_JSON:-}" ]]; then
+        return 0
+    fi
+
+    local transcript_path
+    transcript_path=$(echo "$STATUSLINE_INPUT_JSON" | jq -r '.transcript_path // empty' 2>/dev/null)
+
+    if [[ -z "$transcript_path" ]]; then
+        return 0
+    fi
+
+    # Derive project directory from transcript path
+    local project_dir
+    project_dir=$(dirname "$transcript_path")
+
+    if [[ -z "$project_dir" || ! -d "$project_dir" ]]; then
+        return 0
+    fi
+
+    # Cache per project directory (shared across sessions, 1 hour TTL)
+    local dir_hash
+    dir_hash=$(printf '%s' "$project_dir" | md5sum 2>/dev/null | cut -c1-8) ||
+    dir_hash=$(printf '%s' "$project_dir" | md5 -q 2>/dev/null | cut -c1-8) ||
+    dir_hash="default"
+    local cache_key="mcp_session_servers_${dir_hash}"
+
+    if [[ "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        local cached
+        cached=$(get_cached_value "$cache_key" "3600" 2>/dev/null)
+        if [[ -n "$cached" ]]; then
+            debug_log "MCP session servers from cache: $cached" "INFO"
+            echo "$cached"
+            return 0
+        fi
+    fi
+
+    # Scan ALL project transcripts for MCP tool references (not just current session)
+    # Tool names like mcp__pencil__batch_design only appear when tools are USED,
+    # so we scan all sessions to catch servers used in previous sessions.
+    local servers
+    servers=$(grep -rohE 'mcp__[a-zA-Z0-9_-]+__[a-zA-Z0-9_-]+' "$project_dir"/*.jsonl 2>/dev/null |
+        while IFS= read -r tool; do
+            local rest="${tool#mcp__}"
+            echo "${rest%%__*}"
+        done | sort -u)
+
+    if [[ -z "$servers" ]]; then
+        return 0
+    fi
+
+    local result=""
+    while IFS= read -r name; do
+        [[ -z "$name" ]] && continue
+
+        # Skip plugin_* servers (already covered by Plugin: component)
+        [[ "$name" == plugin_* ]] && continue
+
+        # Skip servers already in Remote: component
+        if [[ -n "${COMPONENT_MCP_SERVERS_DATA:-}" ]]; then
+            if [[ ",${COMPONENT_MCP_SERVERS_DATA}," == *",${name}:"* ]]; then
+                continue
+            fi
+        fi
+
+        # Session servers are active (they're in the transcript = tools available)
+        if [[ -n "$result" ]]; then
+            result="$result,$name:connected"
+        else
+            result="$name:connected"
+        fi
+    done <<< "$servers"
+
+    # Cache result
+    if [[ -n "$result" && "${STATUSLINE_CACHE_LOADED:-}" == "true" ]]; then
+        set_cached_value "$cache_key" "$result" 2>/dev/null
+    fi
+
+    debug_log "MCP session servers from transcript: $result" "INFO"
+    echo "$result"
+}
+
+# ============================================================================
+# NAME FORMATTING
+# ============================================================================
+
+# Truncate MCP server/plugin name to max length for display
+truncate_mcp_name() {
+    local name="$1"
+    local max_len="${2:-15}"
+
+    if [[ ${#name} -le $max_len ]]; then
+        echo "$name"
+    else
+        echo "${name:0:$max_len}"
     fi
 }
 
@@ -583,3 +926,5 @@ export -f is_claude_cli_available execute_mcp_list parse_mcp_server_list
 export -f get_mcp_status get_all_mcp_servers get_active_mcp_servers
 export -f format_mcp_servers get_mcp_display get_mcp_health
 export -f get_mcp_server_details get_cached_mcp_status
+export -f get_configured_mcp_servers probe_ssh_server get_configured_mcp_servers_with_status
+export -f get_enabled_mcp_plugins truncate_mcp_name get_session_mcp_servers
