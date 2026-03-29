@@ -516,7 +516,7 @@ version_info.show_update_indicator = true  # Show ⬆️ when update available
 # Each line can contain any combination of available components
 
 # Number of lines to display (1-9) - SHOWCASING ALL 26 ATOMIC COMPONENTS!
-display.lines = 8
+display.lines = 9
 
 # Line 1: Repository Identity (path, branch, status)
 display.line1.components = ["repo_info"]
@@ -553,13 +553,13 @@ display.line7.components = ["prayer_icon", "prayer_times_only"]
 display.line7.separator = " "
 display.line7.show_when_empty = true
 
-# Line 8: MCP Server Status & Session Mode (output style)
-display.line8.components = ["mcp_status", "mcp_servers", "mcp_plugins", "session_mode"]
+# Line 8: MCP Total Count & Session Mode (output style)
+display.line8.components = ["mcp_status", "session_mode"]
 display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
-# Line 9: Available for future expansion
-display.line9.components = []
+# Line 9: MCP Details (Native, Plugin, Remote — rotating names)
+display.line9.components = ["mcp_servers", "mcp_plugins"]
 display.line9.separator = " │ "
 display.line9.show_when_empty = false
 
