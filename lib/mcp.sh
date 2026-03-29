@@ -507,6 +507,61 @@ get_configured_mcp_servers_with_status() {
     echo "$result"
 }
 
+# ============================================================================
+# PLUGIN DETECTION
+# ============================================================================
+
+# Get enabled CC plugins from settings.json, excluding LSP servers
+# Returns comma-separated plugin names (e.g. "context7,superpowers,ralph-wiggum")
+get_enabled_mcp_plugins() {
+    local settings_file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+
+    if [[ ! -f "$settings_file" ]]; then
+        return 0
+    fi
+
+    local plugins
+    plugins=$(jq -r '
+        .enabledPlugins // {} | to_entries[]
+        | select(.value == true)
+        | .key
+        | select(test("-lsp@") | not)
+        | split("@") | .[0]
+    ' "$settings_file" 2>/dev/null)
+
+    if [[ -z "$plugins" ]]; then
+        return 0
+    fi
+
+    local result=""
+    while IFS= read -r name; do
+        [[ -z "$name" ]] && continue
+        if [[ -n "$result" ]]; then
+            result="$result,$name"
+        else
+            result="$name"
+        fi
+    done <<< "$plugins"
+
+    echo "$result"
+}
+
+# ============================================================================
+# NAME FORMATTING
+# ============================================================================
+
+# Truncate MCP server/plugin name to max length for display
+truncate_mcp_name() {
+    local name="$1"
+    local max_len="${2:-15}"
+
+    if [[ ${#name} -le $max_len ]]; then
+        echo "$name"
+    else
+        echo "${name:0:$max_len}"
+    fi
+}
+
 # Get only active (connected) MCP servers
 get_active_mcp_servers() {
     start_timer "mcp_active_servers"
@@ -758,3 +813,4 @@ export -f get_mcp_status get_all_mcp_servers get_active_mcp_servers
 export -f format_mcp_servers get_mcp_display get_mcp_health
 export -f get_mcp_server_details get_cached_mcp_status
 export -f get_configured_mcp_servers probe_ssh_server get_configured_mcp_servers_with_status
+export -f get_enabled_mcp_plugins truncate_mcp_name
