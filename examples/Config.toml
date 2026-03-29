@@ -554,7 +554,7 @@ display.line7.separator = " "
 display.line7.show_when_empty = true
 
 # Line 8: MCP Server Status & Session Mode (output style)
-display.line8.components = ["mcp_status", "session_mode"]
+display.line8.components = ["mcp_status", "mcp_servers", "mcp_plugins", "session_mode"]
 display.line8.separator = " │ "
 display.line8.show_when_empty = true
 
@@ -601,7 +601,9 @@ display.line9.show_when_empty = false
 # - "context_window"    - Context usage via transcript (🧠 45% 90K/200K) [v2.13.0]
 #
 # System Components (4):
-# - "mcp_status"        - MCP server health and connection status
+# - "mcp_status"        - MCP server health and connection status (native JSON, future)
+# - "mcp_servers"       - Project MCP servers from .mcp.json (with probe status)
+# - "mcp_plugins"       - Enabled CC plugins/extensions (non-LSP)
 # - "time_display"      - Current time formatting
 # - "version_display"   - CC version only from JSON (lightweight, no network)
 # - "context_alert"     - Warns when tokens exceed 200K threshold
