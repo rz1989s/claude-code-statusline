@@ -112,7 +112,7 @@ calculate_cost_in_range() {
     fi
 
     # OPTIMIZED: Single jq+awk pipeline for all calculations
-    # Output format: timestamp|model|input|output|cache_write|cache_read
+    # Output format: timestamp|model|input|output|cw_5m|cw_1h|cw_flat|cache_read
     local awk_pricing
     awk_pricing=$(get_awk_pricing_block)
 
@@ -123,6 +123,8 @@ calculate_cost_in_range() {
             [.timestamp, (.message.model // "default"),
              (.message.usage.input_tokens // 0),
              (.message.usage.output_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$start_iso" -v end="$end_iso" "
@@ -144,16 +146,22 @@ $awk_pricing
         model = \$2
         input = \$3 + 0
         output = \$4 + 0
-        cache_write = \$5 + 0
-        cache_read = \$6 + 0
+        cw_5m = \$5 + 0
+        cw_1h = \$6 + 0
+        cw_flat = \$7 + 0
+        cache_read = \$8 + 0
 
-        # Get pricing for model
+        # Fallback: older JSONL entries lack nested cache_creation split —
+        # treat the flat sum as 5m writes (legacy default TTL).
+        if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
+
+        # Get pricing for model (5-col: input output cw_5m cw_1h cache_read)
         pricing = p[model]
         if (pricing == \"\") pricing = p[\"default\"]
         split(pricing, pr, \" \")
 
         # Calculate cost (prices per million tokens)
-        cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+        cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
         total += cost
         count++
     }
@@ -240,6 +248,8 @@ get_native_usage_info() {
             [$file, .timestamp, (.message.model // "default"),
              (.message.usage.input_tokens // 0),
              (.message.usage.output_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v today="$today_start" -v week="$week_start" -v month="$month_start" -v project="$sanitized_project" "
@@ -254,17 +264,23 @@ $awk_pricing
         model = \$3
         input = \$4 + 0
         output = \$5 + 0
-        cache_write = \$6 + 0
-        cache_read = \$7 + 0
+        cw_5m = \$6 + 0
+        cw_1h = \$7 + 0
+        cw_flat = \$8 + 0
+        cache_read = \$9 + 0
 
         # Truncate timestamp
         gsub(/\.[0-9]+Z?\$/, \"\", ts)
 
-        # Get pricing
+        # Fallback: older JSONL entries lack nested cache_creation split —
+        # treat the flat sum as 5m writes (legacy default TTL).
+        if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
+
+        # Get pricing (5-col: input output cw_5m cw_1h cache_read)
         pricing = p[model]
         if (pricing == \"\") pricing = p[\"default\"]
         split(pricing, pr, \" \")
-        cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+        cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
         # Accumulate by period
         if (ts >= month) monthly += cost

@@ -62,6 +62,8 @@ _scan_jsonl_costs() {
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="$range_start" -v end_ts="$range_end_iso" "
 BEGIN {
@@ -76,12 +78,15 @@ $awk_pricing
 
   model = \$2
   input = \$3 + 0; output = \$4 + 0
-  cache_write = \$5 + 0; cache_read = \$6 + 0
+  cw_5m = \$5 + 0; cw_1h = \$6 + 0; cw_flat = \$7 + 0; cache_read = \$8 + 0
+
+  # Fallback: older entries lack nested cache_creation split.
+  if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
   pricing = p[model]
   if (pricing == \"\") pricing = p[\"default\"]
   split(pricing, pr, \" \")
-  cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+  cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
   total_cost += cost
 

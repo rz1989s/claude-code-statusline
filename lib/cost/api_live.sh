@@ -78,34 +78,42 @@ get_claude_projects_dir() {
 # ============================================================================
 
 # Calculate cost for a single entry based on token usage
-# Args: model, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens
+# Args: model, input_tokens, output_tokens, cache_write_5m_tokens, cache_write_1h_tokens, cache_read_tokens
+# Legacy 5-arg form (model, input, output, cache_write, cache_read) is supported —
+# when only cache_write_tokens is provided, it's billed as 5m writes.
 calculate_entry_cost() {
     local model="$1"
     local input_tokens="${2:-0}"
     local output_tokens="${3:-0}"
-    local cache_write_tokens="${4:-0}"
-    local cache_read_tokens="${5:-0}"
+    local cw_5m_tokens="${4:-0}"
+    local cw_1h_tokens cache_read_tokens
 
-    # Get pricing for model (space-separated: input output cache_write cache_read)
+    # Support legacy 5-arg signature: (model, input, output, cache_write, cache_read)
+    if [[ $# -le 5 ]]; then
+        cw_1h_tokens=0
+        cache_read_tokens="${5:-0}"
+    else
+        cw_1h_tokens="${5:-0}"
+        cache_read_tokens="${6:-0}"
+    fi
+
+    # Get pricing for model (5-col: input output cw_5m cw_1h cache_read)
     local pricing
     pricing=$(get_model_pricing "$model")
 
     # Parse pricing values
-    local input_price output_price cache_write_price cache_read_price
-    read -r input_price output_price cache_write_price cache_read_price <<< "$pricing"
+    local input_price output_price cw_5m_price cw_1h_price cache_read_price
+    read -r input_price output_price cw_5m_price cw_1h_price cache_read_price <<< "$pricing"
 
     # Calculate cost (prices are per million tokens)
     local cost
     cost=$(awk -v it="$input_tokens" -v ip="$input_price" \
                -v ot="$output_tokens" -v op="$output_price" \
-               -v cwt="$cache_write_tokens" -v cwp="$cache_write_price" \
+               -v cw5="$cw_5m_tokens" -v cw5p="$cw_5m_price" \
+               -v cw1="$cw_1h_tokens" -v cw1p="$cw_1h_price" \
                -v crt="$cache_read_tokens" -v crp="$cache_read_price" \
         'BEGIN {
-            input_cost = it * ip / 1000000
-            output_cost = ot * op / 1000000
-            cache_write_cost = cwt * cwp / 1000000
-            cache_read_cost = crt * crp / 1000000
-            total = input_cost + output_cost + cache_write_cost + cache_read_cost
+            total = (it * ip + ot * op + cw5 * cw5p + cw1 * cw1p + crt * crp) / 1000000
             printf "%.6f", total
         }' 2>/dev/null)
 
@@ -219,6 +227,8 @@ calculate_api_synced_live() {
             [.timestamp, (.message.model // "default"),
              (.message.usage.input_tokens // 0),
              (.message.usage.output_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+             (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$window_start_iso" "
@@ -235,13 +245,18 @@ $awk_pricing
         model = \$2
         input = \$3 + 0
         output = \$4 + 0
-        cache_write = \$5 + 0
-        cache_read = \$6 + 0
+        cw_5m = \$5 + 0
+        cw_1h = \$6 + 0
+        cw_flat = \$7 + 0
+        cache_read = \$8 + 0
+
+        # Fallback: older entries lack nested cache_creation split.
+        if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
         pricing = p[model]
         if (pricing == \"\") pricing = p[\"default\"]
         split(pricing, pr, \" \")
-        cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+        cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
         total += cost
     }
     END {
