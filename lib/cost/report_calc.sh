@@ -76,6 +76,8 @@ calculate_hourly_breakdown() {
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$today_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
@@ -94,14 +96,19 @@ $awk_pricing
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
-    cache_write = \$5 + 0
-    cache_read = \$6 + 0
+    cw_5m = \$5 + 0
+    cw_1h = \$6 + 0
+    cw_flat = \$7 + 0
+    cache_read = \$8 + 0
+
+    # Fallback: older entries lack nested cache_creation split.
+    if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
     # Calculate cost
     pricing = p[model]
     if (pricing == \"\") pricing = p[\"default\"]
     split(pricing, pr, \" \")
-    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+    cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
     # Extract UTC hour from timestamp, convert to local
     # Format: 2026-02-06T15:30:00
@@ -122,7 +129,7 @@ $awk_pricing
     h_input[local_hour] += input
     h_output[local_hour] += output
     h_cache_read[local_hour] += cache_read
-    h_cache_write[local_hour] += cache_write
+    h_cache_write[local_hour] += cw_5m + cw_1h
     h_cost[local_hour] += cost
 
     # Accumulate by model
@@ -253,6 +260,8 @@ calculate_daily_breakdown() {
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
@@ -271,14 +280,19 @@ $awk_pricing
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
-    cache_write = \$5 + 0
-    cache_read = \$6 + 0
+    cw_5m = \$5 + 0
+    cw_1h = \$6 + 0
+    cw_flat = \$7 + 0
+    cache_read = \$8 + 0
+
+    # Fallback: older entries lack nested cache_creation split.
+    if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
     # Calculate cost
     pricing = p[model]
     if (pricing == \"\") pricing = p[\"default\"]
     split(pricing, pr, \" \")
-    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+    cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
     # Extract date from timestamp, adjusting for timezone
     split(ts, dt, \"T\")
@@ -405,6 +419,8 @@ calculate_model_breakdown() {
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
@@ -421,13 +437,18 @@ $awk_pricing
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
-    cache_write = \$5 + 0
-    cache_read = \$6 + 0
+    cw_5m = \$5 + 0
+    cw_1h = \$6 + 0
+    cw_flat = \$7 + 0
+    cache_read = \$8 + 0
+
+    # Fallback: older entries lack nested cache_creation split.
+    if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
     pricing = p[model]
     if (pricing == \"\") pricing = p[\"default\"]
     split(pricing, pr, \" \")
-    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+    cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
     m_sessions[model]++
     m_input[model] += input
@@ -513,6 +534,8 @@ calculate_project_breakdown() {
         [.timestamp, (.message.model // "default"),
          (.message.usage.input_tokens // 0),
          (.message.usage.output_tokens // 0),
+         (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+         (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
          (.message.usage.cache_creation_input_tokens // 0),
          (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
@@ -530,13 +553,18 @@ $awk_pricing
       model = \$2
       input = \$3 + 0
       output = \$4 + 0
-      cache_write = \$5 + 0
-      cache_read = \$6 + 0
+      cw_5m = \$5 + 0
+      cw_1h = \$6 + 0
+      cw_flat = \$7 + 0
+      cache_read = \$8 + 0
+
+      # Fallback: older entries lack nested cache_creation split.
+      if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
       pricing = p[model]
       if (pricing == \"\") pricing = p[\"default\"]
       split(pricing, pr, \" \")
-      cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+      cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
       sessions++
       total_tokens += input + output
@@ -611,6 +639,8 @@ calculate_burn_rate_analysis() {
       [.timestamp, (.message.model // "default"),
        (.message.usage.input_tokens // 0),
        (.message.usage.output_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
+       (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
        (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
@@ -629,13 +659,18 @@ $awk_pricing
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
-    cache_write = \$5 + 0
-    cache_read = \$6 + 0
+    cw_5m = \$5 + 0
+    cw_1h = \$6 + 0
+    cw_flat = \$7 + 0
+    cache_read = \$8 + 0
+
+    # Fallback: older entries lack nested cache_creation split.
+    if (cw_5m + cw_1h == 0 && cw_flat > 0) cw_5m = cw_flat
 
     pricing = p[model]
     if (pricing == \"\") pricing = p[\"default\"]
     split(pricing, pr, \" \")
-    cost = (input * pr[1] + output * pr[2] + cache_write * pr[3] + cache_read * pr[4]) / 1000000
+    cost = (input * pr[1] + output * pr[2] + cw_5m * pr[3] + cw_1h * pr[4] + cache_read * pr[5]) / 1000000
 
     total_cost += cost
     total_tokens += input + output
