@@ -99,8 +99,10 @@ calculate_cost_in_range() {
         return 1
     fi
 
-    # Find JSONL files (limit to files modified in last 30 days for performance)
-    local find_cmd="find \"$projects_dir\" -name \"*.jsonl\" -type f -mtime -30"
+    # Find JSONL files (limit to files modified in last 31 days for performance)
+    # Uses -31 (not -30) because -mtime measures from NOW while the 30-day window
+    # starts at local midnight, creating a gap of up to ~24 hours
+    local find_cmd="find \"$projects_dir\" -name \"*.jsonl\" -type f -mtime -31"
 
     # If project filter specified, only look in that project directory
     if [[ -n "$project_filter" ]]; then
@@ -231,7 +233,7 @@ get_native_usage_info() {
 
     # OPTIMIZED: Single jq+awk pass computes ALL periods at once
     local result
-    result=$(find "$projects_dir" -name "*.jsonl" -type f -mtime -30 2>/dev/null | while read -r jsonl_file; do
+    result=$(find "$projects_dir" -name "*.jsonl" -type f -mtime -31 2>/dev/null | while read -r jsonl_file; do
         [[ -z "$jsonl_file" ]] && continue
         # Include file path for project filtering
         jq -r --arg file "$jsonl_file" 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
@@ -279,6 +281,13 @@ $awk_pricing
     # Parse result
     local repo_cost monthly_cost weekly_cost daily_cost
     IFS=':' read -r repo_cost monthly_cost weekly_cost daily_cost <<< "$result"
+
+    # Repo cost: single-pass above is limited to -mtime -31 files.
+    # Use all-time calculation (no -mtime filter) for correct cumulative cost.
+    if declare -f get_cached_native_repo_cost &>/dev/null; then
+        repo_cost=$(get_cached_native_repo_cost "$current_dir" 2>/dev/null) || true
+        repo_cost="${repo_cost:-0.00}"
+    fi
 
     # LIVE block info (from api_live.sh if available)
     local block_info="No active block"
