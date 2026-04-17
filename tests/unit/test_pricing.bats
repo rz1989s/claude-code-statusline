@@ -37,6 +37,20 @@ _col() {
 }
 
 # ============================================================================
+# OPUS 4.7 - same as 4.6 ($5 / $25)
+# ============================================================================
+
+@test "Opus 4.7 bare ID returns correct pricing" {
+    run get_model_pricing "claude-opus-4-7"
+    [[ "$output" == "5.00 25.00 6.25 10.00 0.50" ]]
+}
+
+@test "Opus 4.7 wildcard dated ID returns correct pricing" {
+    run get_model_pricing "claude-opus-4-7-20260416"
+    [[ "$output" == "5.00 25.00 6.25 10.00 0.50" ]]
+}
+
+# ============================================================================
 # OPUS 4.6 - $5 input / $25 output / 5m $6.25 / 1h $10 / read $0.50
 # ============================================================================
 
@@ -240,6 +254,11 @@ _col() {
 # ============================================================================
 # awk block — all models covered in the inline awk table
 # ============================================================================
+
+@test "awk pricing block contains Opus 4.7 bare ID" {
+    run get_awk_pricing_block
+    [[ "$output" == *'p["claude-opus-4-7"]'* ]]
+}
 
 @test "awk pricing block contains Opus 4.6 bare ID" {
     run get_awk_pricing_block
