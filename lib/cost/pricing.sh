@@ -41,9 +41,9 @@ get_model_pricing() {
 
     case "$model" in
         # ---------------------------------------------------------------
-        # Opus 4.6 / 4.5 — $5 / $25 (same rates)
+        # Opus 4.7 / 4.6 / 4.5 — $5 / $25 (same rates)
         # ---------------------------------------------------------------
-        claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
+        claude-opus-4-7|claude-opus-4-7-*|claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
             echo "5.00 25.00 6.25 10.00 0.50"
             ;;
 
@@ -98,7 +98,8 @@ get_model_pricing() {
 # Values are 5 space-separated columns matching get_model_pricing.
 get_awk_pricing_block() {
     cat <<'EOF'
-        # Opus 4.6 / 4.5 - $5/$25
+        # Opus 4.7 / 4.6 / 4.5 - $5/$25
+        p["claude-opus-4-7"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-6"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-6-20250415"]      = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-5"]               = "5.00 25.00 6.25 10.00 0.50"
