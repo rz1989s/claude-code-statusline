@@ -104,7 +104,7 @@ jobs:
           echo "Generated release notes for v$VERSION"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: v${{ needs.validate.outputs.version }}
           body_path: release_notes.md
