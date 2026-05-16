@@ -348,17 +348,56 @@ $awk_pricing
     }
   }")
 
-  # Phase 2: Sort day rows and attach weekday names from shell lookup
+  # Phase 2: Build lookup of aggregated day data
   local model_lines day_lines
   model_lines=$(echo "$raw_data" | grep "^MODEL" || true)
-  day_lines=$(echo "$raw_data" | grep "^_DAY" | sort -t$'\t' -k2 || true)
+  day_lines=$(echo "$raw_data" | grep "^_DAY" || true)
 
-  # Emit DAY lines with weekday names
-  while IFS=$'\t' read -r _ date sessions cost; do
-    [[ -z "$date" ]] && continue
-    local weekday="${weekday_map[$date]:-Unknown}"
-    printf "DAY\t%s\t%s\t%d\t%.2f\n" "$date" "$weekday" "$sessions" "$cost"
-  done <<< "$day_lines"
+  local -A day_data_map
+  if [[ -n "$day_lines" ]]; then
+    while IFS=$'\t' read -r _ d_aggregated d_sess d_cost; do
+      [[ -z "$d_aggregated" ]] && continue
+      day_data_map["$d_aggregated"]="${d_sess}|${d_cost}"
+    done <<< "$day_lines"
+  fi
+
+  # Compute emission range (labeled period — no buffer). Backfills inactive days as $0.
+  # Skip emission entirely when no data exists in the period — preserves "No usage data"
+  # fallback rendering in callers (show_weekly_report / show_monthly_report).
+  if [[ ${#day_data_map[@]} -gt 0 ]]; then
+    local emission_start emission_end
+    if [[ -n "$since_date" ]]; then
+      emission_start="$since_date"
+      emission_end="${until_date:-$(date +%Y-%m-%d)}"
+    else
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        emission_start=$(date -v-$((days - 1))d +%Y-%m-%d)
+      else
+        emission_start=$(date -d "$((days - 1)) days ago" +%Y-%m-%d)
+      fi
+      emission_end=$(date +%Y-%m-%d)
+    fi
+
+    local cur="$emission_start"
+    local emit_sessions emit_cost emit_weekday entry
+    while [[ "$cur" < "$emission_end" || "$cur" == "$emission_end" ]]; do
+      entry="${day_data_map[$cur]:-}"
+      if [[ -n "$entry" ]]; then
+        emit_sessions="${entry%%|*}"
+        emit_cost="${entry#*|}"
+      else
+        emit_sessions=0
+        emit_cost="0.00"
+      fi
+      emit_weekday="${weekday_map[$cur]:-Unknown}"
+      printf "DAY\t%s\t%s\t%d\t%.2f\n" "$cur" "$emit_weekday" "$emit_sessions" "$emit_cost"
+      if [[ "$(uname -s)" == "Darwin" ]]; then
+        cur=$(date -j -f "%Y-%m-%d" -v+1d "$cur" "+%Y-%m-%d" 2>/dev/null) || break
+      else
+        cur=$(date -d "$cur + 1 day" +%Y-%m-%d 2>/dev/null) || break
+      fi
+    done
+  fi
 
   # Emit MODEL lines
   if [[ -n "$model_lines" ]]; then
