@@ -47,6 +47,11 @@ get_city_from_coordinates() {
         -2.9[7-9]*,104.7[4-6]*) echo "Palembang"; return 0 ;;        # Palembang
         -0.8[8-9]*,100.3[4-6]*) echo "Padang"; return 0 ;;           # Padang
         -7.7[7-8]*,110.3[7-8]*) echo "Yogyakarta"; return 0 ;;       # Yogyakarta
+        # Bali — global tourist destination, also covers Lombok-bound travellers
+        # in the WITA timezone fallback zone. Denpasar is the provincial capital;
+        # the broader pattern catches the Kuta/Seminyak/Ubud/Bukit tourist belt.
+        -8.6[3-7]*,115.2[0-3]*) echo "Denpasar"; return 0 ;;          # Denpasar city
+        -8.[4-8]*,115.[0-3]*) echo "Bali"; return 0 ;;                # Bali (Kuta/Seminyak/Ubud/Bukit)
 
         # Malaysia (20M Muslims)
         3.1[2-4]*,101.6[6-9]*) echo "Kuala Lumpur"; return 0 ;;      # KL Metro
