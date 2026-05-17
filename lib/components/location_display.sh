@@ -36,22 +36,66 @@ get_city_from_coordinates() {
 
     # === SOUTHEAST ASIA (450M Muslims) ===
     case "$latitude,$longitude" in
-        # Indonesia (231M Muslims)
-        -6.1[7-2]*,106.8[2-6]*|-6.2[0-1]*,106.8[3-5]*) echo "Jakarta"; return 0 ;;          # Jakarta Metro
-        -6.2[0-5]*,106.9[5-9]*|-6.2[0-5]*,107.0[0-2]*) echo "Bekasi"; return 0 ;;  # Bekasi/East Jakarta
-        -7.2[4-6]*,112.7[4-7]*) echo "Surabaya"; return 0 ;;         # Surabaya
-        -6.9[0-2]*,107.6[0-2]*) echo "Bandung"; return 0 ;;          # Bandung
-        3.5[8-6]*,98.6[6-8]*) echo "Medan"; return 0 ;;              # Medan
-        -5.1[4-5]*,119.4[2-4]*) echo "Makassar"; return 0 ;;         # Makassar
-        -6.9[6-8]*,110.4[1-3]*) echo "Semarang"; return 0 ;;         # Semarang
-        -2.9[7-9]*,104.7[4-6]*) echo "Palembang"; return 0 ;;        # Palembang
-        -0.8[8-9]*,100.3[4-6]*) echo "Padang"; return 0 ;;           # Padang
-        -7.7[7-8]*,110.3[7-8]*) echo "Yogyakarta"; return 0 ;;       # Yogyakarta
-        # Bali — global tourist destination, also covers Lombok-bound travellers
-        # in the WITA timezone fallback zone. Denpasar is the provincial capital;
-        # the broader pattern catches the Kuta/Seminyak/Ubud/Bukit tourist belt.
-        -8.6[3-7]*,115.2[0-3]*) echo "Denpasar"; return 0 ;;          # Denpasar city
-        -8.[4-8]*,115.[0-3]*) echo "Bali"; return 0 ;;                # Bali (Kuta/Seminyak/Ubud/Bukit)
+        # ====================================================================
+        # Indonesia (231M Muslims) — organized by timezone for clarity.
+        # Precise city patterns ordered BEFORE broader regional patterns
+        # so glob matching prefers the city (e.g. Mataram before Lombok).
+        # ====================================================================
+
+        # --- WIB: Western Indonesia (UTC+7) — Java, Sumatra, West Kalimantan ---
+        # Greater Jakarta metro
+        -6.1[7-2]*,106.8[2-6]*|-6.2[0-1]*,106.8[3-5]*) echo "Jakarta"; return 0 ;;
+        -6.2[0-5]*,106.9[5-9]*|-6.2[0-5]*,107.0[0-2]*) echo "Bekasi"; return 0 ;;
+        -6.1[7-9]*,106.6[0-3]*) echo "Tangerang"; return 0 ;;
+        -6.4[0-2]*,106.7[8-9]*|-6.4[0-2]*,106.8[0-1]*) echo "Depok"; return 0 ;;
+        -6.5[8-9]*,106.8[0-2]*) echo "Bogor"; return 0 ;;
+        # Java cities
+        -6.9[0-2]*,107.6[0-2]*) echo "Bandung"; return 0 ;;
+        -6.7[2-4]*,108.5[4-6]*) echo "Cirebon"; return 0 ;;
+        -6.9[6-8]*,110.4[1-3]*) echo "Semarang"; return 0 ;;
+        -7.5[6-8]*,110.8[1-3]*) echo "Solo"; return 0 ;;
+        -7.7[7-8]*,110.3[7-8]*) echo "Yogyakarta"; return 0 ;;
+        -7.2[4-6]*,112.7[4-7]*) echo "Surabaya"; return 0 ;;
+        -7.9[8-9]*,112.6[1-3]*) echo "Malang"; return 0 ;;
+        # Sumatra cities
+        5.5[4-6]*,95.3[2-4]*) echo "Banda Aceh"; return 0 ;;
+        3.5[8-6]*,98.6[6-8]*) echo "Medan"; return 0 ;;
+        -0.8[8-9]*,100.3[4-6]*) echo "Padang"; return 0 ;;
+        0.5[0-2]*,101.4[3-6]*) echo "Pekanbaru"; return 0 ;;
+        -1.6[0-2]*,103.6[0-2]*) echo "Jambi"; return 0 ;;
+        -2.9[7-9]*,104.7[4-6]*) echo "Palembang"; return 0 ;;
+        -5.3[8-9]*,105.2[5-7]*) echo "Bandar Lampung"; return 0 ;;
+        # West Kalimantan (still WIB)
+        -0.0[1-4]*,109.3[2-5]*) echo "Pontianak"; return 0 ;;
+
+        # --- WITA: Central Indonesia (UTC+8) — Bali, NTB, NTT, Sulawesi, S/C/E Kalimantan ---
+        # Bali province — precise city first, then broader tourist-belt fallback
+        -8.6[3-7]*,115.2[0-3]*) echo "Denpasar"; return 0 ;;
+        -8.[4-8]*,115.[0-7]*) echo "Bali"; return 0 ;;
+        # NTB: Lombok (precise capital first, then island-wide fallback) + Sumbawa
+        -8.5[7-9]*,116.1[0-3]*) echo "Mataram"; return 0 ;;
+        -8.[2-9]*,116.[0-7]*) echo "Lombok"; return 0 ;;
+        -8.4[8-9]*,117.4[2-4]*) echo "Sumbawa"; return 0 ;;
+        -8.4[5-7]*,118.7[1-3]*) echo "Bima"; return 0 ;;
+        # NTT
+        -10.1[6-8]*,123.5[9-9]*|-10.1[6-8]*,123.6[0-2]*) echo "Kupang"; return 0 ;;
+        # Sulawesi
+        -5.1[4-5]*,119.4[2-4]*) echo "Makassar"; return 0 ;;
+        -0.9[0-1]*,119.8[2-4]*) echo "Palu"; return 0 ;;
+        1.4[7-9]*,124.8[3-5]*) echo "Manado"; return 0 ;;
+        -3.9[6-8]*,122.5[8-9]*|-3.9[6-8]*,122.6[0-1]*) echo "Kendari"; return 0 ;;
+        # Kalimantan (Central/South/East — West is WIB)
+        -1.2[5-7]*,116.8[2-4]*) echo "Balikpapan"; return 0 ;;
+        -0.5[0-1]*,117.1[4-6]*) echo "Samarinda"; return 0 ;;
+        -3.3[1-3]*,114.5[8-9]*|-3.3[1-3]*,114.6[0-1]*) echo "Banjarmasin"; return 0 ;;
+        -2.2[0-2]*,113.9[0-2]*) echo "Palangkaraya"; return 0 ;;
+
+        # --- WIT: Eastern Indonesia (UTC+9) — Papua, Maluku ---
+        -0.8[6-8]*,131.2[4-6]*) echo "Sorong"; return 0 ;;
+        -0.8[5-7]*,134.0[5-7]*) echo "Manokwari"; return 0 ;;
+        -2.5[2-4]*,140.7[0-2]*) echo "Jayapura"; return 0 ;;
+        -3.6[8-9]*,128.1[7-9]*) echo "Ambon"; return 0 ;;
+        0.7[8-9]*,127.3[7-9]*) echo "Ternate"; return 0 ;;
 
         # Malaysia (20M Muslims)
         3.1[2-4]*,101.6[6-9]*) echo "Kuala Lumpur"; return 0 ;;      # KL Metro

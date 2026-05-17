@@ -269,3 +269,192 @@ EOF
     assert_success
     assert_output "Jakarta"
 }
+
+# ============================================================================
+# Indonesian city coverage — WIB / WITA / WIT
+# ============================================================================
+#
+# Comprehensive coverage of major Indonesian cities across all three
+# timezones. Precise city patterns ordered BEFORE broader regional
+# patterns so glob matching picks the city name first.
+
+# --- WIB: Western Indonesia ---
+@test "WIB: Tangerang maps to Tangerang" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-6.1781" "106.6300"
+    assert_success
+    assert_output "Tangerang"
+}
+
+@test "WIB: Depok maps to Depok" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-6.4025" "106.7942"
+    assert_success
+    assert_output "Depok"
+}
+
+@test "WIB: Bogor maps to Bogor" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-6.5950" "106.8167"
+    assert_success
+    assert_output "Bogor"
+}
+
+@test "WIB: Banda Aceh maps to Banda Aceh" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "5.5483" "95.3238"
+    assert_success
+    assert_output "Banda Aceh"
+}
+
+@test "WIB: Pekanbaru maps to Pekanbaru" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "0.5071" "101.4478"
+    assert_success
+    assert_output "Pekanbaru"
+}
+
+@test "WIB: Pontianak (West Kalimantan) maps to Pontianak" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-0.0263" "109.3425"
+    assert_success
+    assert_output "Pontianak"
+}
+
+@test "WIB: Solo/Surakarta maps to Solo" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-7.5755" "110.8243"
+    assert_success
+    assert_output "Solo"
+}
+
+@test "WIB: Malang maps to Malang" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-7.9839" "112.6214"
+    assert_success
+    assert_output "Malang"
+}
+
+# --- WITA: Central Indonesia ---
+@test "WITA: Mataram (Lombok capital) maps to Mataram" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.5833" "116.1167"
+    assert_success
+    assert_output "Mataram"
+}
+
+@test "WITA: Lombok tourist area (Senggigi) maps to Lombok" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.4828" "116.0431"
+    assert_success
+    assert_output "Lombok"
+}
+
+@test "WITA: Kuta Lombok (south) maps to Lombok" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.8980" "116.2740"
+    assert_success
+    assert_output "Lombok"
+}
+
+@test "WITA: Sumbawa Besar maps to Sumbawa" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.4900" "117.4300"
+    assert_success
+    assert_output "Sumbawa"
+}
+
+@test "WITA: Bima maps to Bima" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.4604" "118.7269"
+    assert_success
+    assert_output "Bima"
+}
+
+@test "WITA: Manado (North Sulawesi) maps to Manado" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "1.4748" "124.8421"
+    assert_success
+    assert_output "Manado"
+}
+
+@test "WITA: Balikpapan (East Kalimantan) maps to Balikpapan" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-1.2654" "116.8312"
+    assert_success
+    assert_output "Balikpapan"
+}
+
+@test "WITA: Banjarmasin (South Kalimantan) maps to Banjarmasin" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-3.3194" "114.5908"
+    assert_success
+    assert_output "Banjarmasin"
+}
+
+@test "WITA: Kupang (NTT) maps to Kupang" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-10.1772" "123.6070"
+    assert_success
+    assert_output "Kupang"
+}
+
+# --- WIT: Eastern Indonesia ---
+@test "WIT: Sorong (West Papua) maps to Sorong" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-0.8762" "131.2558"
+    assert_success
+    assert_output "Sorong"
+}
+
+@test "WIT: Jayapura (Papua capital) maps to Jayapura" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-2.5316" "140.7180"
+    assert_success
+    assert_output "Jayapura"
+}
+
+@test "WIT: Ambon (Maluku) maps to Ambon" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-3.6954" "128.1814"
+    assert_success
+    assert_output "Ambon"
+}
+
+@test "WIT: Ternate (North Maluku) maps to Ternate" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "0.7896" "127.3792"
+    assert_success
+    assert_output "Ternate"
+}
+
+# --- Ordering guards: precise patterns must beat broader fallbacks ---
+@test "Ordering: Mataram precise wins over Lombok broad" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    # Mataram coords also fall inside the Lombok broad pattern; precise must win.
+    run get_city_from_coordinates "-8.5833" "116.1167"
+    assert_success
+    assert_output "Mataram"
+}
+
+@test "Ordering: Denpasar precise wins over Bali broad" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-8.6500" "115.2167"
+    assert_success
+    assert_output "Denpasar"
+}
+
+# --- Regression guards: existing patterns still match ---
+@test "Regression: Makassar still maps to Makassar" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-5.1477" "119.4327"
+    assert_success
+    assert_output "Makassar"
+}
+
+@test "Regression: Surabaya still maps to Surabaya" {
+    source "$STATUSLINE_ROOT/lib/components/location_display.sh" 2>/dev/null || true
+    run get_city_from_coordinates "-7.2575" "112.7521"
+    assert_success
+    assert_output "Surabaya"
+}
