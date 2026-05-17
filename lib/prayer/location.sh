@@ -36,8 +36,15 @@ get_coordinates_from_timezone() {
 
     case "$system_tz" in
         # Southeast Asia (450M Muslims)
-        Asia/Jakarta*|Asia/Pontianak*|Asia/Makassar*|Asia/Jayapura*)
-            echo "-6.2088,106.8456" ;;  # Jakarta, Indonesia
+        # Indonesia spans three timezones — fall back to a city within each zone
+        # rather than collapsing all of Indonesia to Jakarta (off by 400–1300km
+        # for users in Bali, Sulawesi, or Papua).
+        Asia/Jakarta*|Asia/Pontianak*)
+            echo "-6.2088,106.8456" ;;  # Jakarta, Indonesia (WIB — Java/Sumatra)
+        Asia/Makassar*)
+            echo "-5.1477,119.4327" ;;  # Makassar, Indonesia (WITA — Bali/Sulawesi)
+        Asia/Jayapura*)
+            echo "-2.5316,140.7180" ;;  # Jayapura, Indonesia (WIT — Papua/Maluku)
         Asia/Kuala_Lumpur*|Asia/Kuching*)
             echo "3.1390,101.6869" ;;   # Kuala Lumpur, Malaysia
         Asia/Singapore*)
@@ -136,7 +143,13 @@ get_ip_location() {
     local user_agent="Claude-Code-Statusline/${STATUSLINE_VERSION:-unknown}"
 
     # Primary API: ip-api.com over HTTPS (Issue #130: Security fix)
-    local primary_url="https://ip-api.com/json/?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone,query"
+    # ip-api.com paywalled HTTPS access — free tier now returns
+    # `{"status":"fail","message":"SSL unavailable for this endpoint..."}`.
+    # When that specific signal is seen, retry once over HTTP before
+    # giving up on ip-api.com — its rate limit is more generous than
+    # ipinfo.io's, so it's worth keeping in rotation.
+    local primary_path="/json/?fields=status,message,country,countryCode,region,regionName,city,lat,lon,timezone,query"
+    local primary_url="https://ip-api.com${primary_path}"
 
     response=$(curl -s --max-time 8 --connect-timeout 3 \
         -H "User-Agent: $user_agent" \
@@ -148,8 +161,29 @@ get_ip_location() {
             api_source="ip-api.com"
             debug_log "Primary API (ip-api.com) responded successfully" "INFO"
         else
-            response=""  # Clear to trigger fallback
-            debug_log "Primary API returned error, trying fallback..." "WARN"
+            local err_msg=$(echo "$response" | jq -r '.message // ""' 2>/dev/null)
+            if [[ "$err_msg" == *"SSL unavailable"* ]]; then
+                debug_log "ip-api.com HTTPS paywalled, retrying over HTTP..." "INFO"
+                response=$(curl -s --max-time 8 --connect-timeout 3 \
+                    -H "User-Agent: $user_agent" \
+                    "http://ip-api.com${primary_path}" 2>/dev/null)
+                if [[ $? -eq 0 && -n "$response" ]]; then
+                    status=$(echo "$response" | jq -r '.status // "fail"' 2>/dev/null)
+                    if [[ "$status" == "success" ]]; then
+                        api_source="ip-api.com"
+                        debug_log "Primary API (ip-api.com HTTP) responded successfully" "INFO"
+                    else
+                        response=""
+                        debug_log "ip-api.com HTTP also failed, trying ipinfo.io fallback..." "WARN"
+                    fi
+                else
+                    response=""
+                    debug_log "ip-api.com HTTP request failed, trying ipinfo.io fallback..." "WARN"
+                fi
+            else
+                response=""  # Clear to trigger fallback
+                debug_log "Primary API returned error, trying fallback..." "WARN"
+            fi
         fi
     else
         debug_log "Primary API request failed, trying fallback..." "WARN"
@@ -536,7 +570,23 @@ get_location_coordinates() {
                 fi
             fi
 
-            debug_log "Both local GPS and IP geolocation failed, using timezone fallback..." "WARN"
+            # Try cached location before giving up to timezone (regional) fallback.
+            # Without this tier, local_gps mode loses last-known-good coordinates
+            # the moment IP geolocation is offline or rate-limited.
+            debug_log "Tier 3: trying cached location before timezone fallback..." "INFO"
+            local cached_location
+            if cached_location=$(load_cached_location); then
+                apply_location_config "$cached_location"
+                local latitude=$(echo "$cached_location" | jq -r '.latitude' 2>/dev/null)
+                local longitude=$(echo "$cached_location" | jq -r '.longitude' 2>/dev/null)
+                local coordinates="$latitude,$longitude"
+                export_location_data "$coordinates" "cached_location" "CACHED_DATA"
+                echo "$coordinates"
+                debug_log "local_gps using cached location: $coordinates" "INFO"
+                return 0
+            fi
+
+            debug_log "Local GPS, IP geolocation, and cache all failed — using timezone fallback..." "WARN"
 
             # Timezone fallback using shared function (Issue #106)
             local system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || date +%Z)
