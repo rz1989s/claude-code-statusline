@@ -1,6 +1,6 @@
 # Claude Code Version Compatibility Notes
 
-Per-version compatibility log for Claude Code releases from v2.1.77 through v2.1.148. The statusline uses **feature detection** (field existence), not version comparison, so it gracefully handles missing or unknown fields via the `get_json_field()` abstraction.
+Per-version compatibility log for Claude Code releases from v2.1.77 through v2.1.150. The statusline uses **feature detection** (field existence), not version comparison, so it gracefully handles missing or unknown fields via the `get_json_field()` abstraction.
 
 For the current JSON schema baseline (path migration, worktree, rate_limits, effort/thinking, etc.) and the manual test command, see [CLAUDE.md](../CLAUDE.md). Schema-additive versions are summarized there; this file is the per-version archive.
 
@@ -250,8 +250,16 @@ Published to npm but has **no public changelog entry** — the official changelo
 
 `/simplify` renamed to `/code-review` (effort-leveled correctness review; `--comment` posts inline PR comments) — a slash-command rename, not a JSON schema change. Also: pinned background sessions stay alive when idle, improved auto-updater, enterprise login-restriction enforcement fix. Introduced a regression — the Bash tool returning exit code 127 on every command for some users — fixed in v2.1.148. Zero JSON schema changes.
 
-## v2.1.148 (22 May 2026) — Current
+## v2.1.148 (22 May 2026)
 
 Single-bullet release: *"Fixed the Bash tool returning exit code 127 on every command for some users"* — a pure bug fix for the v2.1.147 regression. No JSON schema changes, no new fields, no new model IDs, no statusLine setting changes.
 
-**Statusline fully compatible through v2.1.148 via feature detection** — verified via render simulation (clean 8-line output, `CC:2.1.148` and `SL:2.24.14` both visible, exit 0, the new `workspace.repo`/`pr` fields ignored gracefully). The v2.1.144 `workspace.repo`/`pr` additions are documented in [CLAUDE.md](../CLAUDE.md); no statusline component consumes them. Full test suite is green in CI on the shipping commit (`main` PR #342, `nightly` v2.24.13 release); a local sandbox run showed 42 environmental failures (mock-command test harness unable to write `mock_bin/`, network-dependent prayer tests, MCP tests skewed by running bats inside a Claude Code session, and the pre-existing `migrate_legacy_cache` BW01) — none related to v2.1.148 or the docs edits. Docs/version bump only (v2.24.13 → v2.24.14); manual test command now uses `version: "2.1.148"` with `workspace.repo` + `pr`.
+## v2.1.149 (22 May 2026)
+
+Polish + bugfix release. New: enterprise managed setting `allowAllClaudeAiMcps` (loads claude.ai cloud MCP connectors alongside `managed-mcp.json` — does not affect statusline `mcp.servers` schema), `/usage` per-category breakdown (skills/subagents/plugins/per-MCP-server cost — purely in-CC view, no JSON exposure), GFM task-list checkbox rendering in markdown. Status bar bugfix: now reflects skill/agent `effort:` frontmatter instead of baseline `/effort` setting — this is CC's built-in status display, not custom statuslines. Also: 4 security fixes and ~15 bug fixes. Zero JSON schema changes.
+
+## v2.1.150 (23 May 2026) — Current
+
+Silent internal release with no user-facing changes (changelog does not enumerate v2.1.150 separately from v2.1.149's polish; published to npm as the latest dist-tag). Zero JSON schema changes, zero new model IDs, zero new statusLine settings.
+
+**Statusline fully compatible through v2.1.150 via feature detection** — verified via render simulation (clean 8-line output, `CC:2.1.150` and `SL:2.24.15` both visible, exit 0; the v2.1.144 `workspace.repo`/`pr` fields continue to be ignored gracefully). Both v2.1.149 and v2.1.150 are fully passive from a statusline standpoint — no code changes needed, the feature-detection architecture absorbs them automatically. Full test suite is green in CI on the shipping commit; a local sandbox run continues to show the same ~42 environmental failures inherited from the v2.1.148 update (mock-command test harness, network-dependent prayer tests, MCP tests skewed by running bats inside a Claude Code session, pre-existing `migrate_legacy_cache` BW01) — none related to v2.1.149 or v2.1.150. Docs/version bump only (v2.24.14 → v2.24.15); manual test command now uses `version: "2.1.150"`.
