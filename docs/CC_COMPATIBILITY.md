@@ -1,6 +1,6 @@
 # Claude Code Version Compatibility Notes
 
-Per-version compatibility log for Claude Code releases from v2.1.77 through v2.1.150. The statusline uses **feature detection** (field existence), not version comparison, so it gracefully handles missing or unknown fields via the `get_json_field()` abstraction.
+Per-version compatibility log for Claude Code releases from v2.1.77 through v2.1.156. The statusline uses **feature detection** (field existence), not version comparison, so it gracefully handles missing or unknown fields via the `get_json_field()` abstraction.
 
 For the current JSON schema baseline (path migration, worktree, rate_limits, effort/thinking, etc.) and the manual test command, see [CLAUDE.md](../CLAUDE.md). Schema-additive versions are summarized there; this file is the per-version archive.
 
@@ -263,3 +263,29 @@ Polish + bugfix release. New: enterprise managed setting `allowAllClaudeAiMcps` 
 Silent internal release with no user-facing changes (changelog does not enumerate v2.1.150 separately from v2.1.149's polish; published to npm as the latest dist-tag). Zero JSON schema changes, zero new model IDs, zero new statusLine settings.
 
 **Statusline fully compatible through v2.1.150 via feature detection** — verified via render simulation (clean 8-line output, `CC:2.1.150` and `SL:2.24.15` both visible, exit 0; the v2.1.144 `workspace.repo`/`pr` fields continue to be ignored gracefully). Both v2.1.149 and v2.1.150 are fully passive from a statusline standpoint — no code changes needed, the feature-detection architecture absorbs them automatically. Full test suite is green in CI on the shipping commit; a local sandbox run continues to show the same ~42 environmental failures inherited from the v2.1.148 update (mock-command test harness, network-dependent prayer tests, MCP tests skewed by running bats inside a Claude Code session, pre-existing `migrate_legacy_cache` BW01) — none related to v2.1.149 or v2.1.150. Docs/version bump only (v2.24.14 → v2.24.15); manual test command now uses `version: "2.1.150"`.
+
+## v2.1.151
+
+Skipped (never published to npm; absent from the npm versions list, which jumps v2.1.150 → v2.1.152).
+
+## v2.1.152 (27 May 2026)
+
+Polish/feature release. New: `MessageDisplay` hook event, `SessionStart` hook `reloadSkills`/`sessionTitle` outputs, skill `disallowed-tools` frontmatter, `/reload-skills`, `/code-review --fix`, vim reverse-search, OTel `app.entrypoint`. **Notable correctness (transcript-side, not stdin schema)**: fixed `cache_creation_input_tokens` reporting as 0 in transcript/result usage when the API reports cache writes only via the nested `cache_creation` breakdown. The statusline reads `cache_creation_input_tokens` from the transcript JSONL for historical cost, so this is a passive accuracy improvement — no code changes required. Zero stdin JSON schema changes, zero new model IDs.
+
+## v2.1.153 (28 May 2026) — Statusline-relevant (env vars)
+
+**Status line commands now receive `COLUMNS` and `LINES` environment variables** so scripts can size output to the terminal width. This is the long-awaited delivery for the responsive-width system: prior CC versions did not forward `$COLUMNS` to the piped statusline subprocess (the v2.23.0 width-detection saga documented in the project memory), forcing a conservative fallback to 120. As of v2.1.153, `lib/responsive.sh`'s existing detection chain (`ENV_CONFIG_TERMINAL_WIDTH` → `$COLUMNS` → fallback 120) picks up the real terminal width automatically on CC ≥ 2.1.153 — no logic change needed, only comment/doc accuracy updates (done in v2.25.0). `$LINES` is newly available too (not consumed yet; the responsive system filters by width, not height). This is env-var delivery to the subprocess, not a JSON schema change. Also: `modelPicker:setAsDefault` → `modelPicker:thisSessionOnly` keybinding rename (irrelevant to statusline). Zero stdin JSON schema changes.
+
+## v2.1.154 (28 May 2026) — Opus 4.8 release
+
+**Released Claude Opus 4.8** (`claude-opus-4-8`) — base pricing identical to Opus 4.6/4.7 ($5 input / $25 output / $6.25 5m-cache-write / $10 1h-cache-write / $0.50 cache-read per MTok, verified against the official pricing table). Defaults to `high` effort; `/effort xhigh` for the hardest tasks (the `xhigh` level itself shipped with Opus 4.7 in v2.1.111). **Pricing pattern `claude-opus-4-8` / `claude-opus-4-8-*` added to `lib/cost/pricing.sh` (case + awk block) in v2.25.0** to prevent the bare-ID→Sonnet-default fallback (same fix as Opus 4.6 in v2.24.0 and Opus 4.7 in v2.24.1). Empirically confirmed real transcripts emit the clean bare id `claude-opus-4-8` — CC's internal 1M-selector string `claude-opus-4-8[1m]` does not reach the JSONL/stdin `model.id`, so the bare + dated-glob patterns fully cover cost tracking. **Fast mode for Opus 4.8 is now 2× the standard rate for 2.5× speed** (down from the 6× premium on Opus 4.6/4.7); fast mode is not modeled in the statusline cost calc, so no change there. `CLAUDE_CODE_OPUS_4_6_FAST_MODE_OVERRIDE` deprecated (removal 06/01) — not referenced by the statusline. `worktree.baseRef: "head"` spawn fix is internal (no stdin field change). Also introduced dynamic workflows and a lean default system prompt (CC-internal, no statusline impact). Zero new stdin JSON fields, zero removed fields.
+
+## v2.1.155
+
+Skipped (absent from the npm versions list, which jumps v2.1.154 → v2.1.156).
+
+## v2.1.156 (current latest) — released, changelog pending
+
+npm `latest` dist-tag and the installed CC release at update time, but **its public changelog has not been published** — neither the docs changelog nor the GitHub `CHANGELOG.md`/tags include v2.1.155 or v2.1.156 (the GitHub side lags the npm/binary distribution channel). No documented schema deltas exist to act on beyond v2.1.154. **Verified compatible via live render against the actual installed v2.1.156 binary**: clean multi-line output, `CC:2.1.156` shown (the statusline detects the real `claude --version` via its `external_claude_version_shared.cache`), Opus 4.8 priced at $5/$25, and the `workspace.repo`/`pr`/`rate_limits`/`effort`/`thinking` fields all handled, exit 0. The feature-detection architecture absorbs any undocumented additive fields gracefully; when Anthropic publishes the v2.1.155/v2.1.156 notes, any genuinely new fields can be folded in then.
+
+**Statusline fully compatible through v2.1.156** — Opus 4.8 cost support added (pricing pattern + 3 new pricing tests, 46/46 pass), the COLUMNS/LINES responsive-width delivery documented, render verified against the live 2.1.156 binary. Full suite is the CI gate (Ubuntu); the local sandbox shows the same ~42 environmental failures inherited from prior updates (mock-command harness, network prayer tests, in-session MCP skew, `migrate_legacy_cache` BW01) — none related to v2.1.152–156. v2.25.0 is a **minor** bump (new model pricing support, not docs-only). Manual test command now uses `version: "2.1.156"` with `claude-opus-4-8`.
