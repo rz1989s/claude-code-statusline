@@ -21,8 +21,9 @@ export STATUSLINE_RESPONSIVE_LOADED=true
 
 # Detect terminal width with caching.
 # Priority: ENV_CONFIG_TERMINAL_WIDTH > $COLUMNS > fallback 120
-# Note: tput cols and parent TTY detection are unreliable in CC's piped context.
-# For narrow-pane filtering, set ENV_CONFIG_TERMINAL_WIDTH explicitly.
+# Note: Claude Code v2.1.153+ passes COLUMNS/LINES to statusline commands, so
+# $COLUMNS is reliable on current CC. On older CC (COLUMNS unset) it falls back
+# to 120; set ENV_CONFIG_TERMINAL_WIDTH explicitly for narrow-pane filtering.
 detect_terminal_width() {
     if [[ -n "${STATUSLINE_TERMINAL_WIDTH:-}" ]]; then
         echo "$STATUSLINE_TERMINAL_WIDTH"
@@ -38,7 +39,7 @@ detect_terminal_width() {
         source="ENV_CONFIG_TERMINAL_WIDTH"
     fi
 
-    # 2. $COLUMNS (works if CC forwards it — currently unreliable)
+    # 2. $COLUMNS (Claude Code v2.1.153+ forwards it to statusline commands)
     if [[ -z "$width" && -n "${COLUMNS:-}" && "${COLUMNS:-0}" -gt 0 ]]; then
         width="$COLUMNS"
         source="COLUMNS"
