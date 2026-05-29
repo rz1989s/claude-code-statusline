@@ -17,7 +17,7 @@
 #   - cache_read:     0.10x input price
 #
 # Not modeled (invisible in JSONL or not yet applicable):
-#   - Fast mode: 6x premium on Opus 4.6 (research preview)
+#   - Fast mode: premium pricing (research preview) — Opus 4.6/4.7 6x, Opus 4.8 2x ($10/$50)
 #   - Data residency: 1.1x multiplier on Opus 4.6+ US-only inference
 #   - Batch API: 0.5x discount (CC sessions aren't batch)
 #
@@ -41,9 +41,9 @@ get_model_pricing() {
 
     case "$model" in
         # ---------------------------------------------------------------
-        # Opus 4.7 / 4.6 / 4.5 — $5 / $25 (same rates)
+        # Opus 4.8 / 4.7 / 4.6 / 4.5 — $5 / $25 (same rates)
         # ---------------------------------------------------------------
-        claude-opus-4-7|claude-opus-4-7-*|claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
+        claude-opus-4-8|claude-opus-4-8-*|claude-opus-4-7|claude-opus-4-7-*|claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
             echo "5.00 25.00 6.25 10.00 0.50"
             ;;
 
@@ -98,7 +98,8 @@ get_model_pricing() {
 # Values are 5 space-separated columns matching get_model_pricing.
 get_awk_pricing_block() {
     cat <<'EOF'
-        # Opus 4.7 / 4.6 / 4.5 - $5/$25
+        # Opus 4.8 / 4.7 / 4.6 / 4.5 - $5/$25
+        p["claude-opus-4-8"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-7"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-6"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-6-20250415"]      = "5.00 25.00 6.25 10.00 0.50"
