@@ -26,20 +26,12 @@ collect_cache_efficiency_data() {
     if is_module_loaded "cost"; then
         local got_data=false
 
-        # Try native cache efficiency first (from STATUSLINE_INPUT_JSON)
-        if declare -f get_native_cache_efficiency &>/dev/null; then
-            local native_efficiency
-            native_efficiency=$(get_native_cache_efficiency)
-
-            if [[ -n "$native_efficiency" ]]; then
-                COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${native_efficiency}% hit"
-                debug_log "Using native cache efficiency: ${native_efficiency}%" "INFO"
-                got_data=true
-            fi
-        fi
-
-        # Fallback: Calculate from JSONL window tokens
-        if [[ "$got_data" == "false" ]] && declare -f get_cached_window_tokens &>/dev/null; then
+        # PRIMARY: block-wide efficiency from the de-duplicated 5-hour window.
+        # This component represents the billing block (like LIVE / burn_rate /
+        # block_projection), so it must aggregate the window — not the current
+        # turn, whose native current_usage can read 0% right after a
+        # cache-creation-heavy turn (e.g. just after /clear or compaction).
+        if declare -f get_cached_window_tokens &>/dev/null; then
             local token_data
             token_data=$(get_cached_window_tokens)
 
@@ -49,7 +41,6 @@ collect_cache_efficiency_data() {
                 cache_read=$(echo "$token_data" | cut -d: -f4)
                 cache_write=$(echo "$token_data" | cut -d: -f5)
 
-                # Calculate cache efficiency percentage
                 if [[ "${cache_read:-0}" -gt 0 || "${cache_write:-0}" -gt 0 ]]; then
                     local total_cache_tokens efficiency
                     total_cache_tokens=$((cache_read + cache_write))
@@ -57,13 +48,23 @@ collect_cache_efficiency_data() {
                     if [[ "$total_cache_tokens" -gt 0 ]]; then
                         efficiency=$(awk -v cr="$cache_read" -v t="$total_cache_tokens" 'BEGIN {printf "%.0f", cr * 100 / t}' 2>/dev/null || echo "0")
                         COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${efficiency}% hit"
-                        debug_log "Using JSONL cache efficiency: ${efficiency}%" "INFO"
-                    else
-                        COMPONENT_CACHE_EFFICIENCY_INFO="No cache data"
+                        debug_log "Using block cache efficiency: ${efficiency}%" "INFO"
+                        got_data=true
                     fi
-                else
-                    COMPONENT_CACHE_EFFICIENCY_INFO="No cache used"
                 fi
+            fi
+        fi
+
+        # FALLBACK: native current-turn efficiency (from STATUSLINE_INPUT_JSON)
+        # when there is no active 5-hour block (e.g. no rate_limits / OAuth).
+        if [[ "$got_data" == "false" ]] && declare -f get_native_cache_efficiency &>/dev/null; then
+            local native_efficiency
+            native_efficiency=$(get_native_cache_efficiency)
+
+            if [[ -n "$native_efficiency" ]]; then
+                COMPONENT_CACHE_EFFICIENCY_INFO="Cache: ${native_efficiency}% hit"
+                debug_log "Using native cache efficiency (no active block): ${native_efficiency}%" "INFO"
+                got_data=true
             fi
         fi
     fi
