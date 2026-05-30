@@ -56,6 +56,7 @@ CONFIG_RECOMMENDATIONS_IDLE_GAP_MINUTES="${CONFIG_RECOMMENDATIONS_IDLE_GAP_MINUT
 _scan_jsonl_costs() {
   local search_path="$1" find_days="$2" range_start="${3:-}" range_end_iso="${4:-}"
   local awk_end_block="$5" awk_pricing="$6"
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | \
     xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
@@ -65,7 +66,8 @@ _scan_jsonl_costs() {
        (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
        (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' 2>/dev/null | awk -F'\t' -v start="$range_start" -v end_ts="$range_end_iso" "
+       (.message.usage.cache_read_input_tokens // 0),
+       (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' 2>/dev/null | awk -F'\t' -v start="$range_start" -v end_ts="$range_end_iso" "
 BEGIN {
 $awk_pricing
   total_cost = 0
@@ -75,7 +77,7 @@ $awk_pricing
   gsub(/\.[0-9]+Z?\$/, \"\", ts)
   if (start != \"\" && ts < start) next
   if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
   model = \$2
   input = \$3 + 0; output = \$4 + 0
   cw_5m = \$5 + 0; cw_1h = \$6 + 0; cw_flat = \$7 + 0; cache_read = \$8 + 0

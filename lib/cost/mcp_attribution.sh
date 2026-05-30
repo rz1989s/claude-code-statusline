@@ -51,8 +51,9 @@ calculate_mcp_costs() {
   local mcp_data
   mcp_data=$(find "$search_path" -name "*.jsonl" -type f -mtime -30 2>/dev/null | \
     xargs -P4 -L50 jq -r 'select(.type == "assistant") | select(.message.content) |
-      .message.content[] | select(.type == "tool_use") | select(.name | startswith("mcp__")) |
-      .name' 2>/dev/null)
+      (.message.id // .uuid) as $mk |
+      (.message.content | to_entries[] | select(.value.type == "tool_use") | select(.value.name | startswith("mcp__")) |
+       [$mk, .key, .value.name]) | @tsv' 2>/dev/null)
 
   [[ -z "$mcp_data" ]] && return 0
 
@@ -61,10 +62,15 @@ calculate_mcp_costs() {
   local est_tokens_per_call="${CONFIG_MCP_ESTIMATED_TOKENS_PER_CALL:-500}"
 
   # Aggregate by server name
-  echo "$mcp_data" | awk -v est_tokens="$est_tokens_per_call" -v est_cost="$est_cost_per_call" '
+  echo "$mcp_data" | awk -F'\t' -v est_tokens="$est_tokens_per_call" -v est_cost="$est_cost_per_call" '
   {
-    # Extract server name: mcp__SERVER__tool
-    split($0, parts, "__")
+    # De-duplicate re-logged responses: count each (message, tool position) once
+    dk = $1 ":" $2
+    if (dk in seen) next
+    seen[dk] = 1
+
+    # Extract server name from tool name: mcp__SERVER__tool
+    split($3, parts, "__")
     if (length(parts) >= 3) {
       server = parts[2]
       calls[server]++

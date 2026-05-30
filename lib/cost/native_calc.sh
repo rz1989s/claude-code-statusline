@@ -115,6 +115,8 @@ calculate_cost_in_range() {
     # Output format: timestamp|model|input|output|cw_5m|cw_1h|cw_flat|cache_read
     local awk_pricing
     awk_pricing=$(get_awk_pricing_block)
+    local dedup_block
+    dedup_block=$(get_awk_dedup_block)
 
     local total_cost
     total_cost=$(eval "$find_cmd" 2>/dev/null | while read -r jsonl_file; do
@@ -126,7 +128,8 @@ calculate_cost_in_range() {
              (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
              (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
-             (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+             (.message.usage.cache_read_input_tokens // 0),
+             (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$start_iso" -v end="$end_iso" "
     BEGIN {
         total = 0
@@ -142,7 +145,7 @@ $awk_pricing
         # Check time range
         if (ts < start) next
         if (end != \"\" && ts > end) next
-
+$dedup_block
         model = \$2
         input = \$3 + 0
         output = \$4 + 0
@@ -238,6 +241,8 @@ get_native_usage_info() {
     # Get pricing block from single source of truth
     local awk_pricing
     awk_pricing=$(get_awk_pricing_block)
+    local dedup_block
+    dedup_block=$(get_awk_dedup_block)
 
     # OPTIMIZED: Single jq+awk pass computes ALL periods at once
     local result
@@ -251,7 +256,8 @@ get_native_usage_info() {
              (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
              (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
-             (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+             (.message.usage.cache_read_input_tokens // 0),
+             (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v today="$today_start" -v week="$week_start" -v month="$month_start" -v project="$sanitized_project" "
     BEGIN {
         daily = 0; weekly = 0; monthly = 0; repo = 0
@@ -259,6 +265,7 @@ get_native_usage_info() {
 $awk_pricing
     }
     {
+$dedup_block
         file = \$1
         ts = \$2
         model = \$3
