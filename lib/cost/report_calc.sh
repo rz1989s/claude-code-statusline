@@ -68,6 +68,7 @@ calculate_hourly_breakdown() {
 
   local awk_pricing
   awk_pricing=$(get_awk_pricing_block)
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   # Single find+jq+awk pipeline bucketed by hour
   find "$search_path" -name "*.jsonl" -type f -mtime -1 2>/dev/null | while read -r jsonl_file; do
@@ -79,7 +80,7 @@ calculate_hourly_breakdown() {
        (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
        (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+       (.message.usage.cache_read_input_tokens // 0), (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$today_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
   BEGIN {
     # Pricing
@@ -92,7 +93,7 @@ $awk_pricing
     # Filter to range
     if (ts < start) next
     if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
@@ -213,6 +214,7 @@ calculate_daily_breakdown() {
 
   local awk_pricing
   awk_pricing=$(get_awk_pricing_block)
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   # Build weekday lookup for the date range
   # We'll compute weekday names inside awk using a reference point approach
@@ -263,7 +265,7 @@ calculate_daily_breakdown() {
        (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
        (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+       (.message.usage.cache_read_input_tokens // 0), (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" -v tz_offset="$utc_offset_seconds" "
   BEGIN {
     # Pricing
@@ -276,7 +278,7 @@ $awk_pricing
     # Filter to range
     if (ts < start) next
     if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
@@ -451,6 +453,7 @@ calculate_model_breakdown() {
 
   local awk_pricing
   awk_pricing=$(get_awk_pricing_block)
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
     [[ -z "$jsonl_file" ]] && continue
@@ -461,7 +464,7 @@ calculate_model_breakdown() {
        (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
        (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+       (.message.usage.cache_read_input_tokens // 0), (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
   BEGIN {
 $awk_pricing
@@ -472,7 +475,7 @@ $awk_pricing
 
     if (ts < start) next
     if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
     model = \$2
     input = \$3 + 0
     output = \$4 + 0
@@ -543,6 +546,7 @@ calculate_project_breakdown() {
 
   local awk_pricing
   awk_pricing=$(get_awk_pricing_block)
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   # Iterate over project directories
   local project_dir
@@ -576,7 +580,7 @@ calculate_project_breakdown() {
          (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
          (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
          (.message.usage.cache_creation_input_tokens // 0),
-         (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+         (.message.usage.cache_read_input_tokens // 0), (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
     BEGIN {
 $awk_pricing
@@ -588,7 +592,7 @@ $awk_pricing
 
       if (ts < start) next
       if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
       model = \$2
       input = \$3 + 0
       output = \$4 + 0
@@ -671,6 +675,7 @@ calculate_burn_rate_analysis() {
 
   local awk_pricing
   awk_pricing=$(get_awk_pricing_block)
+  local dedup_block; dedup_block=$(get_awk_dedup_block)
 
   find "$search_path" -name "*.jsonl" -type f -mtime -$((find_days + 1)) 2>/dev/null | while read -r jsonl_file; do
     [[ -z "$jsonl_file" ]] && continue
@@ -681,7 +686,7 @@ calculate_burn_rate_analysis() {
        (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
        (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
        (.message.usage.cache_creation_input_tokens // 0),
-       (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+       (.message.usage.cache_read_input_tokens // 0), (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
   done | awk -F'\t' -v start="$range_start" -v end_ts="${range_end_iso:-}" "
   BEGIN {
 $awk_pricing
@@ -694,7 +699,7 @@ $awk_pricing
 
     if (ts < start) next
     if (end_ts != \"\" && ts >= end_ts) next
-
+$dedup_block
     model = \$2
     input = \$3 + 0
     output = \$4 + 0

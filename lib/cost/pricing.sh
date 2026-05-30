@@ -134,6 +134,38 @@ get_awk_pricing_block() {
 EOF
 }
 
+# Generate awk de-duplication guard for embedding in cost-calculation awk scripts.
+#
+# Claude Code re-logs the SAME assistant API response into transcripts on
+# session resume, compaction, and subagent sidechains — each copy carries the
+# original usage block. Anthropic bills each response (message.id) once, so
+# summing every JSONL occurrence overcounts cost/tokens (observed 6-20x).
+#
+# This block deduplicates by (message.id, requestId), falling back to the
+# per-line uuid when message.id is absent — so distinct calls are never
+# collapsed, only verbatim re-logs of the same response are dropped.
+#
+# REQUIRES: the jq filter must append these as the LAST three @tsv columns:
+#   (.message.id // ""), (.requestId // ""), (.uuid // "")
+# so they resolve to $(NF-2), $(NF-1), $NF regardless of leading column count.
+#
+# PLACEMENT: insert at the top of the awk main block (after any timestamp
+# range filter). All copies of a response share its original timestamp, so
+# placement relative to the range filter does not change results.
+#
+# Usage: dedup_block=$(get_awk_dedup_block)  then embed "$dedup_block" in awk.
+get_awk_dedup_block() {
+    cat <<'EOF'
+        if (NF < 3) next
+        _dk_id = $(NF-2); _dk_req = $(NF-1); _dk_uuid = $NF
+        if (_dk_id != "" && _dk_id != "null") { _dk_key = _dk_id "|" _dk_req }
+        else if (_dk_uuid != "" && _dk_uuid != "null") { _dk_key = "u:" _dk_uuid }
+        else { _dk_key = "n:" NR }
+        if (_dk_key in _dk_seen) next
+        _dk_seen[_dk_key] = 1
+EOF
+}
+
 # Get individual price component
 # Usage: input_price=$(get_model_price "claude-opus-4-6-20250415" "input")
 # Components: input, output, cache_write_5m, cache_write_1h, cache_read
@@ -159,6 +191,6 @@ get_model_price() {
 # EXPORTS
 # ============================================================================
 
-export -f get_model_pricing get_awk_pricing_block get_model_price
+export -f get_model_pricing get_awk_pricing_block get_awk_dedup_block get_model_price
 
 debug_log "Pricing module loaded" "INFO" 2>/dev/null || true
