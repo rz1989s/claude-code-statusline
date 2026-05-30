@@ -37,14 +37,23 @@ calculate_commit_costs() {
   local project_jsonl_dir="$projects_dir/$encoded_path"
   [[ -d "$project_jsonl_dir" ]] || return 0
 
-  # Collect all JSONL cost entries with timestamps in one pass
-  local cost_data
+  # Collect all JSONL cost entries with timestamps in one pass.
+  # De-duplicate re-logged responses (resume/compaction/sidechain copies) by
+  # (message.id, requestId) before bucketing, then re-emit [epoch, tokens] so
+  # the downstream sum_cost_in_range stays unchanged.
+  local cost_data dedup_block
+  dedup_block=$(get_awk_dedup_block)
   cost_data=$(find "$project_jsonl_dir" -name "*.jsonl" -type f 2>/dev/null | while read -r f; do
     [[ -f "$f" ]] || continue
     jq -r 'select(.type == "assistant") | select(.message.usage) | select(.timestamp) |
       [(.timestamp | sub("\\.[0-9]+Z?$"; "") | sub("Z$"; "") | . + "Z" | fromdateiso8601 // 0),
-       ((.message.usage.input_tokens // 0) + (.message.usage.output_tokens // 0))] | @tsv' "$f" 2>/dev/null
-  done | sort -t$'\t' -k1 -n)
+       ((.message.usage.input_tokens // 0) + (.message.usage.output_tokens // 0)),
+       (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$f" 2>/dev/null
+  done | awk -F'\t' "
+{
+$dedup_block
+  print \$1 \"\t\" \$2
+}" | sort -t$'\t' -k1 -n)
 
   # Build commit windows and attribute costs
   local prev_timestamp=""

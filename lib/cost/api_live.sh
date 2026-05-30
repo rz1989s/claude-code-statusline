@@ -219,6 +219,10 @@ calculate_api_synced_live() {
     local awk_pricing
     awk_pricing=$(get_awk_pricing_block)
 
+    # De-duplicate re-logged responses (resume/compaction/sidechain copies)
+    local dedup_block
+    dedup_block=$(get_awk_dedup_block)
+
     # OPTIMIZED: Single jq+awk pipeline
     local total_cost
     total_cost=$(find "$projects_dir" -name "*.jsonl" -type f -mmin -360 2>/dev/null | while read -r jsonl_file; do
@@ -230,7 +234,8 @@ calculate_api_synced_live() {
              (.message.usage.cache_creation.ephemeral_5m_input_tokens // 0),
              (.message.usage.cache_creation.ephemeral_1h_input_tokens // 0),
              (.message.usage.cache_creation_input_tokens // 0),
-             (.message.usage.cache_read_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+             (.message.usage.cache_read_input_tokens // 0),
+             (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$window_start_iso" "
     BEGIN {
         total = 0
@@ -241,7 +246,7 @@ $awk_pricing
         ts = \$1
         gsub(/\.[0-9]+Z?\$/, \"\", ts)
         if (ts < start) next
-
+$dedup_block
         model = \$2
         input = \$3 + 0
         output = \$4 + 0
@@ -330,7 +335,8 @@ calculate_window_tokens() {
              (.message.usage.input_tokens // 0),
              (.message.usage.output_tokens // 0),
              (.message.usage.cache_read_input_tokens // 0),
-             (.message.usage.cache_creation_input_tokens // 0)] | @tsv' "$jsonl_file" 2>/dev/null
+             (.message.usage.cache_creation_input_tokens // 0),
+             (.message.id // ""), (.requestId // ""), (.uuid // "")] | @tsv' "$jsonl_file" 2>/dev/null
     done | awk -F'\t' -v start="$window_start_iso" '
     BEGIN {
         total_input = 0; total_output = 0; cache_read = 0; cache_write = 0
@@ -339,6 +345,16 @@ calculate_window_tokens() {
         ts = $1
         gsub(/\.[0-9]+Z?$/, "", ts)
         if (ts < start) next
+
+        # De-duplicate re-logged responses by (message.id, requestId), uuid
+        # then NR fallback (awk is single-quoted here; mirrors get_awk_dedup_block)
+        if (NF < 3) next
+        _dk_id = $(NF-2); _dk_req = $(NF-1); _dk_uuid = $NF
+        if (_dk_id != "" && _dk_id != "null") { _dk_key = _dk_id "|" _dk_req }
+        else if (_dk_uuid != "" && _dk_uuid != "null") { _dk_key = "u:" _dk_uuid }
+        else { _dk_key = "n:" NR }
+        if (_dk_key in _dk_seen) next
+        _dk_seen[_dk_key] = 1
 
         total_input += $2 + 0
         total_output += $3 + 0
