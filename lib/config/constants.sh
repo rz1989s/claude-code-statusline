@@ -131,6 +131,7 @@ export CONFIG_NC=""
 # EMOJI CONFIGURATION
 # ============================================================================
 
+export CONFIG_FABLE_EMOJI=""
 export CONFIG_OPUS_EMOJI=""
 export CONFIG_HAIKU_EMOJI=""
 export CONFIG_SONNET_EMOJI=""
