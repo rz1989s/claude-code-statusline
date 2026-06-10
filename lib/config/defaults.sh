@@ -62,6 +62,7 @@ init_default_config() {
     CONFIG_DATE_FORMAT_COMPACT="%Y%m%d"
 
     # Emoji defaults
+    CONFIG_FABLE_EMOJI="🔮"
     CONFIG_OPUS_EMOJI="🧠"
     CONFIG_HAIKU_EMOJI="⚡"
     CONFIG_SONNET_EMOJI="🎵"

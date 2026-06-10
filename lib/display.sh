@@ -50,6 +50,9 @@ get_model_emoji() {
     local model_name="$1"
     
     case "$model_name" in
+        *"Fable"*|*"fable"*)
+            echo "$CONFIG_FABLE_EMOJI"
+            ;;
         *"Opus"*|*"opus"*)
             echo "$CONFIG_OPUS_EMOJI"
             ;;
