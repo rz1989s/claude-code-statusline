@@ -80,6 +80,46 @@ _write_entry() {
 }
 
 # ============================================================================
+# FABLE 5 bare ID - $10/$50 top tier (released CC v2.1.170)
+# Guards the bare-ID→Sonnet-default fallback for the new pricing tier.
+# ============================================================================
+
+@test "Fable 5 bare ID: 1M input tokens → \$10.00" {
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-fable-5" 1000000 0 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "10.00" ]]
+}
+
+@test "Fable 5 bare ID: 1M output tokens → \$50.00" {
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-fable-5" 0 1000000 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "50.00" ]]
+}
+
+@test "Fable 5 bare ID: 1M cache read → \$1.00" {
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-fable-5" 0 0 0 0 1000000
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "1.00" ]]
+}
+
+@test "Fable 5 bare ID: 1M 5-minute cache write → \$12.50 (1.25x input)" {
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-fable-5" 0 0 1000000 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "12.50" ]]
+}
+
+@test "Fable 5 bare ID: 1M 1-hour cache write → \$20.00 (2x input)" {
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-fable-5" 0 0 0 1000000 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "20.00" ]]
+}
+
+# ============================================================================
 # 5m vs 1h cache write tier distinction
 # ============================================================================
 
