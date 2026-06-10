@@ -41,6 +41,13 @@ get_model_pricing() {
 
     case "$model" in
         # ---------------------------------------------------------------
+        # Fable 5 — $10 / $50 (top tier, 2x Opus; released CC v2.1.170)
+        # ---------------------------------------------------------------
+        claude-fable-5|claude-fable-5-*)
+            echo "10.00 50.00 12.50 20.00 1.00"
+            ;;
+
+        # ---------------------------------------------------------------
         # Opus 4.8 / 4.7 / 4.6 / 4.5 — $5 / $25 (same rates)
         # ---------------------------------------------------------------
         claude-opus-4-8|claude-opus-4-8-*|claude-opus-4-7|claude-opus-4-7-*|claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
@@ -98,6 +105,8 @@ get_model_pricing() {
 # Values are 5 space-separated columns matching get_model_pricing.
 get_awk_pricing_block() {
     cat <<'EOF'
+        # Fable 5 - $10/$50 (top tier, 2x Opus)
+        p["claude-fable-5"]                = "10.00 50.00 12.50 20.00 1.00"
         # Opus 4.8 / 4.7 / 4.6 / 4.5 - $5/$25
         p["claude-opus-4-8"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-7"]               = "5.00 25.00 6.25 10.00 0.50"

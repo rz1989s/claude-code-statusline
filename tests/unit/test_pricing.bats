@@ -37,6 +37,29 @@ _col() {
 }
 
 # ============================================================================
+# FABLE 5 - $10 / $50 / 5m $12.50 / 1h $20 / read $1.00 (top tier, 2x Opus)
+# ============================================================================
+
+@test "Fable 5 bare ID returns correct pricing" {
+    run get_model_pricing "claude-fable-5"
+    [[ "$output" == "10.00 50.00 12.50 20.00 1.00" ]]
+}
+
+@test "Fable 5 wildcard dated ID returns correct pricing" {
+    run get_model_pricing "claude-fable-5-20260609"
+    [[ "$output" == "10.00 50.00 12.50 20.00 1.00" ]]
+}
+
+@test "Fable 5 is a distinct tier (not Opus, not Sonnet default)" {
+    run get_model_pricing "claude-fable-5"
+    local fable="$output"
+    run get_model_pricing "claude-opus-4-8"
+    [[ "$fable" != "$output" ]]
+    # guard against the bare-ID→Sonnet-default fallback bug
+    [[ "$fable" != "3.00 15.00 3.75 6.00 0.30" ]]
+}
+
+# ============================================================================
 # OPUS 4.8 - same as 4.7/4.6 ($5 / $25)
 # ============================================================================
 
@@ -268,6 +291,11 @@ _col() {
 # ============================================================================
 # awk block — all models covered in the inline awk table
 # ============================================================================
+
+@test "awk pricing block contains Fable 5 bare ID" {
+    run get_awk_pricing_block
+    [[ "$output" == *'p["claude-fable-5"]'* ]]
+}
 
 @test "awk pricing block contains Opus 4.8 bare ID" {
     run get_awk_pricing_block
