@@ -16,11 +16,25 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// Get the statusline script path
+/**
+ * Root directory of the npm package, resolved relative to this script's location.
+ * Used as the base path to locate the main statusline shell script.
+ * @type {string}
+ */
 const packageRoot = path.resolve(__dirname, '..');
+
+/**
+ * Path to the main statusline bash script that handles the actual terminal statusline rendering.
+ * Derived from the package root directory.
+ * @type {string}
+ */
 const statuslineScript = path.join(packageRoot, 'statusline.sh');
 
-// Installation directory (where config lives)
+/**
+ * Installation directory where configuration and status data are stored.
+ * Located in the user's home directory under .claude/statusline.
+ * @type {string}
+ */
 const installDir = path.join(os.homedir(), '.claude', 'statusline');
 
 // Parse command line arguments
