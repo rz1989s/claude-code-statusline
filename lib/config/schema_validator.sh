@@ -68,6 +68,7 @@ CONFIG_SCHEMA=(
     "features.show_context_window:boolean:optional"
 
     # Model emojis
+    "emojis.fable:string:optional"
     "emojis.opus:string:optional"
     "emojis.haiku:string:optional"
     "emojis.sonnet:string:optional"

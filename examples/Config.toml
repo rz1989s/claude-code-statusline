@@ -66,6 +66,7 @@ features.show_hijri_date = true
 
 # === MODEL EMOJIS ===
 # Emojis displayed for different Claude models
+emojis.fable = "🔮"
 emojis.opus = "🧠"
 emojis.haiku = "⚡"
 emojis.sonnet = "🎵"
