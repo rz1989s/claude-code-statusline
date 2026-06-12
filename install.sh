@@ -589,7 +589,8 @@ parse_arguments() {
     SKIP_DEPS=false
     SHOW_HELP=false
     PRESERVE_STATUSLINE=false
-    
+    RESET_CONFIG=false
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             --check-all-deps)
@@ -618,6 +619,10 @@ parse_arguments() {
                 ;;
             --preserve-statusline)
                 PRESERVE_STATUSLINE=true
+                shift
+                ;;
+            --reset-config)
+                RESET_CONFIG=true
                 shift
                 ;;
             --debug)
@@ -649,6 +654,7 @@ show_help() {
     echo "  --minimal           Only check critical dependencies (curl, jq)"
     echo "  --skip-deps         Skip all dependency checks (install anyway)"
     echo "  --preserve-statusline  Skip settings.json configuration entirely"
+    echo "  --reset-config      Overwrite Config.toml with the fresh template (default: preserve existing)"
     echo "  --debug             Enable detailed debug logging with timestamps"
     echo "  --help, -h          Show this help message"
     echo
@@ -1294,6 +1300,12 @@ backup_existing_installation() {
             print_success "✅ Backup created: $backup_path"
             print_status "💡 Your entire statusline configuration has been preserved"
 
+            # Remember the user's existing Config.toml so download_config_template()
+            # can restore it after the fresh template is laid down (preserve-by-default).
+            if [ -f "${backup_path}/Config.toml" ]; then
+                PRESERVED_CONFIG_SOURCE="${backup_path}/Config.toml"
+            fi
+
             # Terminate any running statusline processes before removal
             terminate_statusline_processes
 
@@ -1370,6 +1382,26 @@ download_config_template() {
             print_status "📚 Single source of truth - all configurations pre-filled with sensible defaults"
             print_status "🎯 Revolutionary simplification: ONE file replaces 13 different configs"
             print_status "🧩 Edit display.lines and components arrays for 1-9 line layouts"
+
+            # Preserve the user's existing configuration by default (opt out with --reset-config).
+            # Model pricing and other version-critical values live in code (lib/cost/pricing.sh),
+            # and any config keys missing from an older file fall back to in-code getter defaults,
+            # so keeping the user's Config.toml is safe across upgrades. The freshly downloaded
+            # template stays available at examples/Config.toml as the new-version reference.
+            if [[ "${RESET_CONFIG:-false}" != "true" ]] && [[ -n "${PRESERVED_CONFIG_SOURCE:-}" ]] && [[ -f "$PRESERVED_CONFIG_SOURCE" ]]; then
+                if cp "$PRESERVED_CONFIG_SOURCE" "$CONFIG_PATH"; then
+                    print_success "✅ Preserved your existing Config.toml — your customizations were kept"
+                    print_status "💡 New-version template for reference: $EXAMPLES_DIR/Config.toml"
+                    print_status "💡 See what's new: diff \"$CONFIG_PATH\" \"$EXAMPLES_DIR/Config.toml\""
+                    print_status "💡 Want a clean template instead? Re-run the installer with --reset-config"
+                    # Invalidate the config cache so the restored config is re-parsed on next run.
+                    rm -f "$STATUSLINE_DIR/.Config.cache.sh" "$STATUSLINE_DIR/.Config.checksum" 2>/dev/null || true
+                else
+                    print_warning "⚠️ Could not restore your previous Config.toml; using the fresh template"
+                    print_status "💡 Your previous config is still available at: $PRESERVED_CONFIG_SOURCE"
+                fi
+            fi
+
             return 0
         else
             print_error "❌ Downloaded config template appears to be empty or invalid"
