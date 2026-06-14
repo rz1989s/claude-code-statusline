@@ -31,362 +31,199 @@ get_city_from_coordinates() {
         return 1
     fi
 
-    # Precise coordinate matching using pattern matching (most efficient)
-    # Format: latitude range, longitude range -> city
+    # Single-pass numeric bounding-box lookup. Cities are listed first in
+    # priority order (specific before broad); the regional boxes at the end act
+    # as a catch-all. The first box that contains (latitude, longitude) wins.
+    # Replaces the former per-city glob matching, which silently failed on
+    # reversed character ranges (e.g. [7-2]) and decimal-boundary spans.
+    # Coverage is verified in tests/unit/test_location_city_matching.bats.
+    local city
+    city=$(awk -v lat="$latitude" -v lon="$longitude" '
+        NF >= 5 && lat >= $1 && lat <= $2 && lon >= $3 && lon <= $4 {
+            name = $5
+            for (i = 6; i <= NF; i++) name = name " " $i
+            print name
+            exit
+        }
+    ' <<'CITY_BOUNDING_BOXES'
+-6.3 -6.08 106.69 106.94 Jakarta
+-6.26 -6.2 106.95 107 Bekasi
+-6.26 -6.2 107 107.03 Bekasi
+-6.2 -6.17 106.6 106.64 Tangerang
+-6.43 -6.4 106.78 106.8 Depok
+-6.43 -6.4 106.8 106.82 Depok
+-6.6 -6.58 106.8 106.83 Bogor
+-6.93 -6.9 107.6 107.63 Bandung
+-6.75 -6.72 108.54 108.57 Cirebon
+-6.99 -6.96 110.41 110.44 Semarang
+-7.59 -7.56 110.81 110.84 Solo
+-7.79 -7.77 110.37 110.39 Yogyakarta
+-7.27 -7.24 112.74 112.78 Surabaya
+-8 -7.98 112.61 112.64 Malang
+5.54 5.57 95.32 95.35 Banda Aceh
+3.53 3.66 98.6 98.74 Medan
+-0.9 -0.88 100.34 100.37 Padang
+0.5 0.53 101.43 101.47 Pekanbaru
+-1.63 -1.6 103.6 103.63 Jambi
+-3 -2.97 104.74 104.77 Palembang
+-5.4 -5.38 105.25 105.28 Bandar Lampung
+-0.05 -0.01 109.32 109.36 Pontianak
+-8.68 -8.63 115.2 115.24 Denpasar
+-8.9 -8.4 115 115.8 Bali
+-8.6 -8.57 116.1 116.14 Mataram
+-9 -8.2 116 116.8 Lombok
+-8.5 -8.48 117.42 117.45 Sumbawa
+-8.48 -8.45 118.71 118.74 Bima
+-10.19 -10.16 123.59 123.6 Kupang
+-10.19 -10.16 123.6 123.63 Kupang
+-5.16 -5.14 119.42 119.45 Makassar
+-0.92 -0.9 119.82 119.85 Palu
+1.47 1.5 124.83 124.86 Manado
+-3.99 -3.96 122.58 122.6 Kendari
+-3.99 -3.96 122.6 122.62 Kendari
+-1.28 -1.25 116.82 116.85 Balikpapan
+-0.52 -0.5 117.14 117.17 Samarinda
+-3.34 -3.31 114.58 114.6 Banjarmasin
+-3.34 -3.31 114.6 114.62 Banjarmasin
+-2.23 -2.2 113.9 113.93 Palangkaraya
+-0.89 -0.86 131.24 131.27 Sorong
+-0.88 -0.85 134.05 134.08 Manokwari
+-2.55 -2.52 140.7 140.73 Jayapura
+-3.7 -3.68 128.17 128.2 Ambon
+0.78 0.8 127.37 127.4 Ternate
+3.12 3.15 101.66 101.7 Kuala Lumpur
+5.4 5.43 100.32 100.35 George Town
+1.44 1.55 103.7 103.82 Johor Bahru
+1.54 1.57 110.34 110.37 Kuching
+1.34 1.37 103.81 103.83 Singapore
+4.9 4.92 114.94 114.96 Bandar Seri Begawan
+24.85 24.9 67 67.03 Karachi
+31.52 31.57 74.34 74.37 Lahore
+33.66 33.69 73.04 73.07 Islamabad
+31.4 31.43 73.06 73.09 Faisalabad
+30.1 30.25 71.42 71.58 Multan
+25.33 25.45 68.3 68.42 Hyderabad
+23.8 23.82 90.4 90.43 Dhaka
+22.34 22.37 91.82 91.85 Chittagong
+24.36 24.39 88.6 88.63 Rajshahi
+28.61 28.63 77.2 77.22 Delhi
+19.07 19.09 72.87 72.89 Mumbai
+13.08 13.1 80.27 80.29 Chennai
+12.92 13.04 77.53 77.66 Bangalore
+17.33 17.47 78.42 78.55 Hyderabad
+22.57 22.59 88.36 88.38 Kolkata
+23.02 23.04 72.56 72.58 Ahmedabad
+18.52 18.54 73.85 73.87 Pune
+26.91 26.93 75.81 75.83 Jaipur
+21.09 21.2 79.03 79.15 Nagpur
+34.52 34.54 69.17 69.19 Kabul
+31.6 31.62 65.71 65.73 Kandahar
+36.7 36.72 67.1 67.12 Mazar-i-Sharif
+6.92 6.94 79.84 79.86 Colombo
+4.17 4.19 73.5 73.52 Malé
+24.71 24.73 46.67 46.69 Riyadh
+21.54 21.56 39.16 39.18 Jeddah
+21.42 21.44 39.82 39.84 Makkah
+24.46 24.48 39.61 39.63 Madinah
+26.38 26.4 49.97 49.99 Dammam
+25.2 25.22 55.27 55.29 Dubai
+24.45 24.47 54.36 54.38 Abu Dhabi
+25.34 25.36 55.41 55.43 Sharjah
+29.31 29.33 47.48 47.5 Kuwait City
+25.28 25.3 51.53 51.55 Doha
+26.22 26.24 50.58 50.6 Manama
+23.58 23.6 58.4 58.42 Muscat
+33.31 33.33 44.36 44.38 Baghdad
+36.34 36.36 43.13 43.15 Mosul
+30.5 30.52 47.81 47.83 Basra
+35.68 35.7 51.38 51.4 Tehran
+29.53 29.65 52.52 52.65 Shiraz
+32.65 32.67 51.67 51.69 Isfahan
+36.2 36.33 59.55 59.68 Mashhad
+41 41.02 28.97 28.99 Istanbul
+39.92 39.94 32.85 32.87 Ankara
+38.41 38.43 27.12 27.14 Izmir
+15.35 15.37 44.2 44.22 Sanaa
+12.77 12.79 45.03 45.05 Aden
+31.95 31.97 35.92 35.94 Amman
+33.84 33.95 35.45 35.56 Beirut
+33.46 33.58 36.22 36.34 Damascus
+36.2 36.22 37.16 37.18 Aleppo
+31.76 31.79 35.21 35.24 Jerusalem
+31.5 31.52 34.46 34.48 Gaza
+30.04 30.06 31.23 31.25 Cairo
+31.2 31.22 29.95 29.97 Alexandria
+25.68 25.7 32.63 32.65 Aswan
+6.52 6.54 3.37 3.39 Lagos
+9.07 9.09 7.53 7.55 Abuja
+11.94 12.06 8.52 8.66 Kano
+36.75 36.77 3.05 3.07 Algiers
+35.64 35.76 -0.7 -0.56 Oran
+33.97 33.98 -6.86 -6.84 Rabat
+33.53 33.55 -7.6 -7.58 Casablanca
+31.57 31.69 -8.05 -7.91 Marrakech
+15.5 15.52 32.53 32.55 Khartoum
+36.8 36.82 10.17 10.19 Tunis
+32.88 32.9 13.18 13.2 Tripoli
+2.04 2.06 45.34 45.36 Mogadishu
+55.75 55.77 37.61 37.63 Moscow
+59.93 59.95 30.31 30.33 St. Petersburg
+55.74 55.86 49.04 49.18 Kazan
+48.85 48.87 2.35 2.37 Paris
+43.24 43.36 5.3 5.44 Marseille
+51.5 51.52 -0.14 -0.12 London
+53.48 53.5 -2.26 -2.24 Manchester
+52.43 52.55 -1.96 -1.82 Birmingham
+52.52 52.54 13.4 13.42 Berlin
+50.11 50.13 8.68 8.7 Frankfurt
+48.13 48.15 11.57 11.59 Munich
+43.84 43.86 18.35 18.37 Sarajevo
+41.32 41.34 19.81 19.83 Tirana
+42.66 42.68 21.16 21.18 Pristina
+40.71 40.73 -74.02 -74 New York
+34.05 34.07 -118.26 -118.24 Los Angeles
+41.87 41.89 -87.64 -87.62 Chicago
+38.9 38.92 -77.05 -77.03 Washington DC
+25.7 25.83 -80.26 -80.12 Miami
+43.65 43.67 -79.4 -79.38 Toronto
+49.28 49.3 -123.14 -123.12 Vancouver
+45.5 45.52 -73.58 -73.56 Montreal
+-33.88 -33.86 151.2 151.22 Sydney
+-37.83 -37.81 144.96 144.98 Melbourne
+-23.57 -23.55 -46.65 -46.63 São Paulo
+-22.92 -22.9 -43.19 -43.17 Rio de Janeiro
+41.26 41.28 69.21 69.23 Tashkent
+43.23 43.25 76.85 76.87 Almaty
+42.81 42.94 74.5 74.64 Bishkek
+38.55 38.57 68.77 68.79 Dushanbe
+37.95 37.97 58.38 58.4 Ashgabat
+-26.22 -26.2 28.04 28.06 Johannesburg
+-1.3 -1.28 36.81 36.83 Nairobi
+-6.86 -6.73 39.14 39.28 Dar es Salaam
+9 9.02 38.74 38.76 Addis Ababa
+0.31 0.33 32.58 32.6 Kampala
+12.36 12.38 -1.53 -1.51 Ouagadougou
+13.51 13.53 -2.12 -2.1 Bamako
+14.7 14.72 -17.46 -17.44 Dakar
+12.13 12.15 15.05 15.07 N'Djamena
+13.9 13.92 2.11 2.13 Niamey
+-11 7 95 141 Southeast Asia
+12 42 26 63 Middle East
+6 37 60 97 South Asia
+0 37 -17 51 North Africa
+-35 15 -20 52 Africa
+35 71 -10 70 Europe
+15 83 -180 -52 North America
+-56 13 -82 -34 South America
+-50 -8 110 180 Oceania
+CITY_BOUNDING_BOXES
+)
 
-    # === SOUTHEAST ASIA (450M Muslims) ===
-    case "$latitude,$longitude" in
-        # ====================================================================
-        # Indonesia (231M Muslims) — organized by timezone for clarity.
-        # Precise city patterns ordered BEFORE broader regional patterns
-        # so glob matching prefers the city (e.g. Mataram before Lombok).
-        # ====================================================================
-
-        # --- WIB: Western Indonesia (UTC+7) — Java, Sumatra, West Kalimantan ---
-        # Greater Jakarta metro
-        -6.1[7-2]*,106.8[2-6]*|-6.2[0-1]*,106.8[3-5]*) echo "Jakarta"; return 0 ;;
-        -6.2[0-5]*,106.9[5-9]*|-6.2[0-5]*,107.0[0-2]*) echo "Bekasi"; return 0 ;;
-        -6.1[7-9]*,106.6[0-3]*) echo "Tangerang"; return 0 ;;
-        -6.4[0-2]*,106.7[8-9]*|-6.4[0-2]*,106.8[0-1]*) echo "Depok"; return 0 ;;
-        -6.5[8-9]*,106.8[0-2]*) echo "Bogor"; return 0 ;;
-        # Java cities
-        -6.9[0-2]*,107.6[0-2]*) echo "Bandung"; return 0 ;;
-        -6.7[2-4]*,108.5[4-6]*) echo "Cirebon"; return 0 ;;
-        -6.9[6-8]*,110.4[1-3]*) echo "Semarang"; return 0 ;;
-        -7.5[6-8]*,110.8[1-3]*) echo "Solo"; return 0 ;;
-        -7.7[7-8]*,110.3[7-8]*) echo "Yogyakarta"; return 0 ;;
-        -7.2[4-6]*,112.7[4-7]*) echo "Surabaya"; return 0 ;;
-        -7.9[8-9]*,112.6[1-3]*) echo "Malang"; return 0 ;;
-        # Sumatra cities
-        5.5[4-6]*,95.3[2-4]*) echo "Banda Aceh"; return 0 ;;
-        3.5[8-6]*,98.6[6-8]*) echo "Medan"; return 0 ;;
-        -0.8[8-9]*,100.3[4-6]*) echo "Padang"; return 0 ;;
-        0.5[0-2]*,101.4[3-6]*) echo "Pekanbaru"; return 0 ;;
-        -1.6[0-2]*,103.6[0-2]*) echo "Jambi"; return 0 ;;
-        -2.9[7-9]*,104.7[4-6]*) echo "Palembang"; return 0 ;;
-        -5.3[8-9]*,105.2[5-7]*) echo "Bandar Lampung"; return 0 ;;
-        # West Kalimantan (still WIB)
-        -0.0[1-4]*,109.3[2-5]*) echo "Pontianak"; return 0 ;;
-
-        # --- WITA: Central Indonesia (UTC+8) — Bali, NTB, NTT, Sulawesi, S/C/E Kalimantan ---
-        # Bali province — precise city first, then broader tourist-belt fallback
-        -8.6[3-7]*,115.2[0-3]*) echo "Denpasar"; return 0 ;;
-        -8.[4-8]*,115.[0-7]*) echo "Bali"; return 0 ;;
-        # NTB: Lombok (precise capital first, then island-wide fallback) + Sumbawa
-        -8.5[7-9]*,116.1[0-3]*) echo "Mataram"; return 0 ;;
-        -8.[2-9]*,116.[0-7]*) echo "Lombok"; return 0 ;;
-        -8.4[8-9]*,117.4[2-4]*) echo "Sumbawa"; return 0 ;;
-        -8.4[5-7]*,118.7[1-3]*) echo "Bima"; return 0 ;;
-        # NTT
-        -10.1[6-8]*,123.5[9-9]*|-10.1[6-8]*,123.6[0-2]*) echo "Kupang"; return 0 ;;
-        # Sulawesi
-        -5.1[4-5]*,119.4[2-4]*) echo "Makassar"; return 0 ;;
-        -0.9[0-1]*,119.8[2-4]*) echo "Palu"; return 0 ;;
-        1.4[7-9]*,124.8[3-5]*) echo "Manado"; return 0 ;;
-        -3.9[6-8]*,122.5[8-9]*|-3.9[6-8]*,122.6[0-1]*) echo "Kendari"; return 0 ;;
-        # Kalimantan (Central/South/East — West is WIB)
-        -1.2[5-7]*,116.8[2-4]*) echo "Balikpapan"; return 0 ;;
-        -0.5[0-1]*,117.1[4-6]*) echo "Samarinda"; return 0 ;;
-        -3.3[1-3]*,114.5[8-9]*|-3.3[1-3]*,114.6[0-1]*) echo "Banjarmasin"; return 0 ;;
-        -2.2[0-2]*,113.9[0-2]*) echo "Palangkaraya"; return 0 ;;
-
-        # --- WIT: Eastern Indonesia (UTC+9) — Papua, Maluku ---
-        -0.8[6-8]*,131.2[4-6]*) echo "Sorong"; return 0 ;;
-        -0.8[5-7]*,134.0[5-7]*) echo "Manokwari"; return 0 ;;
-        -2.5[2-4]*,140.7[0-2]*) echo "Jayapura"; return 0 ;;
-        -3.6[8-9]*,128.1[7-9]*) echo "Ambon"; return 0 ;;
-        0.7[8-9]*,127.3[7-9]*) echo "Ternate"; return 0 ;;
-
-        # Malaysia (20M Muslims)
-        3.1[2-4]*,101.6[6-9]*) echo "Kuala Lumpur"; return 0 ;;      # KL Metro
-        5.4[0-2]*,100.3[2-4]*) echo "George Town"; return 0 ;;       # Penang
-        1.4[8-5]*,103.7[4-6]*) echo "Johor Bahru"; return 0 ;;       # Johor
-        1.5[4-6]*,110.3[4-6]*) echo "Kuching"; return 0 ;;           # Sarawak
-
-        # Singapore (0.9M Muslims)
-        1.3[4-6]*,103.8[1-2]*) echo "Singapore"; return 0 ;;
-
-        # Brunei (0.4M Muslims)
-        4.9[0-1]*,114.9[4-5]*) echo "Bandar Seri Begawan"; return 0 ;;
-    esac
-
-    # === SOUTH ASIA (620M Muslims) ===
-    case "$latitude,$longitude" in
-        # Pakistan (225M Muslims)
-        24.8[5-9]*,67.0[0-2]*) echo "Karachi"; return 0 ;;           # Karachi Metro
-        31.5[2-6]*,74.3[4-6]*) echo "Lahore"; return 0 ;;            # Lahore
-        33.6[6-8]*,73.0[4-6]*) echo "Islamabad"; return 0 ;;         # Capital
-        31.4[0-2]*,73.0[6-8]*) echo "Faisalabad"; return 0 ;;        # Faisalabad
-        30.1[8-2]*,71.4[4-6]*) echo "Multan"; return 0 ;;            # Multan
-        25.3[8-4]*,68.3[5-7]*) echo "Hyderabad"; return 0 ;;         # Hyderabad (PK)
-
-        # Bangladesh (153M Muslims)
-        23.8[0-1]*,90.4[0-2]*) echo "Dhaka"; return 0 ;;             # Dhaka Metro
-        22.3[4-6]*,91.8[2-4]*) echo "Chittagong"; return 0 ;;        # Chittagong
-        24.3[6-8]*,88.6[0-2]*) echo "Rajshahi"; return 0 ;;          # Rajshahi
-
-        # India (195M Muslims)
-        28.6[1-2]*,77.2[0-1]*) echo "Delhi"; return 0 ;;             # Delhi NCR
-        19.0[7-8]*,72.8[7-8]*) echo "Mumbai"; return 0 ;;            # Mumbai
-        13.0[8-9]*,80.2[7-8]*) echo "Chennai"; return 0 ;;           # Chennai
-        12.9[7-8]*,77.5[9-6]*) echo "Bangalore"; return 0 ;;         # Bangalore
-        17.3[8-4]*,78.4[6-8]*) echo "Hyderabad"; return 0 ;;         # Hyderabad (IN)
-        22.5[7-8]*,88.3[6-7]*) echo "Kolkata"; return 0 ;;           # Kolkata
-        23.0[2-3]*,72.5[6-7]*) echo "Ahmedabad"; return 0 ;;         # Ahmedabad
-        18.5[2-3]*,73.8[5-6]*) echo "Pune"; return 0 ;;              # Pune
-        26.9[1-2]*,75.8[1-2]*) echo "Jaipur"; return 0 ;;            # Jaipur
-        21.1[4-2]*,79.0[8-1]*) echo "Nagpur"; return 0 ;;            # Nagpur
-
-        # Afghanistan (38M Muslims)
-        34.5[2-3]*,69.1[7-8]*) echo "Kabul"; return 0 ;;             # Kabul
-        31.6[0-1]*,65.7[1-2]*) echo "Kandahar"; return 0 ;;          # Kandahar
-        36.7[0-1]*,67.1[0-1]*) echo "Mazar-i-Sharif"; return 0 ;;   # Mazar
-
-        # Sri Lanka (2M Muslims)
-        6.9[2-3]*,79.8[4-5]*) echo "Colombo"; return 0 ;;            # Colombo
-
-        # Maldives (0.5M Muslims)
-        4.1[7-8]*,73.5[0-1]*) echo "Malé"; return 0 ;;               # Malé
-    esac
-
-    # === MIDDLE EAST & GULF (120M Muslims) ===
-    case "$latitude,$longitude" in
-        # Saudi Arabia (31M Muslims)
-        24.7[1-2]*,46.6[7-8]*) echo "Riyadh"; return 0 ;;            # Capital
-        21.5[4-5]*,39.1[6-7]*) echo "Jeddah"; return 0 ;;            # Jeddah
-        21.4[2-3]*,39.8[2-3]*) echo "Makkah"; return 0 ;;            # Makkah
-        24.4[6-7]*,39.6[1-2]*) echo "Madinah"; return 0 ;;           # Madinah
-        26.3[8-9]*,49.9[7-8]*) echo "Dammam"; return 0 ;;            # Eastern Province
-
-        # UAE (7M Muslims)
-        25.2[0-1]*,55.2[7-8]*) echo "Dubai"; return 0 ;;             # Dubai
-        24.4[5-6]*,54.3[6-7]*) echo "Abu Dhabi"; return 0 ;;         # Capital
-        25.3[4-5]*,55.4[1-2]*) echo "Sharjah"; return 0 ;;           # Sharjah
-
-        # Kuwait (3M Muslims)
-        29.3[1-2]*,47.4[8-9]*) echo "Kuwait City"; return 0 ;;       # Kuwait
-
-        # Qatar (2M Muslims)
-        25.2[8-9]*,51.5[3-4]*) echo "Doha"; return 0 ;;              # Qatar
-
-        # Bahrain (1M Muslims)
-        26.2[2-3]*,50.5[8-9]*) echo "Manama"; return 0 ;;            # Bahrain
-
-        # Oman (4M Muslims)
-        23.5[8-9]*,58.4[0-1]*) echo "Muscat"; return 0 ;;            # Oman
-
-        # Iraq (38M Muslims)
-        33.3[1-2]*,44.3[6-7]*) echo "Baghdad"; return 0 ;;           # Baghdad
-        36.3[4-5]*,43.1[3-4]*) echo "Mosul"; return 0 ;;             # Mosul
-        30.5[0-1]*,47.8[1-2]*) echo "Basra"; return 0 ;;             # Basra
-
-        # Iran (82M Muslims)
-        35.6[8-9]*,51.3[8-9]*) echo "Tehran"; return 0 ;;            # Tehran
-        29.5[9-6]*,52.5[8-9]*) echo "Shiraz"; return 0 ;;            # Shiraz
-        32.6[5-6]*,51.6[7-8]*) echo "Isfahan"; return 0 ;;           # Isfahan
-        36.2[9-3]*,59.6[1-2]*) echo "Mashhad"; return 0 ;;           # Mashhad
-
-        # Turkey (79M Muslims)
-        41.0[0-1]*,28.9[7-8]*) echo "Istanbul"; return 0 ;;          # Istanbul
-        39.9[2-3]*,32.8[5-6]*) echo "Ankara"; return 0 ;;            # Ankara
-        38.4[1-2]*,27.1[2-3]*) echo "Izmir"; return 0 ;;             # Izmir
-
-        # Yemen (28M Muslims)
-        15.3[5-6]*,44.2[0-1]*) echo "Sanaa"; return 0 ;;             # Sanaa
-        12.7[7-8]*,45.0[3-4]*) echo "Aden"; return 0 ;;              # Aden
-
-        # Jordan (7M Muslims)
-        31.9[5-6]*,35.9[2-3]*) echo "Amman"; return 0 ;;             # Amman
-
-        # Lebanon (2M Muslims)
-        33.8[8-9]*,35.4[9-5]*) echo "Beirut"; return 0 ;;            # Beirut
-
-        # Syria (18M Muslims)
-        33.5[1-2]*,36.2[9-3]*) echo "Damascus"; return 0 ;;          # Damascus
-        36.2[0-1]*,37.1[6-7]*) echo "Aleppo"; return 0 ;;            # Aleppo
-
-        # Palestine (4M Muslims)
-        31.7[6-8]*,35.2[1-3]*) echo "Jerusalem"; return 0 ;;         # Jerusalem
-        31.5[0-1]*,34.4[6-7]*) echo "Gaza"; return 0 ;;              # Gaza
-    esac
-
-    # === NORTH AFRICA (280M Muslims) ===
-    case "$latitude,$longitude" in
-        # Egypt (87M Muslims)
-        30.0[4-5]*,31.2[3-4]*) echo "Cairo"; return 0 ;;             # Cairo
-        31.2[0-1]*,29.9[5-6]*) echo "Alexandria"; return 0 ;;        # Alexandria
-        25.6[8-9]*,32.6[3-4]*) echo "Aswan"; return 0 ;;             # Aswan
-
-        # Nigeria (99M Muslims)
-        6.5[2-3]*,3.3[7-8]*) echo "Lagos"; return 0 ;;               # Lagos
-        9.0[7-8]*,7.5[3-4]*) echo "Abuja"; return 0 ;;               # Abuja
-        11.9[9-1]*,8.5[1-2]*) echo "Kano"; return 0 ;;               # Kano
-
-        # Algeria (43M Muslims)
-        36.7[5-6]*,3.0[5-6]*) echo "Algiers"; return 0 ;;            # Algiers
-        35.6[9-7]*,-0.6[2-3]*) echo "Oran"; return 0 ;;              # Oran
-
-        # Morocco (37M Muslims)
-        33.9[7-7]*,-6.8[4-5]*) echo "Rabat"; return 0 ;;             # Rabat
-        33.5[3-4]*,-7.5[8-9]*) echo "Casablanca"; return 0 ;;        # Casablanca
-        31.6[3-4]*,-7.9[9-0]*) echo "Marrakech"; return 0 ;;         # Marrakech
-
-        # Sudan (39M Muslims)
-        15.5[0-1]*,32.5[3-4]*) echo "Khartoum"; return 0 ;;          # Khartoum
-
-        # Tunisia (12M Muslims)
-        36.8[0-1]*,10.1[7-8]*) echo "Tunis"; return 0 ;;             # Tunis
-
-        # Libya (7M Muslims)
-        32.8[8-9]*,13.1[8-9]*) echo "Tripoli"; return 0 ;;           # Tripoli
-
-        # Somalia (11M Muslims)
-        2.0[4-5]*,45.3[4-5]*) echo "Mogadishu"; return 0 ;;          # Mogadishu
-    esac
-
-    # === EUROPE (60M Muslims) ===
-    case "$latitude,$longitude" in
-        # Russia (20M Muslims)
-        55.7[5-6]*,37.6[1-2]*) echo "Moscow"; return 0 ;;            # Moscow
-        59.9[3-4]*,30.3[1-2]*) echo "St. Petersburg"; return 0 ;;    # St. Petersburg
-        55.7[9-8]*,49.1[2-3]*) echo "Kazan"; return 0 ;;             # Kazan
-
-        # France (6M Muslims)
-        48.8[5-6]*,2.3[5-6]*) echo "Paris"; return 0 ;;              # Paris
-        43.2[9-3]*,5.3[6-7]*) echo "Marseille"; return 0 ;;          # Marseille
-
-        # UK (3M Muslims)
-        51.5[0-1]*,-0.1[2-3]*) echo "London"; return 0 ;;            # London
-        53.4[8-9]*,-2.2[4-5]*) echo "Manchester"; return 0 ;;        # Manchester
-        52.4[8-9]*,-1.8[9-0]*) echo "Birmingham"; return 0 ;;        # Birmingham
-
-        # Germany (5M Muslims)
-        52.5[2-3]*,13.4[0-1]*) echo "Berlin"; return 0 ;;            # Berlin
-        50.1[1-2]*,8.6[8-9]*) echo "Frankfurt"; return 0 ;;          # Frankfurt
-        48.1[3-4]*,11.5[7-8]*) echo "Munich"; return 0 ;;            # Munich
-
-        # Bosnia (2M Muslims)
-        43.8[4-5]*,18.3[5-6]*) echo "Sarajevo"; return 0 ;;          # Sarajevo
-
-        # Albania (2M Muslims)
-        41.3[2-3]*,19.8[1-2]*) echo "Tirana"; return 0 ;;            # Tirana
-
-        # Kosovo (2M Muslims)
-        42.6[6-7]*,21.1[6-7]*) echo "Pristina"; return 0 ;;          # Pristina
-    esac
-
-    # === AMERICAS & OCEANIA (15M Muslims) ===
-    case "$latitude,$longitude" in
-        # USA (3.5M Muslims)
-        40.7[1-2]*,-74.0[0-1]*) echo "New York"; return 0 ;;         # New York
-        34.0[5-6]*,-118.2[4-5]*) echo "Los Angeles"; return 0 ;;     # Los Angeles
-        41.8[7-8]*,-87.6[2-3]*) echo "Chicago"; return 0 ;;          # Chicago
-        38.9[0-1]*,-77.0[3-4]*) echo "Washington DC"; return 0 ;;    # Washington
-        25.7[6-7]*,-80.1[9-0]*) echo "Miami"; return 0 ;;            # Miami
-
-        # Canada (1.5M Muslims)
-        43.6[5-6]*,-79.3[8-9]*) echo "Toronto"; return 0 ;;          # Toronto
-        49.2[8-9]*,-123.1[2-3]*) echo "Vancouver"; return 0 ;;       # Vancouver
-        45.5[0-1]*,-73.5[6-7]*) echo "Montreal"; return 0 ;;         # Montreal
-
-        # Australia (0.6M Muslims)
-        -33.8[6-7]*,151.2[0-1]*) echo "Sydney"; return 0 ;;          # Sydney
-        -37.8[1-2]*,144.9[6-7]*) echo "Melbourne"; return 0 ;;       # Melbourne
-
-        # Brazil (1M Muslims)
-        -23.5[5-6]*,-46.6[3-4]*) echo "São Paulo"; return 0 ;;       # São Paulo
-        -22.9[0-1]*,-43.1[7-8]*) echo "Rio de Janeiro"; return 0 ;;  # Rio
-    esac
-
-    # === CENTRAL ASIA & SUB-SAHARAN AFRICA (Additional 200M Muslims) ===
-    case "$latitude,$longitude" in
-        # Central Asia
-        41.2[6-7]*,69.2[1-2]*) echo "Tashkent"; return 0 ;;           # Uzbekistan
-        43.2[3-4]*,76.8[5-6]*) echo "Almaty"; return 0 ;;             # Kazakhstan
-        42.8[7-8]*,74.5[9-6]*) echo "Bishkek"; return 0 ;;            # Kyrgyzstan
-        38.5[5-6]*,68.7[7-8]*) echo "Dushanbe"; return 0 ;;           # Tajikistan
-        37.9[5-6]*,58.3[8-9]*) echo "Ashgabat"; return 0 ;;           # Turkmenistan
-
-        # Sub-Saharan Africa
-        -26.2[0-1]*,28.0[4-5]*) echo "Johannesburg"; return 0 ;;      # South Africa
-        -1.2[8-9]*,36.8[1-2]*) echo "Nairobi"; return 0 ;;            # Kenya
-        -6.7[9-8]*,39.2[6-7]*) echo "Dar es Salaam"; return 0 ;;      # Tanzania
-        9.0[0-1]*,38.7[4-5]*) echo "Addis Ababa"; return 0 ;;         # Ethiopia
-        0.3[1-2]*,32.5[8-9]*) echo "Kampala"; return 0 ;;             # Uganda
-        12.3[6-7]*,-1.5[1-2]*) echo "Ouagadougou"; return 0 ;;        # Burkina Faso
-        13.5[1-2]*,-2.1[0-1]*) echo "Bamako"; return 0 ;;             # Mali
-        14.7[0-1]*,-17.4[4-5]*) echo "Dakar"; return 0 ;;             # Senegal
-        12.1[3-4]*,15.0[5-6]*) echo "N'Djamena"; return 0 ;;          # Chad
-        13.9[0-1]*,2.1[1-2]*) echo "Niamey"; return 0 ;;              # Niger
-    esac
-
-    # === REGIONAL FALLBACKS (Broader Geographic Detection) ===
-    # If no specific city match found, determine general region
-
-    # Southeast Asia region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -11.0 && lat <= 7.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 95.0 && lon <= 141.0) ? 1 : 0 }') )); then
-        echo "Southeast Asia"
+    if [[ -n "$city" ]]; then
+        echo "$city"
         return 0
     fi
 
-    # Middle East region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 12.0 && lat <= 42.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 26.0 && lon <= 63.0) ? 1 : 0 }') )); then
-        echo "Middle East"
-        return 0
-    fi
-
-    # South Asia region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 6.0 && lat <= 37.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 60.0 && lon <= 97.0) ? 1 : 0 }') )); then
-        echo "South Asia"
-        return 0
-    fi
-
-    # North Africa region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 0.0 && lat <= 37.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -17.0 && lon <= 51.0) ? 1 : 0 }') )); then
-        echo "North Africa"
-        return 0
-    fi
-
-    # Sub-Saharan Africa region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -35.0 && lat <= 15.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -20.0 && lon <= 52.0) ? 1 : 0 }') )); then
-        echo "Africa"
-        return 0
-    fi
-
-    # Europe region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 35.0 && lat <= 71.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -10.0 && lon <= 70.0) ? 1 : 0 }') )); then
-        echo "Europe"
-        return 0
-    fi
-
-    # North America region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= 15.0 && lat <= 83.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -180.0 && lon <= -52.0) ? 1 : 0 }') )); then
-        echo "North America"
-        return 0
-    fi
-
-    # South America region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -56.0 && lat <= 13.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= -82.0 && lon <= -34.0) ? 1 : 0 }') )); then
-        echo "South America"
-        return 0
-    fi
-
-    # Oceania region
-    if (( $(awk -v lat="$latitude" 'BEGIN { print (lat >= -50.0 && lat <= -8.0) ? 1 : 0 }') )) &&
-       (( $(awk -v lon="$longitude" 'BEGIN { print (lon >= 110.0 && lon <= 180.0) ? 1 : 0 }') )); then
-        echo "Oceania"
-        return 0
-    fi
-
-    # Unknown location
     echo "Unknown"
     return 1
 }
