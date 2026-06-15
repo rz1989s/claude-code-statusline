@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.5] - 2026-06-16
+
+### Fixed
+- **Location city detection rewritten to numeric bounding boxes**: `get_city_from_coordinates()` matched each city with a bash string glob on the coordinate's decimal digits (e.g. `-6.1[7-2]*,106.8[2-6]*`). Reversed character ranges like `[7-2]` match nothing in bash, and a glob cannot express a box spanning a decimal boundary, so ~21 cities (Medan, Bangalore, Beirut, Miami, Bishkek, Dar es Salaam, …) silently collapsed to their broad regional label — a North-Jakarta IP coordinate (`-6.1474,106.8711`) rendered "Southeast Asia" instead of "Jakarta". Replaced with a single-pass numeric bounding-box lookup (one `awk` pass over a city table, cities first in priority order then regional fallbacks as catch-all). Well-formed ranges were converted to their exact numeric equivalents (behaviour-preserving); the broken cities were given correct real-world boxes. Verified by an OLD-vs-NEW differential over every city centre and by installing from `nightly`.
+
+### Added
+- `tests/unit/test_location_city_matching.bats`: 37 regression tests for the city matcher (CI-safe, pure function, no network/mocks).
+
 ## [2.15.1] - 2025-01-16
 
 ### Fixed
