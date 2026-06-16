@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.6] - 2026-06-16
+
+### Changed
+- **Claude Code v2.1.178 compatibility** (docs/version update): Verified the statusline against CC v2.1.178 (npm `latest`+`next`, published 2026-06-15). v2.1.178 is a 22-bullet feature+bugfix release — new permission-rule `Tool(param:value)` matching syntax (e.g. `Agent(model:opus)`), nested `.claude/skills`/`.claude/` closest-wins resolution, auto-mode now gating subagent spawns before launch, and ~14 bugfixes — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. Its lone "statusline" bullet fixes clickable custom-URI-scheme links (e.g. `vscode://`) inside the `claude agents` TUI, a CC-side render surface distinct from this statusline. Verified by three clean renders against v2.1.178 blobs (Opus 4.6 standard, Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits, and the Fable 5 $10/$50 tier). Supported range is now v2.1.6–v2.1.178.
+
 ## [2.26.5] - 2026-06-16
 
 ### Fixed
