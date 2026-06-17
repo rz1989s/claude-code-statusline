@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.7] - 2026-06-17
+
+### Changed
+- **Claude Code v2.1.179 compatibility** (docs/version update): Verified the statusline against CC v2.1.179 (npm `latest`+`next`, published 2026-06-16). v2.1.179 is a 9-bullet maintenance (bug-fix + reliability/perf) release — mid-stream connection-drop response preservation + stuck-spinner fix, WSL2 mouse-wheel scrolling (a v2.1.172 regression), a Linux sandbox `denyRead`/`allowRead` glob-over-large-tree fix, a feedback-survey single-digit-as-rating fix, welcome-screen promo-banner de-stacking, Ctrl+O subagent-transcript view, prompt-input refocus, remote-session background-task status, and remote plugin-loading perf — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. The lone render-adjacent bullet (welcome-screen banner de-duplication) is CC's own welcome UI, distinct from this statusline. All four sources (docs changelog, GitHub release, `CHANGELOG.md`, WebSearch) carry the v2.1.179 entry in sync. Verified by two clean renders against v2.1.179 blobs (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits, and the Fable 5 $10/$50 tier), both `CC:2.1.179`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.179.
+
 ## [2.26.6] - 2026-06-16
 
 ### Changed
