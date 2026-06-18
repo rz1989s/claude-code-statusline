@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.8] - 2026-06-18
+
+### Changed
+- **Claude Code v2.1.181 compatibility** (docs/version update): Verified the statusline against CC v2.1.181 (npm `latest`+`next`, published 2026-06-17). v2.1.181 is a sizable feature+bugfix release (~10 feature/setting/env bullets + ~31 fixes) — `/config key=value` to set any setting from the prompt, a `sandbox.allowAppleEvents` opt-in setting, the new `CLAUDE_CLIENT_PRESENCE_FILE` env var (read by CC to suppress mobile push notifications while you're at the machine), a bundled Bun 1.4 upgrade, line-by-line streaming of long paragraphs, mid-thinking auto-retry, subagent-panel polish, and fixes spanning prompt-caching on custom `ANTHROPIC_BASE_URL`/Foundry, a ~120ms startup regression, network-drive Write/Edit truncation, and `claude mcp get`/`list` connection-status accuracy — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. The new `CLAUDE_CLIENT_PRESENCE_FILE` is consumed by CC itself, **not** forwarded to the statusline command (COLUMNS/LINES, added v2.1.153, remain the only statusline-forwarded env vars). The preceding **v2.1.180 was skipped** (npm E404 — like v2.1.151/155/164/171). Verified by a clean render against a v2.1.181 blob (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits), `CC:2.1.181`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.181.
+
 ## [2.26.7] - 2026-06-17
 
 ### Changed
