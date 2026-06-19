@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.9] - 2026-06-20
+
+### Changed
+- **Claude Code v2.1.183 compatibility** (docs/version update): Verified the statusline against CC v2.1.183 (npm `latest`+`next`, published 2026-06-19; installed binary → 2.1.183). v2.1.183 is a 17-bullet auto-mode-safety + config-UX + bugfix release — auto-mode now blocks destructive commands you didn't ask for (`git reset --hard`, `git checkout -- .`, `git clean -fd`, `git stash drop`, non-agent `git commit --amend`, `terraform/pulumi/cdk destroy` without a named stack), a new `attribution.sessionUrl` setting to omit the claude.ai session link from commits/PRs, `/config --help` shorthand-key listing, a deprecated/auto-updated-model stderr warning in print mode `-p` and agent frontmatter, removal of the startup "setup issues" line, plus 16 bugfixes (`thinking.disabled.display` 400s on subagent spawn, WebSearch-empty-in-subagents, vim cursor stranding, Windows-Terminal fullscreen-TUI corruption under nested-subagent load, MCP auth-stub exposure in headless/SDK) — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. The `attribution.sessionUrl` setting and the removed internal-CLI surface (`migrate` command, `CODEX_HOME`/`GEMINI_HOME` env vars, the `gemini-extension.json` Gemini-CLI shim — not an Anthropic model) are not stdin fields, and the lone statusline-adjacent bullet (the Windows-Terminal fullscreen-corruption fix) is CC's own fullscreen render, not this statusline script. The preceding **v2.1.182** (published 2026-06-18) was a published-but-unchangelogged intermediate — present in the npm `versions` list but with no standalone changelog on the docs site, GitHub releases, or `CHANGELOG.md` (all jump 181→183; superseded by v2.1.183 ~2h later) — a new pattern distinct from both the v2.1.160 `next`-only canary and the E404 skips (v2.1.151/155/164/171/180/184). Verified by two clean renders against v2.1.183 blobs (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits, and the Fable 5 $10/$50 tier), both `CC:2.1.183`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.183.
+
 ## [2.26.8] - 2026-06-18
 
 ### Changed
