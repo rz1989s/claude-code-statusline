@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.10] - 2026-06-21
+
+### Changed
+- **Claude Code v2.1.185 compatibility** (docs/version update): Verified the statusline against CC v2.1.185 (npm `latest`+`next`, published 2026-06-20; installed binary → 2.1.185). v2.1.185 is a single-bullet TUI maintenance release — its lone change reworks CC's own stream-stall hint to read "Waiting for API response · will retry in …" (instead of "No response from API · Retrying in …") and trigger after 20s of silence instead of 10s — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. The stream-stall hint is part of CC's own waiting/retry TUI (the message CC prints while an API response is delayed), not this statusline's render path. The preceding **v2.1.184 was skipped** (npm E404 — like v2.1.151/155/164/171/180). All authoritative sources (docs changelog, GitHub release, `CHANGELOG.md`, npm dist-tags) carry the v2.1.185 entry in sync — no npm-vs-GitHub lag. Verified by a clean render against a v2.1.185 blob (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits), `CC:2.1.185`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.185.
+
 ## [2.26.9] - 2026-06-20
 
 ### Changed
