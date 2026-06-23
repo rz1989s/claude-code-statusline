@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.11] - 2026-06-23
+
+### Changed
+- **Claude Code v2.1.186 compatibility** (docs/version update): Verified the statusline against CC v2.1.186 (npm `latest`+`next`, published 2026-06-22; installed binary → 2.1.186). v2.1.186 is a substantial 33-bullet feature+bugfix release — headlined by `claude mcp login <name>`/`claude mcp logout <name>` (authenticate MCP servers from the CLI without the interactive `/mcp` menu, with `--no-browser` stdin-redirect for completing OAuth over SSH) and `!` bash commands now auto-triggering a Claude response to their output (opt out via the new `"respondToBashCommands": false` setting), plus `/workflows` status filtering, a `/plugin` Skills section, a `teammateMode: "iterm2"` setting, an AWS `/login` credential-refresh option, a `CLAUDE_CODE_MAX_RETRIES` cap-at-15 alongside a new `CLAUDE_CODE_RETRY_WATCHDOG` env var, skill-frontmatter key case-insensitivity, and ~20 TUI/subagent/MCP/permission bugfixes — with **no statusline-stdin surface**: no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes. The two new env vars (`CLAUDE_CODE_MAX_RETRIES`, `CLAUDE_CODE_RETRY_WATCHDOG`) are CC-process retry config, **not** forwarded to the statusline command the way `COLUMNS`/`LINES` have been since v2.1.153; and the lone cost-adjacent bullet ("session cost not showing for usage-based Enterprise and Team subscribers") fixes CC's own session-cost display, not this statusline's cost component (which reads `cost.total_cost_usd` from stdin / computes from transcript JSONL). All four authoritative sources (docs changelog, GitHub release, `CHANGELOG.md`, npm dist-tags) carry the v2.1.186 entry in sync — no npm-vs-GitHub lag — cross-confirmed by the `@ClaudeCodeLog` "33 CLI changes" post. Verified by two clean renders against v2.1.186 blobs (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits, and the Fable 5 $10/$50 tier), both `CC:2.1.186`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.186.
+
 ## [2.26.10] - 2026-06-21
 
 ### Changed
