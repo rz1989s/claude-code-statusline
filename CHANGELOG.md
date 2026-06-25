@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.13] - 2026-06-25
+
+### Fixed
+- **Preserve `Config.toml` on upgrade** (#386, closes #385): Running `statusline.sh --upgrade` (or re-running `install.sh` over an existing install) previously overwrote the user's customized `~/.claude/statusline/Config.toml` with the freshly downloaded template, silently losing every customization (`display.*` layout, `theme.name`, labels, emojis, timeouts). The installer now **preserves the existing `Config.toml` by default**: `backup_existing_installation()` records the user's config from the timestamped backup it already creates, and `download_config_template()` restores it after the fresh template is laid down — invalidating the config cache (`.Config.cache.sh`/`.Config.checksum`) so the restored file is re-parsed. The new-version template stays available at `examples/Config.toml` as a reference (with a `diff` hint), and a new opt-out flag **`--reset-config`** installs the clean template for users who want it. Safe because version-critical values (e.g. model pricing) live in code (`lib/cost/pricing.sh`), not config, and keys missing from an older file fall back to in-code getter defaults. Thanks @igor-batrakov.
+
+### Changed
+- **CI**: bump `softprops/action-gh-release` from v2 to v3 (#325). v3.0.0 moves the action runtime from Node 20 to Node 24 (supported on GitHub-hosted runners); release inputs are unchanged.
+- **Docs**: add JSDoc type annotations to the key constants in the npm CLI wrapper (`bin/cli.js`) and normalize the file to LF line endings (#374). Thanks @Lang-Qiu.
+
 ## [2.26.12] - 2026-06-25
 
 ### Changed
