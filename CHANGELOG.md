@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.14] - 2026-06-27
+
+### Changed
+- **Claude Code v2.1.195 compatibility** (docs/version update): Verified the statusline against CC v2.1.195 (npm `latest`+`next`, published 2026-06-26; installed binary → 2.1.195), advancing the supported range across one real intermediate release (v2.1.193, published 2026-06-25) and two skips (v2.1.192, v2.1.194 — npm E404, the 9th + 10th skips after 151/155/164/171/180/184/188/189). **v2.1.193** is a 13-bullet feature+bugfix release — an `autoMode.classifyAllShell` setting, a new `claude_code.assistant_response` OpenTelemetry log event carrying the model's response text (redaction-gated by the `OTEL_LOG_ASSISTANT_RESPONSES`/`OTEL_LOG_USER_PROMPTS` env vars), plus auto-mode/background-agent/MCP/plugin fixes; it was superseded by v2.1.195 ~23h later and sits on no current dist-tag. **v2.1.195** is a 12-bullet feature+bugfix release — fullscreen mouse control (with a `CLAUDE_CODE_DISABLE_MOUSE_CLICKS` opt-out env var), voice dictation, a `claude agents` list-layout change, Remote provisioning, a hooks hyphenated-matcher exact-match fix, plugin consent/enable-disable, and background-agent reliability fixes. Neither release touches the statusline-stdin surface: **no new/changed/removed JSON fields, no new models or pricing, no env-var or render changes**. The lone near-miss items are all non-applicable — v2.1.193's `claude_code.assistant_response` is an OpenTelemetry log event (telemetry surface, not statusline stdin) and its `OTEL_LOG_*` env vars are CC-process OTEL config (not forwarded to the statusline command), while v2.1.195's `CLAUDE_CODE_DISABLE_MOUSE_CLICKS` is CC-process fullscreen-TUI config (not forwarded the way `COLUMNS`/`LINES` have been since v2.1.153). The three authoritative sources (docs changelog, GitHub release, raw `CHANGELOG.md`) and npm `dist-tags` (`{ stable: 2.1.181, latest: 2.1.195, next: 2.1.195 }`) agree in sync this cycle — no lag. Verified by a clean render against a v2.1.195 blob (Opus 4.8 + 1M + vim VISUAL + effort/thinking + workspace.repo + pr + native rate_limits), `CC:2.1.195`, all 9 lines, exit 0. Supported range is now v2.1.6–v2.1.195.
+
 ## [2.26.13] - 2026-06-25
 
 ### Fixed
