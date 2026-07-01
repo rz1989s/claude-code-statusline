@@ -45,6 +45,11 @@ teardown() { common_teardown; }
     assert_output "🎵"
 }
 
+@test "Sonnet 5 (new default model, CC v2.1.197) maps to music note" {
+    run get_model_emoji "Claude Sonnet 5"
+    assert_output "🎵"
+}
+
 @test "Haiku still maps to lightning (regression)" {
     run get_model_emoji "Claude Haiku 4.5"
     assert_output "⚡"

@@ -120,6 +120,55 @@ _write_entry() {
 }
 
 # ============================================================================
+# SONNET 5 bare ID - date-aware promo $2/$10 through 2026-08-31, then $3/$15
+# (released CC v2.1.197, now the default model). Validates the full
+# JSONL→awk pipeline picks up the promo rate AND transitions end-to-end.
+# "now" is pinned via STATUSLINE_PRICING_NOW_EPOCH so results are stable
+# across the promo boundary (1788220800 = 2026-09-01 00:00:00 UTC).
+# ============================================================================
+
+@test "Sonnet 5 bare ID: 1M input tokens → \$2.00 (promo)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-sonnet-5" 1000000 0 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "2.00" ]]
+}
+
+@test "Sonnet 5 bare ID: 1M output tokens → \$10.00 (promo)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-sonnet-5" 0 1000000 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "10.00" ]]
+}
+
+@test "Sonnet 5 bare ID: 1M cache read → \$0.20 (promo)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-sonnet-5" 0 0 0 0 1000000
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "0.20" ]]
+}
+
+@test "Sonnet 5 bare ID: 1M input tokens → \$3.00 after promo end (transition)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1793000000
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-sonnet-5" 1000000 0 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" == "3.00" ]]
+}
+
+@test "Sonnet 5 promo is NOT the bare-ID→default fallback (\$2 ≠ \$3)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    local f="$CLAUDE_CONFIG_DIR/projects/test-project/session1.jsonl"
+    _write_entry "$f" "claude-sonnet-5" 1000000 0 0 0 0
+    run calculate_cost_in_range "2026-04-01T00:00:00"
+    [[ "$output" != "3.00" ]]
+    [[ "$output" == "2.00" ]]
+}
+
+# ============================================================================
 # 5m vs 1h cache write tier distinction
 # ============================================================================
 
