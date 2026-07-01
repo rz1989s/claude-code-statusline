@@ -60,6 +60,53 @@ _col() {
 }
 
 # ============================================================================
+# SONNET 5 — date-aware promotional pricing (released CC v2.1.197, now the
+# default model; native 1M context).
+#   • Promo    $2/$10  through 2026-08-31  (epoch <  1788220800)
+#   • Standard $3/$15  from   2026-09-01   (epoch >= 1788220800, == default)
+# Tests pin "now" via STATUSLINE_PRICING_NOW_EPOCH so they stay valid across
+# the promo boundary (a test relying on real time would flip after Aug 31).
+# ============================================================================
+
+@test "Sonnet 5 bare ID returns promo pricing during promo window" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600   # 2026-01-01, mid-promo
+    run get_model_pricing "claude-sonnet-5"
+    [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
+}
+
+@test "Sonnet 5 wildcard dated ID returns promo pricing during promo window" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    run get_model_pricing "claude-sonnet-5-20260630"
+    [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
+}
+
+@test "Sonnet 5 promo pricing holds one second before promo end" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1788220799   # 2026-08-31 23:59:59 UTC
+    run get_model_pricing "claude-sonnet-5"
+    [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
+}
+
+@test "Sonnet 5 reverts to standard \$3/\$15 exactly at promo end (2026-09-01)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1788220800   # 2026-09-01 00:00:00 UTC
+    run get_model_pricing "claude-sonnet-5"
+    [[ "$output" == "3.00 15.00 3.75 6.00 0.30" ]]
+}
+
+@test "Sonnet 5 stays at standard \$3/\$15 well after promo end" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1793000000   # 2026-10-26, post-promo
+    run get_model_pricing "claude-sonnet-5"
+    [[ "$output" == "3.00 15.00 3.75 6.00 0.30" ]]
+}
+
+@test "Sonnet 5 promo is a distinct tier (not the bare-ID→default \$3/\$15)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    run get_model_pricing "claude-sonnet-5"
+    # during the promo the rate must NOT collapse to the Sonnet default
+    [[ "$output" != "3.00 15.00 3.75 6.00 0.30" ]]
+    [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
+}
+
+# ============================================================================
 # OPUS 4.8 - same as 4.7/4.6 ($5 / $25)
 # ============================================================================
 
@@ -295,6 +342,23 @@ _col() {
 @test "awk pricing block contains Fable 5 bare ID" {
     run get_awk_pricing_block
     [[ "$output" == *'p["claude-fable-5"]'* ]]
+}
+
+@test "awk pricing block contains Sonnet 5 bare ID" {
+    run get_awk_pricing_block
+    [[ "$output" == *'p["claude-sonnet-5"]'* ]]
+}
+
+@test "awk pricing block prices Sonnet 5 at promo rate during promo window" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+    run get_awk_pricing_block
+    [[ "$output" == *'p["claude-sonnet-5"]'*'"2.00 10.00 2.50 4.00 0.20"'* ]]
+}
+
+@test "awk pricing block prices Sonnet 5 at standard rate after promo end" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1793000000
+    run get_awk_pricing_block
+    [[ "$output" == *'p["claude-sonnet-5"]'*'"3.00 15.00 3.75 6.00 0.30"'* ]]
 }
 
 @test "awk pricing block contains Opus 4.8 bare ID" {

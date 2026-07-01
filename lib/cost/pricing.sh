@@ -48,6 +48,27 @@ get_model_pricing() {
             ;;
 
         # ---------------------------------------------------------------
+        # Sonnet 5 — date-aware promotional pricing (released CC v2.1.197,
+        # now the DEFAULT model; native 1M context).
+        #   • Promo    $2 / $10   through 2026-08-31  (epoch <  1788220800)
+        #   • Standard $3 / $15   from   2026-09-01   (epoch >= 1788220800)
+        # 1788220800 = 2026-09-01 00:00:00 UTC. The standard tier equals the
+        # default fallback, so the promo is the only reason this block exists;
+        # after 2026-08-31 it may be simplified to a plain $3/$15 (or removed).
+        # This is the single source of truth for the transition — the awk
+        # pricing block below re-uses it so both code paths flip together.
+        # STATUSLINE_PRICING_NOW_EPOCH overrides "now" (testing only).
+        # ---------------------------------------------------------------
+        claude-sonnet-5|claude-sonnet-5-*)
+            local _now="${STATUSLINE_PRICING_NOW_EPOCH:-$(date +%s)}"
+            if [[ "$_now" -lt 1788220800 ]]; then
+                echo "2.00 10.00 2.50 4.00 0.20"
+            else
+                echo "3.00 15.00 3.75 6.00 0.30"
+            fi
+            ;;
+
+        # ---------------------------------------------------------------
         # Opus 4.8 / 4.7 / 4.6 / 4.5 — $5 / $25 (same rates)
         # ---------------------------------------------------------------
         claude-opus-4-8|claude-opus-4-8-*|claude-opus-4-7|claude-opus-4-7-*|claude-opus-4-6|claude-opus-4-6-*|claude-opus-4-5|claude-opus-4-5-*)
@@ -141,6 +162,10 @@ get_awk_pricing_block() {
         # Default fallback (Sonnet pricing)
         p["default"]                       = "3.00 15.00 3.75 6.00 0.30"
 EOF
+    # Sonnet 5 - date-aware promo price ($2/$10 through 2026-08-31, then
+    # $3/$15). Single-sourced from get_model_pricing so the promo->standard
+    # transition (2026-09-01) happens in exactly one place (see case block).
+    printf '        %-35s= "%s"\n' 'p["claude-sonnet-5"]' "$(get_model_pricing claude-sonnet-5)"
 }
 
 # Generate awk de-duplication guard for embedding in cost-calculation awk scripts.
