@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.27.0] - 2026-07-01
+
+### Added
+- **Claude Sonnet 5 pricing** (Claude Code v2.1.197 compatibility): CC v2.1.197 (npm `latest`+`next`, published 2026-06-30; installed binary → 2.1.197) launched **Claude Sonnet 5** (`claude-sonnet-5`) — now the **default model** in Claude Code — with a native 1M-token context window and **promotional pricing of $2/$10 per MTok through 2026-08-31**, reverting to the standard **$3/$15** afterward. The stdin JSON schema is untouched (no new/changed/removed fields, no new env vars, no render changes; native 1M context is already handled by `get_native_context_window_size()`, and "Claude Sonnet 5" reuses the 🎵 icon via the existing "Sonnet" match). But `claude-sonnet-5` had no pattern in `lib/cost/pricing.sh` and fell through to the `*)` default ($3/$15), which — during the promo, on the new default model — would over-count Sonnet 5 cost by ~50% (the 5th occurrence of the bare-ID→default-Sonnet fallback class, after Opus 4.6/4.7/4.8 and Fable 5).
+  - **Date-aware pricing**: added `claude-sonnet-5` to `lib/cost/pricing.sh` in its own dedicated case block (a distinct tier from the $3/$15 Sonnet 4.x block) with date logic — `2.00 10.00 2.50 4.00 0.20` ($2/$10) while `now < 2026-09-01 00:00:00 UTC` (epoch `1788220800`), automatically reverting to `3.00 15.00 3.75 6.00 0.30` ($3/$15) at/after that instant with **no future action required**. The awk pricing block (which can't use gawk-only `systime()`) single-sources the value from `get_model_pricing`, so the case-statement path and the awk-embedded path flip together at the boundary. Only `date +%s` is used (identical on macOS/Linux); the boundary is a hardcoded, verified epoch constant, avoiding cross-platform `date` parsing. `STATUSLINE_PRICING_NOW_EPOCH` overrides "now" for deterministic tests across the boundary.
+  - **Tests (+15)**: 9 unit (`test_pricing.bats` — promo / dated-ID / one-second-before / exactly-at-end / after-end branches, distinct-tier guard, and 3 awk-block assertions) + 5 integration (`test_pricing_integration.bats` — 1M input/output/cache-read priced at the promo rate end-to-end, the $3 transition after promo end, and a distinct-from-default guard) + 1 emoji (`test_model_emoji.bats` — Sonnet 5 → 🎵). All pin `now` via `STATUSLINE_PRICING_NOW_EPOCH` so they remain valid past 2026-08-31.
+
+### Changed
+- **Claude Code v2.1.197 compatibility**: verified compatible through CC v2.1.197 via feature detection. v2.1.197 is a single-bullet flagship-model release (the Sonnet 5 launch above) — its stdin schema is docs-only; the only code change is the date-aware pricing. All four authoritative sources (docs changelog, GitHub release, raw `CHANGELOG.md`, npm `dist-tags` `{ stable: 2.1.185, latest: 2.1.197, next: 2.1.197 }`) carry the v2.1.197 entry in sync — no docs-lag this cycle. Verified by clean renders against v2.1.197 blobs (`claude-sonnet-5` → `🎵 Claude Sonnet 5`, plus `claude-opus-4-8`/`claude-fable-5`), all `CC:2.1.197`, all 9 lines, exit 0; local full suite 1143 ok / 41 environmental not-ok (1184 of 1186 executed, 0 critical-category failures, grep-verified). Supported range is now v2.1.6–v2.1.197.
+
 ## [2.26.15] - 2026-06-30
 
 ### Changed
