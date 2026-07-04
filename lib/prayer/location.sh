@@ -517,6 +517,25 @@ get_local_system_coordinates() {
 # COORDINATE RESOLUTION
 # ============================================================================
 
+# Cache-first tier (Issue #416): return a fresh last-known-good location without
+# touching the network. Echoes "lat,lng" and returns 0 on a cache hit; returns 1
+# when no valid (within-TTL) cache exists so the caller falls through to network
+# detection. Consulted BEFORE the IP-geolocation tier so a warm cache avoids a
+# per-render round-trip; still AFTER live GPS so "GPS-first" modes stay accurate.
+use_cached_coordinates() {
+    local cached_location
+    if cached_location=$(load_cached_location); then
+        apply_location_config "$cached_location"
+        local latitude longitude
+        latitude=$(echo "$cached_location" | jq -r '.latitude' 2>/dev/null)
+        longitude=$(echo "$cached_location" | jq -r '.longitude' 2>/dev/null)
+        export_location_data "$latitude,$longitude" "cached_location" "CACHED_DATA"
+        echo "$latitude,$longitude"
+        return 0
+    fi
+    return 1
+}
+
 # Get location coordinates (latitude, longitude) - NEW VPN-INDEPENDENT LOGIC
 get_location_coordinates() {
     debug_log "Starting VPN-independent location detection..." "INFO"
@@ -549,6 +568,12 @@ get_location_coordinates() {
 
             debug_log "Local GPS failed, falling back to IP geolocation..." "WARN"
 
+            # Cache-first (Issue #416): a fresh cached location skips the network
+            if use_cached_coordinates; then
+                debug_log "local_gps served coordinates from fresh cache (no network)" "INFO"
+                return 0
+            fi
+
             # Fallback to IP geolocation
             if check_internet_connection; then
                 debug_log "Attempting IP geolocation fallback..." "INFO"
@@ -570,22 +595,6 @@ get_location_coordinates() {
                 fi
             fi
 
-            # Try cached location before giving up to timezone (regional) fallback.
-            # Without this tier, local_gps mode loses last-known-good coordinates
-            # the moment IP geolocation is offline or rate-limited.
-            debug_log "Tier 3: trying cached location before timezone fallback..." "INFO"
-            local cached_location
-            if cached_location=$(load_cached_location); then
-                apply_location_config "$cached_location"
-                local latitude=$(echo "$cached_location" | jq -r '.latitude' 2>/dev/null)
-                local longitude=$(echo "$cached_location" | jq -r '.longitude' 2>/dev/null)
-                local coordinates="$latitude,$longitude"
-                export_location_data "$coordinates" "cached_location" "CACHED_DATA"
-                echo "$coordinates"
-                debug_log "local_gps using cached location: $coordinates" "INFO"
-                return 0
-            fi
-
             debug_log "Local GPS, IP geolocation, and cache all failed — using timezone fallback..." "WARN"
 
             # Timezone fallback using shared function (Issue #106)
@@ -601,6 +610,12 @@ get_location_coordinates() {
         "ip_based")
             # Legacy IP-based detection mode
             debug_log "IP-based location detection mode enabled" "INFO"
+
+            # Cache-first (Issue #416): a fresh cached location skips the network
+            if use_cached_coordinates; then
+                debug_log "ip_based served coordinates from fresh cache (no network)" "INFO"
+                return 0
+            fi
 
             # Try IP geolocation first
             if check_internet_connection; then
@@ -650,9 +665,15 @@ get_location_coordinates() {
                 debug_log "Tier 1 failed: Local GPS unsuccessful" "WARN"
             fi
 
-            # Tier 2: Try IP geolocation (Network Fallback)
+            # Tier 2: Cached location — cache-first, avoids a network round-trip (Issue #416)
+            if use_cached_coordinates; then
+                debug_log "Tier 2: served coordinates from fresh cache (no network)" "INFO"
+                return 0
+            fi
+
+            # Tier 3: Try IP geolocation (Network Fallback)
             if check_internet_connection; then
-                debug_log "Tier 2: Attempting IP geolocation..." "INFO"
+                debug_log "Tier 3: Attempting IP geolocation..." "INFO"
                 local location_data
                 if location_data=$(get_ip_location); then
                     # Cache the successful location data
@@ -670,29 +691,10 @@ get_location_coordinates() {
                     debug_log "IP geolocation successful: $coordinates" "INFO"
                     return 0
                 else
-                    debug_log "Tier 2 failed: IP geolocation unsuccessful" "WARN"
+                    debug_log "Tier 3 failed: IP geolocation unsuccessful" "WARN"
                 fi
             else
-                debug_log "Tier 2 skipped: No internet connection" "INFO"
-            fi
-
-            # Tier 3: Try cached location data
-            debug_log "Tier 3: Attempting to load cached location..." "INFO"
-            local cached_location
-            if cached_location=$(load_cached_location); then
-                # Apply cached data to configuration
-                apply_location_config "$cached_location"
-
-                # Extract and return coordinates
-                local latitude=$(echo "$cached_location" | jq -r '.latitude' 2>/dev/null)
-                local longitude=$(echo "$cached_location" | jq -r '.longitude' 2>/dev/null)
-                local coordinates="$latitude,$longitude"
-                export_location_data "$coordinates" "cached_location" "CACHED_DATA"
-                echo "$coordinates"
-                debug_log "Using cached location: $coordinates" "INFO"
-                return 0
-            else
-                debug_log "Tier 3 failed: No valid cached location" "WARN"
+                debug_log "Tier 3 skipped: No internet connection" "INFO"
             fi
 
             # Tier 4: Timezone-based geographic estimation (Ultimate Fallback)

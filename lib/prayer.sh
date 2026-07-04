@@ -197,12 +197,18 @@ test_prayer_modules() {
 }
 
 # ============================================================================
-# AUTOMATIC INITIALIZATION
+# INITIALIZATION (lazy — Issue #416)
 # ============================================================================
-
-# Auto-initialize if not in test mode
-if [[ "${STATUSLINE_TESTING:-}" != "true" ]]; then
-    initialize_prayer_system
-fi
+#
+# The module intentionally does NOT initialize at source time. Eager init ran
+# before Config.toml was loaded (statusline.sh sources this module at :157 but
+# calls load_configuration at :204), so prayer detection fired with the default
+# feature flag still in effect — performing an IP-geolocation network call on
+# every render even when `features.show_prayer_times = false`.
+#
+# Initialization is now driven lazily by the public API (get_prayer_display /
+# get_compact_prayer_display / get_prayer_status_summary), which run after
+# configuration is loaded and only when the prayer component is actually
+# rendered. This keeps the disabled/not-displayed case at zero network cost.
 
 debug_log "Modular prayer module loaded successfully - Reduced from 1,536 to ~100 lines" "INFO"
