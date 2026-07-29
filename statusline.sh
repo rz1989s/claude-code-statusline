@@ -4,6 +4,29 @@
 # Bash Compatibility Check and Auto-Upgrade
 # ============================================================================
 
+# Minimal, bash-3-safe fallback line. Used only when no bash 4+ is found,
+# since the module pipeline uses associative arrays throughout and aborts
+# on the first `declare -A` under `set -euo pipefail`.
+_render_bash3_fallback_statusline() {
+    local input current_dir model_name
+    input=$(cat)
+    if command -v jq &>/dev/null; then
+        current_dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // empty' 2>/dev/null)
+        model_name=$(printf '%s' "$input" | jq -r '.model.display_name // .model // empty' 2>/dev/null)
+    fi
+    current_dir="${current_dir:-$PWD}"
+    model_name="${model_name:-Claude}"
+
+    local branch=""
+    if git -C "$current_dir" rev-parse --is-inside-work-tree &>/dev/null; then
+        branch=$(git -C "$current_dir" branch --show-current 2>/dev/null)
+    fi
+
+    local line="$model_name │ ${current_dir/#$HOME/~}"
+    [[ -n "$branch" ]] && line="$line ($branch)"
+    echo "$line"
+}
+
 # Wrapped in function to satisfy ShellCheck SC2168 (local only valid in functions)
 _upgrade_bash_if_needed() {
     # Check if we need modern bash for associative arrays (bash 4.0+)
@@ -29,8 +52,9 @@ _upgrade_bash_if_needed() {
         fi
     done
 
-    # If no modern bash found, warn but continue with degraded functionality
-    echo "WARNING: Bash ${BASH_VERSION} detected. Advanced caching features disabled." >&2
+    # No modern bash found — don't fall through into the bash4-only
+    # pipeline, render the fallback instead.
+    echo "WARNING: Bash ${BASH_VERSION} detected. Falling back to minimal statusline." >&2
 
     # Platform-specific installation suggestion
     if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -38,7 +62,9 @@ _upgrade_bash_if_needed() {
     else
         echo "For full functionality, install bash 4+: sudo apt install bash (or equivalent)" >&2
     fi
-    export STATUSLINE_COMPATIBILITY_MODE=true
+
+    _render_bash3_fallback_statusline
+    exit 0
 }
 _upgrade_bash_if_needed "$@"
 
