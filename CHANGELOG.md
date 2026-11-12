@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Claude 5.x pricing**: `claude-opus-5-5`, `claude-opus-5`, `claude-fable-5-2`, `claude-fable-5-1`, `claude-sonnet-5-5`, `claude-haiku-5-5`, and the Mythos 5.x IDs had no entry in the awk pricing block and fell back to the Sonnet default ($3/$15). In the case statement, `claude-fable-5-*` also matched `claude-fable-5-1`/`claude-fable-5-2`, billing them as Fable 5 (wrong input/output rates and a 4-5x overstated cache-read rate). Added each model to both the case statement (point releases ordered before their family wildcard) and the awk block, using rates from the official pricing page, including the reduced cache-read multipliers (0.025x on Fable/Mythos 5.2 and 5.1, 0.05x on Opus 5.5 and Sonnet 5.5). Haiku 5.5 uses its <=100K-token prompt tier; the >100K tier is not modeled.
+- **Sonnet 5 pricing**: Anthropic made the $2/$10 introductory price standard and cancelled the scheduled 2026-09-01 move to $3/$15. Removed the date-aware switch, which had been over-counting Sonnet 5 by 50% since September 1.
+
 ## [2.27.1] - 2026-07-04
 
 ### Changed

@@ -60,50 +60,95 @@ _col() {
 }
 
 # ============================================================================
-# SONNET 5 — date-aware promotional pricing (released CC v2.1.197, now the
-# default model; native 1M context).
-#   • Promo    $2/$10  through 2026-08-31  (epoch <  1788220800)
-#   • Standard $3/$15  from   2026-09-01   (epoch >= 1788220800, == default)
-# Tests pin "now" via STATUSLINE_PRICING_NOW_EPOCH so they stay valid across
-# the promo boundary (a test relying on real time would flip after Aug 31).
+# FABLE 5.2 / 5.1 and MYTHOS — point releases must not fall into the
+# `claude-fable-5-*` wildcard (which would bill them as Fable 5)
 # ============================================================================
 
-@test "Sonnet 5 bare ID returns promo pricing during promo window" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1767225600   # 2026-01-01, mid-promo
+@test "Fable 5.2 bare ID returns \$8/\$40 with 0.025x cache reads" {
+    run get_model_pricing "claude-fable-5-2"
+    [[ "$output" == "8.00 40.00 10.00 16.00 0.20" ]]
+}
+
+@test "Fable 5.1 bare ID returns \$10/\$50 with 0.025x cache reads" {
+    run get_model_pricing "claude-fable-5-1"
+    [[ "$output" == "10.00 50.00 12.50 20.00 0.25" ]]
+}
+
+@test "Fable 5.2 / 5.1 are not swallowed by the Fable 5 wildcard" {
+    run get_model_pricing "claude-fable-5-2"
+    [[ "$output" != "10.00 50.00 12.50 20.00 1.00" ]]
+    run get_model_pricing "claude-fable-5-1"
+    [[ "$output" != "10.00 50.00 12.50 20.00 1.00" ]]
+}
+
+@test "Mythos 5.2 / 5.1 / 5 match their Fable counterparts" {
+    run get_model_pricing "claude-mythos-5-2"
+    [[ "$output" == "8.00 40.00 10.00 16.00 0.20" ]]
+    run get_model_pricing "claude-mythos-5-1"
+    [[ "$output" == "10.00 50.00 12.50 20.00 0.25" ]]
+    run get_model_pricing "claude-mythos-5"
+    [[ "$output" == "10.00 50.00 12.50 20.00 1.00" ]]
+}
+
+# ============================================================================
+# OPUS 5.5 - $4 / $20, cache reads 0.05x; OPUS 5 - $5 / $25
+# ============================================================================
+
+@test "Opus 5.5 bare ID returns \$4/\$20 with 0.05x cache reads" {
+    run get_model_pricing "claude-opus-5-5"
+    [[ "$output" == "4.00 20.00 5.00 8.00 0.20" ]]
+}
+
+@test "Opus 5 bare ID returns \$5/\$25" {
+    run get_model_pricing "claude-opus-5"
+    [[ "$output" == "5.00 25.00 6.25 10.00 0.50" ]]
+}
+
+@test "Opus 5.5 is not swallowed by the Opus 5 wildcard" {
+    run get_model_pricing "claude-opus-5-5"
+    [[ "$output" != "5.00 25.00 6.25 10.00 0.50" ]]
+}
+
+# ============================================================================
+# SONNET 5.5 - $2 / $10, cache reads 0.05x
+# SONNET 5   - $2 / $10. Launched as introductory pricing through 2026-08-31;
+#              Anthropic made it the standard price and cancelled the
+#              scheduled move to $3/$15.
+# ============================================================================
+
+@test "Sonnet 5.5 bare ID returns \$2/\$10 with 0.05x cache reads" {
+    run get_model_pricing "claude-sonnet-5-5"
+    [[ "$output" == "2.00 10.00 2.50 4.00 0.10" ]]
+}
+
+@test "Sonnet 5 bare ID returns \$2/\$10" {
     run get_model_pricing "claude-sonnet-5"
     [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
 }
 
-@test "Sonnet 5 wildcard dated ID returns promo pricing during promo window" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+@test "Sonnet 5 wildcard dated ID returns \$2/\$10" {
     run get_model_pricing "claude-sonnet-5-20260630"
     [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
 }
 
-@test "Sonnet 5 promo pricing holds one second before promo end" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1788220799   # 2026-08-31 23:59:59 UTC
+@test "Sonnet 5 stays at \$2/\$10 after 2026-09-01 (price increase cancelled)" {
+    export STATUSLINE_PRICING_NOW_EPOCH=1793000000   # 2026-10-26
     run get_model_pricing "claude-sonnet-5"
     [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
 }
 
-@test "Sonnet 5 reverts to standard \$3/\$15 exactly at promo end (2026-09-01)" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1788220800   # 2026-09-01 00:00:00 UTC
-    run get_model_pricing "claude-sonnet-5"
-    [[ "$output" == "3.00 15.00 3.75 6.00 0.30" ]]
+@test "Sonnet 5.5 is not swallowed by the Sonnet 5 wildcard" {
+    run get_model_pricing "claude-sonnet-5-5"
+    [[ "$output" != "2.00 10.00 2.50 4.00 0.20" ]]
 }
 
-@test "Sonnet 5 stays at standard \$3/\$15 well after promo end" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1793000000   # 2026-10-26, post-promo
-    run get_model_pricing "claude-sonnet-5"
-    [[ "$output" == "3.00 15.00 3.75 6.00 0.30" ]]
-}
+# ============================================================================
+# HAIKU 5.5 - $0.10 / $0.50 (<=100K-token prompt tier)
+# ============================================================================
 
-@test "Sonnet 5 promo is a distinct tier (not the bare-ID→default \$3/\$15)" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
-    run get_model_pricing "claude-sonnet-5"
-    # during the promo the rate must NOT collapse to the Sonnet default
-    [[ "$output" != "3.00 15.00 3.75 6.00 0.30" ]]
-    [[ "$output" == "2.00 10.00 2.50 4.00 0.20" ]]
+@test "Haiku 5.5 bare ID returns <=100K-tier pricing" {
+    run get_model_pricing "claude-haiku-5-5"
+    [[ "$output" == "0.10 0.50 0.125 0.20 0.01" ]]
 }
 
 # ============================================================================
@@ -349,16 +394,29 @@ _col() {
     [[ "$output" == *'p["claude-sonnet-5"]'* ]]
 }
 
-@test "awk pricing block prices Sonnet 5 at promo rate during promo window" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1767225600
+@test "awk pricing block prices Sonnet 5 at \$2/\$10" {
     run get_awk_pricing_block
     [[ "$output" == *'p["claude-sonnet-5"]'*'"2.00 10.00 2.50 4.00 0.20"'* ]]
 }
 
-@test "awk pricing block prices Sonnet 5 at standard rate after promo end" {
-    export STATUSLINE_PRICING_NOW_EPOCH=1793000000
+@test "awk pricing block contains every 5.x bare ID" {
     run get_awk_pricing_block
-    [[ "$output" == *'p["claude-sonnet-5"]'*'"3.00 15.00 3.75 6.00 0.30"'* ]]
+    local id
+    for id in claude-fable-5-2 claude-fable-5-1 claude-mythos-5-2 claude-mythos-5-1 \
+              claude-mythos-5 claude-opus-5-5 claude-opus-5 claude-sonnet-5-5 claude-haiku-5-5; do
+        [[ "$output" == *"p[\"$id\"]"* ]] || { echo "missing $id"; return 1; }
+    done
+}
+
+@test "awk pricing block agrees with get_model_pricing for 5.x bare IDs" {
+    local block id
+    block=$(get_awk_pricing_block)
+    for id in claude-fable-5-2 claude-fable-5-1 claude-fable-5 claude-opus-5-5 claude-opus-5 \
+              claude-sonnet-5-5 claude-sonnet-5 claude-haiku-5-5; do
+        local awk_val
+        awk_val=$(awk "BEGIN { $block; print p[\"$id\"] }")
+        [[ "$awk_val" == "$(get_model_pricing "$id")" ]] || { echo "$id: $awk_val"; return 1; }
+    done
 }
 
 @test "awk pricing block contains Opus 4.8 bare ID" {

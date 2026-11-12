@@ -14,10 +14,16 @@
 # Cache pricing multipliers (per official docs):
 #   - cache_write_5m: 1.25x input price (5-minute TTL)
 #   - cache_write_1h: 2.00x input price (1-hour TTL)
-#   - cache_read:     0.10x input price
+#   - cache_read:     0.10x input price, EXCEPT:
+#       0.025x on Fable 5.2 / 5.1 and Mythos 5.2 / 5.1
+#       0.05x  on Opus 5.5 and Sonnet 5.5
 #
 # Not modeled (invisible in JSONL or not yet applicable):
-#   - Fast mode: premium pricing (research preview) — Opus 4.6/4.7 6x, Opus 4.8 2x ($10/$50)
+#   - Fast mode: premium pricing (research preview) — Opus 4.6/4.7 6x,
+#     Opus 4.8 / Opus 5 2x ($10/$50), Opus 5.5 2x ($8/$40)
+#   - Haiku 5.5 long-prompt tier: requests whose prompt (input + cache reads +
+#     cache writes) exceeds 100K tokens are billed 5x ($0.50/$2.50). Rates
+#     below are the <=100K tier.
 #   - Data residency: 1.1x multiplier on Opus 4.6+ US-only inference
 #   - Batch API: 0.5x discount (CC sessions aren't batch)
 #
@@ -41,31 +47,66 @@ get_model_pricing() {
 
     case "$model" in
         # ---------------------------------------------------------------
-        # Fable 5 — $10 / $50 (top tier, 2x Opus; released CC v2.1.170)
+        # Specific 5.x point releases MUST precede their family's base
+        # pattern: `claude-fable-5-*` would otherwise swallow `claude-fable-5-2`.
         # ---------------------------------------------------------------
-        claude-fable-5|claude-fable-5-*)
+
+        # ---------------------------------------------------------------
+        # Fable 5.2 / Mythos 5.2 — $8 / $40, cache reads 0.025x ($0.20)
+        # ---------------------------------------------------------------
+        claude-fable-5-2|claude-fable-5-2-*|claude-mythos-5-2|claude-mythos-5-2-*)
+            echo "8.00 40.00 10.00 16.00 0.20"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Fable 5.1 / Mythos 5.1 — $10 / $50, cache reads 0.025x ($0.25)
+        # ---------------------------------------------------------------
+        claude-fable-5-1|claude-fable-5-1-*|claude-mythos-5-1|claude-mythos-5-1-*)
+            echo "10.00 50.00 12.50 20.00 0.25"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Fable 5 / Mythos 5 — $10 / $50 (released CC v2.1.170)
+        # ---------------------------------------------------------------
+        claude-fable-5|claude-fable-5-*|claude-mythos-5|claude-mythos-5-*)
             echo "10.00 50.00 12.50 20.00 1.00"
             ;;
 
         # ---------------------------------------------------------------
-        # Sonnet 5 — date-aware promotional pricing (released CC v2.1.197,
-        # now the DEFAULT model; native 1M context).
-        #   • Promo    $2 / $10   through 2026-08-31  (epoch <  1788220800)
-        #   • Standard $3 / $15   from   2026-09-01   (epoch >= 1788220800)
-        # 1788220800 = 2026-09-01 00:00:00 UTC. The standard tier equals the
-        # default fallback, so the promo is the only reason this block exists;
-        # after 2026-08-31 it may be simplified to a plain $3/$15 (or removed).
-        # This is the single source of truth for the transition — the awk
-        # pricing block below re-uses it so both code paths flip together.
-        # STATUSLINE_PRICING_NOW_EPOCH overrides "now" (testing only).
+        # Opus 5.5 — $4 / $20, cache reads 0.05x ($0.20)
+        # ---------------------------------------------------------------
+        claude-opus-5-5|claude-opus-5-5-*)
+            echo "4.00 20.00 5.00 8.00 0.20"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Opus 5 — $5 / $25
+        # ---------------------------------------------------------------
+        claude-opus-5|claude-opus-5-*)
+            echo "5.00 25.00 6.25 10.00 0.50"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Sonnet 5.5 — $2 / $10, cache reads 0.05x ($0.10)
+        # ---------------------------------------------------------------
+        claude-sonnet-5-5|claude-sonnet-5-5-*)
+            echo "2.00 10.00 2.50 4.00 0.10"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Sonnet 5 — $2 / $10 (released CC v2.1.197). Launched as an
+        # introductory price through 2026-08-31; Anthropic later made it the
+        # standard price and cancelled the scheduled move to $3/$15.
         # ---------------------------------------------------------------
         claude-sonnet-5|claude-sonnet-5-*)
-            local _now="${STATUSLINE_PRICING_NOW_EPOCH:-$(date +%s)}"
-            if [[ "$_now" -lt 1788220800 ]]; then
-                echo "2.00 10.00 2.50 4.00 0.20"
-            else
-                echo "3.00 15.00 3.75 6.00 0.30"
-            fi
+            echo "2.00 10.00 2.50 4.00 0.20"
+            ;;
+
+        # ---------------------------------------------------------------
+        # Haiku 5.5 — $0.10 / $0.50 (<=100K-token prompts; see header)
+        # ---------------------------------------------------------------
+        claude-haiku-5-5|claude-haiku-5-5-*)
+            echo "0.10 0.50 0.125 0.20 0.01"
             ;;
 
         # ---------------------------------------------------------------
@@ -126,8 +167,25 @@ get_model_pricing() {
 # Values are 5 space-separated columns matching get_model_pricing.
 get_awk_pricing_block() {
     cat <<'EOF'
-        # Fable 5 - $10/$50 (top tier, 2x Opus)
+        # Fable 5.2 / Mythos 5.2 - $8/$40, cache reads 0.025x
+        p["claude-fable-5-2"]              = "8.00 40.00 10.00 16.00 0.20"
+        p["claude-mythos-5-2"]             = "8.00 40.00 10.00 16.00 0.20"
+        # Fable 5.1 / Mythos 5.1 - $10/$50, cache reads 0.025x
+        p["claude-fable-5-1"]              = "10.00 50.00 12.50 20.00 0.25"
+        p["claude-mythos-5-1"]             = "10.00 50.00 12.50 20.00 0.25"
+        # Fable 5 / Mythos 5 - $10/$50
         p["claude-fable-5"]                = "10.00 50.00 12.50 20.00 1.00"
+        p["claude-mythos-5"]               = "10.00 50.00 12.50 20.00 1.00"
+        # Opus 5.5 - $4/$20, cache reads 0.05x
+        p["claude-opus-5-5"]               = "4.00 20.00 5.00 8.00 0.20"
+        # Opus 5 - $5/$25
+        p["claude-opus-5"]                 = "5.00 25.00 6.25 10.00 0.50"
+        # Sonnet 5.5 - $2/$10, cache reads 0.05x
+        p["claude-sonnet-5-5"]             = "2.00 10.00 2.50 4.00 0.10"
+        # Sonnet 5 - $2/$10
+        p["claude-sonnet-5"]               = "2.00 10.00 2.50 4.00 0.20"
+        # Haiku 5.5 - $0.10/$0.50 (<=100K-token prompt tier)
+        p["claude-haiku-5-5"]              = "0.10 0.50 0.125 0.20 0.01"
         # Opus 4.8 / 4.7 / 4.6 / 4.5 - $5/$25
         p["claude-opus-4-8"]               = "5.00 25.00 6.25 10.00 0.50"
         p["claude-opus-4-7"]               = "5.00 25.00 6.25 10.00 0.50"
@@ -162,10 +220,6 @@ get_awk_pricing_block() {
         # Default fallback (Sonnet pricing)
         p["default"]                       = "3.00 15.00 3.75 6.00 0.30"
 EOF
-    # Sonnet 5 - date-aware promo price ($2/$10 through 2026-08-31, then
-    # $3/$15). Single-sourced from get_model_pricing so the promo->standard
-    # transition (2026-09-01) happens in exactly one place (see case block).
-    printf '        %-35s= "%s"\n' 'p["claude-sonnet-5"]' "$(get_model_pricing claude-sonnet-5)"
 }
 
 # Generate awk de-duplication guard for embedding in cost-calculation awk scripts.
